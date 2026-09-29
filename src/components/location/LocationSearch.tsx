@@ -240,7 +240,7 @@ export function LocationSearch() {
           onMouseDown={(e) => {
             if (!(e.target instanceof HTMLInputElement)) e.preventDefault();
           }}
-          className="absolute inset-x-0 top-full z-40 mt-2 max-h-[min(28rem,70dvh)] overflow-y-auto rounded-3xl border border-white/15 bg-[#0f1725]/85 p-2 shadow-2xl backdrop-blur-2xl"
+          className="absolute inset-x-0 top-full z-40 mt-2 max-h-[min(28rem,70dvh)] overflow-y-auto rounded-2xl border border-white/15 bg-popover/90 p-1.5 shadow-2xl backdrop-blur-2xl"
         >
           {searching ? (
             <>
@@ -256,7 +256,7 @@ export function LocationSearch() {
                     aria-selected={i === active}
                     onClick={() => go(p)}
                     onMouseEnter={() => setActive(i)}
-                    className={`cursor-pointer rounded-2xl px-3 py-2.5 ${i === active ? "bg-white/12" : ""}`}
+                    className={`cursor-pointer rounded-xl px-3 py-2.5 ${i === active ? "bg-white/12" : ""}`}
                   >
                     <span className="block font-medium">{p.name}</span>
                     <span className="block text-sm text-ink-muted">{placeSubtitle(p)}</span>
@@ -270,7 +270,7 @@ export function LocationSearch() {
                 type="button"
                 onClick={locateMe}
                 disabled={locate.status === "locating"}
-                className="flex items-center gap-3 rounded-2xl px-3 py-3 text-left text-[0.9375rem] font-medium hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"
+                className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9375rem] font-medium hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"
               >
                 <LocateIcon className="size-5" />
                 {locate.status === "locating" ? "Ti sto localizzando…" : "Usa la mia posizione"}
@@ -299,7 +299,7 @@ export function LocationSearch() {
                   {saved.map((p) => {
                     const current = samePlace(p, place);
                     return (
-                      <li key={`${p.lat},${p.lon}`} className="flex items-center rounded-2xl hover:bg-white/10">
+                      <li key={`${p.lat},${p.lon}`} className="flex items-center rounded-xl hover:bg-white/10">
                         <button
                           type="button"
                           onClick={() => go(p)}

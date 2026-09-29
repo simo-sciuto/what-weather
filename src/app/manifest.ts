@@ -10,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
     // The splash screen opens on the night sky the page overscrolls into, not a cream flash.
-    background_color: "#0d0b24",
-    theme_color: "#0d0b24",
+    background_color: "#0c0f25",
+    theme_color: "#0c0f25",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

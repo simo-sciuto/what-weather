@@ -17,7 +17,7 @@ export function PrecipitationTimeline({ outlook, className }: { outlook: PrecipO
       note={measure === "probability" ? "Probabilità di precipitazioni" : minutes ? "Prossima ora · intensità" : "Prossime ore · intensità"}
       className={className}
     >
-      <p className="font-display text-[1.625rem] leading-tight lg:text-[2rem]">
+      <p className="font-display text-[1.5rem] leading-tight lg:text-[1.625rem]">
         {headline}
       </p>
 

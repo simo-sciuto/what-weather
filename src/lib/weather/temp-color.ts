@@ -1,17 +1,18 @@
 /**
- * Temperature as colour, on an absolute scale: 25° is the same peach in any
+ * Temperature as colour, on an absolute scale: 25° is the same warm tint in any
  * week and any place, so a glance at the bars says "warm" before the numbers.
- * Acid pastels: lilac cold, aqua, mint, lemon mild, peach warm, hot pink.
+ * The page's pastels, at one lightness so no step shouts: lilac cold,
+ * periwinkle, aqua, sage, butter mild, apricot warm, rose hot.
  */
 
 const STOPS: [number, [number, number, number]][] = [
-  [-10, [185, 168, 255]],
-  [0, [143, 216, 255]],
-  [10, [143, 255, 208]],
-  [17, [230, 255, 143]],
-  [23, [255, 224, 138]],
-  [29, [255, 171, 143]],
-  [36, [255, 143, 200]],
+  [-10, [211, 190, 250]],
+  [0, [191, 203, 254]],
+  [10, [156, 224, 247]],
+  [17, [165, 233, 202]],
+  [23, [249, 232, 167]],
+  [29, [254, 200, 156]],
+  [36, [254, 184, 193]],
 ];
 
 export function tempColor(t: number): string {

@@ -94,7 +94,7 @@ export function TimeScrubber() {
 
   if (!g) {
     return (
-      <div className="glass card on-sky py-4!">
+      <div className="sheet on-sky">
         <p className="label">{title}</p>
         <p className="mt-2 text-sm text-ink-muted">
           Così avanti non ci sono previsioni ora per ora: questa è la sintesi della giornata.
@@ -129,7 +129,7 @@ export function TimeScrubber() {
   const selectedY = yOf(frame.temp);
 
   return (
-    <div className="glass card on-sky py-4! has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-accent">
+    <div className="sheet on-sky rounded-sm has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-4 has-[input:focus-visible]:outline-accent">
       <div className="flex items-baseline justify-between gap-4">
         <p className="label">{title}</p>
         {isLive ? (

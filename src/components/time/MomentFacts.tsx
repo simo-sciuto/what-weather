@@ -35,7 +35,7 @@ export function MomentFacts({ on }: { on: "phone" | "desktop" }) {
       {facts.map((f) => (
         <div key={f.label} className="px-4 first:pl-0">
           <dt className="label">{f.label}</dt>
-          <dd className="mt-1 text-lg tabular-nums">{f.value}</dd>
+          <dd className="mt-1 font-display text-lg tabular-nums">{f.value}</dd>
         </div>
       ))}
     </dl>

@@ -96,7 +96,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               Desktop: pinned at the screen's height beside the whole right column, a poster of the
               place: the reading takes the full height and scales to it (see .hero-fit).
             */}
-              <div className="relative z-0 before:pointer-events-none before:absolute before:-inset-x-[30vw] before:-inset-y-24 before:-z-1 before:bg-[radial-gradient(ellipse_38rem_30rem_at_50%_55%,color-mix(in_oklab,var(--sky-1)_78%,transparent)_0%,color-mix(in_oklab,var(--sky-1)_45%,transparent)_50%,transparent_100%)] lg:sticky lg:top-0 lg:col-span-5 lg:col-start-1 lg:row-span-3 lg:row-start-1 lg:flex xl:col-span-6 lg:h-dvh lg:flex-col lg:gap-[3vh] lg:py-[3.5vh]">
+              <div className="relative z-0 before:pointer-events-none before:absolute before:-inset-x-[30vw] before:-inset-y-24 before:-z-1 before:bg-[radial-gradient(ellipse_30rem_22rem_at_50%_55%,color-mix(in_oklab,var(--sky-1)_40%,transparent)_0%,color-mix(in_oklab,var(--sky-1)_20%,transparent)_50%,transparent_100%)] lg:sticky lg:top-0 lg:col-span-5 lg:col-start-1 lg:row-span-3 lg:row-start-1 lg:flex xl:col-span-6 lg:h-dvh lg:flex-col lg:gap-[3vh] lg:py-[3.5vh]">
                 <div className="flex flex-col gap-7 pb-6 pt-6 lg:min-h-0 lg:flex-1 lg:gap-[3vh] lg:py-0">
                   <div className="hero-fit">
                     <WeatherHero
@@ -113,11 +113,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               </div>
 
               {/* The hours ahead: under the reading on a phone, at the top of the right column on a computer */}
-              <div className="pb-10 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
+              <div className="data-col pb-10 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
                 <TimeScrubber />
               </div>
 
-              <div className="relative flex flex-col gap-10 pb-[max(2.5rem,env(safe-area-inset-bottom))] lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pt-8 xl:col-span-6 xl:col-start-7">
+              <div className="data-col relative flex flex-col gap-14 pb-[max(2.5rem,env(safe-area-inset-bottom))] lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pt-8 xl:col-span-6 xl:col-start-7">
                 {/*
                   The city's map, fixed behind the whole screen like the sky: it
                   stays put while the page scrolls over it, with the city pinned
@@ -125,12 +125,12 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   back under the reading. Only the city's coloured lines are drawn; the sky shows
                   between them.
                 */}
-                <MapBackdropGL className="backdrop-fade pointer-events-none fixed inset-0 -z-1 opacity-55" />
+                <MapBackdropGL className="backdrop-fade pointer-events-none fixed inset-0 -z-1" />
                 {/* On a computer the moment's quick facts lead this column (on a phone they sit under the reading) */}
                 <MomentFacts on="desktop" />
 
                 {urgent && (
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-8">
                     <WeatherAlerts alerts={data.alerts} now={data.current.time} timezone={data.timezone} />
                     {precip?.urgent && precipSection}
                     <PromotedDetails data={data} modules={modules} />
@@ -215,6 +215,16 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   </p>
                 </footer>
               </div>
+
+              {/*
+                Desktop: a veil of the sky behind the whole right column, over the map and under
+                the data, so the numbers read cleanly while the city stays bright beside the name.
+                Last in the markup, so it paints above the map (same layer, later in order).
+              */}
+              <div
+                aria-hidden="true"
+                className="data-veil pointer-events-none relative -z-1 hidden lg:col-span-7 lg:col-start-6 lg:row-span-3 lg:row-start-1 lg:block xl:col-span-6 xl:col-start-7"
+              />
             </div>
           </AtmosphereMain>
         </MapProvider>

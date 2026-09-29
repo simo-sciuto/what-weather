@@ -30,8 +30,8 @@ export function DaySelect({
         selectDay(dayKey);
         if (window.matchMedia("(width < 64rem)").matches) window.scrollTo({ top: 0, behavior: "smooth" });
       }}
-      className={`w-full rounded-2xl text-left transition-colors hover:bg-white/8 focus-visible:outline-2 focus-visible:outline-accent ${
-        selected ? "bg-white/15 ring-1 ring-white/25" : ""
+      className={`w-full rounded-lg text-left transition-colors hover:bg-white/8 focus-visible:outline-2 focus-visible:outline-accent ${
+        selected ? "bg-white/12 shadow-[inset_2px_0_0_var(--accent)]" : ""
       } ${className ?? ""}`}
     >
       {children}

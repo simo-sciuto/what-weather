@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Inter_Tight, Newsreader } from "next/font/google";
+import { Geist, Inter_Tight } from "next/font/google";
 import "./globals.css";
 
 /** One family, many weights: from the hairline temperature to bold labels. */
@@ -12,12 +12,6 @@ const sans = Geist({
 const poster = Inter_Tight({
   variable: "--font-inter-tight",
   subsets: ["latin", "latin-ext"],
-});
-
-/** The second voice: the forecast told in words reads like a line of prose, not a label. */
-const serif = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -39,13 +33,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0d0b24",
+  themeColor: "#0c0f25",
   colorScheme: "dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="it" className={`${sans.variable} ${serif.variable} ${poster.variable} h-full antialiased`}>
+    <html lang="it" className={`${sans.variable} ${poster.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

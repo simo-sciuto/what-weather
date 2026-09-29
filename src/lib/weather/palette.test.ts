@@ -43,10 +43,34 @@ describe("skyPalette", () => {
     expect(failures).toEqual([]);
   });
 
+  it("draws the map's roads clearly against the sky at every hour", () => {
+    // The share of a line that shows away from the city (MAP_FADE), and the contrast each layer is set to reach
+    const fade = 0.5;
+    const targets = { streets: 1.5, "main-roads": 1.9, motorways: 2.2 } as const;
+    const failures = cases.flatMap(({ state, cloudCover, light }) => {
+      const p = skyPalette({ state, cloudCover, light });
+      const sky = rgb(p.sky2);
+      return Object.entries(targets)
+        .filter(([layer, target]) => {
+          const { color, opacity } = p.map[layer as keyof typeof targets];
+          const seen = sky.map((v, i) => v + (rgb(color)[i] - v) * opacity * fade);
+          return contrast(seen, sky) < target - 0.01;
+        })
+        .map(([layer]) => `${state} cover ${cloudCover} light ${light.toFixed(2)} ${layer}`);
+    });
+    expect(failures).toEqual([]);
+  });
+
   it("returns well-formed colours", () => {
     for (const { state, cloudCover, light } of cases.filter((_, i) => i % 7 === 0)) {
       const p = skyPalette({ state, cloudCover, light });
-      for (const hex of [p.sky1, p.sky2, p.sky3, p.sun]) expect(hex).toMatch(/^#[0-9a-f]{6}$/);
+      for (const hex of [p.sky1, p.sky2, p.sky3, p.sun, ...Object.values(p.map).map((m) => m.color)]) {
+        expect(hex).toMatch(/^#[0-9a-f]{6}$/);
+      }
+      for (const { opacity } of Object.values(p.map)) {
+        expect(opacity).toBeGreaterThan(0);
+        expect(opacity).toBeLessThanOrEqual(1);
+      }
     }
   });
 });

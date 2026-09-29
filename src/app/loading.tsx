@@ -70,8 +70,8 @@ export default function Loading() {
                 </div>
               ))}
             </div>
-            {/* The timeline card: title, the curve's band, the icons under it */}
-            <div className="glass card mt-7 flex flex-col gap-4">
+            {/* The timeline: title, the curve's band, the icons under it */}
+            <div className="sheet mt-7 flex flex-col gap-4">
               <div className="flex justify-between">
                 <Bar className="h-3 w-24" />
                 <Bar className="h-3 w-28" />

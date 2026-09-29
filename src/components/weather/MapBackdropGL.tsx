@@ -3,6 +3,7 @@
 import type { ExpressionSpecification, FilterSpecification, StyleSpecification } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
+import type { MapLayer } from "@/lib/weather/palette";
 import { useMoment } from "../time/TimeContext";
 import { useMap } from "./MapContext";
 
@@ -58,12 +59,11 @@ const width = (at10: number, at15: number): ExpressionSpecification => [
 ];
 
 /**
- * The map as a drawing: only the city's lines, in the page's acid pastels,
- * and nothing else. No background layer, so the canvas is transparent
+ * The map as a drawing: only the city's lines, and nothing else. No background layer, so the canvas is transparent
  * wherever there is no line and the sky shows through as it is: no blend
  * mode needed (a blended WebGL canvas isn't reliable across browsers), and
- * the colours are exactly these. Aqua water, pink streets, peach main roads,
- * lemon motorways: they stand out against a blue or violet sky.
+ * the colours are exactly as set. These are only the first ones: once drawn,
+ * every layer takes the colours opposite the sky of the moment on show.
  */
 const STYLE: StyleSpecification = {
   version: 8,
@@ -74,14 +74,14 @@ const STYLE: StyleSpecification = {
       type: "fill",
       source: "streets",
       "source-layer": "water",
-      paint: { "fill-color": "#8ff0ff", "fill-opacity": 0.35 },
+      paint: { "fill-color": "#9ce0f7", "fill-opacity": 0.35 },
     },
     {
       id: "waterway",
       type: "line",
       source: "streets",
       "source-layer": "waterway",
-      paint: { "line-color": "#8ff0ff", "line-width": width(0.8, 2.5), "line-opacity": 0.85 },
+      paint: { "line-color": "#9ce0f7", "line-width": width(0.8, 2.5), "line-opacity": 0.85 },
     },
     {
       id: "streets",
@@ -89,7 +89,7 @@ const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "road",
       filter: roads(["street", "street_limited", "tertiary", "tertiary_link", "secondary_link"]),
-      paint: { "line-color": "#ff9ee8", "line-width": width(0.3, 1.6), "line-opacity": 0.7 },
+      paint: { "line-color": "#eebae8", "line-width": width(0.3, 1.6), "line-opacity": 0.7 },
     },
     {
       id: "main-roads",
@@ -97,7 +97,7 @@ const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "road",
       filter: roads(["secondary", "primary", "primary_link", "trunk", "trunk_link"]),
-      paint: { "line-color": "#ffc28f", "line-width": width(0.8, 3), "line-opacity": 0.9 },
+      paint: { "line-color": "#fec89c", "line-width": width(0.8, 3), "line-opacity": 0.9 },
     },
     {
       id: "motorways",
@@ -105,32 +105,19 @@ const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "road",
       filter: roads(["motorway", "motorway_link"]),
-      paint: { "line-color": "#eaff8f", "line-width": width(1.2, 4), "line-opacity": 0.95 },
+      paint: { "line-color": "#f9e8a7", "line-width": width(1.2, 4), "line-opacity": 0.95 },
     },
   ],
 };
 
-/**
- * Line colours by daylight. The pastels read on a deep sky (dawn, dusk,
- * night) but vanish into a bright clear day, so by day the lines take deep
- * tones of the same families: ink blue water, indigo streets, plum main
- * roads, navy motorways. Keyed by layer, then by the paint property.
- */
-const DAY_COLORS: Record<string, [string, string]> = {
-  water: ["fill-color", "#1d4f91"],
-  waterway: ["line-color", "#1d4f91"],
-  streets: ["line-color", "#3d2f86"],
-  "main-roads": ["line-color", "#6a2d7d"],
-  motorways: ["line-color", "#1f2466"],
+/** Whether each layer is a fill or a line: its colour and opacity follow the sky (see mapInks in palette.ts) */
+const KIND: Record<MapLayer, "fill" | "line"> = {
+  water: "fill",
+  waterway: "line",
+  streets: "line",
+  "main-roads": "line",
+  motorways: "line",
 };
-const NIGHT_COLORS = Object.fromEntries(
-  STYLE.layers.map((l) => {
-    const [prop] = DAY_COLORS[l.id];
-    return [l.id, [prop, (l.paint as Record<string, string>)[prop]]];
-  }),
-) as Record<string, [string, string]>;
-/** By day the band shows stronger, too: a bright sky swallows faint lines. */
-const DAY_OPACITY = 0.85;
 
 /**
  * The city behind the top of the page, drawn by Mapbox on the sky as it is.
@@ -142,7 +129,7 @@ const DAY_OPACITY = 0.85;
 export function MapBackdropGL({ className }: { className: string }) {
   const { center, token, loadMapbox } = useMap();
   const { lat, lon } = center;
-  const day = useMoment().frame.phase === "day";
+  const inks = useMoment().look.palette.map;
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("mapbox-gl").Map | null>(null);
   const [failed, setFailed] = useState(!token);
@@ -268,29 +255,27 @@ export function MapBackdropGL({ className }: { className: string }) {
     };
   }, [lat, lon, token, loadMapbox]);
 
-  // Day or night colours, whenever the moment on show crosses sunrise or sunset
+  // The sky's opposite colours, as the moment on show changes
   useEffect(() => {
     const m = mapRef.current;
     if (!m || !shown) return;
-    for (const [id, [prop, color]] of Object.entries(day ? DAY_COLORS : NIGHT_COLORS)) {
-      m.setPaintProperty(id, prop as "line-color", color);
+    for (const layer of Object.keys(KIND) as MapLayer[]) {
+      const kind = KIND[layer];
+      m.setPaintProperty(layer, `${kind}-color` as "line-color", inks[layer].color);
+      m.setPaintProperty(layer, `${kind}-opacity` as "line-opacity", inks[layer].opacity);
     }
-  }, [day, shown]);
+  }, [inks, shown]);
 
   // The map is strongest around the pin; once it's measured, the fade follows it.
   const fade = pin
-    ? `radial-gradient(ellipse 45vw 50vh at ${pin.x}px ${pin.y}px, #000 15%, rgb(0 0 0 / 0.45) 80%)`
+    ? `radial-gradient(ellipse 45vw 50vh at ${pin.x}px ${pin.y}px, #000 15%, rgb(0 0 0 / 0.65) 80%)`
     : undefined;
 
   if (failed) return null;
   return (
     <div
       className={className}
-      style={{
-        ...(fade ? { maskImage: fade, WebkitMaskImage: fade } : {}),
-        ...(day ? { opacity: DAY_OPACITY } : {}),
-        transition: "opacity 0.9s ease",
-      }}
+      style={fade ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
     >
       <div
         aria-hidden="true"

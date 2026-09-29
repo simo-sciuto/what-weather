@@ -22,7 +22,7 @@ export function Almanac({ data, modules }: { data: WeatherData; modules: DetailM
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 py-4 @md:grid-cols-[8rem_minmax(0,1fr)_auto]">
               <h3 className="label col-span-full @md:col-span-1">{c.name}</h3>
               <div className="min-w-0">
-                <p className="text-[1.625rem] font-light tabular-nums tracking-[-0.01em]">{c.value}</p>
+                <p className="font-display text-[1.625rem] font-light tabular-nums tracking-[-0.01em]">{c.value}</p>
                 <p className="mt-0.5 text-sm text-ink-muted">{c.note}</p>
               </div>
               <div aria-hidden="true" className="flex justify-end">

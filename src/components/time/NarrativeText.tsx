@@ -17,7 +17,7 @@ export function NarrativeText({ outlook, className = "" }: { outlook: string; cl
       <h2 id="outlook-label" className="sr-only">
         {heading}
       </h2>
-      <p className="rise-in-late w-full max-w-xl font-poster text-xl leading-snug font-light tracking-[-0.01em] text-pretty lg:text-[2rem] lg:leading-[1.15] lg:font-normal lg:tracking-[-0.02em]">{text}</p>
+      <p className="rise-in-late w-full max-w-xl font-poster text-lg leading-snug font-light tracking-[-0.01em] text-pretty lg:text-[1.5rem] lg:leading-[1.25] lg:font-normal lg:tracking-[-0.02em]">{text}</p>
     </section>
   );
 }

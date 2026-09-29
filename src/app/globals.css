@@ -6,32 +6,46 @@
  * (used while loading); the live ones come from the palette of each moment.
  */
 :root {
-  --sky-1: #1c1946;
-  --sky-2: #2c2a63;
-  --sky-3: #454283;
+  --sky-1: #161b3d;
+  --sky-2: #262a57;
+  --sky-3: #3d3f76;
   /* Solid stand-in for "the colour behind", e.g. icon cut-outs */
   --paper: var(--sky-2);
 
   --ink: #ffffff;
   --ink-muted: rgb(255 255 255 / 0.86);
   --rule: rgb(255 255 255 / 0.16);
-  /* Acid pastels: lemon, aqua, pink, lilac, mint, peach */
-  --accent: #eaff8f;
+  /*
+   * One family of pastels, all at the same lightness and saturation in OKLCH,
+   * so no hue shouts over another: butter, apricot, rose, lilac, periwinkle,
+   * aqua, sage. Butter is the accent, the colour of "now" and of focus.
+   */
+  --butter: #f9e8a7;
+  --apricot: #fec89c;
+  --rose: #feb8c1;
+  --lilac: #d3befa;
+  --periwinkle: #bfcbfe;
+  --aqua: #9ce0f7;
+  --sage: #a5e9ca;
+  --accent: var(--butter);
 
-  /* Panels: a darkening veil plus blur, so white text holds on any sky */
-  --glass: rgb(8 16 30 / 0.4);
+  /* Fields and buttons: a darkening veil of the sky itself, so white text holds on any sky */
+  --glass: rgb(12 15 37 / 0.4);
   --glass-edge: rgb(255 255 255 / 0.14);
   --surface: var(--glass);
+  /* Menus and dialogs float over everything: the night sky, nearly opaque */
+  --popover: color-mix(in oklab, var(--sky-1) 45%, #0c0f25);
 
   /* The light source in the sky, and the "now" marker that echoes it */
-  --glow: rgb(234 255 143 / 0.3);
-  --sun: #eaff8f;
+  --glow: rgb(249 232 167 / 0.3);
+  --sun: var(--butter);
 
   --cloud: rgb(255 255 255 / 0.18);
-  --precip: #8ff0ff;
-  --night-band: rgb(24 10 70 / 0.28);
-  --alert: #ff9eb5;
-  --moon-lit: #fff6d6;
+  --precip: var(--aqua);
+  --night-band: rgb(12 15 37 / 0.3);
+  /* The one warmer, stronger note, kept for official alerts */
+  --alert: #fda296;
+  --moon-lit: #f6eed8;
   --moon-dark: rgb(255 255 255 / 0.1);
 
   color-scheme: dark;
@@ -41,17 +55,17 @@
 @property --sky-1 {
   syntax: "<color>";
   inherits: true;
-  initial-value: #1c1946;
+  initial-value: #161b3d;
 }
 @property --sky-2 {
   syntax: "<color>";
   inherits: true;
-  initial-value: #2c2a63;
+  initial-value: #262a57;
 }
 @property --sky-3 {
   syntax: "<color>";
   inherits: true;
-  initial-value: #454283;
+  initial-value: #3d3f76;
 }
 
 @theme inline {
@@ -62,14 +76,25 @@
   --color-accent: var(--accent);
   --color-precip: var(--precip);
   --color-surface: var(--surface);
+  --color-popover: var(--popover);
+  --color-butter: var(--butter);
+  --color-apricot: var(--apricot);
+  --color-rose: var(--rose);
+  --color-lilac: var(--lilac);
+  --color-periwinkle: var(--periwinkle);
+  --color-aqua: var(--aqua);
+  --color-sage: var(--sage);
   --color-night-band: var(--night-band);
   --color-moon-lit: var(--moon-lit);
   --color-moon-dark: var(--moon-dark);
   --color-alert: var(--alert);
   --font-sans: var(--font-geist-sans);
-  --font-display: var(--font-geist-sans);
-  --font-serif: var(--font-newsreader), Georgia, serif;
+  /*
+   * Two voices only, the reading's: the poster's grotesk for everything set
+   * large (names, numbers, headlines), Geist for the small print.
+   */
   --font-poster: var(--font-inter-tight), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: var(--font-poster);
   /* The poster's small print: the head, the labels, the notes */
   --text-caption: 0.8125rem;
   --text-caption--line-height: 1.35;
@@ -83,7 +108,7 @@
 
 html {
   /* Overscroll shows a deep sky rather than a white flash */
-  background: #0d0b24;
+  background: #0c0f25;
 }
 
 body {
@@ -123,19 +148,20 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Glass panel */
-/* Panel: a tint of the night sky, no blur, so the map behind stays crisp and simply recedes */
+/* Fields and buttons: a tint of the night sky, no blur, so the map behind stays crisp and simply recedes */
 @utility glass {
   background: var(--glass);
   border: 1px solid var(--glass-edge);
 }
-/* Shape of a card; pair with `glass` */
-@utility card {
-  border-radius: 1.5rem;
-  padding: 1.25rem;
-  @variant sm {
-    padding: 1.5rem;
-  }
+
+/*
+ * A block of content, set like a poster's row rather than boxed in a card:
+ * a hairline across the column, then the content straight on the sky. The
+ * rule is the only frame; space does the rest of the separating.
+ */
+@utility sheet {
+  border-top: 1px solid rgb(255 255 255 / 0.3);
+  padding-top: 0.875rem;
 }
 
 /* Small uppercase metadata label */
@@ -170,6 +196,22 @@ body {
     0 0 2px color-mix(in oklab, var(--sky-1) 70%, transparent),
     0 0 10px color-mix(in oklab, var(--sky-1) 80%, transparent),
     0 1px 18px rgb(0 0 0 / 0.2);
+}
+
+/*
+ * On a computer the data column sits over a lighter veil than the reading
+ * needs, so its text holds on a firmer shadow: a tight halo of the sky
+ * around each letter, which the map's lines pass under without crossing it.
+ */
+@media (width >= 64rem) {
+  .data-col .on-sky,
+  .data-col.on-sky {
+    text-shadow:
+      0 0 2px color-mix(in oklab, var(--sky-1) 85%, transparent),
+      0 0 6px color-mix(in oklab, var(--sky-1) 85%, transparent),
+      0 0 16px color-mix(in oklab, var(--sky-1) 70%, transparent),
+      0 1px 20px rgb(0 0 0 / 0.25);
+  }
 }
 
 /* ---------- Sky scene ---------- */
@@ -219,30 +261,30 @@ body {
 /* ---------- Coloured weather icons (WeatherIcon `colored`) ---------- */
 
 .wi-color .wi-sun {
-  stroke: #f9f871;
+  stroke: var(--butter);
   stroke-width: 1.75;
 }
 .wi-color .wi-sun circle {
-  fill: #f9f871;
+  fill: var(--butter);
 }
 .wi-color .wi-moon {
-  fill: #fff6d6;
-  stroke: #fff6d6;
+  fill: var(--moon-lit);
+  stroke: var(--moon-lit);
 }
 .wi-color .wi-cloud {
-  fill: #f1efff;
-  stroke: #f1efff;
+  fill: #eceef9;
+  stroke: #eceef9;
 }
 .wi-color .wi-cloud.wi-wet {
-  fill: #bdb8f0;
-  stroke: #bdb8f0;
+  fill: #b6bcd8;
+  stroke: #b6bcd8;
 }
 .wi-color .wi-drop {
-  stroke: #8ff0ff;
+  stroke: var(--aqua);
   stroke-width: 1.75;
 }
 .wi-color .wi-bolt {
-  stroke: #f9f871;
+  stroke: var(--butter);
   stroke-width: 2;
 }
 .wi-color .wi-flake {
@@ -250,7 +292,7 @@ body {
   stroke: #ffffff;
 }
 .wi-color .wi-mist {
-  stroke: #d9d6f5;
+  stroke: #ced4e5;
   stroke-width: 1.75;
 }
 
@@ -310,23 +352,49 @@ body {
 
 /*
  * The map behind the page: at full strength around the city (see the anchor
- * in MapBackdropGL), at the poster's centre, and held back to 45% under
+ * in MapBackdropGL), at the poster's centre, and held back to 65% under
  * everything else, so it stays part of the sky without competing with the
  * weather.
  */
 .backdrop-fade {
-  mask-image: radial-gradient(ellipse 90% 40% at 50% 35%, #000 15%, rgb(0 0 0 / 0.45) 75%);
+  mask-image: radial-gradient(ellipse 90% 40% at 50% 35%, #000 15%, rgb(0 0 0 / 0.65) 75%);
 }
 @media (width >= 64rem) {
   .backdrop-fade {
-    mask-image: radial-gradient(ellipse 45% 50% at 24% 50%, #000 15%, rgb(0 0 0 / 0.45) 80%);
+    mask-image: radial-gradient(ellipse 45% 50% at 24% 50%, #000 15%, rgb(0 0 0 / 0.65) 80%);
   }
+}
+
+/*
+ * Behind the data column: the top of the sky at 35%, over the map and under
+ * the numbers (the text there gets a firmer shadow instead, see .data-col). It has no edge to see: it rises over a long, eased ramp that
+ * starts well inside the reading's column (an even linear ramp would still
+ * show a line where it ends), and runs on past the page to the window's
+ * right edge (the page clips it).
+ */
+.data-veil::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: -16rem;
+  right: -50vw;
+  background: linear-gradient(
+    90deg,
+    transparent 0,
+    color-mix(in oklab, var(--sky-1) 2%, transparent) 3rem,
+    color-mix(in oklab, var(--sky-1) 8%, transparent) 6rem,
+    color-mix(in oklab, var(--sky-1) 16%, transparent) 9rem,
+    color-mix(in oklab, var(--sky-1) 25%, transparent) 12rem,
+    color-mix(in oklab, var(--sky-1) 31%, transparent) 14.5rem,
+    color-mix(in oklab, var(--sky-1) 35%, transparent) 17rem
+  );
 }
 
 /* ---------- Chapters ---------- */
 
 @layer components {
   .chapter-title {
+    font-family: var(--font-poster);
     font-size: 1.125rem;
     font-weight: 600;
     letter-spacing: -0.01em;
@@ -336,29 +404,29 @@ body {
 /* ---------- Motion (all of it gives way to prefers-reduced-motion) ---------- */
 
 /*
- * Loading placeholders: a band of pastel light sweeps across all of them at
+ * Loading placeholders: a band of pastel light (periwinkle, butter, aqua) sweeps across all of them at
  * once. The gradient is fixed to the viewport, so the separate shapes read
  * as one wave passing over the page rather than each pulsing on its own; a
  * slow breath of opacity keeps them alive between sweeps.
  */
 .skeleton {
-  background-color: rgb(255 255 255 / 0.1);
+  background-color: rgb(255 255 255 / 0.08);
   background-image: linear-gradient(
     100deg,
-    transparent 35%,
-    rgb(214 179 255 / 0.22) 45%,
-    rgb(234 255 143 / 0.28) 50%,
-    rgb(143 240 255 / 0.22) 55%,
-    transparent 65%
+    transparent 30%,
+    rgb(191 203 254 / 0.16) 42%,
+    rgb(249 232 167 / 0.2) 50%,
+    rgb(156 224 247 / 0.16) 58%,
+    transparent 70%
   );
   background-size: 250% 100%;
   background-attachment: fixed;
   background-repeat: no-repeat;
   animation:
-    shimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite,
+    shimmer 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite,
     breathe 3.6s ease-in-out infinite;
 }
-/* Panel-shaped placeholders (the search field, the timeline card) keep their glass under the sweep */
+/* The search field's placeholder keeps its glass under the sweep */
 .skeleton.glass {
   background-color: var(--glass);
 }

@@ -125,13 +125,13 @@ export function StylizedMap({ overlay }: { overlay?: MapOverlay | null }) {
 
   if (failed) {
     return (
-      <p className="flex h-72 items-center justify-center rounded-3xl border border-white/10 px-6 text-center text-sm text-ink-muted">
+      <p className="flex h-72 items-center justify-center rounded-xl border border-white/10 px-6 text-center text-sm text-ink-muted">
         La mappa non è disponibile su questo dispositivo.
       </p>
     );
   }
   return (
-    <div className="relative h-72 overflow-hidden rounded-3xl border border-white/10 bg-[#0d0b24]">
+    <div className="relative h-72 overflow-hidden rounded-xl border border-white/10 bg-[#0c0f25]">
       <div
         role="region"
         aria-label={`Mappa intorno a ${name}, con le nuvole e le precipitazioni previste`}

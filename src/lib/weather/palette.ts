@@ -26,6 +26,14 @@ export interface SkyPalette {
   glow: string;
   sun: string;
   cloud: string;
+  /** The city drawn behind the page, one entry per map layer */
+  map: Record<MapLayer, MapInk>;
+}
+
+export type MapLayer = "water" | "waterway" | "streets" | "main-roads" | "motorways";
+export interface MapInk {
+  color: string;
+  opacity: number;
 }
 
 /* ---------- Colour helpers ---------- */
@@ -92,6 +100,8 @@ function fromOklch([L, C, h]: LCH): RGB {
   }
 }
 
+const whole = (x: RGB) => x.map(Math.round) as RGB;
+
 /**
  * Darken until muted (86% white) text reaches `ratio` against it; full white
  * then clears it too. Lightness goes down in OKLCH with the chroma kept, so a
@@ -100,7 +110,6 @@ function fromOklch([L, C, h]: LCH): RGB {
 function legibleUnderText(c: RGB, ratio: number): RGB {
   // Checked on whole channels, as the colour will be written (#rrggbb): rounding
   // can lighten a colour just past the threshold back under it.
-  const whole = (x: RGB) => x.map(Math.round) as RGB;
   let out = whole(c);
   if (contrast(muted(out), out) >= ratio) return out;
   const [L, C, h] = toOklch(c);
@@ -112,22 +121,24 @@ function legibleUnderText(c: RGB, ratio: number): RGB {
 
 /**
  * Keyed on the light scale from frames.ts: −1 night … 0 sunrise … 1 sunset … 2 night.
- * Acid pastel: violet nights with a lilac glow, pink and peach dawns, cyan
- * days under a lemon light, magenta and coral sunsets. The hues are vivid on
- * purpose; step 3 below still darkens each one until white text reads on it.
+ * Soft pastel light over deep, quiet skies: ink-blue nights with a
+ * periwinkle glow, rose and apricot dawns, a clean cerulean day under a
+ * butter light, dusty rose and coral sunsets. Hues move gently from one
+ * stop to the next; step 3 below still darkens each one until white text
+ * reads on it.
  */
 const CLEAR: { at: number; sky: [string, string, string]; glow: RGBA }[] = [
-  { at: -1, sky: ["#0b0826", "#1d1350", "#3a2477"], glow: [214, 179, 255, 0.22] },
-  { at: -0.4, sky: ["#1e1452", "#4a2d86", "#9a5fb8"], glow: [255, 158, 232, 0.28] },
-  { at: 0, sky: ["#2b2e7a", "#c25fa6", "#ffb38a"], glow: [255, 179, 138, 0.6] },
-  { at: 0.07, sky: ["#2f5fc0", "#9f8fe0", "#ffc9a8"], glow: [255, 214, 160, 0.55] },
-  { at: 0.2, sky: ["#1f78d0", "#58b8e8", "#9ff0e8"], glow: [234, 255, 143, 0.4] },
-  { at: 0.45, sky: ["#0f6fd8", "#24a6e8", "#8ff0ff"], glow: [240, 255, 170, 0.55] },
-  { at: 0.72, sky: ["#2560c8", "#5a8fe0", "#b8c8ff"], glow: [255, 236, 150, 0.5] },
-  { at: 0.9, sky: ["#3a4fb0", "#b07fd0", "#ffb89a"], glow: [255, 190, 150, 0.55] },
-  { at: 1, sky: ["#34287a", "#c0508f", "#ff8f7a"], glow: [255, 158, 181, 0.6] },
-  { at: 1.4, sky: ["#170f48", "#3a1f6e", "#7a3f8f"], glow: [214, 179, 255, 0.24] },
-  { at: 2, sky: ["#0b0826", "#1d1350", "#3a2477"], glow: [214, 179, 255, 0.22] },
+  { at: -1, sky: ["#0c1026", "#171c42", "#29305f"], glow: [191, 203, 254, 0.18] },
+  { at: -0.4, sky: ["#151a47", "#332f6e", "#6c5a98"], glow: [211, 190, 250, 0.24] },
+  { at: 0, sky: ["#262d6a", "#8a5f9c", "#eba68f"], glow: [254, 200, 156, 0.5] },
+  { at: 0.07, sky: ["#2c4f98", "#8b8fcc", "#f2c4a8"], glow: [254, 214, 170, 0.48] },
+  { at: 0.2, sky: ["#2a67ae", "#6ba6d6", "#b4dde8"], glow: [249, 232, 167, 0.38] },
+  { at: 0.45, sky: ["#1c60b6", "#3f92d0", "#a2d7ec"], glow: [249, 232, 167, 0.48] },
+  { at: 0.72, sky: ["#2a59a6", "#6a8ecc", "#c2ccf2"], glow: [252, 224, 170, 0.44] },
+  { at: 0.9, sky: ["#34478e", "#a07eb8", "#f2b598"], glow: [254, 200, 156, 0.5] },
+  { at: 1, sky: ["#2f2765", "#a35784", "#ee9282"], glow: [254, 184, 193, 0.52] },
+  { at: 1.4, sky: ["#141738", "#2d2760", "#5b407e"], glow: [211, 190, 250, 0.2] },
+  { at: 2, sky: ["#0c1026", "#171c42", "#29305f"], glow: [191, 203, 254, 0.18] },
 ];
 
 function clearSky(light: number): { sky: [RGB, RGB, RGB]; glow: RGBA } {
@@ -163,7 +174,68 @@ function overcast(c: RGB, snow: boolean): RGB {
   return snow ? [y * 0.94, y * 0.99, y * 1.08] : [y * 0.97, y, y * 1.04];
 }
 
-/* ---------- 3. Palette ---------- */
+/* ---------- 3. The map behind the page ---------- */
+
+/**
+ * The city's lines in the colours opposite the sky, like a screen print: the
+ * roads that carry the drawing take the complementary hue and a neighbour
+ * of it (on the side of butter, the page's accent), the streets a pale tint
+ * of the sky's own hue, so there's a hierarchy and not a rainbow. Water is
+ * the sky in shadow, or pale aqua where the sky is already too deep for a
+ * shadow to show. A blue day gets apricot and butter roads, a rose sunset
+ * sage and lime, a violet night butter and apricot. Each layer's opacity then rises until it clears a set contrast
+ * against the sky, so the map carries the same weight at every hour instead
+ * of vanishing by day.
+ */
+const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
+  water: { contrast: 1.25, minOpacity: 0.5 },
+  waterway: { contrast: 1.25, minOpacity: 0.6 },
+  streets: { contrast: 1.5, minOpacity: 0.35 },
+  "main-roads": { contrast: 1.9, minOpacity: 0.5 },
+  motorways: { contrast: 2.2, minOpacity: 0.6 },
+};
+/**
+ * The share of each line that shows through the backdrop's fade (65% away from the city, see
+ * .backdrop-fade), taken lower on purpose: the contrast holds under the reading's veil too.
+ */
+const MAP_FADE = 0.5;
+/** Below this chroma the sky reads as grey; it counts as a cool grey, so its lines turn warm. */
+const GREY_SKY = 0.035;
+const deg = (d: number) => (d * Math.PI) / 180;
+const COOL_HUE = deg(255);
+/** Butter, the accent: the main roads lean from the complementary hue towards it */
+const BUTTER_HUE = deg(95);
+/** Water where the sky is too deep for a shadow of it to read */
+const AQUA: LCH = [0.86, 0.075, deg(220)];
+
+function mapInks(sky: RGB): Record<MapLayer, MapInk> {
+  const [L, C, h] = toOklch(sky);
+  const hue = C < GREY_SKY ? COOL_HUE : h;
+  const opposite = hue + Math.PI;
+  // When the opposite already is butter (a violet night), the neighbour goes warm, to apricot.
+  const lean = Math.sin(BUTTER_HUE - opposite);
+  const towardButter = Math.abs(lean) < Math.sin(deg(25)) ? -1 : Math.sign(lean);
+  const shadow = whole(fromOklch([L * 0.62, Math.min(C, 0.08), hue]));
+  const water = contrast(mix(sky, shadow, 0.8 * MAP_FADE), sky) >= MAP_INK.water.contrast ? shadow : whole(fromOklch(AQUA));
+  const colors: Record<MapLayer, RGB> = {
+    water,
+    waterway: water,
+    streets: whole(fromOklch([0.92, 0.045, hue])),
+    "main-roads": whole(fromOklch([0.87, 0.1, opposite + towardButter * deg(35)])),
+    motorways: whole(fromOklch([0.94, 0.1, opposite])),
+  };
+  return Object.fromEntries(
+    (Object.keys(MAP_INK) as MapLayer[]).map((layer) => {
+      const { contrast: target, minOpacity } = MAP_INK[layer];
+      const ink = colors[layer];
+      let opacity = minOpacity;
+      while (opacity < 1 && contrast(mix(sky, ink, opacity * MAP_FADE), sky) < target) opacity += 0.02;
+      return [layer, { color: toHex(ink), opacity: Math.min(1, +opacity.toFixed(2)) }];
+    }),
+  ) as Record<MapLayer, MapInk>;
+}
+
+/* ---------- 4. Palette ---------- */
 
 export function skyPalette({
   light,
@@ -188,7 +260,8 @@ export function skyPalette({
   const sky3 = legibleUnderText(weathered[2], 4.5);
 
   // Glass: the thinnest veil over the brightest part of the sky that keeps muted text at AA.
-  const veil: RGB = [8, 16, 30];
+  // The veil is the top of the sky, deepened, so fields and buttons stay in its hue.
+  const veil = whole(fromOklch([0.16, Math.min(0.05, toOklch(sky1)[1]), toOklch(sky1)[2]]));
   // Starts at a clearly frosted panel (the cards read as solid surfaces), thicker where the sky needs it.
   let alpha = 0.34;
   while (alpha < 0.7 && contrast(muted(mix(sky3, veil, alpha)), mix(sky3, veil, alpha)) < 4.6) alpha += 0.02;
@@ -200,12 +273,13 @@ export function skyPalette({
     sky3: toHex(sky3),
     glass: rgba([...veil, alpha]),
     glow: rgba(glow),
-    // The "now" markers: the glow's own colour by day, a pale lilac moonlight at night.
-    sun: dark ? "#e9dcff" : toHex([glow[0], glow[1], glow[2]]),
+    // The "now" markers: the glow's own colour by day, a periwinkle moonlight at night.
+    sun: dark ? "#bfcbfe" : toHex([glow[0], glow[1], glow[2]]),
     cloud: rgba(
       state === "RAIN" || state === "HEAVY_RAIN" || state === "STORM"
         ? [205, 214, 226, dark ? 0.07 : 0.2]
         : [255, 255, 255, dark ? 0.06 : 0.2],
     ),
+    map: mapInks(sky2),
   };
 }

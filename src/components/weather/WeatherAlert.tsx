@@ -23,18 +23,18 @@ function WarningIcon() {
 
 /**
  * Official alerts only; never inferred. Interrupts the page hierarchy, but
- * stays restrained: a coloured edge and icon, text in ink.
+ * stays restrained: a thick rule and an icon in the alert colour, text in ink.
  */
 export function WeatherAlerts({ alerts, now, timezone }: { alerts: Alert[]; now: number; timezone: string }) {
   const active = alerts.filter((a) => a.end > now);
   if (!active.length) return null;
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-8">
       {active.map((a) => (
         <section
           key={a.id}
           aria-labelledby={`alert-${a.id}`}
-          className="glass card border-alert/60!"
+          className="sheet on-sky border-t-2! border-alert!"
         >
           <p className="label flex items-center gap-2 text-ink!">
             <WarningIcon />

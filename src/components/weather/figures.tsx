@@ -7,8 +7,8 @@ import type { Pollutants } from "@/lib/weather/types";
  * All decorative: the values they draw are always stated in text beside them.
  */
 
-/** Acid pastel good → very poor ramp (UV and air quality): mint, lemon, peach, pink, lilac. Always paired with a written label. */
-export const BAND_COLORS = ["#9dffcf", "#eaff8f", "#ffd08f", "#ff9eb5", "#d19eff"];
+/** Pastel good → very poor ramp (UV and air quality): sage, butter, apricot, rose, lilac. Always paired with a written label. */
+export const BAND_COLORS = ["#a5e9ca", "#f9e8a7", "#fec89c", "#feb8c1", "#d3befa"];
 
 /** A hairline compass; the arrow flows the way the wind blows (from `deg`). */
 export function Compass({ deg, className }: { deg: number; className?: string }) {
@@ -131,7 +131,7 @@ export function PollutantRow({ k, value, band, position }: { k: keyof Pollutants
         popover="auto"
         role="dialog"
         aria-labelledby={`${id}-title`}
-        className="m-auto max-h-[min(36rem,calc(100dvh-2rem))] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-3xl border border-white/15 bg-[#0f1725]/92 p-5 text-left text-ink shadow-2xl backdrop-blur-2xl backdrop:bg-black/45 sm:p-6"
+        className="m-auto max-h-[min(36rem,calc(100dvh-2rem))] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-white/15 bg-popover/92 p-5 text-left text-ink shadow-2xl backdrop-blur-2xl backdrop:bg-black/45 sm:p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <h3 id={`${id}-title`} className="text-lg font-semibold leading-tight">
@@ -152,7 +152,7 @@ export function PollutantRow({ k, value, band, position }: { k: keyof Pollutants
         <h4 className="label mt-4">Perché fa male</h4>
         <p className="mt-1.5 text-sm leading-relaxed">{info.harm}</p>
 
-        <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 rounded-2xl bg-white/6 px-4 py-3 text-sm">
+        <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 rounded-xl bg-white/6 px-4 py-3 text-sm">
           <dt className="text-ink-muted">Adesso</dt>
           <dd className="tabular-nums">
             {concentration(value)} µg/m³ · {AQI_LABELS[band - 1].toLowerCase()}
