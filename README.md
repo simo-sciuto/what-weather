@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meteo
 
-## Getting Started
+**Weather, calmly: the right information at the right moment.**
 
-First, run the development server:
+Meteo is a weather web app that reads like a Swiss typographic poster. It sets the place's name large and heavy, puts the temperature beside it, and adds a few facts in small print. Behind the text is the sky of the moment and a map of the city. Scroll down for the hours ahead, the week and the details. The interface is in Italian.
+
+## Features
+
+- **The poster.** A six-column grid, flush left, with three text sizes and hairlines for structure. It stays pinned on the left on a computer and fills the first screen on a phone.
+- **A live sky.** The background colours follow the time of day and the weather, and cross-fade as you scrub through the hours.
+- **The city behind the page.** A Mapbox map of the place sits centred behind the poster and zooms into the streets as you scroll.
+- **The next 24 hours.** A timeline you can drag to explore: the whole page follows the hour you pick.
+- **The week.** Daily ranges drawn on a temperature colour scale; pick a day to explore it.
+- **Rain map.** Clouds and precipitation over the coming hours.
+- **Details.** Air quality, UV, wind, humidity, sun and moon, and alerts. The urgent ones move up to the top.
+- **Outlook in words.** A short, plain sentence about what the weather will do next.
+- **Places.** Search any city, save your favourites and switch between them in one tap. The last place you viewed opens next time.
+- **Sharing.** Every place has its own URL and a generated preview image. It also installs as a web app.
+
+## Tech stack
+
+- [Next.js 16](https://nextjs.org) (App Router, Cache Components) and React 19
+- Tailwind CSS 4
+- Mapbox GL JS for the maps
+- Vitest for the tests
+- Weather from [OpenWeather](https://openweathermap.org) or [Open-Meteo](https://open-meteo.com), or built-in sample data
+
+## Getting started
+
+You need Node.js 22 or later.
 
 ```bash
+git clone https://github.com/simo-sciuto/what-weather.git
+cd what-weather
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+With no keys set, the app runs on sample data, so it works straight away. Add keys to `.env.local` to see real weather.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Configuration
 
-## Learn More
+Set these in `.env.local`. They are all optional.
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | What it does |
+| --- | --- |
+| `OPENWEATHER_API_KEY` | OpenWeather key. It is used for the forecast and to name places found by search or location. |
+| `WEATHER_PROVIDER` | `openweather` (One Call 4.0, paid plan), `openweather-free` (free tier), `open-meteo` (free for non-commercial use, no key) or `mock` (sample data). The default is `openweather` when a key is set and `mock` otherwise. |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox public token (`pk.…`). Without it the app shows no maps. Restrict the token to your domains in your Mapbox account. |
+| `SITE_URL` | The public address of the site, used for absolute share-image URLs. On Vercel the deployment URL is used by default. |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Sample data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The sample provider has ready-made scenarios for designing and testing: `clear`, `partly-cloudy`, `cloudy`, `rain-soon`, `heavy-rain`, `storm`, `snow`, `fog`, `windy` and `smog`. Pick one in the URL and, if you want, the time of day:
 
-## Deploy on Vercel
+```
+http://localhost:3000/?mock=storm&at=21:30
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Links to every scenario also appear at the foot of the page when sample data is on.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run build` | Build for production |
+| `npm start` | Serve the production build |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run the tests once |
+| `npm run test:watch` | Run the tests in watch mode |
+
+## Project structure
+
+```
+src/
+  app/                  Routes, layout, loading and error states, web manifest
+    api/                Place search, saved-place summaries, the map's cloud grid, share images
+  components/
+    location/           Search, saved places, the current place
+    time/               The timeline and everything that follows the hour on show
+    weather/            The poster, the chapters, the maps, icons and figures
+  lib/
+    weather/            Providers, formatting, palettes, the outlook sentence, tests
+```
+
+## Credits
+
+Weather data comes from OpenWeather or [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0). Maps are © [Mapbox](https://www.mapbox.com/about/maps/) and © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
