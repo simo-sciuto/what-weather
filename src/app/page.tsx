@@ -13,6 +13,7 @@ import { PrecipitationTimeline } from "@/components/weather/PrecipitationTimelin
 import { MapBackdropGL } from "@/components/weather/MapBackdropGL";
 import { MapProvider } from "@/components/weather/MapContext";
 import { MapView } from "@/components/weather/MapView";
+import { Territory } from "@/components/weather/CityFacts";
 import { SiteFooter } from "@/components/weather/SiteFooter";
 import { Sky } from "@/components/weather/Sky";
 import { WeatherAlerts } from "@/components/weather/WeatherAlert";
@@ -27,6 +28,7 @@ import { precipOutlook } from "@/lib/weather/precipitation";
 import { tempRange } from "@/lib/weather/today";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 /** The maps are Mapbox's alone: with no token the page has none. */
 const MAPBOX = Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
@@ -161,6 +163,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                 <Chapter id="chapter-week" title="Settimana" note="Scegli un giorno per esplorarlo">
                   <DailyForecast data={data} />
                 </Chapter>
+
+                {/* The place itself: what it is, its waters and peaks (streamed; nothing known, no chapter) */}
+                <Suspense fallback={null}>
+                  <Territory lat={data.place.lat} lon={data.place.lon} name={data.place.name} />
+                </Suspense>
 
                 {/* The maps are Mapbox's; without a token there is no map chapter */}
                 {MAPBOX && (

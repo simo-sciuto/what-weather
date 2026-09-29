@@ -9,6 +9,8 @@ const OPEN_METEO: Source = { name: "Open-Meteo", href: "https://open-meteo.com/"
 const OPENWEATHER: Source = { name: "OpenWeather", href: "https://openweathermap.org/" };
 // Mapbox's terms ask for both credits: its maps are drawn from OpenStreetMap data.
 const MAPBOX: Source = { name: "© Mapbox", href: "https://www.mapbox.com/about/maps/" };
+const MAPBOX_DATA: Source = { name: "Mapbox", href: "https://www.mapbox.com/" };
+const WIKIDATA: Source = { name: "Wikidata", href: "https://www.wikidata.org/" };
 const OSM: Source = { name: "© OpenStreetMap", href: "https://www.openstreetmap.org/copyright" };
 
 /**
@@ -28,6 +30,8 @@ function credits(provider: WeatherProvider["name"], openWeatherKey: boolean, map
       ? [
           { label: "Mappe", sources: [MAPBOX, OSM] },
           { label: "Nuvole sulla mappa", sources: [OPEN_METEO] },
+          // Rank and altitude from Mapbox; the population, waters and peaks from Wikidata.
+          { label: "Dati della città", sources: [MAPBOX_DATA, WIKIDATA] },
         ]
       : []),
   ].filter((c) => c.sources.length > 0);
