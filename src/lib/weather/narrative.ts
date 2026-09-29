@@ -232,7 +232,8 @@ function uvRule(d: WeatherData, hours: HourlyPoint[]): Candidate | null {
 
 function airRule(d: WeatherData): Candidate | null {
   const aq = d.airQuality;
-  if (!aq || aq.index < 4) return null;
+  if (!aq || aq.index < 3) return null;
+  if (aq.index === 3) return { topic: "air", priority: 55, text: "Aria scarsa: meglio limitare lo sport all’aperto" };
   return {
     topic: "air",
     priority: aq.index === 5 ? 80 : 62,

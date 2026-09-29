@@ -112,7 +112,7 @@ export interface Pollutants {
 
 export interface AirQuality {
   time: number;
-  /** 1 = Good … 5 = Very poor (OpenWeather's scale, after the European CAQI bands) */
+  /** 1 = Good … 5 = Very poor (OpenWeather's scale, after the European CAQI bands); labelled from 3 up as poor (see AQI_LABELS) */
   index: 1 | 2 | 3 | 4 | 5;
   pollutants: Pollutants;
 }

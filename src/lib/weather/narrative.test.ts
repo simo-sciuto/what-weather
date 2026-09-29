@@ -58,7 +58,7 @@ describe("the outlook", () => {
     ["cloudy", "22:30", "Notte nuvolosa."],
     ["heavy-rain", "08:30", "Piove forte almeno fino a stasera."],
     ["snow", "22:30", "Nevica almeno fino a domani mattina."],
-    ["fog", "08:30", "Nebbia fino a mezzogiorno. Massima 13° verso le 15."],
+    ["fog", "08:30", "Nebbia fino a mezzogiorno. Aria scarsa: meglio limitare lo sport all’aperto."],
     ["storm", "22:30", "Temporale in corso. Tregua verso l’una. Raffiche fino a 72 km/h."],
     ["smog", "22:30", "Minima 7° verso le 3. Aria inquinata: poco sport all’aperto."],
   ])("%s at %s", async (scenario, at, expected) => {

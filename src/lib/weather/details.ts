@@ -121,7 +121,13 @@ export function uvInfo(d: WeatherData) {
 
 /* ---------- Air quality ---------- */
 
-export const AQI_LABELS = ["Buona", "Discreta", "Moderata", "Scarsa", "Molto scarsa"] as const;
+/**
+ * Named for what the air does to you, not after OpenWeather's own words: its
+ * third band ("Moderate": PM2.5 from 25 μg/m³) is already well past the WHO's
+ * daily guideline (15 μg/m³), so it reads as poor here, and the two above it
+ * as very poor and worst.
+ */
+export const AQI_LABELS = ["Buona", "Discreta", "Scarsa", "Molto scarsa", "Pessima"] as const;
 
 /**
  * Band thresholds in μg/m³ (lower bound of Fair, Moderate, Poor, Very poor),
@@ -170,7 +176,7 @@ export function airInfo(aq: AirQuality) {
   return {
     index: aq.index,
     label: AQI_LABELS[aq.index - 1],
-    poor: aq.index >= 4,
+    poor: aq.index >= 3,
     dominant,
     /** Shown first; the rest sit behind a disclosure */
     headline: bands.filter((b) => b.key === "pm2_5" || b.key === "pm10"),
