@@ -1,0 +1,56 @@
+import type { Place } from "./weather/types";
+
+/**
+ * How a place travels between the browser and the server: in the URL
+ * (?lat&lon, plus optional display names chosen in search) and in a cookie
+ * remembering the last place, so a returning visitor lands where they left.
+ * Safe to import from both server and client code.
+ */
+
+export const LAST_PLACE_COOKIE = "weather-place";
+
+type Raw = Record<string, unknown>;
+
+const text = (v: unknown, max = 80) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined);
+const coord = (v: unknown, limit: number) => {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+  return Number.isFinite(n) && Math.abs(n) <= limit ? n : undefined;
+};
+
+/** Coordinates plus any names we trust for display; the provider fills the rest. */
+export interface PlaceRef {
+  lat: number;
+  lon: number;
+  name?: string;
+  region?: string;
+  country?: string;
+}
+
+export function parsePlaceRef(raw: Raw): PlaceRef | null {
+  const lat = coord(raw.lat, 90);
+  const lon = coord(raw.lon, 180);
+  if (lat == null || lon == null) return null;
+  return { lat, lon, name: text(raw.name), region: text(raw.region), country: text(raw.country, 3) };
+}
+
+export function parsePlaceCookie(value: string | undefined): PlaceRef | null {
+  if (!value) return null;
+  try {
+    return parsePlaceRef(JSON.parse(decodeURIComponent(value)));
+  } catch {
+    return null;
+  }
+}
+
+export function placeHref(p: PlaceRef): string {
+  const q = new URLSearchParams({ lat: p.lat.toFixed(4), lon: p.lon.toFixed(4) });
+  if (p.name) q.set("name", p.name);
+  if (p.region) q.set("region", p.region);
+  if (p.country) q.set("country", p.country);
+  return `/?${q}`;
+}
+
+/** Two references point at the same place when they agree to ~1 km. */
+export function samePlace(a: Pick<Place, "lat" | "lon">, b: Pick<Place, "lat" | "lon">): boolean {
+  return Math.abs(a.lat - b.lat) < 0.01 && Math.abs(a.lon - b.lon) < 0.01;
+}

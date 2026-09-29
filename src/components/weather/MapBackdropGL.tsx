@@ -1,0 +1,304 @@
+"use client";
+
+import type { ExpressionSpecification, FilterSpecification, StyleSpecification } from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { useEffect, useRef, useState } from "react";
+import { useMoment } from "../time/TimeContext";
+import { useMap } from "./MapContext";
+
+
+type Pin = { x: number; y: number };
+
+/**
+ * Where the city goes on the screen: at the exact centre of the reading, the
+ * poster (marked data-map-anchor). Measured, not guessed, so it holds for any
+ * window size and any name's length.
+ */
+function measurePin(): Pin | null {
+  const poster = document.querySelector('[data-map-anchor="poster"]')?.getBoundingClientRect();
+  if (!poster) return null;
+  return { x: (poster.left + poster.right) / 2, y: (poster.top + poster.bottom) / 2 };
+}
+
+/** Padding that moves the map's centre (the city) onto the pin. */
+function paddingFor({ x, y }: Pin, w: number, h: number) {
+  return {
+    left: Math.max(0, 2 * x - w),
+    right: Math.max(0, w - 2 * x),
+    top: Math.max(0, 2 * y - h),
+    bottom: Math.max(0, h - 2 * y),
+  };
+}
+const ZOOM = 11;
+
+/** Zoom levels added over the page's whole scroll: from the city down to its streets. */
+const SCROLL_ZOOM = 2.5;
+
+/** How far down the page is, 0 at the top to 1 at the bottom. */
+function scrollProgress(): number {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  return max > 0 ? Math.min(Math.max(window.scrollY / max, 0), 1) : 0;
+}
+
+/** A road class filter on Mapbox Streets' `road` layer (lines only). */
+const roads = (classes: string[]): FilterSpecification => [
+  "all",
+  ["==", ["geometry-type"], "LineString"],
+  ["match", ["get", "class"], classes, true, false],
+];
+/** Line width that grows as the map zooms in. */
+const width = (at10: number, at15: number): ExpressionSpecification => [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  10,
+  at10,
+  15,
+  at15,
+];
+
+/**
+ * The map as a drawing: only the city's lines, in the page's acid pastels,
+ * and nothing else. No background layer, so the canvas is transparent
+ * wherever there is no line and the sky shows through as it is: no blend
+ * mode needed (a blended WebGL canvas isn't reliable across browsers), and
+ * the colours are exactly these. Aqua water, pink streets, peach main roads,
+ * lemon motorways: they stand out against a blue or violet sky.
+ */
+const STYLE: StyleSpecification = {
+  version: 8,
+  sources: { streets: { type: "vector", url: "mapbox://mapbox.mapbox-streets-v8" } },
+  layers: [
+    {
+      id: "water",
+      type: "fill",
+      source: "streets",
+      "source-layer": "water",
+      paint: { "fill-color": "#8ff0ff", "fill-opacity": 0.35 },
+    },
+    {
+      id: "waterway",
+      type: "line",
+      source: "streets",
+      "source-layer": "waterway",
+      paint: { "line-color": "#8ff0ff", "line-width": width(0.8, 2.5), "line-opacity": 0.85 },
+    },
+    {
+      id: "streets",
+      type: "line",
+      source: "streets",
+      "source-layer": "road",
+      filter: roads(["street", "street_limited", "tertiary", "tertiary_link", "secondary_link"]),
+      paint: { "line-color": "#ff9ee8", "line-width": width(0.3, 1.6), "line-opacity": 0.7 },
+    },
+    {
+      id: "main-roads",
+      type: "line",
+      source: "streets",
+      "source-layer": "road",
+      filter: roads(["secondary", "primary", "primary_link", "trunk", "trunk_link"]),
+      paint: { "line-color": "#ffc28f", "line-width": width(0.8, 3), "line-opacity": 0.9 },
+    },
+    {
+      id: "motorways",
+      type: "line",
+      source: "streets",
+      "source-layer": "road",
+      filter: roads(["motorway", "motorway_link"]),
+      paint: { "line-color": "#eaff8f", "line-width": width(1.2, 4), "line-opacity": 0.95 },
+    },
+  ],
+};
+
+/**
+ * Line colours by daylight. The pastels read on a deep sky (dawn, dusk,
+ * night) but vanish into a bright clear day, so by day the lines take deep
+ * tones of the same families: ink blue water, indigo streets, plum main
+ * roads, navy motorways. Keyed by layer, then by the paint property.
+ */
+const DAY_COLORS: Record<string, [string, string]> = {
+  water: ["fill-color", "#1d4f91"],
+  waterway: ["line-color", "#1d4f91"],
+  streets: ["line-color", "#3d2f86"],
+  "main-roads": ["line-color", "#6a2d7d"],
+  motorways: ["line-color", "#1f2466"],
+};
+const NIGHT_COLORS = Object.fromEntries(
+  STYLE.layers.map((l) => {
+    const [prop] = DAY_COLORS[l.id];
+    return [l.id, [prop, (l.paint as Record<string, string>)[prop]]];
+  }),
+) as Record<string, [string, string]>;
+/** By day the band shows stronger, too: a bright sky swallows faint lines. */
+const DAY_OPACITY = 0.85;
+
+/**
+ * The city behind the top of the page, drawn by Mapbox on the sky as it is.
+ * This renders the whole band (the caller gives its position, size, fade and
+ * opacity). Mapbox GL loads once the browser is idle and the band is near the
+ * screen, and fades in, with the city beside its name. Without a token or
+ * WebGL there is no map: the sky alone is the backdrop.
+ */
+export function MapBackdropGL({ className }: { className: string }) {
+  const { center, token, loadMapbox } = useMap();
+  const { lat, lon } = center;
+  const day = useMoment().frame.phase === "day";
+  const box = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<import("mapbox-gl").Map | null>(null);
+  const [failed, setFailed] = useState(!token);
+  const [shown, setShown] = useState(false);
+  const [pin, setPin] = useState<Pin | null>(null);
+  const pinRef = useRef<Pin | null>(null);
+  const zoomRef = useRef(ZOOM);
+
+  // Measure the pin now and whenever the layout changes (the window, the name itself, the font arriving);
+  // move the map to match.
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const p = measurePin();
+        if (!p) return;
+        pinRef.current = p;
+        setPin(p);
+        const m = mapRef.current;
+        const el = box.current;
+        if (m && el) m.setPadding(paddingFor(p, el.clientWidth, el.clientHeight));
+      });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(document.body);
+    for (const anchor of document.querySelectorAll("[data-map-anchor]")) ro.observe(anchor);
+    let live = true;
+    void document.fonts?.ready.then(() => live && update());
+    return () => {
+      live = false;
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+    };
+  }, []);
+
+  // Scrolling down zooms into the city: the map stays fixed, so the page seems to descend into it.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const extra = SCROLL_ZOOM * scrollProgress();
+        zoomRef.current = ZOOM + extra;
+        mapRef.current?.setZoom(zoomRef.current);
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el || !token) return;
+    let map: import("mapbox-gl").Map | undefined;
+    let cancelled = false;
+    let idle: number | undefined;
+
+    const start = async () => {
+      try {
+        const mapboxgl = await loadMapbox();
+        if (cancelled) return;
+        const { width: w, height: h } = el.getBoundingClientRect();
+        map = new mapboxgl.Map({
+          container: el,
+          accessToken: token,
+          style: STYLE,
+          center: [lon, lat],
+          zoom: zoomRef.current,
+          interactive: false,
+          attributionControl: false,
+          fadeDuration: 0,
+        });
+        mapRef.current = map;
+        // Shift the view so the city lands on the pin rather than the middle.
+        map.setPadding(paddingFor(pinRef.current ?? measurePin() ?? { x: w / 2, y: h / 2 }, w, h));
+        let drawn = false;
+        map.once("idle", () => {
+          drawn = true;
+          if (!cancelled) setShown(true);
+        });
+        // A style that fails to load falls back; a stray tile error once it's drawn doesn't.
+        map.on("error", () => {
+          if (!cancelled && !drawn) setFailed(true);
+        });
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    };
+
+    // Near the screen, then when the browser has a moment: the page first, the backdrop after.
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        io.disconnect();
+        const run = () => void start();
+        idle =
+          typeof window.requestIdleCallback === "function"
+            ? window.requestIdleCallback(run, { timeout: 2000 })
+            : (setTimeout(run, 300) as unknown as number);
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+
+    return () => {
+      cancelled = true;
+      io.disconnect();
+      if (idle != null) {
+        if (typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(idle);
+        else clearTimeout(idle);
+      }
+      map?.remove();
+      mapRef.current = null;
+    };
+  }, [lat, lon, token, loadMapbox]);
+
+  // Day or night colours, whenever the moment on show crosses sunrise or sunset
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || !shown) return;
+    for (const [id, [prop, color]] of Object.entries(day ? DAY_COLORS : NIGHT_COLORS)) {
+      m.setPaintProperty(id, prop as "line-color", color);
+    }
+  }, [day, shown]);
+
+  // The map is strongest around the pin; once it's measured, the fade follows it.
+  const fade = pin
+    ? `radial-gradient(ellipse 45vw 50vh at ${pin.x}px ${pin.y}px, #000 15%, rgb(0 0 0 / 0.45) 80%)`
+    : undefined;
+
+  if (failed) return null;
+  return (
+    <div
+      className={className}
+      style={{
+        ...(fade ? { maskImage: fade, WebkitMaskImage: fade } : {}),
+        ...(day ? { opacity: DAY_OPACITY } : {}),
+        transition: "opacity 0.9s ease",
+      }}
+    >
+      <div
+        aria-hidden="true"
+        className={`absolute inset-0 transition-opacity duration-1000 ${shown ? "opacity-100" : "opacity-0"}`}
+      >
+        {/* Mapbox sets `position: relative` on its container, so it gets its own full-size box */}
+        <div ref={box} className="h-full w-full" />
+      </div>
+    </div>
+  );
+}

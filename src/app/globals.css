@@ -1,26 +1,466 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens — "the page is the sky".
+ * Text is always white. The sky colours below are only the neutral default
+ * (used while loading); the live ones come from the palette of each moment.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sky-1: #1c1946;
+  --sky-2: #2c2a63;
+  --sky-3: #454283;
+  /* Solid stand-in for "the colour behind", e.g. icon cut-outs */
+  --paper: var(--sky-2);
+
+  --ink: #ffffff;
+  --ink-muted: rgb(255 255 255 / 0.86);
+  --rule: rgb(255 255 255 / 0.16);
+  /* Acid pastels: lemon, aqua, pink, lilac, mint, peach */
+  --accent: #eaff8f;
+
+  /* Panels: a darkening veil plus blur, so white text holds on any sky */
+  --glass: rgb(8 16 30 / 0.4);
+  --glass-edge: rgb(255 255 255 / 0.14);
+  --surface: var(--glass);
+
+  /* The light source in the sky, and the "now" marker that echoes it */
+  --glow: rgb(234 255 143 / 0.3);
+  --sun: #eaff8f;
+
+  --cloud: rgb(255 255 255 / 0.18);
+  --precip: #8ff0ff;
+  --night-band: rgb(24 10 70 / 0.28);
+  --alert: #ff9eb5;
+  --moon-lit: #fff6d6;
+  --moon-dark: rgb(255 255 255 / 0.1);
+
+  color-scheme: dark;
+}
+
+/* Registered, so skies can cross-fade as the scrubber moves through the day */
+@property --sky-1 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #1c1946;
+}
+@property --sky-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2c2a63;
+}
+@property --sky-3 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #454283;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-precip: var(--precip);
+  --color-surface: var(--surface);
+  --color-night-band: var(--night-band);
+  --color-moon-lit: var(--moon-lit);
+  --color-moon-dark: var(--moon-dark);
+  --color-alert: var(--alert);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-geist-sans);
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-poster: var(--font-inter-tight), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* The poster's small print: the head, the labels, the notes */
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.35;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/*
+ * Skies, glass, glow, sun and cloud colours are computed per moment
+ * (src/lib/weather/palette.ts) and set on <main> by the time context.
+ */
+/* ---------- Base ---------- */
+
+html {
+  /* Overscroll shows a deep sky rather than a white flash */
+  background: #0d0b24;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* The page's own background: the sky, fixed behind scrolling content */
+.atmosphere {
+  position: relative;
+  isolation: isolate;
+  color: var(--ink);
+  transition:
+    --sky-1 0.9s ease,
+    --sky-2 0.9s ease,
+    --sky-3 0.9s ease;
+}
+.atmosphere::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 55%, var(--sky-3) 100%);
+}
+/*
+ * A fine grain over the sky: it breaks the banding of a long, soft gradient
+ * and gives the colour the depth of a photograph rather than a flat fill.
+ */
+.atmosphere::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Glass panel */
+/* Panel: a tint of the night sky, no blur, so the map behind stays crisp and simply recedes */
+@utility glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+}
+/* Shape of a card; pair with `glass` */
+@utility card {
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  @variant sm {
+    padding: 1.5rem;
+  }
+}
+
+/* Small uppercase metadata label */
+.label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/*
+ * The place name, as on a Swiss poster: a heavy grotesk, set tight (letters
+ * nearly touching, lines nearly overlapping), flush left.
+ */
+.display-caps {
+  font-family: var(--font-poster);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.86;
+}
+/* On a phone the name's lines sit closer still */
+@media (width < 64rem) {
+  .display-caps {
+    line-height: 0.8;
+  }
+}
+
+/* Text sitting directly on the sky gets a whisper of shadow for bright skies */
+.on-sky {
+  text-shadow:
+    0 0 2px color-mix(in oklab, var(--sky-1) 70%, transparent),
+    0 0 10px color-mix(in oklab, var(--sky-1) 80%, transparent),
+    0 1px 18px rgb(0 0 0 / 0.2);
+}
+
+/* ---------- Sky scene ---------- */
+
+.sky-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--glow-x, 80%) var(--glow-y, 12%),
+    var(--glow) 0%,
+    color-mix(in oklab, var(--glow) 40%, transparent) 14%,
+    transparent 42%
+  );
+  transition: background 1.2s ease;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  animation: twinkle 5s ease-in-out infinite alternate;
+}
+
+.cloud {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--cloud);
+  filter: blur(40px);
+  animation: cloud-drift 60s ease-in-out infinite alternate;
+}
+
+.snow {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgb(255 255 255 / 0.8) 0 1.5px, transparent 2px),
+    radial-gradient(circle, rgb(255 255 255 / 0.5) 0 1px, transparent 1.5px);
+  background-size:
+    calc(90px * var(--snow-scale, 1)) calc(90px * var(--snow-scale, 1)),
+    calc(60px * var(--snow-scale, 1)) calc(60px * var(--snow-scale, 1));
+  background-position:
+    0 0,
+    30px 20px;
+  animation: snow-fall 14s linear infinite;
+}
+
+/* ---------- Coloured weather icons (WeatherIcon `colored`) ---------- */
+
+.wi-color .wi-sun {
+  stroke: #f9f871;
+  stroke-width: 1.75;
+}
+.wi-color .wi-sun circle {
+  fill: #f9f871;
+}
+.wi-color .wi-moon {
+  fill: #fff6d6;
+  stroke: #fff6d6;
+}
+.wi-color .wi-cloud {
+  fill: #f1efff;
+  stroke: #f1efff;
+}
+.wi-color .wi-cloud.wi-wet {
+  fill: #bdb8f0;
+  stroke: #bdb8f0;
+}
+.wi-color .wi-drop {
+  stroke: #8ff0ff;
+  stroke-width: 1.75;
+}
+.wi-color .wi-bolt {
+  stroke: #f9f871;
+  stroke-width: 2;
+}
+.wi-color .wi-flake {
+  fill: #ffffff;
+  stroke: #ffffff;
+}
+.wi-color .wi-mist {
+  stroke: #d9d6f5;
+  stroke-width: 1.75;
+}
+
+/* ---------- Pinned reading (desktop) ---------- */
+
+/*
+ * The reading between the search and the timeline: it takes the height left
+ * over and is a size container, so the temperature and the spacing scale to
+ * that height (cqh). On a very short screen it scrolls on its own, without a
+ * scrollbar, and the timeline below never leaves the screen.
+ */
+@media (width >= 64rem) {
+  .hero-fit {
+    flex: 1 1 0;
+    min-height: 0;
+    container-type: size;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .hero-fit::-webkit-scrollbar {
+    display: none;
+  }
+  /*
+   * When it does scroll, the bottom edge fades to say there is more; the fade
+   * runs off as the end comes into view. Without overflow the scroll timeline
+   * is inactive, so there is no fade at all.
+   */
+  @supports (animation-timeline: scroll()) {
+    .hero-fit {
+      mask-image: linear-gradient(180deg, #000 calc(100% - var(--hero-fade)), transparent);
+      animation: hero-fade linear both;
+      animation-timeline: scroll(self);
+    }
+  }
+}
+
+@property --hero-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes hero-fade {
+  from {
+    --hero-fade: 2.5rem;
+  }
+  90% {
+    --hero-fade: 2.5rem;
+  }
+  to {
+    --hero-fade: 0px;
+  }
+}
+
+/* ---------- Map backdrop ---------- */
+
+/*
+ * The map behind the page: at full strength around the city (see the anchor
+ * in MapBackdropGL), at the poster's centre, and held back to 45% under
+ * everything else, so it stays part of the sky without competing with the
+ * weather.
+ */
+.backdrop-fade {
+  mask-image: radial-gradient(ellipse 90% 40% at 50% 35%, #000 15%, rgb(0 0 0 / 0.45) 75%);
+}
+@media (width >= 64rem) {
+  .backdrop-fade {
+    mask-image: radial-gradient(ellipse 45% 50% at 24% 50%, #000 15%, rgb(0 0 0 / 0.45) 80%);
+  }
+}
+
+/* ---------- Chapters ---------- */
+
+@layer components {
+  .chapter-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* ---------- Motion (all of it gives way to prefers-reduced-motion) ---------- */
+
+/*
+ * Loading placeholders: a band of pastel light sweeps across all of them at
+ * once. The gradient is fixed to the viewport, so the separate shapes read
+ * as one wave passing over the page rather than each pulsing on its own; a
+ * slow breath of opacity keeps them alive between sweeps.
+ */
+.skeleton {
+  background-color: rgb(255 255 255 / 0.1);
+  background-image: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgb(214 179 255 / 0.22) 45%,
+    rgb(234 255 143 / 0.28) 50%,
+    rgb(143 240 255 / 0.22) 55%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  animation:
+    shimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite,
+    breathe 3.6s ease-in-out infinite;
+}
+/* Panel-shaped placeholders (the search field, the timeline card) keep their glass under the sweep */
+.skeleton.glass {
+  background-color: var(--glass);
+}
+
+/* The current reading settles in on arrival and on every change of place */
+.rise-in {
+  animation: rise-in 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.rise-in-late {
+  animation: rise-in 700ms 150ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Lines draw themselves from left to right */
+.draw {
+  animation: draw 1.1s 200ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
+}
+
+/* Cards surface as they scroll into view, where the browser can tie motion to scroll */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -30% 0;
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes loading {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+@keyframes twinkle {
+  to {
+    opacity: 0.25;
+  }
+}
+
+@keyframes cloud-drift {
+  to {
+    transform: translateX(10%);
+  }
+}
+
+@keyframes snow-fall {
+  to {
+    background-position:
+      40px 900px,
+      70px 620px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
