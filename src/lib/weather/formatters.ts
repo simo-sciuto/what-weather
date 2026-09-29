@@ -76,12 +76,20 @@ function countryName(code: string): string {
   }
 }
 
+/**
+ * The place's region and country in Italian, each empty when unknown or the
+ * same as the place's own name (Singapore, Singapore).
+ */
+export function placeParts(place: Place): { region: string; country: string } {
+  // Translated here too, so places saved before (in the browser, in the cookie) read in Italian.
+  const keep = (part: string | undefined) => (part && part !== place.name ? part : "");
+  return { region: keep(regionName(place.region)), country: keep(countryName(place.country)) };
+}
+
 /** Secondary line under the place name, e.g. "Lombardia, Italia". */
 export function placeSubtitle(place: Place): string {
-  // Translated here too, so places saved before (in the browser, in the cookie) read in Italian.
-  return [regionName(place.region), countryName(place.country)]
-    .filter((part) => part && part !== place.name)
-    .join(", ");
+  const { region, country } = placeParts(place);
+  return [region, country].filter(Boolean).join(", ");
 }
 
 /** Short, friendly condition label, e.g. "Pioggia debole", "Coperto". */

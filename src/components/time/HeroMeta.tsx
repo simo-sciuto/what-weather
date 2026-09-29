@@ -1,6 +1,7 @@
 "use client";
 
 import { dayOfYear } from "@/lib/weather/formatters";
+import { PosterButton } from "../poster/PosterButton";
 import { LocalClock } from "../weather/LocalClock";
 import { useMoment, useView } from "./TimeContext";
 
@@ -9,7 +10,8 @@ import { useMoment, useView } from "./TimeContext";
  * Swiss poster sets its credits: the region, the day and the hour on show
  * (the running clock while live, the hour picked on the timeline otherwise),
  * each on its own two columns of the six-column grid, a line per fact, the
- * place's coordinates and the day's number in the year dimmed under them.
+ * place's coordinates and the day's number in the year dimmed under them;
+ * under the hour, "Crea poster".
  * A computer's alone: a phone sets these facts under the reading (HeroMetaPhone).
  */
 export function HeroMeta({
@@ -51,13 +53,11 @@ export function HeroMeta({
         <span className="block">{dayLabel.date}</span>
         <span className="mt-1.5 block tabular-nums text-ink-muted">{dayOfYear(frame.dayKey)}</span>
       </p>
-      <HeroClock
-        timezone={timezone}
-        renderedAt={renderedAt}
-        dataAt={dataAt}
-        className="col-span-2"
-        timeClassName="tabular-nums text-ink"
-      />
+      <div className="col-span-2">
+        <HeroClock timezone={timezone} renderedAt={renderedAt} dataAt={dataAt} className="" timeClassName="tabular-nums text-ink" />
+        {/* The place as a poster to keep: the map in the moment's colours, its name and coordinates */}
+        <PosterButton className="mt-1.5" />
+      </div>
     </div>
   );
 }
@@ -90,7 +90,7 @@ export function HeroMetaPhone({
 
 /**
  * The moment on a phone, over the name: the hour on show, large and in the
- * accent colour, and the day under it in small print.
+ * accent colour, the day under it in small print, then "Crea poster".
  */
 export function HeroNowPhone({
   timezone,
@@ -119,6 +119,7 @@ export function HeroNowPhone({
       <p className="text-caption">
         {day}, {dayLabel.date}
       </p>
+      <PosterButton className="mt-1 self-start" />
     </div>
   );
 }
