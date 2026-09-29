@@ -17,10 +17,10 @@ const poster = Inter_Tight({
 export const metadata: Metadata = {
   // Share images need absolute URLs; set SITE_URL in production (on Vercel the deployment URL is used otherwise).
   metadataBase: process.env.SITE_URL ? new URL(process.env.SITE_URL) : undefined,
-  title: { default: "Meteo", template: "%s · Meteo" },
+  title: { default: "what-weather", template: "%s · what-weather" },
   description: "Il meteo con calma: l’informazione giusta al momento giusto.",
-  applicationName: "Meteo",
-  appleWebApp: { capable: true, title: "Meteo", statusBarStyle: "black-translucent" },
+  applicationName: "what-weather",
+  appleWebApp: { capable: true, title: "what-weather", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 

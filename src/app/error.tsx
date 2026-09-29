@@ -1,5 +1,6 @@
 "use client";
 
+import { Wordmark } from "@/components/Wordmark";
 import { LAST_PLACE_COOKIE } from "@/lib/place";
 import { useRouter } from "next/navigation";
 
@@ -19,7 +20,7 @@ export default function WeatherError({ retry }: { retry: () => void }) {
   return (
     <main className="atmosphere grid min-h-dvh place-items-center px-5">
       <div role="alert" className="max-w-sm text-center">
-        <p className="label">Meteo</p>
+        <Wordmark className="text-2xl" />
         <p className="mt-4 font-display text-4xl leading-tight">Impossibile caricare il meteo.</p>
         <p className="mt-3 text-sm text-ink-muted">Il servizio delle previsioni non ha risposto. Di solito dura poco.</p>
         <div className="mt-8 flex flex-col items-center gap-3">

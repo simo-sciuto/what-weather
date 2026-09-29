@@ -27,7 +27,8 @@ const COLS = 7;
 /** About 55 km in both directions at mid latitudes, so the grid covers ~330 × 330 km. */
 const LAT_STEP = 0.5;
 const LON_STEP = 0.7;
-export const CLOUD_HOURS = 48;
+/** The next twelve hours: the stretch where an hourly map of clouds and rain is worth watching. */
+export const CLOUD_HOURS = 12;
 
 const snap = (v: number, step: number) => Math.round(v / step) * step;
 const fixed = (v: number) => Number(v.toFixed(3));

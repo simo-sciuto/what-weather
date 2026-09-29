@@ -6,8 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMap } from "./MapContext";
 import { StylizedMap, type MapOverlay } from "./StylizedMap";
 
-/** Forecast hours played per second: two days in about half a minute. */
-const HOURS_PER_SECOND = 1.6;
+/** Forecast hours played per second: the twelve hours ahead in about ten seconds. */
+const HOURS_PER_SECOND = 1.2;
 /** A breath on the last hour before starting over. */
 const HOLD_AT_END_MS = 1200;
 

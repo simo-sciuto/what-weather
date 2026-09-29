@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
           <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 26, opacity: 0.8 }}>
             <div style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: p.sun }} />
-            Meteo
+            what-weather
           </div>
         </div>
       ),

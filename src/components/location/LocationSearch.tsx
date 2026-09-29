@@ -5,7 +5,7 @@ import { rememberPlace, removeSaved } from "@/lib/saved-places";
 import { placeSubtitle } from "@/lib/weather/formatters";
 import type { Place } from "@/lib/weather/types";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { usePlace } from "./PlaceContext";
 
 /** The search field's id, for its label. */
@@ -63,6 +63,13 @@ function dedupe(places: Place[]): Place[] {
  * A search field with suggestions (ARIA combobox). Empty and focused, it
  * offers "Use my location" and saved places. Choosing a place navigates
  * client-side, so the page updates without a full reload.
+ *
+ * Once the page scrolls it out of view it docks: it folds into a round
+ * button fixed at the bottom right, and a tap opens it again pinned at the
+ * top of the screen (above a phone's keyboard, with room for suggestions
+ * below). It stays one field throughout, not a copy: the input is only
+ * visually hidden while folded, so focusing it (the button, Tab, the place's
+ * name) unfolds it, and on a phone the keyboard opens within the tap.
  */
 export function LocationSearch() {
   const router = useRouter();
@@ -75,7 +82,24 @@ export function LocationSearch() {
   const [locate, setLocate] = useState<LocateState>({ status: "idle" });
   const [pending, startTransition] = useTransition();
   const ids = { list: useId(), status: useId() };
+  // Docked: the field's place in the page has scrolled off the top. Unfolded: docked and open to type.
+  const slot = useRef<HTMLDivElement>(null);
+  const [docked, setDocked] = useState(false);
+  const [unfolded, setUnfolded] = useState(false);
+  const folded = docked && !unfolded;
 
+  useEffect(() => {
+    const el = slot.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => {
+      // Only above the screen: a field below it (a short window) isn't "scrolled past".
+      const past = !entry.isIntersecting && entry.boundingClientRect.bottom <= 0;
+      setDocked(past);
+      if (!past) setUnfolded(false);
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const searching = query.trim().length >= 2;
   const search: SearchState = searching ? results : { status: "idle" };
@@ -172,13 +196,35 @@ export function LocationSearch() {
   const optionId = (i: number) => `${ids.list}-${i}`;
 
   return (
+    // The field's place in the page: it keeps its height while the field is docked, so nothing jumps.
+    <div ref={slot} className="h-12">
     <div
-      className="relative"
-      // Close when focus leaves the whole control (not when moving inside it).
+      className={
+        !docked
+          ? "relative"
+          : unfolded
+            ? "pop-in fixed inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-50 sm:inset-x-auto sm:right-6 sm:w-104"
+            : "fixed right-4 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-50 sm:right-6"
+      }
+      // Close (and fold, when docked) when focus leaves the whole control, not when moving inside it.
       onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
+        if (e.currentTarget.contains(e.relatedTarget)) return;
+        setOpen(false);
+        setUnfolded(false);
       }}
     >
+      {folded && (
+        // For a pointer only: keyboards and screen readers reach the field itself, which unfolds on focus.
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          onClick={() => inputRef.current?.focus()}
+          className="pop-in flex size-14 items-center justify-center rounded-full border border-white/20 bg-popover/85 text-ink shadow-[0_8px_30px_rgb(0_0_0/0.35)] backdrop-blur-xl transition-colors hover:border-accent/70"
+        >
+          <SearchIcon className="size-5.5" />
+        </button>
+      )}
       {/* A hairline progress bar while the new place loads */}
       {pending && (
         <div role="progressbar" aria-label="Caricamento del meteo" className="fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden">
@@ -186,7 +232,11 @@ export function LocationSearch() {
         </div>
       )}
 
-      <div className="glass flex h-12 items-center gap-3 rounded-full px-4 transition-colors focus-within:border-white/40">
+      <div
+        className={`flex h-12 items-center gap-3 rounded-full px-4 transition-colors focus-within:border-white/40 ${
+          folded ? "sr-only" : docked ? "border border-white/20 bg-popover/90 shadow-2xl backdrop-blur-xl" : "glass"
+        }`}
+      >
         <SearchIcon className="size-4.5 shrink-0 text-ink-muted" />
         <label htmlFor={LOCATION_SEARCH_ID} className="sr-only">
           Cerca località
@@ -209,12 +259,14 @@ export function LocationSearch() {
           onFocus={() => {
             setOpen(true);
             setLocate({ status: "idle" });
+            if (docked) setUnfolded(true);
           }}
           onKeyDown={onKeyDown}
           placeholder="Cerca una città"
           autoComplete="off"
           spellCheck={false}
-          className="min-w-0 flex-1 bg-transparent text-[0.9375rem] outline-none placeholder:text-ink-muted [&::-webkit-search-cancel-button]:appearance-none"
+          // 16px on a phone: below that, Safari on iPhone zooms the page in on focus and leaves it panned
+          className="min-w-0 flex-1 bg-transparent text-base outline-none lg:text-[0.9375rem] placeholder:text-ink-muted [&::-webkit-search-cancel-button]:appearance-none"
         />
         {query && (
           <button
@@ -327,6 +379,7 @@ export function LocationSearch() {
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }

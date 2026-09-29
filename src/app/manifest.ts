@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Meteo",
-    short_name: "Meteo",
+    name: "what-weather",
+    short_name: "what-weather",
     description: "Il meteo con calma: l’informazione giusta al momento giusto.",
     start_url: "/",
     scope: "/",

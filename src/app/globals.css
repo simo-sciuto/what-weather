@@ -111,6 +111,16 @@ html {
   background: #0c0f25;
 }
 
+/*
+ * Nothing may widen the page past the screen: a phone would then let it pan
+ * sideways. `clip`, not `hidden`, so no scroll container is made and the
+ * pinned reading (position: sticky) keeps working.
+ */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   color: var(--ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
@@ -199,18 +209,47 @@ body {
 }
 
 /*
- * On a computer the data column sits over a lighter veil than the reading
- * needs, so its text holds on a firmer shadow: a tight halo of the sky
- * around each letter, which the map's lines pass under without crossing it.
+ * The data (the timeline, the chapters) sits over a veil lighter than the
+ * reading would need, so its text holds on a firmer shadow: a tight halo of
+ * the sky around each letter, which the map's lines pass under without
+ * crossing it.
  */
-@media (width >= 64rem) {
-  .data-col .on-sky,
-  .data-col.on-sky {
-    text-shadow:
-      0 0 2px color-mix(in oklab, var(--sky-1) 85%, transparent),
-      0 0 6px color-mix(in oklab, var(--sky-1) 85%, transparent),
-      0 0 16px color-mix(in oklab, var(--sky-1) 70%, transparent),
-      0 1px 20px rgb(0 0 0 / 0.25);
+.data-col .on-sky,
+.data-col.on-sky {
+  text-shadow:
+    0 0 2px color-mix(in oklab, var(--sky-1) 85%, transparent),
+    0 0 6px color-mix(in oklab, var(--sky-1) 85%, transparent),
+    0 0 16px color-mix(in oklab, var(--sky-1) 70%, transparent),
+    0 1px 20px rgb(0 0 0 / 0.25);
+}
+
+/*
+ * On a phone the data follows the reading down the page, over the map at full
+ * strength: a veil of the top of the sky at 70% runs behind it, edge to edge
+ * (the page clips it). It rises over an eased ramp above the timeline, so the
+ * reading's empty field, where the city shows, stays clear; the chapters
+ * below carry it on without a seam. On a computer .data-veil does this job.
+ */
+@media (width < 64rem) {
+  .data-col::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-block: 0;
+    inset-inline: -50vw;
+    background: color-mix(in oklab, var(--sky-1) 70%, transparent);
+  }
+  .data-col-first::before {
+    top: -4rem;
+    background: linear-gradient(
+      180deg,
+      transparent 0,
+      color-mix(in oklab, var(--sky-1) 8%, transparent) 1.25rem,
+      color-mix(in oklab, var(--sky-1) 28%, transparent) 2.5rem,
+      color-mix(in oklab, var(--sky-1) 50%, transparent) 3.75rem,
+      color-mix(in oklab, var(--sky-1) 64%, transparent) 5rem,
+      color-mix(in oklab, var(--sky-1) 70%, transparent) 6rem
+    );
   }
 }
 
@@ -366,8 +405,9 @@ body {
 }
 
 /*
- * Behind the data column: the top of the sky at 35%, over the map and under
- * the numbers (the text there gets a firmer shadow instead, see .data-col). It has no edge to see: it rises over a long, eased ramp that
+ * On a computer, behind the data column: the top of the sky at 35%, over the
+ * map and under the numbers (the text there gets a firmer shadow instead, see
+ * .data-col). It has no edge to see: it rises over a long, eased ramp that
  * starts well inside the reading's column (an even linear ramp would still
  * show a line where it ends), and runs on past the page to the window's
  * right edge (the page clips it).
@@ -439,6 +479,11 @@ body {
   animation: rise-in 700ms 150ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+/* The search, as it folds into its button and unfolds again */
+.pop-in {
+  animation: pop-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
 /* Lines draw themselves from left to right */
 .draw {
   animation: draw 1.1s 200ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
@@ -472,6 +517,13 @@ body {
   from {
     opacity: 0;
     transform: translateY(12px);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
   }
 }
 

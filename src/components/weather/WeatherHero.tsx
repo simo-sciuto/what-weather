@@ -35,7 +35,10 @@ export function WeatherHero({
 }) {
   const label = conditionLabel(current);
   const longest = Math.max(...place.name.split(/\s+/).map((word) => word.length));
-  const titleSize = Math.min(15, 60 / (0.56 * longest), place.name.length > 20 ? 8 : 15);
+  // The temperature shares the size on two columns (about 30 of the 100 units): its longest
+  // reading of the day, sign and degree included, at about 0.6em a figure, must fit there too.
+  const widestTemp = Math.max(...[current.temp, range.min, range.max].map((t) => formatTemp(t).length));
+  const titleSize = Math.min(15, 60 / (0.56 * longest), place.name.length > 20 ? 8 : 15, 30 / (0.6 * widestTemp));
 
   return (
     // The map behind the page centres the city on the middle of this poster (see MapBackdropGL).
@@ -58,7 +61,7 @@ export function WeatherHero({
       <HeroNowPhone timezone={timezone} renderedAt={renderedAt} dataAt={current.time} className="mb-4 lg:hidden" />
 
       <div
-        className="grid grid-cols-6 gap-x-4 [align-items:last_baseline] lg:mt-[3.5cqh]"
+        className="grid grid-cols-6 gap-x-4 items-baseline-last lg:mt-1"
         style={{ fontSize: `max(2rem, min(${titleSize}cqw, ${titleSize * 0.85}cqh))` }}
       >
         <div className="col-span-4 min-w-0">
@@ -74,7 +77,7 @@ export function WeatherHero({
         (on a computer they are the head); the sky, the range and the feels-like under the
         temperature, close to it.
       */}
-      <div className="mt-4 grid grid-cols-6 items-start gap-x-4 lg:mt-[1.5cqh]">
+      <div className="mt-1 grid grid-cols-6 items-start gap-x-4 ">
         <HeroMetaPhone
           region={placeSubtitle(place)}
           coords={formatCoords(place.lat, place.lon)}

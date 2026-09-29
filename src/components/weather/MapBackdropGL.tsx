@@ -13,12 +13,18 @@ type Pin = { x: number; y: number };
 /**
  * Where the city goes on the screen: at the exact centre of the reading, the
  * poster (marked data-map-anchor). Measured, not guessed, so it holds for any
- * window size and any name's length.
+ * window size and any name's length. On a computer the poster is pinned, so
+ * where it is on the screen is where it always is. On a phone it scrolls
+ * away, so it is measured where it sits at the top of the page: a phone
+ * resizes the window as its address bar hides and shows mid-scroll, and a
+ * measure taken on the screen then would throw the city off.
  */
 function measurePin(): Pin | null {
   const poster = document.querySelector('[data-map-anchor="poster"]')?.getBoundingClientRect();
   if (!poster) return null;
-  return { x: (poster.left + poster.right) / 2, y: (poster.top + poster.bottom) / 2 };
+  const pinned = window.matchMedia("(width >= 64rem)").matches;
+  const top = pinned ? poster.top : poster.top + window.scrollY;
+  return { x: (poster.left + poster.right) / 2, y: top + poster.height / 2 };
 }
 
 /** Padding that moves the map's centre (the city) onto the pin. */

@@ -1,3 +1,4 @@
+import { Wordmark } from "@/components/Wordmark";
 import { LocationSearch } from "@/components/location/LocationSearch";
 import { PlaceProvider } from "@/components/location/PlaceContext";
 import { SavedPlaces } from "@/components/location/SavedPlaces";
@@ -12,6 +13,7 @@ import { PrecipitationTimeline } from "@/components/weather/PrecipitationTimelin
 import { MapBackdropGL } from "@/components/weather/MapBackdropGL";
 import { MapProvider } from "@/components/weather/MapContext";
 import { MapView } from "@/components/weather/MapView";
+import { SiteFooter } from "@/components/weather/SiteFooter";
 import { Sky } from "@/components/weather/Sky";
 import { WeatherAlerts } from "@/components/weather/WeatherAlert";
 import { PromotedDetails } from "@/components/weather/WeatherDetails";
@@ -19,12 +21,12 @@ import { WeatherHero } from "@/components/weather/WeatherHero";
 import { placeHref } from "@/lib/place";
 import { loadWeatherPage, type SearchParams } from "@/lib/weather-page";
 import { detailModules, moonInfo } from "@/lib/weather/details";
-import { conditionLabel, formatTemp, formatTime } from "@/lib/weather/formatters";
-import { MOCK_SCENARIOS } from "@/lib/weather/mock";
+import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
 import { buildNarrative } from "@/lib/weather/narrative";
 import { precipOutlook } from "@/lib/weather/precipitation";
 import { tempRange } from "@/lib/weather/today";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 /** The maps are Mapbox's alone: with no token the page has none. */
 const MAPBOX = Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
@@ -75,6 +77,15 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
           <AtmosphereMain className="atmosphere min-h-dvh overflow-x-clip">
             <Sky />
             {/*
+              The city's map, fixed behind the whole screen like the sky: it
+              stays put while the page scrolls over it, with the city pinned
+              between the place's name and the clock, strongest there and held
+              back under the reading. Only the city's coloured lines are drawn; the sky shows
+              between them. Early in the markup, so the data's veils (.data-col, .data-veil)
+              paint over it.
+            */}
+            <MapBackdropGL className="backdrop-fade pointer-events-none fixed inset-0 -z-1" />
+            {/*
             Phone: the first screen is the sky and one reading (place, temperature,
             outlook, the timeline); chapters follow. Desktop: the reading stays
             pinned on the left over the sky while the chapters scroll on the right.
@@ -85,7 +96,18 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                 the right column, so the left one is the place's alone, like a poster.
               */}
               <header className="relative z-30 pt-[max(1rem,env(safe-area-inset-top))] lg:col-span-7 lg:col-start-6 lg:row-start-1 lg:pt-[3.5vh] xl:col-span-6 xl:col-start-7">
-                <LocationSearch />
+                {/* The name, then the search: on one line from a tablet up, the name above on a phone */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+                  <Link
+                    href="/"
+                    className="on-sky shrink-0 self-start rounded-sm sm:self-auto focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                  >
+                    <Wordmark className="text-[1.375rem]" />
+                  </Link>
+                  <div className="min-w-0 flex-1">
+                    <LocationSearch />
+                  </div>
+                </div>
                 {/* Saved places, one tap away: small pills under the search */}
                 <div className="mt-3">
                   <SavedPlaces />
@@ -113,19 +135,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               </div>
 
               {/* The hours ahead: under the reading on a phone, at the top of the right column on a computer */}
-              <div className="data-col pb-10 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
+              <div className="data-col data-col-first relative pb-10 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
                 <TimeScrubber />
               </div>
 
               <div className="data-col relative flex flex-col gap-14 pb-[max(2.5rem,env(safe-area-inset-bottom))] lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pt-8 xl:col-span-6 xl:col-start-7">
-                {/*
-                  The city's map, fixed behind the whole screen like the sky: it
-                  stays put while the page scrolls over it, with the city pinned
-                  between the place's name and the clock, strongest there and held
-                  back under the reading. Only the city's coloured lines are drawn; the sky shows
-                  between them.
-                */}
-                <MapBackdropGL className="backdrop-fade pointer-events-none fixed inset-0 -z-1" />
                 {/* On a computer the moment's quick facts lead this column (on a phone they sit under the reading) */}
                 <MomentFacts on="desktop" />
 
@@ -159,61 +173,15 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   <Almanac data={data} modules={modules} />
                 </Chapter>
 
-                <footer className="on-sky flex flex-col gap-3 border-t border-rule pt-4 text-xs text-ink-muted sm:flex-row sm:items-baseline sm:justify-between">
-                  {provider === "mock" ? (
-                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-                      <p className="label text-ink!">Dati di esempio</p>
-                      <nav aria-label="Scenari meteo di esempio" className="flex flex-wrap gap-x-3 gap-y-1">
-                        {MOCK_SCENARIOS.map((s) => (
-                          <a
-                            key={s}
-                            href={`/?mock=${s}${at ? `&at=${at}` : ""}`}
-                            aria-current={s === scenario ? "page" : undefined}
-                            className="label underline-offset-4 hover:text-ink aria-[current=page]:text-ink aria-[current=page]:underline"
-                          >
-                            {s}
-                          </a>
-                        ))}
-                      </nav>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center md:items-baseline gap-x-4 gap-y-2 ">
-                      <p>
-                        Dati meteo di{" "}
-                        {provider === "open-meteo" ? (
-                          // Open-Meteo's licence (CC BY 4.0) asks for this credit and link
-                          <a href="https://open-meteo.com/" className="underline underline-offset-2 hover:text-ink" rel="noopener">
-                            Open-Meteo.com
-                          </a>
-                        ) : (
-                          <a
-                            href="https://openweathermap.org/"
-                            className="underline underline-offset-2 hover:text-ink"
-                            rel="noopener"
-                          >
-                            OpenWeather
-                          </a>
-                        )}
-                      </p>
-                      {MAPBOX && (
-                        // Mapbox's terms ask for both credits: its maps are drawn from OpenStreetMap data
-                        <p>
-                          Mappe ©{" "}
-                          <a href="https://www.mapbox.com/about/maps/" className="underline underline-offset-2 hover:text-ink" rel="noopener">
-                            Mapbox
-                          </a>{" "}
-                          ©{" "}
-                          <a href="https://www.openstreetmap.org/copyright" className="underline underline-offset-2 hover:text-ink" rel="noopener">
-                            OpenStreetMap
-                          </a>
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <p className="tabular-nums">
-                    Aggiornato alle {formatTime(data.current.time, data.timezone)}, ora locale
-                  </p>
-                </footer>
+                <SiteFooter
+                  provider={provider}
+                  openWeatherKey={Boolean(process.env.OPENWEATHER_API_KEY)}
+                  maps={MAPBOX}
+                  updatedAt={data.current.time}
+                  timezone={data.timezone}
+                  scenario={scenario}
+                  at={at}
+                />
               </div>
 
               {/*

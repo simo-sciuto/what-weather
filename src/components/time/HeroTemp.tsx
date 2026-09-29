@@ -16,7 +16,7 @@ export function HeroTemp() {
   return (
     <p
       aria-hidden="true"
-      className="font-poster font-light leading-[0.86] tracking-[-0.05em] tabular-nums transition-colors duration-700"
+      className="font-poster font-light leading-[0.86] tracking-[-0.05em] whitespace-nowrap tabular-nums transition-colors duration-700"
       style={{ color: tempColor(frame.temp) }}
     >
       {formatTemp(frame.temp)}
@@ -51,14 +51,15 @@ export function HeroSky({ high, low, note, className = "" }: { high: number; low
         {conditionLabel(frame)}
       </p>
       {range && (
-        <p className="flex items-center gap-2 whitespace-nowrap">
+        <p className="flex items-center gap-1.5 whitespace-nowrap sm:gap-2">
           <span style={{ color: tempColor(range.low) }}>{formatTemp(range.low)}</span>
-          <span className="h-0.5 max-w-14 min-w-4 flex-1 rounded-full" style={{ background: tempGradient(range.low, range.high) }} />
+          <span className="h-0.5 max-w-14 min-w-3 flex-1 rounded-full" style={{ background: tempGradient(range.low, range.high) }} />
           <span style={{ color: tempColor(range.high) }}>{formatTemp(range.high)}</span>
         </p>
       )}
-      <p className="whitespace-nowrap">
-        <span className="text-ink-muted">Percepita</span> {formatTemp(frame.feelsLike)}
+      {/* On a narrow phone the label and the value may part onto two lines rather than overflow */}
+      <p>
+        <span className="text-ink-muted">Percepita</span> <span className="whitespace-nowrap">{formatTemp(frame.feelsLike)}</span>
       </p>
       {range?.note && <p className="text-caption text-ink-muted">{range.note}</p>}
     </div>
