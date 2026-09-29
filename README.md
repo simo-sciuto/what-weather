@@ -1,8 +1,17 @@
-# Meteo
+# what-weather
 
 **Weather, calmly: the right information at the right moment.**
 
-Meteo is a weather web app that reads like a Swiss typographic poster. It sets the place's name large and heavy, puts the temperature beside it, and adds a few facts in small print. Behind the text is the sky of the moment and a map of the city. Scroll down for the hours ahead, the week and the details. The interface is in Italian.
+**Try it live: [what-weather-theta.vercel.app](https://what-weather-theta.vercel.app)**
+
+what-weather (say it like "whatever") is a weather web app that reads like a Swiss typographic poster. It sets the place's name large and heavy, puts the temperature beside it, and adds a few facts in small print. Behind the text is the sky of the moment and a map of the city. Scroll down for the hours ahead, the week and the details. The interface is in Italian.
+
+| | |
+| --- | --- |
+| ![Milano, partly cloudy in the late afternoon](docs/screenshots/milano.png) | ![Tokyo at night, in light drizzle](docs/screenshots/tokyo.png) |
+| ![New York under an overcast sky](docs/screenshots/new-york.png) | ![Reykjavík, overcast with gusts on the way](docs/screenshots/reykjavik.png) |
+
+These are the share previews the site draws for each place, taken from the live app: the sky of the moment, the temperature and the outlook in words. Open the [live site](https://what-weather-theta.vercel.app) for the full page, with the map, the timeline and the week.
 
 ## Features
 
@@ -11,10 +20,10 @@ Meteo is a weather web app that reads like a Swiss typographic poster. It sets t
 - **The city behind the page.** A Mapbox map of the place sits centred behind the poster and zooms into the streets as you scroll.
 - **The next 24 hours.** A timeline you can drag to explore: the whole page follows the hour you pick.
 - **The week.** Daily ranges drawn on a temperature colour scale; pick a day to explore it.
-- **Rain map.** Clouds and precipitation over the coming hours.
+- **Rain map.** Clouds and precipitation over the next 12 hours, played as an animation.
 - **Details.** Air quality, UV, wind, humidity, sun and moon, and alerts. The urgent ones move up to the top.
 - **Outlook in words.** A short, plain sentence about what the weather will do next.
-- **Places.** Search any city, save your favourites and switch between them in one tap. The last place you viewed opens next time.
+- **Places.** Search any city, save your favourites and switch between them in one tap. Once you scroll, the search folds into a round button at the bottom right, so a new city is always one tap away. The last place you viewed opens next time.
 - **Sharing.** Every place has its own URL and a generated preview image. It also installs as a web app.
 
 ## Tech stack
@@ -89,4 +98,4 @@ src/
 
 ## Credits
 
-Weather data comes from OpenWeather or [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0). Maps are © [Mapbox](https://www.mapbox.com/about/maps/) and © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
+Weather, air quality and place search come from [OpenWeather](https://openweathermap.org) or [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0), depending on `WEATHER_PROVIDER`. With Open-Meteo, OpenWeather names a place found by location when a key is set. The clouds and rain on the maps always come from Open-Meteo. Maps are © [Mapbox](https://www.mapbox.com/about/maps/) and © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors. The page's footer lists the sources actually in use.
