@@ -31,7 +31,7 @@ These are the share previews the site draws for each place, taken from the live 
 - [Next.js 16](https://nextjs.org) (App Router, Cache Components) and React 19
 - Tailwind CSS 4
 - Mapbox GL JS for the maps
-- Vitest for the tests
+- Vitest for the tests, Playwright for the end-to-end ones
 - Weather from [OpenWeather](https://openweathermap.org) or [Open-Meteo](https://open-meteo.com), or built-in sample data
 
 ## Getting started
@@ -81,6 +81,7 @@ Links to every scenario also appear at the foot of the page when sample data is 
 | `npm run lint` | Run ESLint |
 | `npm test` | Run the tests once |
 | `npm run test:watch` | Run the tests in watch mode |
+| `npm run test:e2e` | Build the site with sample weather and run the end-to-end tests (Playwright, in the Chrome installed on the machine) |
 
 ## Project structure
 
