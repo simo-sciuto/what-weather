@@ -1,5 +1,5 @@
-import { dayOfYear, formatCoords, formatDate, formatTime } from "@/lib/weather/formatters";
-import type { MapLayer, SkyPalette } from "@/lib/weather/palette";
+import { dayOfYear, formatCoords } from "@/lib/weather/formatters";
+import { inkOverSky, type MapLayer, type SkyPalette } from "@/lib/weather/palette";
 import { KIND, STYLE } from "../weather/map-style";
 
 type Mapbox = typeof import("mapbox-gl").default;
@@ -29,8 +29,8 @@ export interface PosterInput {
   format: PosterFormat;
   /** The place, with its region and country in Italian (either may be empty) */
   place: { name: string; region: string; country: string; lat: number; lon: number };
-  /** The moment whose sky the poster is drawn in, in the place's own time */
-  moment: { time: number; dayKey: string; timezone: string };
+  /** The local day ("2026-09-30") whose sky the poster is drawn in, for its number in the year */
+  dayKey: string;
   palette: SkyPalette;
   token: string;
   loadMapbox: () => Promise<Mapbox>;
@@ -40,11 +40,11 @@ export interface PosterInput {
  * The poster, drawn in the browser: the sky of the moment, the city's lines
  * in the colours opposite it (the same drawing as behind the page, with no
  * veil and no fade), and, set on a Swiss grid, the place's name, large, black
- * and tight, its region and country, its coordinates, the date and time of
- * the moment, and the colours it was drawn in. The map is the subject; the
+ * and tight, its region and country, its coordinates, and the colours it was
+ * drawn in. The map is the subject; the
  * type holds the edges. Returns a PNG.
  */
-export async function renderPoster({ format, place, moment, palette, token, loadMapbox }: PosterInput): Promise<Blob> {
+export async function renderPoster({ format, place, dayKey, palette, token, loadMapbox }: PosterInput): Promise<Blob> {
   const { width: W, height: H } = POSTER_FORMATS[format];
   const [mapImage, fonts] = await Promise.all([drawMap({ W, H, place, palette, token, loadMapbox }), loadFonts()]);
 
@@ -56,7 +56,7 @@ export async function renderPoster({ format, place, moment, palette, token, load
 
   paintSky(ctx, W, H, palette);
   ctx.drawImage(mapImage, 0, 0, W, H);
-  paintType(ctx, W, H, place, moment, palette, fonts);
+  paintType(ctx, W, H, place, dayKey, palette, fonts);
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Export failed"))), "image/png"),
@@ -73,7 +73,7 @@ async function drawMap({
   palette,
   token,
   loadMapbox,
-}: Omit<PosterInput, "format" | "moment"> & { W: number; H: number }): Promise<HTMLCanvasElement> {
+}: Omit<PosterInput, "format" | "dayKey"> & { W: number; H: number }): Promise<HTMLCanvasElement> {
   const mapboxgl = await loadMapbox();
   const cssW = W / PIXEL_RATIO;
   const cssH = H / PIXEL_RATIO;
@@ -219,7 +219,7 @@ function paintType(
   W: number,
   H: number,
   place: PosterInput["place"],
-  moment: PosterInput["moment"],
+  dayKey: PosterInput["dayKey"],
   p: SkyPalette,
   fonts: Fonts,
 ) {
@@ -265,16 +265,16 @@ function paintType(
 
   // Foot, laid from the bottom up. Centred at the very foot, the day of the year
   // and under it the wordmark, like a print's number and signature. Over them,
-  // under a hairline, two columns of small print: on the left where and when
-  // (coordinates; date and time), on the right the colours this poster was drawn
-  // in, then the map's credits. Over the hairline, the name.
+  // under a hairline, two columns of small print: on the left where (latitude
+  // over longitude), on the right the colours this poster was drawn in, then
+  // the map's credits. Over the hairline, the name.
   const bottom = H - m;
   const mark = small * 1.9;
   const dayBase = bottom - mark * 1.3;
   const creditsBase = dayBase - small * 2.6;
-  const whenBase = creditsBase;
-  const whereBase = whenBase - small * 1.9;
-  const ruleY = whereBase - small * 2.3;
+  const lonBase = creditsBase;
+  const latBase = lonBase - small * 1.9;
+  const ruleY = latBase - small * 2.3;
   const swatchesTop = ruleY + small * 0.8;
 
   ctx.globalAlpha = 0.45;
@@ -282,19 +282,16 @@ function paintType(
   ctx.globalAlpha = 1;
 
   const [lat, lon] = formatCoords(place.lat, place.lon);
-  const date = formatDate(moment.time, moment.timezone, { day: "numeric", month: "long", year: "numeric" });
   ctx.textAlign = "left";
   setType(ctx, `500 SIZE ${fonts.sans}`, small * 1.2, 0.01);
-  ctx.fillText(`${lat}   ${lon}`, m, whereBase);
-  ctx.globalAlpha = 0.8;
-  ctx.fillText(`${date}   ${formatTime(moment.time, moment.timezone)}`, m, whenBase);
-  ctx.globalAlpha = 1;
+  ctx.fillText(lat, m, latBase);
+  ctx.fillText(lon, m, lonBase);
 
   // Last, centred at the foot: the day of the year, like the number pencilled under a limited edition print.
   setType(ctx, `300 SIZE ${fonts.poster}`, small * 1.1, 0.04);
   ctx.textAlign = "center";
   ctx.globalAlpha = 0.9;
-  ctx.fillText(dayOfYear(moment.dayKey), W / 2, dayBase);
+  ctx.fillText(dayOfYear(dayKey), W / 2, dayBase);
   ctx.globalAlpha = 1;
   ctx.textAlign = "left";
 
@@ -321,12 +318,14 @@ function paintType(
 /**
  * The poster's colours as a printer's colour bar, flush right from `right`:
  * the sky (top, middle, horizon), then, a step apart, the roads (motorways,
- * main roads, streets); each a chip over its hex code.
+ * main roads, streets) as they show over the middle of the sky, so the chips
+ * follow everything the viewer tuned (the hue, the intensity and, through the
+ * lines' opacity, the contrast); each a chip over its hex code.
  */
 function paintSwatches(ctx: CanvasRenderingContext2D, right: number, top: number, small: number, p: SkyPalette, family: string) {
   const groups = [
     [p.sky1, p.sky2, p.sky3],
-    [p.map.motorways.color, p.map["main-roads"].color, p.map.streets.color],
+    [p.map.motorways, p.map["main-roads"], p.map.streets].map((ink) => inkOverSky(p.sky2, ink)),
   ];
   const label = small * 0.62;
   setType(ctx, `500 SIZE ${family}`, label, 0.02);

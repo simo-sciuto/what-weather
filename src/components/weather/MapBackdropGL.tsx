@@ -3,7 +3,7 @@
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 import type { MapLayer } from "@/lib/weather/palette";
-import { useMoment } from "../time/TimeContext";
+import { useMapPalette } from "./MapColors";
 import { useMap } from "./MapContext";
 import { KIND, STYLE } from "./map-style";
 
@@ -56,7 +56,8 @@ function scrollProgress(): number {
 export function MapBackdropGL({ className }: { className: string }) {
   const { center, token, loadMapbox } = useMap();
   const { lat, lon } = center;
-  const inks = useMoment().look.palette.map;
+  // The sky's opposite colours, turned as the viewer chose
+  const inks = useMapPalette().map;
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("mapbox-gl").Map | null>(null);
   const [failed, setFailed] = useState(!token);

@@ -2,6 +2,7 @@ import {
   airInfo,
   comfort,
   moonInfo,
+  pollenInfo,
   pressureTrend,
   sunInfo,
   uvInfo,
@@ -94,6 +95,17 @@ export function detailContent(key: DetailKey, d: WeatherData): DetailContent | n
             </ul>
           </Disclosure>
         ),
+      };
+    }
+    case "pollen": {
+      const p = d.pollen ? pollenInfo(d.pollen) : null;
+      if (!p) return null;
+      return {
+        name: "Polline",
+        value: p.label,
+        // "Graminacee: alto · alberi: basso": each family in the air, by its level
+        note: p.families.map((f, i) => `${i === 0 ? f.name : f.name.toLowerCase()}: ${f.label.toLowerCase()}`).join(" · "),
+        figure: (size) => <Scale position={(p.band - 0.5) / 4} bands={BAND_COLORS.slice(0, 4)} className={scaleWidth(size)} />,
       };
     }
     case "sun": {

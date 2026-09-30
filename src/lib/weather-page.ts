@@ -5,6 +5,8 @@ import { LAST_PLACE_COOKIE, parsePlaceCookie, parsePlaceRef, type PlaceRef } fro
 import { DEFAULT_PLACE, getProvider } from "./weather";
 import { COORD_PRECISION, MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS } from "./weather/constants";
 import { buildTimeline } from "./weather/frames";
+import { lookupPollen } from "./weather/pollen";
+import { sinceYesterday } from "./weather/yesterday";
 
 export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -13,7 +15,7 @@ const round = (n: number) => Number(n.toFixed(COORD_PRECISION));
 
 /**
  * The weather for one place, fetched and worked out (timeline, palettes,
- * sentences) once and shared by every visitor asking for that place, for as
+ * sentences, the change since yesterday, the pollen) once and shared by every visitor asking for that place, for as
  * long as the forecast is fresh. Keyed on its arguments, which is why the
  * coordinates are rounded first: nearby requests land on the same entry.
  * The page, its metadata and any later request all reuse the same result.
@@ -43,12 +45,28 @@ async function load(
     });
   }
 
-  const fetched = await provider.getByCoords(lat, lon);
-  // A name picked in search beats reverse geocoding ("Tokyo" rather than "Shibuya").
+  const [weather, yesterday, pollen] = await Promise.all([
+    provider.getByCoords(lat, lon),
+    // Sample data has no yesterday to compare with, and brings its own pollen.
+    provider.name === "mock" ? null : sinceYesterday(lat, lon),
+    provider.name === "mock" ? undefined : lookupPollen(lat, lon),
+  ]);
+  const fetched = pollen === undefined ? weather : { ...weather, pollen };
+  // A name picked in search beats reverse geocoding ("Tokyo" rather than "Shibuya"). A link
+  // that gives only the name (a town nearby) keeps the region geocoding found for that same name.
+  const sameName = name === fetched.place.name;
   const data = name
-    ? { ...fetched, place: { ...fetched.place, name, region, country: country ?? fetched.place.country } }
+    ? {
+        ...fetched,
+        place: {
+          ...fetched.place,
+          name,
+          region: region ?? (sameName ? fetched.place.region : undefined),
+          country: country ?? fetched.place.country,
+        },
+      }
     : fetched;
-  return { data, timeline: buildTimeline(data), provider: provider.name };
+  return { data, timeline: buildTimeline(data), provider: provider.name, yesterday };
 }
 
 /**

@@ -2,7 +2,7 @@ import { THRESHOLDS } from "./constants";
 import { localDay } from "./formatters";
 import { illumination, moonPhaseAt, phaseName, secondsUntilPhase } from "./moon";
 import { hasSunTimes } from "./sun";
-import type { AirQuality, Pollutants, WeatherData } from "./types";
+import type { AirQuality, Pollen, Pollutants, WeatherData } from "./types";
 
 /**
  * Derived readings for the detail modules, plus the rules deciding which
@@ -184,6 +184,38 @@ export function airInfo(aq: AirQuality) {
   };
 }
 
+/* ---------- Pollen ---------- */
+
+export const POLLEN_LABELS = ["Basso", "Moderato", "Alto", "Molto alto"] as const;
+
+/**
+ * Lower bounds in grains/m³ of Moderate, High and Very high for each family,
+ * after the bands of the US National Allergy Bureau (AAAAI). Those are for a
+ * day's count at a station and these readings are a model's, for the hour: a
+ * guide, not a measurement.
+ */
+const POLLEN_BANDS: Record<"tree" | "grass" | "weed", [number, number, number]> = {
+  tree: [15, 90, 1500],
+  grass: [5, 20, 200],
+  weed: [10, 50, 500],
+};
+const POLLEN_NAMES = { tree: "Alberi", grass: "Graminacee", weed: "Erbe infestanti" } as const;
+
+/** The families in the air (a grain per m³ or more), highest level first; null when there are none. */
+export function pollenInfo(p: Pollen) {
+  const keys = Object.keys(POLLEN_BANDS) as (keyof typeof POLLEN_BANDS)[];
+  const families = keys
+    .filter((k) => p[k] >= 1)
+    .map((k) => {
+      const band = 1 + POLLEN_BANDS[k].filter((x) => p[k] >= x).length;
+      return { key: k, name: POLLEN_NAMES[k], grains: p[k], band, label: POLLEN_LABELS[band - 1] };
+    })
+    .sort((a, b) => b.band - a.band || b.grains - a.grains);
+  if (!families.length) return null;
+  const band = families[0].band;
+  return { band, label: POLLEN_LABELS[band - 1], high: band >= 3, families };
+}
+
 /* ---------- Sun ---------- */
 
 /** Null in polar day or night, when there is no sunrise or sunset to show. */
@@ -240,7 +272,7 @@ export function moonInfo(d: WeatherData) {
 
 /* ---------- Which modules, in which order ---------- */
 
-export type DetailKey = "wind" | "humidity" | "uv" | "air" | "sun" | "moon" | "pressure" | "visibility";
+export type DetailKey = "wind" | "humidity" | "uv" | "air" | "pollen" | "sun" | "moon" | "pressure" | "visibility";
 
 export interface DetailModule {
   key: DetailKey;
@@ -263,6 +295,7 @@ export function detailModules(d: WeatherData): DetailModule[] {
   const vis = visibilityInfo(d.current.visibility);
   const pressure = pressureTrend(d);
   const air = d.airQuality ? airInfo(d.airQuality) : null;
+  const pollen = d.pollen ? pollenInfo(d.pollen) : null;
 
   const modules: (Omit<DetailModule, "alert"> & { severity: number })[] = [
     { key: "wind", promoted: wind.strong, note: wind.strong ? "Vento forte" : undefined, severity: 3 },
@@ -270,6 +303,9 @@ export function detailModules(d: WeatherData): DetailModule[] {
     ...(uv ? [{ key: "uv" as const, promoted: uv.high, note: uv.high ? "UV alto" : undefined, severity: 2 }] : []),
     ...(air
       ? [{ key: "air" as const, promoted: true, note: air.poor ? `Aria ${air.label.toLowerCase()}` : undefined, severity: air.poor ? 2 : 0 }]
+      : []),
+    ...(pollen
+      ? [{ key: "pollen" as const, promoted: pollen.high, note: pollen.high ? `Polline ${pollen.label.toLowerCase()}` : undefined, severity: 1 }]
       : []),
     ...(hasSunTimes(d) ? [{ key: "sun" as const, promoted: false, severity: 0 }] : []),
     { key: "moon", promoted: false, severity: 0 },

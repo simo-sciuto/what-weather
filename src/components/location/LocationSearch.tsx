@@ -1,6 +1,7 @@
 "use client";
 
 import { placeHref, samePlace, type PlaceRef } from "@/lib/place";
+import { clearRecent } from "@/lib/recent-places";
 import { rememberPlace, removeSaved } from "@/lib/saved-places";
 import { placeSubtitle } from "@/lib/weather/formatters";
 import type { Place } from "@/lib/weather/types";
@@ -61,7 +62,7 @@ function dedupe(places: Place[]): Place[] {
 
 /**
  * A search field with suggestions (ARIA combobox). Empty and focused, it
- * offers "Use my location" and saved places. Choosing a place navigates
+ * offers "Use my location", the saved places and the ones seen lately. Choosing a place navigates
  * client-side, so the page updates without a full reload.
  *
  * Once the page scrolls it out of view it docks: it folds into a round
@@ -74,7 +75,7 @@ function dedupe(places: Place[]): Place[] {
 export function LocationSearch() {
   const router = useRouter();
   // The field's ref lives in the place context, so the place name can focus it.
-  const { place, searchRef: inputRef, saved, isSaved, toggleSaved } = usePlace();
+  const { place, searchRef: inputRef, saved, isSaved, toggleSaved, recent } = usePlace();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -347,7 +348,7 @@ export function LocationSearch() {
               {saved.length === 0 ? (
                 <p className="px-3 py-2 text-sm text-ink-muted">Le località che salvi compaiono qui.</p>
               ) : (
-                <ul>
+                <ul aria-label="Località salvate">
                   {saved.map((p) => {
                     const current = samePlace(p, place);
                     return (
@@ -374,6 +375,35 @@ export function LocationSearch() {
                     );
                   })}
                 </ul>
+              )}
+
+              {recent.length > 0 && (
+                <>
+                  <div className="mt-1 flex items-baseline justify-between gap-4 border-t border-white/10 px-3 pb-1 pt-3">
+                    <h2 className="label">Recenti</h2>
+                    <button
+                      type="button"
+                      onClick={clearRecent}
+                      className="text-sm text-ink-muted underline-offset-4 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-accent"
+                    >
+                      Svuota
+                    </button>
+                  </div>
+                  <ul aria-label="Località recenti">
+                    {recent.map((p) => (
+                      <li key={`${p.lat},${p.lon}`} className="rounded-xl hover:bg-white/10">
+                        <button
+                          type="button"
+                          onClick={() => go(p)}
+                          className="w-full px-3 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-accent"
+                        >
+                          <span className="font-medium">{p.name}</span>
+                          <span className="block text-sm text-ink-muted">{placeSubtitle({ ...p, country: p.country ?? "" })}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
             </div>
           )}

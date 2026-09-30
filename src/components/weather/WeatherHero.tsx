@@ -1,5 +1,6 @@
 import { conditionLabel, formatCoords, formatTemp, placeSubtitle } from "@/lib/weather/formatters";
 import type { TempRange } from "@/lib/weather/today";
+import { yesterdayWords } from "@/lib/weather/yesterday";
 import type { CurrentWeather, Place } from "@/lib/weather/types";
 import { LocationControl } from "../location/LocationControl";
 import { HeroMeta, HeroMetaPhone, HeroNowPhone } from "../time/HeroMeta";
@@ -13,8 +14,8 @@ import { HeroSky, HeroTemp } from "../time/HeroTemp";
  * text and the outlook. From the top: the head (place,
  * day, hour, with the coordinates and the day of the year as small print);
  * the title, the place's name heavy and the temperature light, closing on one
- * baseline; under the temperature, a short stack of the sky, the range and the
- * feels-like; an empty field where the map shows the city; the outlook, large,
+ * baseline; under the temperature, a short stack of the sky, the range, the
+ * feels-like and the change since yesterday; an empty field where the map shows the city; the outlook, large,
  * at the foot.
  */
 export function WeatherHero({
@@ -24,6 +25,7 @@ export function WeatherHero({
   range,
   renderedAt,
   outlook,
+  yesterday,
 }: {
   place: Place;
   timezone: string;
@@ -32,8 +34,11 @@ export function WeatherHero({
   /** Server time of this render; the clock starts here, then ticks */
   renderedAt: number;
   outlook: string;
+  /** Degrees gained or lost since the same time yesterday; null when unknown */
+  yesterday: number | null;
 }) {
   const label = conditionLabel(current);
+  const sinceYesterday = yesterday == null ? undefined : yesterdayWords(yesterday);
   const longest = Math.max(...place.name.split(/\s+/).map((word) => word.length));
   // The temperature shares the size on two columns (about 30 of the 100 units): its longest
   // reading of the day, sign and degree included, at about 0.6em a figure, must fit there too.
@@ -83,7 +88,13 @@ export function WeatherHero({
           coords={formatCoords(place.lat, place.lon)}
           className="col-span-4 min-w-0 lg:hidden"
         />
-        <HeroSky high={range.max} low={range.min} note={range.note} className="rise-in col-span-2 col-start-5 min-w-0" />
+        <HeroSky
+          high={range.max}
+          low={range.min}
+          note={range.note}
+          yesterday={sinceYesterday}
+          className="rise-in col-span-2 col-start-5 min-w-0"
+        />
       </div>
 
       {/* The empty field: the map's city shows through it, well in view. It takes what the screen leaves, on a phone too */}
@@ -92,7 +103,7 @@ export function WeatherHero({
       <p className="sr-only">
         Adesso {formatTemp(current.temp)}, {label.toLowerCase()}, percepita {formatTemp(current.feelsLike)}. Massima{" "}
         {formatTemp(range.max)}, minima {formatTemp(range.min)}
-        {range.note ? ` (${range.note})` : " oggi"}.
+        {range.note ? ` (${range.note})` : " oggi"}.{sinceYesterday && ` ${sinceYesterday} a quest’ora.`}
       </p>
       <HeroReading outlook={outlook} />
     </section>

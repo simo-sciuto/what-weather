@@ -33,7 +33,7 @@ export type MockScenario = (typeof MOCK_SCENARIOS)[number];
 interface Profile {
   mean: number;
   amplitude: number;
-  /** Sky for each of the next 24 hours */
+  /** Sky for each of the hours ahead */
   sky: (hoursFromNow: number) => { condition: Condition; intensity: Intensity; pop: number };
   /** Precipitation (mm/h) for each of the next 60 minutes; omit for no minute data */
   minutes?: (minute: number) => number;
@@ -46,6 +46,8 @@ interface Profile {
   description: string;
   /** Air quality index 1–5; pollutant levels are derived from it */
   aqi: AirQuality["index"];
+  /** Pollen in grains/m³ (trees, grasses, weeds); omit for none in the air */
+  pollen?: [number, number, number];
   /** A sample official alert, to exercise the alert component */
   alert?: { event: string; hours: number; description: string };
 }
@@ -121,6 +123,8 @@ const PROFILES: Record<MockScenario, Profile> = {
   windy: {
     mean: 18, amplitude: 5, sky: dry("partly-cloudy", 0.1), wind: 38, gust: 64, uvMax: 5,
     humidity: 45, visibility: 10, clouds: 35, description: "Few clouds", aqi: 1,
+    // A windy day in the grass season
+    pollen: [6, 64, 12],
   },
   smog: {
     mean: 12, amplitude: 5, sky: dry("clear"), wind: 3, gust: 5, uvMax: 3,
@@ -149,7 +153,8 @@ function build(scenario: MockScenario, lat: number, lon: number, at?: string): W
   };
 
   const firstHour = now - (now % 3600) + 3600;
-  const hourly: HourlyPoint[] = Array.from({ length: 24 }, (_, i) => {
+  // Two days of hours: the next 24, and tomorrow whole, so a day picked in the week has its own.
+  const hourly: HourlyPoint[] = Array.from({ length: 48 }, (_, i) => {
     const time = firstHour + i * 3600;
     const sky = p.sky(i + 1);
     const wet = isWet(sky.condition);
@@ -239,6 +244,7 @@ function build(scenario: MockScenario, lat: number, lon: number, at?: string): W
         co: [300, 5000, 10000, 13000, 16000][p.aqi - 1],
       },
     },
+    pollen: p.pollen ? { time: now, tree: p.pollen[0], grass: p.pollen[1], weed: p.pollen[2] } : null,
     alerts: p.alert
       ? [
           {

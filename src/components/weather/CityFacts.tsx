@@ -1,5 +1,11 @@
 import { cityFacts } from "@/lib/city-facts";
+import { placeHref } from "@/lib/place";
+import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
+import { nearbyWeather } from "@/lib/weather/nearby";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { Chapter } from "./Chapter";
+import { WeatherIcon } from "./WeatherIcon";
 
 const number = (n: number) => new Intl.NumberFormat("it-IT").format(n);
 /** Wikidata's Italian labels keep common nouns lower case ("lago di Lugano"); as a name, it starts upper case. */
@@ -7,7 +13,7 @@ const asName = (s: string) => s.charAt(0).toLocaleUpperCase("it-IT") + s.slice(1
 
 type Where = { lat: number; lon: number; name: string };
 
-/* Hairline glyphs for the three lists, drawn like the page's weather icons. */
+/* Hairline glyphs for the lists, drawn like the page's weather icons. */
 function PlaceGlyph({ className }: { className: string }) {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinejoin="round">
@@ -34,10 +40,21 @@ function PeakGlyph({ className }: { className: string }) {
   );
 }
 
-type Item = { name: string; figure?: string };
+function AroundGlyph({ className }: { className: string }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth={1.3} strokeLinecap="round">
+      <circle cx="8" cy="8" r="6.2" strokeDasharray="1.6 2.3" />
+      <circle cx="8" cy="8" r="1.6" />
+    </svg>
+  );
+}
 
-/** One list, set like the almanac: a glyph and a label, then a hairline row per name, its height flush right. */
+/** A row: a name, a figure flush right (a height, a temperature), a glyph before it; with `href`, the whole row is a link. */
+type Item = { name: string; figure?: string; icon?: ReactNode; href?: string; spoken?: string };
+
+/** One list, set like the almanac: a glyph and a label, then a hairline row per name, its figure flush right. */
 function List({ title, Glyph, items }: { title: string; Glyph: typeof WaterGlyph; items: Item[] }) {
+  const row = "flex items-center justify-between gap-4 py-3";
   return (
     <div className="min-w-0">
       <h3 className="label flex items-center gap-2 pb-2">
@@ -45,27 +62,61 @@ function List({ title, Glyph, items }: { title: string; Glyph: typeof WaterGlyph
         {title}
       </h3>
       <ul className="border-t border-rule">
-        {items.map((it) => (
-          <li key={it.name} className="flex items-baseline justify-between gap-4 border-b border-rule py-3">
-            <span className="min-w-0 text-[1.0625rem]">{it.name}</span>
-            {it.figure && <span className="shrink-0 text-sm tabular-nums text-ink-muted">{it.figure}</span>}
-          </li>
-        ))}
+        {items.map((it) => {
+          const content = (
+            <>
+              <span className="min-w-0 text-[1.0625rem]">{it.name}</span>
+              {(it.icon || it.figure) && (
+                <span className="flex shrink-0 items-center gap-2 text-sm tabular-nums text-ink-muted">
+                  {it.icon}
+                  {it.figure}
+                  {it.spoken && <span className="sr-only">, {it.spoken}</span>}
+                </span>
+              )}
+            </>
+          );
+          return (
+            <li key={it.name} className="border-b border-rule">
+              {it.href ? (
+                <Link
+                  href={it.href}
+                  className={`${row} -mx-2 rounded-sm px-2 transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent`}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <div className={row}>{content}</div>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
 
 /**
- * The chapter "Territorio": the place itself, apart from the weather. Three
- * lists side by side where there is room: what the place is (its rank, its
- * altitude, how many live there), its waters (those it stands on, then the
- * best-known lakes around) and the best-known peaks around, with their
- * heights. No distances. Async and cached, streamed in; a list with nothing
+ * The chapter "Territorio": the place itself. Lists side by side where there
+ * is room: what the place is (its rank, its altitude, how many live there),
+ * the best-known towns around with their weather right now (each a link to
+ * its own page), its waters (those it stands on, then the best-known lakes
+ * around) and the best-known peaks around, with their heights. No distances. Async and cached, streamed in; a list with nothing
  * known is left out, and with nothing known at all there is no chapter.
  */
 export async function Territory({ lat, lon, name }: Where) {
-  const { rank, altitude, population, waters = [], peaks = [] } = await cityFacts(lat, lon, name);
+  const { rank, altitude, population, waters = [], peaks = [], nearby = [] } = await cityFacts(lat, lon, name);
+  // The towns are named even when their weather can't be had.
+  const readings = await nearbyWeather(nearby);
+  const around: Item[] = nearby.map((town, i) => {
+    const now = readings[i];
+    return {
+      name: town.name,
+      href: placeHref(town),
+      figure: now ? formatTemp(now.temp) : undefined,
+      icon: now && <WeatherIcon condition={now.condition} night={now.night} colored className="size-5" />,
+      spoken: now ? conditionLabel({ condition: now.condition, intensity: "moderate" }).toLowerCase() : undefined,
+    };
+  });
   const place: Item[] = [
     ...(rank ? [{ name: rank }] : []),
     ...(altitude != null ? [{ name: "Altitudine", figure: `${number(altitude)} m s.l.m.` }] : []),
@@ -73,6 +124,7 @@ export async function Territory({ lat, lon, name }: Where) {
   ];
   const lists = [
     { title: "Il luogo", Glyph: PlaceGlyph, items: place },
+    { title: "Dintorni", Glyph: AroundGlyph, items: around },
     { title: "Acque", Glyph: WaterGlyph, items: waters.map((w) => ({ name: asName(w) })) },
     {
       title: "Vette",
@@ -81,9 +133,9 @@ export async function Territory({ lat, lon, name }: Where) {
     },
   ].filter((l) => l.items.length);
   if (!lists.length) return null;
-  const columns = ["", "@lg:grid-cols-2", "@lg:grid-cols-2 @2xl:grid-cols-3"][lists.length - 1];
+  const columns = ["", "@lg:grid-cols-2", "@lg:grid-cols-2 @2xl:grid-cols-3", "@lg:grid-cols-2"][lists.length - 1];
   return (
-    <Chapter id="chapter-territory" title="Territorio" note={`${name}, le sue acque e le sue vette`}>
+    <Chapter id="chapter-territory" title="Territorio" note={`${name}, i dintorni, le acque e le vette`}>
       <div className="@container reveal on-sky">
         <div className={`grid gap-8 @lg:gap-x-8 ${columns}`}>
           {lists.map((l) => (

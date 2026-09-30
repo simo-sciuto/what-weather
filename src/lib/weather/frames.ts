@@ -1,3 +1,4 @@
+import { bestWindow, windowLabel, type BestWindow } from "./best-window";
 import { TYPICAL_CLOUD_COVER } from "./constants";
 import { visibleDays } from "./days";
 import { capitalize, formatDate, formatTime, localDay, localHour } from "./formatters";
@@ -40,6 +41,8 @@ export interface Frame {
   precipProbability: number;
   /** km/h */
   windSpeed: number;
+  /** The UV index, which also sets how vivid the sky is; absent when the provider has no UV data */
+  uv?: number;
   /** A sentence for this moment, used when scrubbed away from now */
   summary: string;
 }
@@ -54,6 +57,8 @@ export interface DayTimeline {
   low: number;
   /** A sentence for the whole day */
   summary: string;
+  /** The best hours of the day to be outside; null when there are none (or no hours to tell) */
+  best: BestWindow | null;
   /** Indices into `frames` of this day's hours; empty when the forecast has none */
   hours: number[];
   /** Stand-in when there are no hours: the day's overall sky at midday */
@@ -73,6 +78,8 @@ export interface DayLabel {
 export interface Timeline {
   frames: Frame[];
   days: DayTimeline[];
+  /** The best hours to be outside in the next 24; null when there are none */
+  best: BestWindow | null;
   /** By `Frame.dayKey` */
   dayLabels: Record<string, DayLabel>;
   /** Sunrises, sunsets and nights across all the frames, for the timeline's shading */
@@ -92,6 +99,7 @@ interface Sample {
   precipitation: number;
   precipProbability: number;
   windSpeed: number;
+  uvIndex?: number;
   night: boolean;
   measured: boolean;
 }
@@ -117,7 +125,7 @@ const round = (x: number, digits: number) => Math.round(x * 10 ** digits) / 10 *
  * provider steps in 3-hour blocks — hours in between, interpolated
  * (temperatures, cloud and rain linearly; the sky from the nearer point).
  */
-function hourlySamples(d: WeatherData): Sample[] {
+export function hourlySamples(d: WeatherData): Sample[] {
   const now = d.current.time;
   const known: Sample[] = [
     {
@@ -130,6 +138,7 @@ function hourlySamples(d: WeatherData): Sample[] {
       precipitation: d.current.precipitation,
       precipProbability: d.hourly[0]?.precipProbability ?? 0,
       windSpeed: d.current.windSpeed,
+      uvIndex: d.current.uvIndex,
       night: d.hourly[0]?.isNight ?? false,
       measured: true,
     },
@@ -145,6 +154,7 @@ function hourlySamples(d: WeatherData): Sample[] {
         precipitation: h.precipitation,
         precipProbability: h.precipProbability,
         windSpeed: h.windSpeed,
+        uvIndex: h.uvIndex,
         night: h.isNight,
         measured: true,
       })),
@@ -170,6 +180,7 @@ function hourlySamples(d: WeatherData): Sample[] {
       precipitation: lerp(a.precipitation, b.precipitation),
       precipProbability: lerp(a.precipProbability, b.precipProbability),
       windSpeed: lerp(a.windSpeed, b.windSpeed),
+      uvIndex: a.uvIndex != null && b.uvIndex != null ? lerp(a.uvIndex, b.uvIndex) : near.uvIndex,
       night: near.night,
       measured: b.time === t,
     });
@@ -208,6 +219,7 @@ function toFrame(d: WeatherData, s: Sample, isNow: boolean, summary: string, tim
     precipitation: round(s.precipitation, 2),
     precipProbability: round(s.precipProbability, 2),
     windSpeed: round(s.windSpeed, 1),
+    uv: s.uvIndex == null ? undefined : round(s.uvIndex, 1),
     summary,
   };
 }
@@ -222,7 +234,9 @@ function dayLabel(d: WeatherData, ts: number): DayLabel {
 }
 
 /** The "next 24 hours" view: now plus the following 24 hourly frames. */
-const WINDOW = 24;
+export const WINDOW = 24;
+/** Hours a day needs on the timeline to count as covered (a day lasts 23 to 25; the forecast's last one is cut short). */
+export const FULL_DAY = 20;
 
 export function buildTimeline(d: WeatherData): Timeline {
   const tz = d.timezone;
@@ -255,6 +269,8 @@ export function buildTimeline(d: WeatherData): Timeline {
     const p = day.point;
     const hours = frames.flatMap((f, i) => (f.dayKey === day.key && (day.isToday || !f.isNow) ? [i] : []));
     const summary = daySummary(p, hours.map((i) => samples[i]), tz);
+    // A day the hours only partly cover would name the best of what little they show.
+    const window = day.isToday || hours.length >= FULL_DAY ? bestWindow(hours.map((i) => samples[i])) : null;
     const overview = toFrame(
       d,
       {
@@ -267,6 +283,8 @@ export function buildTimeline(d: WeatherData): Timeline {
         precipitation: 0,
         precipProbability: p.precipProbability,
         windSpeed: 0,
+        // The day's peak, for the brilliance of its sky
+        uvIndex: p.uvIndex,
         night: false,
         measured: true,
       },
@@ -282,6 +300,7 @@ export function buildTimeline(d: WeatherData): Timeline {
       high: p.max,
       low: p.min,
       summary,
+      best: window && { ...window, label: windowLabel(window, tz) },
       hours,
       overview,
     };
@@ -291,5 +310,7 @@ export function buildTimeline(d: WeatherData): Timeline {
   for (const f of [...frames, ...dayTimelines.map((x) => x.overview)]) dayLabels[f.dayKey] ??= dayLabel(d, f.time);
 
   const events = sun.map((e) => ({ ...e, label: formatTime(e.time, tz) }));
-  return { frames, days: dayTimelines, dayLabels, sun: { events, nights: nightSpans(d, from, to) } };
+  const next = bestWindow(samples.slice(0, WINDOW + 1));
+  const best = next && { ...next, label: windowLabel(next, tz, from) };
+  return { frames, days: dayTimelines, best, dayLabels, sun: { events, nights: nightSpans(d, from, to) } };
 }

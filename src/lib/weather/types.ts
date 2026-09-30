@@ -117,6 +117,17 @@ export interface AirQuality {
   pollutants: Pollutants;
 }
 
+/**
+ * Pollen in the air, in grains/m³, by family: trees (alder, birch, olive),
+ * grasses, weeds (mugwort, ragweed). A family out of season is 0.
+ */
+export interface Pollen {
+  time: number;
+  tree: number;
+  grass: number;
+  weed: number;
+}
+
 /** An official warning, as issued by a national weather agency. */
 export interface WeatherAlert {
   id: string;
@@ -145,4 +156,6 @@ export interface WeatherData {
   airQuality: AirQuality | null;
   /** Active official alerts; empty when none (or when the provider has none) */
   alerts: WeatherAlert[];
+  /** Looked up apart from the provider (see pollen.ts); null or absent where there is no pollen data */
+  pollen?: Pollen | null;
 }

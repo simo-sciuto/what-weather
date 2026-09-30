@@ -24,13 +24,16 @@ function credits(provider: WeatherProvider["name"], openWeatherKey: boolean, map
   const places = provider === "open-meteo" ? (openWeatherKey ? [OPEN_METEO, OPENWEATHER] : [OPEN_METEO]) : weather;
   return [
     { label: "Previsioni e aria", sources: weather },
+    // Today against yesterday and the pollen always come from Open-Meteo: credited on their own
+    // when the forecast is someone else's (sample data has neither from outside).
+    { label: "Ieri e polline", sources: provider === "mock" || provider === "open-meteo" ? [] : [OPEN_METEO] },
     { label: "Luoghi", sources: places },
-    // The clouds and rain drawn over the maps always come from Open-Meteo's grid.
+    // The clouds and rain drawn over the maps, and the weather in the towns around, always come from Open-Meteo.
     ...(maps
       ? [
           { label: "Mappe", sources: [MAPBOX, OSM] },
-          { label: "Nuvole sulla mappa", sources: [OPEN_METEO] },
-          // Rank and altitude from Mapbox; the population, waters and peaks from Wikidata.
+          { label: "Nuvole e dintorni", sources: [OPEN_METEO] },
+          // Rank and altitude from Mapbox; the population, the towns around, waters and peaks from Wikidata.
           { label: "Dati della città", sources: [MAPBOX_DATA, WIKIDATA] },
         ]
       : []),

@@ -6,6 +6,7 @@ import { AutoRefresh } from "@/components/time/AutoRefresh";
 import { MomentFacts } from "@/components/time/MomentFacts";
 import { AtmosphereMain, TimeProvider } from "@/components/time/TimeContext";
 import { TimeScrubber } from "@/components/time/TimeScrubber";
+import { Activities } from "@/components/weather/Activities";
 import { Almanac } from "@/components/weather/Almanac";
 import { Chapter } from "@/components/weather/Chapter";
 import { DailyForecast } from "@/components/weather/DailyForecast";
@@ -21,6 +22,7 @@ import { PromotedDetails } from "@/components/weather/WeatherDetails";
 import { WeatherHero } from "@/components/weather/WeatherHero";
 import { placeHref } from "@/lib/place";
 import { loadWeatherPage, type SearchParams } from "@/lib/weather-page";
+import { activityOutlook, dailyActivityOutlooks } from "@/lib/weather/activities";
 import { detailModules, moonInfo } from "@/lib/weather/details";
 import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
 import { buildNarrative } from "@/lib/weather/narrative";
@@ -57,7 +59,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 }
 
 export default async function Home({ searchParams }: { searchParams: SearchParams }) {
-  const { data, timeline, provider, scenario, at, renderedAt } = await loadWeatherPage(searchParams);
+  const { data, timeline, provider, yesterday, scenario, at, renderedAt } = await loadWeatherPage(searchParams);
 
   const range = tempRange(data);
   const precip = precipOutlook(data);
@@ -131,6 +133,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                       // Sample data may simulate another time of day; the clock follows it.
                       renderedAt={provider === "mock" ? data.current.time : renderedAt}
                       outlook={buildNarrative(data)}
+                      yesterday={yesterday}
                     />
                   </div>
                 </div>
@@ -160,14 +163,12 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   </Chapter>
                 )}
 
+                {/* The next 24 hours, or the day picked in the week below */}
+                <Activities next={activityOutlook(data)} days={dailyActivityOutlooks(data)} />
+
                 <Chapter id="chapter-week" title="Settimana" note="Scegli un giorno per esplorarlo">
                   <DailyForecast data={data} />
                 </Chapter>
-
-                {/* The place itself: what it is, its waters and peaks (streamed; nothing known, no chapter) */}
-                <Suspense fallback={null}>
-                  <Territory lat={data.place.lat} lon={data.place.lon} name={data.place.name} />
-                </Suspense>
 
                 {/* The maps are Mapbox's; without a token there is no map chapter */}
                 {MAPBOX && (
@@ -179,6 +180,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                 <Chapter id="chapter-almanac" title="Dettagli">
                   <Almanac data={data} modules={modules} />
                 </Chapter>
+
+                {/* The place itself, after its weather: what it is, the towns around, its waters and peaks (streamed; nothing known, no chapter) */}
+                <Suspense fallback={null}>
+                  <Territory lat={data.place.lat} lon={data.place.lon} name={data.place.name} />
+                </Suspense>
 
                 <SiteFooter
                   provider={provider}

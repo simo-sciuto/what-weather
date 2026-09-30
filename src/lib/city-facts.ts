@@ -2,14 +2,15 @@ import { cacheLife } from "next/cache";
 
 /**
  * A few facts about a place, for its "Territorio" chapter: what rank of place
- * it is, its altitude, how many live there, and its waters and peaks.
+ * it is, its altitude, how many live there, the towns around it, and its
+ * waters and peaks.
  *
  * Mapbox finds the municipality (reverse geocoding: its point and its Wikidata
  * id) and says what it is (Tilequery: the city's own map label). Wikidata, a
  * curated source, says the rest: the official altitude (else Mapbox's terrain
  * contours give one), the population, the waters the town stands on (its
  * "located next to body of water", so Rome's Tiber and Como's lake, not the
- * nearest ditch), and the best-known lakes and peaks around, by how many
+ * nearest ditch), and the best-known lakes, peaks and towns around, by how many
  * Wikipedias write about them. No distances: only what the place is known by.
  *
  * Every fact is optional: whatever can't be had is simply left out.
@@ -25,6 +26,8 @@ export interface CityFacts {
   waters?: string[];
   /** The best-known peaks around, with their height when known */
   peaks?: { name: string; elevation?: number }[];
+  /** The best-known towns around, far enough to have a weather of their own */
+  nearby?: { name: string; lat: number; lon: number }[];
 }
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -58,6 +61,19 @@ const MIN_SITELINKS = 5;
 /** Wikidata's classes: mountain, lake. */
 const MOUNTAIN = "Q8502";
 const LAKE = "Q23397";
+/**
+ * Towns around: within this many km, at least this far from the place (closer
+ * ones share its weather, or are its own districts) and from each other.
+ */
+const TOWNS_KM = 50;
+const TOWNS_APART_KM = 10;
+const MAX_TOWNS = 5;
+/** A town counts from this many inhabitants, written about by this many Wikipedias. */
+const TOWN_POPULATION = 10_000;
+const TOWN_SITELINKS = 15;
+/** Wikidata's classes: human settlement, municipality (an Italian comune is only the second). */
+const SETTLEMENT = "Q486972";
+const MUNICIPALITY = "Q15284";
 
 type Props = Record<string, unknown> & { tilequery?: { distance?: number } };
 type Feature = { properties: Props };
@@ -250,17 +266,66 @@ async function bestKnownNear(
   );
 }
 
+const EARTH_KM = 6371;
+/** Great-circle distance in km. */
+function distanceKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+  const rad = (deg: number) => (deg * Math.PI) / 180;
+  const h =
+    Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lon - a.lon) / 2) ** 2;
+  return 2 * EARTH_KM * Math.asin(Math.sqrt(h));
+}
+
+/**
+ * The best-known towns around (by how many Wikipedias write about them), each
+ * far enough from the place and from the ones already chosen: Bergamo, Como,
+ * Monza, Varese and Pavia for Milan, not its own districts nor five suburbs
+ * side by side.
+ */
+async function townsNear(lat: number, lon: number): Promise<NonNullable<CityFacts["nearby"]>> {
+  const query = `
+    SELECT ?item ?itemLabel (SAMPLE(?where) AS ?at) (MAX(?count) AS ?links) WHERE {
+      SERVICE wikibase:around {
+        ?item wdt:P625 ?where .
+        bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral .
+        bd:serviceParam wikibase:radius "${TOWNS_KM}" .
+      }
+      ?item wdt:P1082 ?population ; wikibase:sitelinks ?count .
+      FILTER(?population >= ${TOWN_POPULATION} && ?count >= ${TOWN_SITELINKS})
+      VALUES ?class { wd:${SETTLEMENT} wd:${MUNICIPALITY} }
+      ?item wdt:P31/wdt:P279* ?class .
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en" . }
+    } GROUP BY ?item ?itemLabel ORDER BY DESC(?links) LIMIT 40`;
+  type Row = { itemLabel?: { value: string }; at?: { value: string } };
+  const res = await getJson<{ results?: { bindings?: Row[] } }>(
+    `https://query.wikidata.org/sparql?${new URLSearchParams({ query, format: "json" })}`,
+    WIKIMEDIA,
+  );
+  const towns: NonNullable<CityFacts["nearby"]> = [];
+  for (const r of res?.results?.bindings ?? []) {
+    // Wikidata writes a point as "Point(9.67 45.695)": longitude first.
+    const point = r.at?.value.match(/^Point\((-?[\d.]+) (-?[\d.]+)\)$/);
+    const name = r.itemLabel?.value ?? "";
+    if (!point || !name || isEntityId(name)) continue;
+    const town = { name, lat: Number(point[2]), lon: Number(point[1]) };
+    if ([{ lat, lon }, ...towns].some((t) => distanceKm(t, town) < TOWNS_APART_KM)) continue;
+    towns.push(town);
+    if (towns.length === MAX_TOWNS) break;
+  }
+  return towns;
+}
+
 /* ---------- Together ---------- */
 
 /** Each request is cached on its own (see cachedJson), so a fact that failed is asked for again next time. */
 export async function cityFacts(lat: number, lon: number, name: string): Promise<CityFacts> {
   if (!TOKEN) return {};
 
-  const [town, contours, peaks, lakes] = await Promise.all([
+  const [town, contours, peaks, lakes, nearby] = await Promise.all([
     municipalityOf(lat, lon),
     tilequery("mapbox.mapbox-terrain-v2", lat, lon, { layers: "contour", limit: "50" }),
     bestKnownNear(MOUNTAIN, lat, lon, PEAKS_KM, MAX_PEAKS),
     bestKnownNear(LAKE, lat, lon, LAKES_KM, MAX_WATERS),
+    townsNear(lat, lon),
   ]);
   const at = town ?? { lat, lon };
   const [labels, item] = await Promise.all([
@@ -278,5 +343,6 @@ export async function cityFacts(lat: number, lon: number, name: string): Promise
     population: item ? populationOf(item) : undefined,
     waters: waters.length ? waters : undefined,
     peaks: peaks.length ? peaks.map(({ name, elevation }) => ({ name, elevation })) : undefined,
+    nearby: nearby.length ? nearby : undefined,
   };
 }

@@ -7,7 +7,9 @@ import type { WeatherState } from "./state";
  *     a slightly deeper afternoon, golden hour, sunset, blue hour, night;
  *  2. the weather laid over it — clouds desaturate, rain and storms darken,
  *     snow cools;
- *  3. legibility enforced: the whole sky is darkened until even muted text
+ *  3. the strength of the sun — by day the colours are as vivid as the UV
+ *     index is high: dull under a weak sun, brilliant under a strong one;
+ *  4. legibility enforced: the whole sky is darkened until even muted text
  *     clears WCAG AA, and the panels' glass thickens just enough where it
  *     still needs to.
  */
@@ -174,7 +176,38 @@ function overcast(c: RGB, snow: boolean): RGB {
   return snow ? [y * 0.94, y * 0.99, y * 1.08] : [y * 0.97, y, y * 1.04];
 }
 
-/* ---------- 3. The map behind the page ---------- */
+/* ---------- 3. The strength of the sun ---------- */
+
+/** The UV index at which the sky is as vivid as it can get. */
+const UV_FULL = 8;
+/** How vivid the colours are (their chroma, against the table's) under no UV at all, and at full strength. */
+const VIVID_MIN = 0.6;
+const VIVID_MAX = 1.3;
+/** The same for the glow around the sun. */
+const GLOW_MIN = 0.7;
+const GLOW_MAX = 1.3;
+
+/**
+ * How much the UV index has a say, 0..1: all of it while the sun is up, none
+ * at dawn, dusk and night, when it is zero whatever the day was like (a
+ * sunset keeps its colours).
+ */
+const daylight = (light: number) => (light <= 0 || light >= 1 ? 0 : clamp01(2 * Math.sin(light * Math.PI)));
+
+/** The factor for a UV index between `min` (none) and `max` (full strength), eased in by the daylight. */
+function sunStrength(uv: number, light: number, min: number, max: number): number {
+  return 1 + (min + (max - min) * clamp01(uv / UV_FULL) - 1) * daylight(light);
+}
+
+/** The same colour, more or less vivid: chroma scaled in OKLCH, lightness and hue kept. */
+function vivid(c: RGB, k: number): RGB {
+  // Untouched when there is nothing to change: the round trip alone can move a channel by one.
+  if (k === 1) return c;
+  const [L, C, h] = toOklch(c);
+  return fromOklch([L, C * k, h]);
+}
+
+/* ---------- 4. The map behind the page ---------- */
 
 /**
  * The city's lines in the colours opposite the sky, like a screen print: the
@@ -208,49 +241,142 @@ const BUTTER_HUE = deg(95);
 /** Water where the sky is too deep for a shadow of it to read */
 const AQUA: LCH = [0.86, 0.075, deg(220)];
 
-function mapInks(sky: RGB): Record<MapLayer, MapInk> {
-  const [L, C, h] = toOklch(sky);
-  const hue = C < GREY_SKY ? COOL_HUE : h;
+function skyHue(sky: RGB): number {
+  const [, C, h] = toOklch(sky);
+  return C < GREY_SKY ? COOL_HUE : h;
+}
+
+/** How the viewer may tune the lines, each 0..100 but the hue (degrees); see map-tuning.ts. 50 is the page's own. */
+export interface MapTune {
+  hue: number;
+  vivid: number;
+  contrast: number;
+}
+const UNTUNED: MapTune = { hue: 0, vivid: 50, contrast: 50 };
+
+/** The most the chroma is multiplied by, and how much lightness a line gives up to carry it (a pale colour can't be vivid). */
+const VIVID_TOP = 2.4;
+const VIVID_DEEPENS = 0.16;
+/** How far the contrast each layer must reach (its distance from none, 1) is scaled: faint, the page's own, strong. */
+const CONTRAST_SOFT = 0.35;
+const CONTRAST_STRONG = 2;
+/** A line may be lightened this far to reach its contrast once fully opaque. */
+const LIGHTEST = 0.96;
+
+/** The chroma multiplier and the lightness given up at a `vivid` setting (0..100). */
+function vividness(vivid: number): { chroma: number; deepen: number } {
+  if (vivid <= 50) return { chroma: vivid / 50, deepen: 0 };
+  const t = (vivid - 50) / 50;
+  return { chroma: 1 + (VIVID_TOP - 1) * t, deepen: VIVID_DEEPENS * t };
+}
+
+/** The lightness and chroma of the map's main lines at a `vivid` setting, for drawing the controls' tracks. */
+export function mapTone(vivid: number): { lightness: number; chroma: number } {
+  const v = vividness(vivid);
+  return { lightness: 0.9 - v.deepen, chroma: 0.1 * v.chroma };
+}
+
+/**
+ * `tune` moves all the lines together from the colours described above: the
+ * hue turns them round the wheel, `vivid` scales their chroma (deepening them
+ * to make room for it), `contrast` scales how far from the sky each must
+ * stand. A line too deep to read once fully opaque is lightened until it does.
+ */
+function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
+  const [L, C] = toOklch(sky);
+  const hue = skyHue(sky);
   const opposite = hue + Math.PI;
+  const turn = deg(tune.hue);
+  const v = vividness(tune.vivid);
+  const k =
+    tune.contrast <= 50
+      ? CONTRAST_SOFT + (1 - CONTRAST_SOFT) * (tune.contrast / 50)
+      : 1 + (CONTRAST_STRONG - 1) * ((tune.contrast - 50) / 50);
   // When the opposite already is butter (a violet night), the neighbour goes warm, to apricot.
   const lean = Math.sin(BUTTER_HUE - opposite);
   const towardButter = Math.abs(lean) < Math.sin(deg(25)) ? -1 : Math.sign(lean);
-  const shadow = whole(fromOklch([L * 0.62, Math.min(C, 0.08), hue]));
-  const water = contrast(mix(sky, shadow, 0.8 * MAP_FADE), sky) >= MAP_INK.water.contrast ? shadow : whole(fromOklch(AQUA));
-  const colors: Record<MapLayer, RGB> = {
+  const shadow: LCH = [L * 0.62, Math.min(C, 0.08) * v.chroma, hue + turn];
+  const water: LCH =
+    contrast(mix(sky, whole(fromOklch([shadow[0], Math.min(C, 0.08), hue])), 0.8 * MAP_FADE), sky) >= MAP_INK.water.contrast
+      ? shadow
+      : [AQUA[0], AQUA[1] * v.chroma, AQUA[2] + turn];
+  const road = (l: number, c: number, h: number): LCH => [l - v.deepen, c * v.chroma, h + turn];
+  const colors: Record<MapLayer, LCH> = {
     water,
     waterway: water,
-    streets: whole(fromOklch([0.92, 0.045, hue])),
-    "main-roads": whole(fromOklch([0.87, 0.1, opposite + towardButter * deg(35)])),
-    motorways: whole(fromOklch([0.94, 0.1, opposite])),
+    streets: road(0.92, 0.045, hue),
+    "main-roads": road(0.87, 0.1, opposite + towardButter * deg(35)),
+    motorways: road(0.94, 0.1, opposite),
   };
   return Object.fromEntries(
     (Object.keys(MAP_INK) as MapLayer[]).map((layer) => {
-      const { contrast: target, minOpacity } = MAP_INK[layer];
-      const ink = colors[layer];
-      let opacity = minOpacity;
-      while (opacity < 1 && contrast(mix(sky, ink, opacity * MAP_FADE), sky) < target) opacity += 0.02;
-      return [layer, { color: toHex(ink), opacity: Math.min(1, +opacity.toFixed(2)) }];
+      const base = MAP_INK[layer];
+      const target = 1 + (base.contrast - 1) * k;
+      // What a line must reach whatever the tuning, by lightening if its opacity alone can't: the
+      // viewer's softer contrast when they asked for one, the page's own otherwise.
+      const floor = Math.min(target, base.contrast);
+      const [, c, h] = colors[layer];
+      let l = colors[layer][0];
+      for (;;) {
+        const ink = whole(fromOklch([l, c, h]));
+        const seen = (opacity: number) => contrast(mix(sky, ink, opacity * MAP_FADE), sky);
+        let opacity = Math.min(1, base.minOpacity * k);
+        while (opacity < 1 && seen(opacity) < target) opacity += 0.02;
+        opacity = Math.min(1, opacity);
+        // Water is the sky in shadow: darker than it, so lightening would only lose it.
+        if (seen(opacity) >= floor || l >= LIGHTEST || l < L) {
+          return [layer, { color: toHex(ink), opacity: +opacity.toFixed(2) }];
+        }
+        l += 0.02;
+      }
     }),
   ) as Record<MapLayer, MapInk>;
 }
 
-/* ---------- 4. Palette ---------- */
+/**
+ * The map's lines over a sky (a palette's `sky2`) as the viewer tuned them
+ * (see MapColors): their hue, how vivid, how strong against the sky.
+ */
+export function mapInksFor(sky: string, tune: MapTune): Record<MapLayer, MapInk> {
+  return mapInks(hex(sky), tune);
+}
+
+/**
+ * A line's colour as it shows over a sky: its ink at its opacity. What a
+ * colour chip must show for the lines to be recognised in it, since how
+ * strongly a line stands out is set by its opacity alone.
+ */
+export function inkOverSky(sky: string, ink: MapInk): string {
+  return toHex(mix(hex(sky), hex(ink.color), ink.opacity));
+}
+
+/** The hue, in degrees, of the map's main lines over a sky before any turn: where the viewer's hue slider starts from. */
+export function motorwayHue(sky: string): number {
+  return ((skyHue(hex(sky)) + Math.PI) * 180) / Math.PI;
+}
+
+/* ---------- 5. Palette ---------- */
 
 export function skyPalette({
   light,
   state,
   cloudCover,
+  uv,
 }: {
   light: number;
   state: WeatherState;
   cloudCover: number;
+  /** The UV index; without it (not every provider has one) the colours are the table's own */
+  uv?: number;
 }): SkyPalette {
-  const { sky, glow } = clearSky(light);
+  const { sky, glow: tableGlow } = clearSky(light);
+  const glow: RGBA =
+    uv == null ? tableGlow : [tableGlow[0], tableGlow[1], tableGlow[2], tableGlow[3] * sunStrength(uv, light, GLOW_MIN, GLOW_MAX)];
   const w = WEATHER[state];
   // Cloud cover greys even a nominally clear or partly cloudy sky a little.
   const grey = clamp01(Math.max(w.grey, (cloudCover / 100) * 0.35));
-  const weathered = sky.map((c) => scale(mix(c, overcast(c, state === "SNOW"), grey), w.dim)) as [RGB, RGB, RGB];
+  const dulled = sky.map((c) => scale(mix(c, overcast(c, state === "SNOW"), grey), w.dim)) as [RGB, RGB, RGB];
+  const weathered = uv == null ? dulled : (dulled.map((c) => vivid(c, sunStrength(uv, light, VIVID_MIN, VIVID_MAX))) as [RGB, RGB, RGB]);
 
   // Text sits on every part of the sky: the reading at the top, and — as the
   // page scrolls over the fixed sky — chapter titles and the footer on the

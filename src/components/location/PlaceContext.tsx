@@ -1,12 +1,14 @@
 "use client";
 
 import { samePlace } from "@/lib/place";
+import { noteRecent, recentSnapshot, subscribeRecent } from "@/lib/recent-places";
 import { addSaved, parseSaved, removeSaved, savedSnapshot, subscribeSaved, type SavedPlace } from "@/lib/saved-places";
 import type { Place } from "@/lib/weather/types";
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useSyncExternalStore,
@@ -16,7 +18,7 @@ import {
 
 /**
  * The place on show, the search field that changes it, and the places saved
- * in this browser. The search (header), the place name (reading) and the
+ * and lately seen in this browser. The search (header), the place name (reading) and the
  * saved-place cards (below the week) all read from here: the saved list is
  * parsed once for all of them, and the name hands focus to the field through
  * the shared ref rather than by looking it up in the document.
@@ -31,6 +33,8 @@ interface PlaceState {
   /** Whether the place on show is among them */
   isSaved: boolean;
   toggleSaved: () => void;
+  /** Seen lately in this browser, newest first, without the place on show or the saved ones; empty on the server */
+  recent: SavedPlace[];
 }
 
 const PlaceContext = createContext<PlaceState | null>(null);
@@ -50,9 +54,18 @@ export function PlaceProvider({ place, children }: { place: Place; children: Rea
     else addSaved(ref);
   }, [place, isSaved]);
 
+  // Every place shown is noted as seen, however it was reached.
+  const { lat, lon, name, region, country } = place;
+  useEffect(() => noteRecent({ lat, lon, name, region, country }), [lat, lon, name, region, country]);
+  const recentRaw = useSyncExternalStore(subscribeRecent, recentSnapshot, () => "[]");
+  const recent = useMemo(
+    () => parseSaved(recentRaw).filter((p) => !samePlace(p, place) && !saved.some((s) => samePlace(s, p))),
+    [recentRaw, place, saved],
+  );
+
   const value = useMemo(
-    () => ({ place, searchRef, focusSearch, saved, isSaved, toggleSaved }),
-    [place, focusSearch, saved, isSaved, toggleSaved],
+    () => ({ place, searchRef, focusSearch, saved, isSaved, toggleSaved, recent }),
+    [place, focusSearch, saved, isSaved, toggleSaved, recent],
   );
   return <PlaceContext.Provider value={value}>{children}</PlaceContext.Provider>;
 }

@@ -28,10 +28,24 @@ export function HeroTemp() {
  * Under the temperature, on its two columns, a short stack in the text size,
  * a line per fact: the sky (its icon at the text's height); the range, low and
  * high each in its own colour, joined by a bar of the colours between them
- * (as in the week); the feels-like. The range is the day's in day view and
- * today's while live; a scrubbed hour has none.
+ * (as in the week); the feels-like; while live, how now compares with the
+ * same time yesterday. The range is the day's in day view and today's while
+ * live; a scrubbed hour has none.
  */
-export function HeroSky({ high, low, note, className = "" }: { high: number; low: number; note?: string; className?: string }) {
+export function HeroSky({
+  high,
+  low,
+  note,
+  yesterday,
+  className = "",
+}: {
+  high: number;
+  low: number;
+  note?: string;
+  /** "2° in meno di ieri": now against the same time yesterday */
+  yesterday?: string;
+  className?: string;
+}) {
   const { frame, isLive } = useMoment();
   const { day } = useView();
   const range = day ? { high: day.high, low: day.low, note: "" } : isLive ? { high, low, note: note ?? "" } : null;
@@ -61,6 +75,7 @@ export function HeroSky({ high, low, note, className = "" }: { high: number; low
       <p>
         <span className="text-ink-muted">Percepita</span> <span className="whitespace-nowrap">{formatTemp(frame.feelsLike)}</span>
       </p>
+      {isLive && yesterday && <p className="text-ink-muted">{yesterday}</p>}
       {range?.note && <p className="text-caption text-ink-muted">{range.note}</p>}
     </div>
   );

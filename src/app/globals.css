@@ -430,6 +430,47 @@ body {
   );
 }
 
+/*
+ * The sliders that tune the map's colours: native ranges, each track showing
+ * what its slider gives along it (--track, set by MapColors), the thumb a
+ * white dot.
+ */
+.map-tune {
+  appearance: none;
+  background: transparent;
+}
+.map-tune::-webkit-slider-runnable-track {
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--track);
+}
+.map-tune::-moz-range-track {
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--track);
+}
+.map-tune::-webkit-slider-thumb {
+  appearance: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-top: -0.3125rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgb(12 15 37 / 0.35);
+}
+.map-tune::-moz-range-thumb {
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgb(12 15 37 / 0.35);
+}
+.map-tune:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
 /* ---------- Chapters ---------- */
 
 @layer components {

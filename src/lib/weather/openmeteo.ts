@@ -100,7 +100,7 @@ async function get<T>(url: string, params: Record<string, string | number>, reva
 /* ---------- Mapping ---------- */
 
 /** WMO weather interpretation codes, https://open-meteo.com/en/docs */
-function mapCode(code: number): { condition: Condition; intensity: Intensity; description: string } {
+export function mapCode(code: number): { condition: Condition; intensity: Intensity; description: string } {
   const c = (condition: Condition, intensity: Intensity, description: string) => ({ condition, intensity, description });
   switch (code) {
     case 0:

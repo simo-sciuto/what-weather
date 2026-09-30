@@ -12,9 +12,9 @@ export interface FrameLook {
   sky: SkyPosition;
 }
 
-export function frameLook(f: Pick<Frame, "light" | "phase" | "state" | "cloudCover">): FrameLook {
+export function frameLook(f: Pick<Frame, "light" | "phase" | "state" | "cloudCover" | "uv">): FrameLook {
   return {
-    palette: skyPalette({ light: f.light, state: f.state, cloudCover: f.cloudCover }),
+    palette: skyPalette({ light: f.light, state: f.state, cloudCover: f.cloudCover, uv: f.uv }),
     sky: skyAt(f.light, f.phase),
   };
 }
