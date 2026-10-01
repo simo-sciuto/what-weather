@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Board · what-weather</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ecebe5; --card: #fff; --ink: #1c1c1a; --muted: #77756e; --line: #d9d7cf;
+    --accent: #3b5bdb; --ok: #2f9e44; --warn: #c2410c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151618; --panel: #1d1f22; --card: #26292d; --ink: #ececea; --muted: #8e8f93; --line: #34373c; --accent: #7c93ff; --ok: #69db7c; --warn: #fb923c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 20px; padding: 18px 20px 6px; }
+  h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+  #status { color: var(--muted); font-size: 12px; }
+  #status.err { color: var(--warn); }
+  #search { margin-left: auto; width: min(260px, 100%); padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: inherit; font: inherit; }
+  main { display: grid; grid-template-columns: repeat(4, minmax(240px, 1fr)); gap: 14px; padding: 12px 20px 28px; align-items: start; overflow-x: auto; }
+  .col { background: var(--panel); border-radius: 12px; padding: 10px; min-height: 120px; }
+  .col.over { outline: 2px dashed var(--accent); outline-offset: -2px; }
+  .col h2 { display: flex; justify-content: space-between; margin: 2px 4px 10px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .group { margin: 14px 4px 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .card { display: flex; gap: 8px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; cursor: grab; }
+  .card.dragging { opacity: .4; }
+  .card.drop-before { box-shadow: 0 -3px 0 var(--accent); }
+  .card input[type=checkbox] { margin-top: 3px; accent-color: var(--ok); }
+  .body { flex: 1; min-width: 0; }
+  .id { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .text { overflow-wrap: anywhere; cursor: text; }
+  .tag { display: inline-block; font-size: 10px; color: var(--warn); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-right: 4px; vertical-align: 1px; }
+  .done .text { color: var(--muted); }
+  .del { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; visibility: hidden; }
+  .card:hover .del { visibility: visible; }
+  .del:hover { color: var(--warn); }
+  textarea, .add input { width: 100%; padding: 6px 8px; border: 1px solid var(--accent); border-radius: 8px; background: var(--card); color: inherit; font: inherit; resize: vertical; }
+  .add input { border-color: var(--line); margin-bottom: 8px; }
+  .add input:focus { border-color: var(--accent); outline: 0; }
+  footer { padding: 0 20px 24px; color: var(--muted); font-size: 12px; }
+  .hide { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Board · what-weather</h1>
+  <span id="status">Caricamento</span>
+  <input id="search" type="search" placeholder="Cerca (id o testo)" aria-label="Cerca nella board">
+</header>
+<main id="board"></main>
+<footer>Le modifiche vanno subito in docs/BOARD.md. Trascina le card tra le colonne, doppio clic sul testo per modificarlo, spunta per chiudere un task. (audit) = candidato proposto da Claude, da confermare.</footer>
+<script>
+const LABELS = { NOW: "Ora", NEXT: "Prossimi", LATER: "Più avanti", DONE: "Fatto" };
+const boardEl = document.getElementById("board");
+const statusEl = document.getElementById("status");
+const searchEl = document.getElementById("search");
+let rev = "", columns = [], busy = false;
+
+const el = (tag, props = {}, ...kids) => {
+  const node = Object.assign(document.createElement(tag), props);
+  for (const k of kids) node.append(k);
+  return node;
+};
+
+function setStatus(text, error = false) {
+  statusEl.textContent = text;
+  statusEl.className = error ? "err" : "";
+}
+
+async function call(op) {
+  busy = true;
+  try {
+    const res = await fetch("/api/op", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(op) });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || "Errore");
+    take(body);
+    setStatus("Salvato in docs/BOARD.md");
+  } catch (e) {
+    setStatus(e.message, true);
+    await refresh(true);
+  } finally {
+    busy = false;
+  }
+}
+
+function take(board) {
+  rev = board.rev;
+  columns = board.columns;
+  render();
+}
+
+async function refresh(force = false) {
+  if (busy) return;
+  try {
+    const res = await fetch(`/api/board${force ? "" : `?rev=${rev}`}`);
+    const body = await res.json();
+    if (!body.unchanged && !document.querySelector("textarea")) {
+      const first = !rev;
+      take(body);
+      if (!first) setStatus("Il file è cambiato: aggiornato");
+    }
+    if (!rev) return;
+    if (body.unchanged && statusEl.className === "err") setStatus("Connesso");
+  } catch {
+    setStatus("Server non raggiungibile", true);
+  }
+}
+
+function card(item, column) {
+  const text = el("div", { className: "text" });
+  const audit = item.text.match(/^\(audit\) (.*)$/);
+  if (audit) text.append(el("span", { className: "tag", textContent: "audit" }), audit[1]);
+  else text.textContent = item.text;
+  text.title = "Doppio clic per modificare";
+  text.ondblclick = () => editText(item, text);
+
+  const check = el("input", { type: "checkbox", checked: item.done, ariaLabel: `Segna ${item.id} come fatto` });
+  check.onchange = () => call({ op: "move", id: item.id, column: item.done ? "NEXT" : "DONE" });
+  const del = el("button", { className: "del", textContent: "×", title: "Elimina", ariaLabel: `Elimina ${item.id}` });
+  del.onclick = () => confirm(`Eliminare ${item.id}?`) && call({ op: "delete", id: item.id });
+
+  const node = el("div", { className: `card${item.done ? " done" : ""}`, draggable: true }, check, el("div", { className: "body" }, el("div", { className: "id", textContent: item.id }), text), del);
+  node.dataset.id = item.id;
+  node.dataset.search = `${item.id} ${item.text}`.toLowerCase();
+  node.ondragstart = (e) => { e.dataTransfer.setData("text/plain", item.id); node.classList.add("dragging"); };
+  node.ondragend = () => { node.classList.remove("dragging"); clearMarks(); };
+  node.ondragover = (e) => {
+    if (column === "DONE") return;
+    e.preventDefault();
+    clearMarks();
+    node.classList.add("drop-before");
+  };
+  node.ondrop = (e) => {
+    if (column === "DONE") return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = e.dataTransfer.getData("text/plain");
+    clearMarks();
+    if (id && id !== item.id) call({ op: "move", id, column, beforeId: item.id });
+  };
+  return node;
+}
+
+function clearMarks() {
+  document.querySelectorAll(".drop-before, .over").forEach((n) => n.classList.remove("drop-before", "over"));
+}
+
+function editText(item, textEl) {
+  const area = el("textarea", { value: item.text, rows: 3 });
+  const done = (save) => {
+    const value = area.value.trim();
+    area.remove();
+    if (save && value && value !== item.text) call({ op: "edit", id: item.id, text: value });
+    else render();
+  };
+  area.onkeydown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); done(true); }
+    if (e.key === "Escape") done(false);
+  };
+  area.onblur = () => done(true);
+  textEl.replaceWith(area);
+  area.focus();
+}
+
+function render() {
+  boardEl.replaceChildren(...columns.map((col) => {
+    const count = col.groups.reduce((n, g) => n + g.items.length, 0);
+    const node = el("section", { className: "col" }, el("h2", {}, el("span", { textContent: LABELS[col.name] ?? col.name }), el("span", { textContent: String(count) })));
+    node.ondragover = (e) => { e.preventDefault(); clearMarks(); node.classList.add("over"); };
+    node.ondragleave = (e) => { if (!node.contains(e.relatedTarget)) node.classList.remove("over"); };
+    node.ondrop = (e) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData("text/plain");
+      clearMarks();
+      if (id) call({ op: "move", id, column: col.name });
+    };
+    if (col.name !== "DONE") {
+      const input = el("input", { placeholder: "Aggiungi e premi Invio", ariaLabel: `Aggiungi a ${LABELS[col.name]}` });
+      input.onkeydown = (e) => {
+        if (e.key === "Enter" && input.value.trim()) call({ op: "add", column: col.name, text: input.value });
+      };
+      node.append(el("div", { className: "add" }, input));
+    }
+    for (const group of col.groups) {
+      if (group.title) node.append(el("div", { className: "group", textContent: group.title }));
+      for (const item of group.items) node.append(card(item, col.name));
+    }
+    return node;
+  }));
+  applySearch();
+}
+
+function applySearch() {
+  const q = searchEl.value.trim().toLowerCase();
+  document.querySelectorAll(".card").forEach((c) => c.classList.toggle("hide", !!q && !c.dataset.search.includes(q)));
+}
+searchEl.oninput = applySearch;
+
+refresh(true).then(() => setStatus("Connesso"));
+setInterval(() => refresh(), 2000);
+</script>
+</body>
+</html>

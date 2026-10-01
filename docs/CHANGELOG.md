@@ -1,0 +1,30 @@
+# CHANGELOG
+
+Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
+
+## 2026-10-02
+- Interactive board: `npm run board` serves docs/BOARD.md as columns in the browser and writes every change back (`scripts/board/`, WTH-164).
+- BOARD DONE rebuilt by theme from git history (WTH-100..163).
+
+## 2026-10-01
+- Map layers chosen from one panel; scrolling eases into the city and tilts the map; the poster follows what is on screen (`ccd4e85`, WTH-152..154).
+- The reading is the phone's first screen (`82378ff`, WTH-151).
+- Project memory system added: `docs/`, `.claude/agents/`, rules in CLAUDE.md.
+
+## 2026-09-30
+- End-to-end tests (`56e9a8b`, WTH-161).
+- Best hours, activities, timeline metrics, yesterday comparison, towns around, pollen, recent places, UV-vivid sky, tunable map colours (`e2c12fe`, WTH-121, 122, 123, 134, 145..150).
+- Next.js and ESLint config updated to 16.3.7 (`be88d43`, WTH-162).
+- "Territorio" chapter; the week folded to three days (`6d49edf`, WTH-143, 144).
+- Downloadable poster (`07410fb`, WTH-142).
+
+## 2026-09-29
+- Share previews of four places in the README (`32867f9`, WTH-163).
+- Site named what-weather, search docked, every source credited, phone fixes (`c51da04`, WTH-132, 133, 140, 141).
+- Palette, cards and map backdrop reworked (`cd1d06f`, WTH-130, 131).
+- Air called poor from the third band (`54b055e`, WTH-120).
+- README (`9a0f548`, WTH-163).
+- The weather app with the Swiss-style poster reading: providers, timeline, week, details, map, places, share images, manifest (`1a90650`, WTH-100..119).
+
+## 2026-09-24
+- Initial commit from Create Next App (`862aa87`).

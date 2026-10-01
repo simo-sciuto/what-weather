@@ -42,3 +42,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local Claude Code settings, and the board tool's temporary file
+.claude/settings.local.json
+docs/BOARD.md.tmp

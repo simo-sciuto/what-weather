@@ -81,6 +81,7 @@ Links to every scenario also appear at the foot of the page when sample data is 
 | `npm run lint` | Run ESLint |
 | `npm test` | Run the tests once |
 | `npm run test:watch` | Run the tests in watch mode |
+| `npm run board` | Open the project board (docs/BOARD.md) in the browser at localhost:4321, to edit it by drag and drop |
 | `npm run test:e2e` | Build the site with sample weather and run the end-to-end tests (Playwright, in the Chrome installed on the machine) |
 
 ## Project structure
