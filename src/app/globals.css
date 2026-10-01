@@ -343,6 +343,18 @@ body {
  * that height (cqh). On a very short screen it scrolls on its own, without a
  * scrollbar, and the timeline below never leaves the screen.
  */
+/*
+ * On a phone the reading is a container for its width alone, so the title's
+ * size (in cqw) is a share of the reading's own width, the width its columns
+ * divide, and not of the screen's, which is wider by the page's margins: a
+ * name sized to the screen ran past its columns and broke a letter off.
+ */
+@media (width < 64rem) {
+  .hero-fit {
+    container-type: inline-size;
+  }
+}
+
 @media (width >= 64rem) {
   .hero-fit {
     flex: 1 1 0;

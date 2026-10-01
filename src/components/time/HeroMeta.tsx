@@ -93,8 +93,8 @@ export function HeroMetaPhone({
 
 /**
  * The moment on a phone, over the name: the hour on show, large and in the
- * accent colour, the day under it in small print, then "Crea poster" and the
- * controls that tune the map's colours.
+ * accent colour, and the day under it in small print. ("Crea poster" and the
+ * map's colours are at the foot of the first screen there, see HeroReading.)
  */
 export function HeroNowPhone({
   timezone,
@@ -123,8 +123,6 @@ export function HeroNowPhone({
       <p className="text-caption">
         {day}, {dayLabel.date}
       </p>
-      <PosterButton className="mt-1 self-start" />
-      <MapColors className="mt-1" />
     </div>
   );
 }

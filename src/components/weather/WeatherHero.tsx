@@ -43,11 +43,20 @@ export function WeatherHero({
   // The temperature shares the size on two columns (about 30 of the 100 units): its longest
   // reading of the day, sign and degree included, at about 0.6em a figure, must fit there too.
   const widestTemp = Math.max(...[current.temp, range.min, range.max].map((t) => formatTemp(t).length));
-  const titleSize = Math.min(15, 60 / (0.56 * longest), place.name.length > 20 ? 8 : 15, 30 / (0.6 * widestTemp));
+  // The name's four columns are some 60 of the reading's 100 units; 56 of them at 0.58em a letter
+  // leave room for a word of wide letters ("Amsterdam"), so none ever breaks onto a second line.
+  const titleSize = Math.min(15, 56 / (0.58 * longest), place.name.length > 20 ? 8 : 15, 30 / (0.6 * widestTemp));
 
   return (
     // The map behind the page centres the city on the middle of this poster (see MapBackdropGL).
-    <section data-map-anchor="poster" aria-label="Meteo attuale" className="on-sky flex min-h-[80svh] flex-col lg:min-h-full">
+    // On a phone it fills what the first screen leaves under the search (12.5rem: the name, the field,
+    // the saved places and the gaps), so the reading is that screen: the hour, the name and the
+    // temperature centred on it, over the city, and the outlook at its foot.
+    <section
+      data-map-anchor="poster"
+      aria-label="Meteo attuale"
+      className="on-sky flex min-h-[calc(100svh-12.5rem)] flex-col lg:min-h-full"
+    >
       <HeroMeta
         region={placeSubtitle(place)}
         coords={formatCoords(place.lat, place.lon)}
@@ -62,7 +71,8 @@ export function WeatherHero({
         It is as large as the name's longest word allows on its four columns (a heavy
         grotesk runs about 0.56em a letter), and steps down for a long name.
       */}
-      {/* On a phone the hour and the day stand over the name */}
+      {/* On a phone the hour and the day stand over the name, and the block sits at the middle of the screen */}
+      <div aria-hidden="true" className="min-h-4 flex-1 lg:hidden" />
       <HeroNowPhone timezone={timezone} renderedAt={renderedAt} dataAt={current.time} className="mb-4 lg:hidden" />
 
       <div
@@ -97,8 +107,11 @@ export function WeatherHero({
         />
       </div>
 
-      {/* The empty field: the map's city shows through it, well in view. It takes what the screen leaves, on a phone too */}
-      <div aria-hidden="true" className="min-h-56 flex-1 lg:min-h-8" />
+      {/*
+        The empty field: the map's city shows through it, well in view. On a phone it takes half of
+        what the screen leaves (the other half is over the hour), which centres the block between them.
+      */}
+      <div aria-hidden="true" className="min-h-10 flex-1 lg:min-h-8" />
 
       <p className="sr-only">
         Adesso {formatTemp(current.temp)}, {label.toLowerCase()}, percepita {formatTemp(current.feelsLike)}. Massima{" "}
