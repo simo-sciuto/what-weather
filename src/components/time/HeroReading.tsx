@@ -1,7 +1,7 @@
 "use client";
 
 import { PosterButton } from "../poster/PosterButton";
-import { MapColors } from "../weather/MapColors";
+import { MapControls } from "../weather/MapControls";
 import { MomentFacts } from "./MomentFacts";
 import { NarrativeText } from "./NarrativeText";
 
@@ -22,10 +22,10 @@ export function HeroReading({ outlook }: { outlook: string }) {
         <NarrativeText outlook={outlook} className="col-span-6 min-w-0 lg:col-span-4 lg:col-start-3" />
       </div>
       <MomentFacts on="phone" />
-      {/* On a phone the poster and the map's colours close the first screen, out of the reading's way */}
+      {/* On a phone the poster and the map's controls close the first screen, out of the reading's way */}
       <div className="mt-4 flex flex-col items-start gap-1.5 lg:hidden">
         <PosterButton />
-        <MapColors />
+        <MapControls />
       </div>
     </div>
   );

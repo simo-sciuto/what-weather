@@ -32,11 +32,38 @@ export interface SkyPalette {
   map: Record<MapLayer, MapInk>;
 }
 
-export type MapLayer = "water" | "waterway" | "streets" | "main-roads" | "motorways";
+/**
+ * The first five are the city as it always is; the rest are the layers the
+ * viewer may add (see map-options.ts), each coloured like the others.
+ */
+export type MapLayer =
+  | "water"
+  | "waterway"
+  | "streets"
+  | "main-roads"
+  | "motorways"
+  | "green"
+  | "relief"
+  | "contours"
+  | "rail"
+  | "buildings"
+  | "shadows"
+  | "traffic-slow"
+  | "traffic-heavy"
+  | "traffic-jam"
+  | "lights"
+  | "water-names"
+  | "waterway-names";
 export interface MapInk {
   color: string;
   opacity: number;
+  /** Layers that colour by value also carry a set of colours: the elevation's ramp (low to high), the traffic's one per rank of road (streets, main roads, motorways) */
+  ramp?: string[];
 }
+
+/** How many colours the contours' ramp has, and how far round the colour wheel it turns from lowland to peak */
+export const ELEVATION_STEPS = 7;
+const ELEVATION_SWEEP = 180;
 
 /* ---------- Colour helpers ---------- */
 
@@ -220,12 +247,30 @@ function vivid(c: RGB, k: number): RGB {
  * against the sky, so the map carries the same weight at every hour instead
  * of vanishing by day.
  */
+/** Layers whose tone is their point: never lightened to reach their contrast with the sky (see mapInks). */
+const KEEP_TONE: ReadonlySet<MapLayer> = new Set(["traffic-slow", "traffic-heavy", "traffic-jam"]);
+
 const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
   water: { contrast: 1.25, minOpacity: 0.5 },
   waterway: { contrast: 1.25, minOpacity: 0.6 },
   streets: { contrast: 1.5, minOpacity: 0.35 },
   "main-roads": { contrast: 1.9, minOpacity: 0.5 },
   motorways: { contrast: 2.2, minOpacity: 0.6 },
+  // The optional layers: quiet ground (green, relief, contours, buildings) under the roads' weight,
+  // and the things that move or glow (traffic, lights) as strong as the motorways.
+  green: { contrast: 1.2, minOpacity: 0.3 },
+  relief: { contrast: 1.25, minOpacity: 0.35 },
+  contours: { contrast: 1.3, minOpacity: 0.4 },
+  rail: { contrast: 1.5, minOpacity: 0.4 },
+  buildings: { contrast: 1.25, minOpacity: 0.3 },
+  shadows: { contrast: 1.25, minOpacity: 0.4 },
+  "traffic-slow": { contrast: 2, minOpacity: 0.9 },
+  "traffic-heavy": { contrast: 2.1, minOpacity: 0.95 },
+  "traffic-jam": { contrast: 2.2, minOpacity: 1 },
+  lights: { contrast: 2, minOpacity: 0.7 },
+  // The names of the waters: pale and quiet, written in the water's own hue
+  "water-names": { contrast: 1.8, minOpacity: 0.7 },
+  "waterway-names": { contrast: 1.8, minOpacity: 0.7 },
 };
 /**
  * The share of each line that shows through the backdrop's fade (65% away from the city, see
@@ -301,12 +346,32 @@ function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
       ? shadow
       : [AQUA[0], AQUA[1] * v.chroma, AQUA[2] + turn];
   const road = (l: number, c: number, h: number): LCH => [l - v.deepen, c * v.chroma, h + turn];
+  /** The hues of the three ranks of road: streets, main roads, motorways */
+  const roadHues = [hue, opposite + towardButter * deg(35), opposite];
   const colors: Record<MapLayer, LCH> = {
     water,
     waterway: water,
     streets: road(0.92, 0.045, hue),
     "main-roads": road(0.87, 0.1, opposite + towardButter * deg(35)),
     motorways: road(0.94, 0.1, opposite),
+    // Meadows on the far side of the wheel from the main roads, so green never fights them
+    green: road(0.82, 0.07, opposite - towardButter * deg(70)),
+    relief: road(0.9, 0.03, hue),
+    // The contours are coloured by height: the ramp's first colour, the rest worked out from it below
+    contours: road(0.8, 0.09, opposite - deg(60)),
+    rail: road(0.9, 0.06, opposite - towardButter * deg(35)),
+    buildings: road(0.9, 0.03, hue),
+    // A shadow is the sky darker, like the water
+    shadows: shadow,
+    // Traffic is drawn in the complement of the road it is on (see its ramp below), strong: darker and more
+    // vivid than the pale roads, and the slower it is the more of both. It keeps its tone rather than being
+    // lightened to stand out from the sky: it is the road's contrast it must have.
+    "traffic-slow": road(0.74, 0.17, opposite + towardButter * deg(35) + Math.PI),
+    "traffic-heavy": road(0.66, 0.2, opposite + towardButter * deg(35) + Math.PI),
+    "traffic-jam": road(0.58, 0.23, opposite + towardButter * deg(35) + Math.PI),
+    lights: road(0.95, 0.09, BUTTER_HUE),
+    "water-names": road(0.94, 0.05, hue),
+    "waterway-names": road(0.94, 0.05, hue),
   };
   return Object.fromEntries(
     (Object.keys(MAP_INK) as MapLayer[]).map((layer) => {
@@ -324,8 +389,20 @@ function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
         while (opacity < 1 && seen(opacity) < target) opacity += 0.02;
         opacity = Math.min(1, opacity);
         // Water is the sky in shadow: darker than it, so lightening would only lose it.
-        if (seen(opacity) >= floor || l >= LIGHTEST || l < L) {
-          return [layer, { color: toHex(ink), opacity: +opacity.toFixed(2) }];
+        if (seen(opacity) >= floor || l >= LIGHTEST || l < L || KEEP_TONE.has(layer)) {
+          const result: MapInk = { color: toHex(ink), opacity: +opacity.toFixed(2) };
+          if (layer === "contours") {
+            // Lowland to peak: the hue turns, the colour thins and lightens, so the heights read as a gradient
+            result.ramp = Array.from({ length: ELEVATION_STEPS }, (_, i) => {
+              const t = i / (ELEVATION_STEPS - 1);
+              return toHex(whole(fromOklch([Math.min(LIGHTEST, l + t * 0.12), c * (1 - 0.5 * t), h + deg(ELEVATION_SWEEP * t)])));
+            });
+          }
+          if (layer.startsWith("traffic")) {
+            // One colour per road it can be on, each the complement of that road's own (streets, main roads, motorways)
+            result.ramp = roadHues.map((rh) => toHex(whole(fromOklch([l, c, rh + Math.PI + turn]))));
+          }
+          return [layer, result];
         }
         l += 0.02;
       }
@@ -335,7 +412,7 @@ function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
 
 /**
  * The map's lines over a sky (a palette's `sky2`) as the viewer tuned them
- * (see MapColors): their hue, how vivid, how strong against the sky.
+ * (see MapControls): their hue, how vivid, how strong against the sky.
  */
 export function mapInksFor(sky: string, tune: MapTune): Record<MapLayer, MapInk> {
   return mapInks(hex(sky), tune);

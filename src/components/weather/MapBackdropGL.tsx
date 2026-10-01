@@ -1,11 +1,13 @@
 "use client";
 
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useEffect, useRef, useState } from "react";
-import type { MapLayer } from "@/lib/weather/palette";
-import { useMapPalette } from "./MapColors";
+import { sunPosition } from "@/lib/weather/sun-position";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMoment } from "../time/TimeContext";
+import { useMapOptions, useMapPalette } from "./MapControls";
 import { useMap } from "./MapContext";
-import { KIND, STYLE } from "./map-style";
+import { STYLE, syncMap } from "./map-style";
+import { BASE_ZOOM, scrollProgress, viewAt } from "./map-view";
 
 type Pin = { x: number; y: number };
 
@@ -35,16 +37,6 @@ function paddingFor({ x, y }: Pin, w: number, h: number) {
     bottom: Math.max(0, h - 2 * y),
   };
 }
-const ZOOM = 11;
-
-/** Zoom levels added over the page's whole scroll: from the city down to its streets. */
-const SCROLL_ZOOM = 2.5;
-
-/** How far down the page is, 0 at the top to 1 at the bottom. */
-function scrollProgress(): number {
-  const max = document.documentElement.scrollHeight - window.innerHeight;
-  return max > 0 ? Math.min(Math.max(window.scrollY / max, 0), 1) : 0;
-}
 
 /**
  * The city behind the top of the page, drawn by Mapbox on the sky as it is.
@@ -58,13 +50,17 @@ export function MapBackdropGL({ className }: { className: string }) {
   const { lat, lon } = center;
   // The sky's opposite colours, turned as the viewer chose
   const inks = useMapPalette().map;
+  // The extra layers the viewer chose, and the sun at the moment on show for their shadows and lights
+  const options = useMapOptions();
+  const { time } = useMoment().frame;
+  const sun = useMemo(() => sunPosition(time, lat, lon), [time, lat, lon]);
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("mapbox-gl").Map | null>(null);
   const [failed, setFailed] = useState(!token);
   const [shown, setShown] = useState(false);
   const [pin, setPin] = useState<Pin | null>(null);
   const pinRef = useRef<Pin | null>(null);
-  const zoomRef = useRef(ZOOM);
+  const viewRef = useRef({ zoom: BASE_ZOOM, pitch: 0 });
 
   // Measure the pin now and whenever the layout changes (the window, the name itself, the font arriving);
   // move the map to match.
@@ -95,16 +91,15 @@ export function MapBackdropGL({ className }: { className: string }) {
     };
   }, []);
 
-  // Scrolling down zooms into the city: the map stays fixed, so the page seems to descend into it.
+  // Scrolling down zooms into the city and tilts it: the map stays fixed, so the page seems to descend into it.
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let frame = 0;
     const onScroll = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const extra = SCROLL_ZOOM * scrollProgress();
-        zoomRef.current = ZOOM + extra;
-        mapRef.current?.setZoom(zoomRef.current);
+        viewRef.current = viewAt(scrollProgress());
+        mapRef.current?.jumpTo(viewRef.current);
       });
     };
     onScroll();
@@ -134,7 +129,8 @@ export function MapBackdropGL({ className }: { className: string }) {
           accessToken: token,
           style: STYLE,
           center: [lon, lat],
-          zoom: zoomRef.current,
+          zoom: viewRef.current.zoom,
+          pitch: viewRef.current.pitch,
           interactive: false,
           attributionControl: false,
           fadeDuration: 0,
@@ -183,16 +179,12 @@ export function MapBackdropGL({ className }: { className: string }) {
     };
   }, [lat, lon, token, loadMapbox]);
 
-  // The sky's opposite colours, as the moment on show changes
+  // The sky's opposite colours, the chosen layers and the sun, as the moment on show changes
   useEffect(() => {
     const m = mapRef.current;
     if (!m || !shown) return;
-    for (const layer of Object.keys(KIND) as MapLayer[]) {
-      const kind = KIND[layer];
-      m.setPaintProperty(layer, `${kind}-color` as "line-color", inks[layer].color);
-      m.setPaintProperty(layer, `${kind}-opacity` as "line-opacity", inks[layer].opacity);
-    }
-  }, [inks, shown]);
+    syncMap(m, { inks, options, sun, lat });
+  }, [inks, options, sun, lat, shown]);
 
   // The map is strongest around the pin; once it's measured, the fade follows it.
   const fade = pin

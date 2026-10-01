@@ -1,16 +1,19 @@
 "use client";
 
 import { placeParts } from "@/lib/weather/formatters";
+import type { MapOption } from "@/lib/map-options";
 import type { SkyPalette } from "@/lib/weather/palette";
+import { sunPosition, type SunPosition } from "@/lib/weather/sun-position";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePlace } from "../location/PlaceContext";
 import { useMoment } from "../time/TimeContext";
-import { useMapPalette } from "../weather/MapColors";
+import { useMapOptions, useMapPalette } from "../weather/MapControls";
 import { useMap } from "../weather/MapContext";
+import { currentView } from "../weather/map-view";
 import { POSTER_FORMATS, renderPoster, type PosterFormat, type PosterInput } from "./render-poster";
 
-/** The sky and the day the poster is drawn in, taken when the dialog opens. */
-type Snapshot = { palette: SkyPalette; dayKey: PosterInput["dayKey"] };
+/** The sky, the day, the map's extra layers, the sun and how close and how tipped the map is, as the poster is drawn: taken when the dialog opens. */
+type Snapshot = { palette: SkyPalette; dayKey: PosterInput["dayKey"]; options: MapOption[]; sun: SunPosition; view: { zoom: number; pitch: number } };
 
 type Drawn = { status: "drawing" } | { status: "done"; url: string; blob: Blob } | { status: "error" };
 
@@ -46,6 +49,7 @@ export function PosterButton({ className = "" }: { className?: string }) {
   const { frame } = useMoment();
   // The map's lines as the viewer turned them: the poster is drawn as the page is
   const palette = useMapPalette();
+  const options = useMapOptions();
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
@@ -64,17 +68,17 @@ export function PosterButton({ className = "" }: { className?: string }) {
   if (!token) return null;
 
   /** Draws one format in the sky and day given; each is drawn once per opening, when first shown. */
-  function draw(f: PosterFormat, { palette, dayKey }: Snapshot) {
+  function draw(f: PosterFormat, { palette, dayKey, options, sun, view }: Snapshot) {
     if (!token) return;
     setDrawn((d) => ({ ...d, [f]: { status: "drawing" } }));
     const where = { name: place.name, ...placeParts(place), lat: place.lat, lon: place.lon };
-    renderPoster({ format: f, place: where, dayKey, palette, token, loadMapbox })
+    renderPoster({ format: f, place: where, dayKey, palette, options, sun, view, token, loadMapbox })
       .then((blob) => setDrawn((d) => ({ ...d, [f]: { status: "done", url: URL.createObjectURL(blob), blob } })))
       .catch(() => setDrawn((d) => ({ ...d, [f]: { status: "error" } })));
   }
 
   function open() {
-    const taken: Snapshot = { palette, dayKey: frame.dayKey };
+    const taken: Snapshot = { palette, dayKey: frame.dayKey, options, sun: sunPosition(frame.time, place.lat, place.lon), view: currentView() };
     setSnapshot(taken);
     setDrawn({});
     setCanShare(typeof navigator.canShare === "function");
@@ -130,7 +134,7 @@ export function PosterButton({ className = "" }: { className?: string }) {
             <h2 id={titleId} className="font-display text-2xl font-semibold leading-tight tracking-[-0.02em]">
               Poster di {place.name}
             </h2>
-            <p className="mt-1 text-sm text-ink-muted">La città nei colori del cielo di questo momento.</p>
+            <p className="mt-1 text-sm text-ink-muted">La città nei colori del cielo di questo momento, come la vedi nella mappa.</p>
           </div>
           <button
             type="button"

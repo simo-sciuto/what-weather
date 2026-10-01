@@ -3,7 +3,7 @@
 import { dayOfYear } from "@/lib/weather/formatters";
 import { PosterButton } from "../poster/PosterButton";
 import { LocalClock } from "../weather/LocalClock";
-import { MapColors } from "../weather/MapColors";
+import { MapControls } from "../weather/MapControls";
 import { useMoment, useView } from "./TimeContext";
 
 /**
@@ -58,8 +58,8 @@ export function HeroMeta({
         <HeroClock timezone={timezone} renderedAt={renderedAt} dataAt={dataAt} className="" timeClassName="tabular-nums text-ink" />
         {/* The place as a poster to keep: the map in the moment's colours, its name and coordinates */}
         <PosterButton className="mt-1.5" />
-        {/* And the colours it is drawn in, the viewer's to tune */}
-        <MapColors className="mt-1.5" />
+        {/* And the map itself, its layers and colours the viewer's to choose */}
+        <MapControls className="mt-1.5" />
       </div>
     </div>
   );

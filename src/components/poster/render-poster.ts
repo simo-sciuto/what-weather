@@ -1,6 +1,10 @@
 import { dayOfYear, formatCoords } from "@/lib/weather/formatters";
-import { inkOverSky, type MapLayer, type SkyPalette } from "@/lib/weather/palette";
-import { KIND, STYLE } from "../weather/map-style";
+import type { MapOption } from "@/lib/map-options";
+import { optionColor } from "@/lib/weather/map-swatch";
+import type { SkyPalette } from "@/lib/weather/palette";
+import type { SunPosition } from "@/lib/weather/sun-position";
+import { STYLE, syncMap } from "../weather/map-style";
+import { BASE_ZOOM } from "../weather/map-view";
 
 type Mapbox = typeof import("mapbox-gl").default;
 
@@ -19,7 +23,10 @@ export const POSTER_FORMATS: Record<PosterFormat, { label: string; width: number
 
 /** The map is drawn at twice its CSS size, so its lines keep the page's weight at poster scale. */
 const PIXEL_RATIO = 2;
-/** The width of city the poster's short side spans, in metres: a whole city with its streets. */
+/**
+ * The width of city the poster's short side spans, in metres, when the page is at its top: a whole city
+ * with its streets. Scrolled down, the page zooms in, and the poster spans that much less (see `view`).
+ */
 const SPAN_METRES = 30_000;
 /** Give up waiting for the map's tiles after this long, rather than hang. */
 const MAP_TIMEOUT_MS = 25_000;
@@ -32,6 +39,11 @@ export interface PosterInput {
   /** The local day ("2026-09-30") whose sky the poster is drawn in, for its number in the year */
   dayKey: string;
   palette: SkyPalette;
+  /** The extra map layers the viewer chose, and the sun at the moment on show for the shadows and lights */
+  options: readonly MapOption[];
+  sun: SunPosition;
+  /** How the map behind the page was when the poster was asked for: the poster shows the same stretch of city, from the same angle */
+  view: { zoom: number; pitch: number };
   token: string;
   loadMapbox: () => Promise<Mapbox>;
 }
@@ -44,9 +56,9 @@ export interface PosterInput {
  * drawn in. The map is the subject; the
  * type holds the edges. Returns a PNG.
  */
-export async function renderPoster({ format, place, dayKey, palette, token, loadMapbox }: PosterInput): Promise<Blob> {
+export async function renderPoster({ format, place, dayKey, palette, options, sun, view, token, loadMapbox }: PosterInput): Promise<Blob> {
   const { width: W, height: H } = POSTER_FORMATS[format];
-  const [mapImage, fonts] = await Promise.all([drawMap({ W, H, place, palette, token, loadMapbox }), loadFonts()]);
+  const [mapImage, fonts] = await Promise.all([drawMap({ W, H, place, palette, options, sun, view, token, loadMapbox }), loadFonts()]);
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -56,7 +68,7 @@ export async function renderPoster({ format, place, dayKey, palette, token, load
 
   paintSky(ctx, W, H, palette);
   ctx.drawImage(mapImage, 0, 0, W, H);
-  paintType(ctx, W, H, place, dayKey, palette, fonts);
+  paintType(ctx, W, H, place, dayKey, palette, fonts, legendFor(palette, options, sun, mapZoom(W, H, place.lat, view.zoom)));
 
   return new Promise((resolve, reject) =>
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Export failed"))), "image/png"),
@@ -65,12 +77,25 @@ export async function renderPoster({ format, place, dayKey, palette, token, load
 
 /* ---------- The map ---------- */
 
+/**
+ * The zoom at which the poster's short side spans the stretch of city the viewer has in front of them at this
+ * latitude: SPAN_METRES at the top of the page, halved with each zoom level the page has come down.
+ */
+function mapZoom(W: number, H: number, lat: number, viewZoom: number): number {
+  const span = SPAN_METRES / 2 ** (viewZoom - BASE_ZOOM);
+  const metresPerPx = span / (Math.min(W, H) / PIXEL_RATIO);
+  return Math.log2((156_543.03 * Math.cos((lat * Math.PI) / 180)) / metresPerPx);
+}
+
 /** A Mapbox map off screen, at the poster's size, in the moment's colours; resolves with its drawing. */
 async function drawMap({
   W,
   H,
   place,
   palette,
+  options,
+  sun,
+  view,
   token,
   loadMapbox,
 }: Omit<PosterInput, "format" | "dayKey"> & { W: number; H: number }): Promise<HTMLCanvasElement> {
@@ -82,9 +107,7 @@ async function drawMap({
   Object.assign(box.style, { position: "fixed", left: "-100000px", top: "0", width: `${cssW}px`, height: `${cssH}px`, pointerEvents: "none" });
   document.body.append(box);
 
-  // The zoom at which the short side spans SPAN_METRES at this latitude.
-  const metresPerPx = SPAN_METRES / Math.min(cssW, cssH);
-  const zoom = Math.log2((156_543.03 * Math.cos((place.lat * Math.PI) / 180)) / metresPerPx);
+  const zoom = mapZoom(W, H, place.lat, view.zoom);
 
   // Mapbox draws at the screen's pixel density and takes no option for it, so, as its print
   // plugins do, the density is set for as long as this map lives, then given back.
@@ -103,6 +126,8 @@ async function drawMap({
       style: STYLE,
       center: [place.lon, place.lat],
       zoom,
+      // Tipped as far as the page is, as it is in the viewer's window
+      pitch: view.pitch,
       interactive: false,
       attributionControl: false,
       fadeDuration: 1,
@@ -120,11 +145,7 @@ async function drawMap({
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("Map timed out")), MAP_TIMEOUT_MS);
       map.once("load", () => {
-        for (const layer of Object.keys(KIND) as MapLayer[]) {
-          const kind = KIND[layer];
-          map.setPaintProperty(layer, `${kind}-color` as "line-color", palette.map[layer].color);
-          map.setPaintProperty(layer, `${kind}-opacity` as "line-opacity", palette.map[layer].opacity);
-        }
+        syncMap(map, { inks: palette.map, options, sun, lat: place.lat });
         map.once("idle", () => {
           clearTimeout(timer);
           resolve();
@@ -222,6 +243,7 @@ function paintType(
   dayKey: PosterInput["dayKey"],
   p: SkyPalette,
   fonts: Fonts,
+  legend: Swatch[],
 ) {
   const short = Math.min(W, H);
   const m = Math.round(short * 0.065);
@@ -274,7 +296,9 @@ function paintType(
   const creditsBase = dayBase - small * 2.6;
   const lonBase = creditsBase;
   const latBase = lonBase - small * 1.9;
-  const ruleY = latBase - small * 2.3;
+  // The colour bar may take several rows; the hairline, and with it the name, make room for them
+  const bar = layoutSwatches(ctx, legend, (W - 2 * m) * 0.6, small, fonts.sans);
+  const ruleY = latBase - small * 2.3 - (bar.rows.length - 1) * bar.rowHeight;
   const swatchesTop = ruleY + small * 0.8;
 
   ctx.globalAlpha = 0.45;
@@ -295,7 +319,7 @@ function paintType(
   ctx.globalAlpha = 1;
   ctx.textAlign = "left";
 
-  paintSwatches(ctx, W - m, swatchesTop, small, p, fonts.sans);
+  paintSwatches(ctx, W - m, swatchesTop, bar, fonts.sans);
 
   setType(ctx, `500 SIZE ${fonts.sans}`, small * 0.7, 0.02);
   ctx.textAlign = "right";
@@ -315,39 +339,109 @@ function paintType(
   lines.forEach((line, i) => ctx.fillText(line, m - size * 0.04, lastBase - (lines.length - 1 - i) * lead));
 }
 
+/** The map's buildings are in Mapbox's tiles from this zoom; before it there are none to show. */
+const BUILDING_ZOOM = 13;
+
+/** One chip of the poster's colour bar: a colour, and what it stands for on the map. */
+interface Swatch {
+  hex: string;
+  label: string;
+  /** Starts a new group: a wider step before it than between chips of a group */
+  groupStart?: boolean;
+}
+
 /**
- * The poster's colours as a printer's colour bar, flush right from `right`:
- * the sky (top, middle, horizon), then, a step apart, the roads (motorways,
- * main roads, streets) as they show over the middle of the sky, so the chips
- * follow everything the viewer tuned (the hue, the intensity and, through the
- * lines' opacity, the contrast); each a chip over its hex code.
+ * What the poster's colour bar shows: the sky, then everything the map is
+ * drawn with that the viewer has not taken away, each as it shows over the middle of the sky (so the chips follow
+ * everything the viewer tuned: the hue, the intensity and, through the lines'
+ * opacity, the contrast). Only what is on this poster: the layers the viewer
+ * chose, and of those only the ones that can be seen at this zoom and hour.
  */
-function paintSwatches(ctx: CanvasRenderingContext2D, right: number, top: number, small: number, p: SkyPalette, family: string) {
-  const groups = [
-    [p.sky1, p.sky2, p.sky3],
-    [p.map.motorways, p.map["main-roads"], p.map.streets].map((ink) => inkOverSky(p.sky2, ink)),
+function legendFor(p: SkyPalette, options: readonly MapOption[], sun: SunPosition, zoom: number): Swatch[] {
+  const chosen = new Set(options);
+  const close = zoom >= BUILDING_ZOOM;
+  // What each choice is called here, short, in the order the poster lists them; the names of the waters are words, not a colour to show
+  const named: [MapOption, string, boolean][] = [
+    ["water", "Acqua", true],
+    ["motorways", "Autostrade", true],
+    ["main-roads", "Principali", true],
+    ["streets", "Strade", true],
+    ["green", "Verde", true],
+    ["relief", "Rilievo", true],
+    ["contours", "Curve", true],
+    ["rail", "Ferrovie", true],
+    ["buildings", "Edifici", close],
+    ["shadows", "Ombre", close && sun.altitude > 0],
+    ["traffic", "Traffico", true],
+    ["lights", "Luci", sun.altitude <= 0],
   ];
+  const entries = named.filter(([option, , seen]) => seen && chosen.has(option));
+  return [
+    { hex: p.sky1, label: "Cielo alto" },
+    { hex: p.sky2, label: "Cielo" },
+    { hex: p.sky3, label: "Orizzonte" },
+    ...entries.map(([option, label], i): Swatch => ({ hex: optionColor(p, option), label, groupStart: i === 0 })),
+  ];
+}
+
+interface SwatchBar {
+  rows: Swatch[][];
+  chipW: number;
+  chipH: number;
+  gap: number;
+  groupGap: number;
+  label: number;
+  /** From one row's top to the next */
+  rowHeight: number;
+}
+
+/** Sets the chips in rows no wider than `maxWidth`, every chip as wide as the longest name. */
+function layoutSwatches(ctx: CanvasRenderingContext2D, swatches: Swatch[], maxWidth: number, small: number, family: string): SwatchBar {
   const label = small * 0.62;
   setType(ctx, `500 SIZE ${family}`, label, 0.02);
-  const chipW = ctx.measureText("#000000").width;
+  const chipW = Math.max(...swatches.map((s) => ctx.measureText(s.label).width));
   const chipH = small * 1.2;
   const gap = small * 0.35;
   const groupGap = small * 1.1;
-  const widths = groups.map((g) => g.length * chipW + (g.length - 1) * gap);
-  let x = right - widths.reduce((a, b) => a + b, 0) - groupGap * (groups.length - 1);
+  const rows: Swatch[][] = [[]];
+  let used = 0;
+  for (const s of swatches) {
+    const row = rows[rows.length - 1];
+    const before = row.length ? (s.groupStart ? groupGap : gap) : 0;
+    if (row.length && used + before + chipW > maxWidth) {
+      rows.push([s]);
+      used = chipW;
+    } else {
+      row.push(s);
+      used += before + chipW;
+    }
+  }
+  return { rows, chipW, chipH, gap, groupGap, label, rowHeight: chipH + label * 1.45 + small * 0.7 };
+}
 
+/**
+ * The poster's colours as a printer's colour bar, each row flush right from
+ * `right`: a chip of each colour over the name of what it stands for (sky,
+ * water, a kind of road, a building…).
+ */
+function paintSwatches(ctx: CanvasRenderingContext2D, right: number, top: number, bar: SwatchBar, family: string) {
+  const { rows, chipW, chipH, gap, groupGap, label } = bar;
+  setType(ctx, `500 SIZE ${family}`, label, 0.02);
   ctx.textAlign = "left";
-  groups.forEach((g) => {
-    for (const hex of g) {
-      ctx.fillStyle = hex;
-      ctx.fillRect(x, top, chipW, chipH);
+  rows.forEach((row, r) => {
+    const y = top + r * bar.rowHeight;
+    const widths = row.map((s, i) => chipW + (i === 0 ? 0 : s.groupStart ? groupGap : gap));
+    let x = right - widths.reduce((a, b) => a + b, 0);
+    row.forEach((s, i) => {
+      x += i === 0 ? 0 : s.groupStart ? groupGap : gap;
+      ctx.fillStyle = s.hex;
+      ctx.fillRect(x, y, chipW, chipH);
       ctx.fillStyle = "#ffffff";
       ctx.globalAlpha = 0.8;
-      ctx.fillText(hex.toUpperCase(), x, top + chipH + label * 1.45);
+      ctx.fillText(s.label, x, y + chipH + label * 1.45);
       ctx.globalAlpha = 1;
-      x += chipW + gap;
-    }
-    x += groupGap - gap;
+      x += chipW;
+    });
   });
 }
 
