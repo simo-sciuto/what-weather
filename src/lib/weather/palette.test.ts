@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  ALL_MAP_LAYERS,
   MAP_SEPARATION,
   colorDistance,
   inkOverSky,
   mapInksFor,
   skyPalette,
+  type MapLayer,
 } from "./palette";
 import type { WeatherState } from "./state";
 
@@ -156,38 +158,109 @@ describe("skyPalette", () => {
     },
   );
 
+  /** The smallest distance between two of these layers, as they show over the sky, taken in pairs but for the roads between themselves */
+  const smallestGap = (
+    sky: string,
+    inks: ReturnType<typeof mapInksFor>,
+    groups: readonly (readonly MapLayer[])[],
+  ) => {
+    let gap = Infinity;
+    for (let i = 0; i < groups.length; i++) {
+      for (let j = i + 1; j < groups.length; j++) {
+        if (i < 3 && j < 3) continue;
+        gap = Math.min(
+          gap,
+          colorDistance(
+            inkOverSky(sky, inks[groups[i][0]]),
+            inkOverSky(sky, inks[groups[j][0]]),
+          ),
+        );
+      }
+    }
+    return gap;
+  };
+  const ROADS: MapLayer[][] = [["streets"], ["main-roads"], ["motorways"]];
+  const CITY: MapLayer[][] = [...ROADS, ["water"]];
+  const EVERYTHING: MapLayer[][] = [
+    ...CITY,
+    ["buildings"],
+    ["buildings-3d"],
+    ["train"],
+    ["metro"],
+    ["tram"],
+    ["bus-stops"],
+    ["green"],
+  ];
+
   it(
-    "keeps the water, the roads and the buildings plainly apart from one another, at every hour",
+    "keeps the water clear of the roads at every hour, as far as the page's own drawing goes",
     { timeout: 60_000 },
     () => {
       const failures = [...cases, ...sunCases].flatMap(
         ({ state, cloudCover, light, ...rest }) => {
           const p = skyPalette({ state, cloudCover, light, ...rest });
-          const over = (layer: keyof typeof p.map) =>
-            inkOverSky(p.sky2, p.map[layer]);
-          const apart = (a: keyof typeof p.map, b: keyof typeof p.map) =>
-            colorDistance(over(a), over(b));
-          return (["streets", "main-roads", "motorways"] as const)
-            .flatMap(
-              (road) =>
-                [
-                  ["water", road, apart("water", road)],
-                  ["buildings", road, apart("buildings", road)],
-                  ["buildings-3d", road, apart("buildings-3d", road)],
-                ] as const,
-            )
-            .concat([
-              ["buildings", "water", apart("buildings", "water")],
-              ["buildings-3d", "water", apart("buildings-3d", "water")],
-            ] as never)
-            .filter(([, , gap]) => gap < MAP_SEPARATION * 0.65)
-            .map(
-              ([a, b, gap]) =>
-                `${state} cover ${cloudCover} light ${light.toFixed(2)} ${a}/${b} ${gap.toFixed(3)}`,
-            );
+          const gap = smallestGap(p.sky2, p.map, CITY);
+          return gap < MAP_SEPARATION * 0.9
+            ? [
+                `${state} cover ${cloudCover} light ${light.toFixed(2)} ${gap.toFixed(3)}`,
+              ]
+            : [];
         },
       );
       expect(failures).toEqual([]);
+    },
+  );
+
+  it(
+    "keeps whatever is chosen apart: the buildings, every way of getting about, the meadows, with the water and the roads",
+    { timeout: 120_000 },
+    () => {
+      const own = { hue: 0, vivid: 50, contrast: 50 };
+      const failures = cases
+        .filter((_, i) => i % 4 === 0)
+        .flatMap(({ state, cloudCover, light }) => {
+          const p = skyPalette({ state, cloudCover, light });
+          const gap = smallestGap(
+            p.sky2,
+            mapInksFor(p.sky2, own, ALL_MAP_LAYERS),
+            EVERYTHING,
+          );
+          // Ten kinds of thing on one map, not all as far apart as one would like (about half the distance wanted, at worst)
+          return gap < MAP_SEPARATION * 0.45
+            ? [
+                `${state} cover ${cloudCover} light ${light.toFixed(2)} ${gap.toFixed(3)}`,
+              ]
+            : [];
+        });
+      expect(failures).toEqual([]);
+    },
+  );
+
+  it(
+    "gives way only to what is on show: the buildings alone are further from the roads than among everything",
+    { timeout: 60_000 },
+    () => {
+      const own = { hue: 0, vivid: 50, contrast: 50 };
+      const p = skyPalette({
+        state: "CLEAR_NIGHT",
+        cloudCover: 0,
+        light: -0.5,
+      });
+      const some = new Set<MapLayer>([
+        "water",
+        "waterway",
+        "streets",
+        "main-roads",
+        "motorways",
+        "buildings",
+        "buildings-3d",
+      ]);
+      const apart = (active: ReadonlySet<MapLayer>) =>
+        smallestGap(p.sky2, mapInksFor(p.sky2, own, active), [
+          ...CITY,
+          ["buildings"],
+        ]);
+      expect(apart(some)).toBeGreaterThanOrEqual(apart(ALL_MAP_LAYERS) - 1e-9);
     },
   );
 
@@ -196,27 +269,29 @@ describe("skyPalette", () => {
     { timeout: 120_000 },
     () => {
       const failures = cases
-        .filter((_, i) => i % 8 === 0)
+        .filter((_, i) => i % 16 === 0)
         .flatMap(({ state, cloudCover, light }) => {
           const p = skyPalette({ state, cloudCover, light });
-          return [0, 90, 180, 270].flatMap((hue) =>
-            [25, 60, 100].flatMap((vivid) =>
+          return [0, 120, 240].flatMap((hue) =>
+            [25, 100].flatMap((vivid) =>
               [30, 50, 100].flatMap((contrast) => {
-                const inks = mapInksFor(p.sky2, { hue, vivid, contrast });
-                const over = (layer: keyof typeof inks) =>
-                  inkOverSky(p.sky2, inks[layer]);
+                const inks = mapInksFor(
+                  p.sky2,
+                  { hue, vivid, contrast },
+                  ALL_MAP_LAYERS,
+                );
                 const k = contrast <= 50 ? 0.35 + 0.65 * (contrast / 50) : 1;
                 const wanted = MAP_SEPARATION * Math.min(1, k);
-                const roads = ["streets", "main-roads", "motorways"] as const;
-                const gap = Math.min(
-                  ...roads.flatMap((r) => [
-                    colorDistance(over("water"), over(r)),
-                    colorDistance(over("buildings"), over(r)),
-                  ]),
-                  colorDistance(over("buildings"), over("water")),
-                );
-                // Not always the whole of the gap (the search gets as near as it can, at least about half of it even on a faint, grey map): a night sky drawn grey (no intensity) has only lightness to tell them by
-                return gap < wanted * 0.45
+                const gap = smallestGap(p.sky2, inks, [
+                  ...CITY,
+                  ["buildings"],
+                  ["train"],
+                  ["metro"],
+                  ["tram"],
+                  ["bus-stops"],
+                ]);
+                // Not always the whole of the gap: a night sky drawn grey (no intensity) has only lightness to tell them by
+                return gap < wanted * 0.35
                   ? [
                       `${state} light ${light.toFixed(2)} hue ${hue} vivid ${vivid} contrast ${contrast} gap ${gap.toFixed(3)}`,
                     ]

@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-02 (random city; poster top rework in progress)
+Last updated: 2026-10-02 (transit layers, map colour algorithm)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -12,7 +12,7 @@ Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). 
 WTH-012 (with WTH-008): the poster's top. Implemented and looked at in screenshots, waiting for the user's sign-off. Then WTH-010 (the "La mappa" modal), WTH-009 (tinta colours), WTH-013 (poster on a phone).
 
 ## Last checkpoint
-The commit that closes this session (random city, poster top). WTH-011 is done.
+The commit that closes this session: trains, metro, tram and bus as map choices, and the map's colours kept apart as a whole (WTH-016, WTH-019). WTH-015 (buildings from above) is not solved: the data starts at zoom 13.
 
 ## Known problems / open questions
 Candidates only, from the audit (BOARD WTH-001..003): AQI index is computed differently per provider; interpolated hours vs measured readings in the UI; min/max on partial days. None confirmed as bugs.

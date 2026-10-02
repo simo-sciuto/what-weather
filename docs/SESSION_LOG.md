@@ -2,6 +2,12 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-02 (fourth session)
+- Worked on: WTH-019 (trains, metro, tram, bus), WTH-016 (colour algorithm), WTH-015 (buildings from above: not solved, see BOARD); WTH-015..019 added to the board.
+- Completed: see CHANGELOG, ADR-011 update. Checked: tsc, ESLint, palette, map-style and map-view unit tests (26 passed), screenshots of Tokyo at night with the metro, trains, trams and buses on (the map takes over 12 s to draw at zoom 14 in the headless browser: it is slow there, not broken).
+- Not verified: the poster with trams and buses; the transit layers on a phone; the colours of the transit layers by day (the day sky made the map nearly invisible in the screenshots); no e2e (they run without Mapbox). Tram and bus layers only show from zoom 14, which the page reaches in the last fifth of the scroll.
+- Next: the user chooses among WTH-017, WTH-018, WTH-010, WTH-009, WTH-013; WTH-012 is still waiting for their sign-off.
+
 ## 2026-10-02 (third session)
 - Worked on: WTH-014 (3D buildings option and colour separation of water, roads and buildings).
 - Completed: see CHANGELOG, ADR-011. Checked: tsc, ESLint, palette and map-style unit tests (new ones for the separation and the 3D layer), a screenshot of Milano with 3D on and the map tilted.

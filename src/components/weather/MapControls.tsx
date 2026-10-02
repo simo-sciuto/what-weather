@@ -13,6 +13,7 @@ import {
   MAP_OPTIONS,
   MAP_OPTION_INFO,
   DEFAULT_MAP_OPTIONS,
+  TRANSIT_OPTIONS,
   isDefaultMapOptions,
   mapOptionsSnapshot,
   parseMapOptions,
@@ -21,21 +22,43 @@ import {
   type MapOption,
 } from "@/lib/map-options";
 import { optionColor } from "@/lib/weather/map-swatch";
-import { mapInksFor, mapTone, motorwayHue, type SkyPalette } from "@/lib/weather/palette";
-import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import {
+  mapInksFor,
+  mapTone,
+  motorwayHue,
+  type SkyPalette,
+} from "@/lib/weather/palette";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
 import { createPortal } from "react-dom";
 import { useMoment } from "../time/TimeContext";
 import { useMap } from "./MapContext";
+import { activeLayers } from "./map-style";
 
 /** The viewer's tuning of the map's colours; the page's own on the server and until the browser says otherwise. */
 function useMapTuning(): MapTuning {
-  const raw = useSyncExternalStore(subscribeMapTuning, mapTuningSnapshot, () => "");
+  const raw = useSyncExternalStore(
+    subscribeMapTuning,
+    mapTuningSnapshot,
+    () => "",
+  );
   return useMemo(() => parseMapTuning(raw), [raw]);
 }
 
 /** The layers the viewer chose for the map; the page's own on the server and until the browser says otherwise. */
 export function useMapOptions(): MapOption[] {
-  const raw = useSyncExternalStore(subscribeMapOptions, mapOptionsSnapshot, () => "");
+  const raw = useSyncExternalStore(
+    subscribeMapOptions,
+    mapOptionsSnapshot,
+    () => "",
+  );
   return useMemo(() => parseMapOptions(raw), [raw]);
 }
 
@@ -48,19 +71,25 @@ export function useMapOptions(): MapOption[] {
 export function useMapPalette(): SkyPalette {
   const { palette } = useMoment().look;
   const tuning = useMapTuning();
+  const options = useMapOptions();
+  // The colours are worked out for the layers on show, so no two of them are alike
+  const active = useMemo(() => activeLayers(options), [options]);
   return useMemo(
-    () => (isUntuned(tuning) ? palette : { ...palette, map: mapInksFor(palette.sky2, tuning) }),
-    [palette, tuning],
+    () => ({ ...palette, map: mapInksFor(palette.sky2, tuning, active) }),
+    [palette, tuning, active],
   );
 }
 
 /** Stops along the hue track: the wheel, a full turn from the page's own colour. */
 const TURNS = [0, 45, 90, 135, 180, 225, 270, 315, 360];
-const gradient = (stops: string[]) => `linear-gradient(90deg, ${stops.join(", ")})`;
+const gradient = (stops: string[]) =>
+  `linear-gradient(90deg, ${stops.join(", ")})`;
 
 /** The options that are the city itself, and the extras to add to it */
 const CITY_OPTIONS = MAP_OPTIONS.filter((o) => DEFAULT_MAP_OPTIONS.includes(o));
-const EXTRA_OPTIONS = MAP_OPTIONS.filter((o) => !DEFAULT_MAP_OPTIONS.includes(o));
+const EXTRA_OPTIONS = MAP_OPTIONS.filter(
+  (o) => !DEFAULT_MAP_OPTIONS.includes(o) && !TRANSIT_OPTIONS.includes(o),
+);
 
 /**
  * "La mappa", one button that opens one panel for everything the viewer may
@@ -99,7 +128,12 @@ export function MapControls({ className = "" }: { className?: string }) {
         className="group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-ink aria-expanded:text-accent"
       >
         Personalizza la mappa
-        <span aria-hidden="true" className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent">→</span>
+        <span
+          aria-hidden="true"
+          className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent"
+        >
+          →
+        </span>
       </button>
       {/* In the body, not here: a parent's blur or transform would make "fixed" mean "fixed to the parent" */}
       {open &&
@@ -131,13 +165,24 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
     const { lightness, chroma } = mapTone(vivid);
     return `oklch(${lightness.toFixed(2)} ${chroma.toFixed(3)} ${Math.round(hue + turn)}deg)`;
   };
-  const sliders: { key: keyof MapTuning; name: string; max: number; track: string; spoken: string }[] = [
+  const sliders: {
+    key: keyof MapTuning;
+    name: string;
+    max: number;
+    track: string;
+    spoken: string;
+  }[] = [
     {
       key: "hue",
       name: "Tinta",
       max: 359,
-      track: gradient(TURNS.map((t) => `${tone(tuning.vivid, t)} ${(t / 360) * 100}%`)),
-      spoken: tuning.hue === 0 ? "Quella del cielo" : `Ruotata di ${tuning.hue} gradi`,
+      track: gradient(
+        TURNS.map((t) => `${tone(tuning.vivid, t)} ${(t / 360) * 100}%`),
+      ),
+      spoken:
+        tuning.hue === 0
+          ? "Quella del cielo"
+          : `Ruotata di ${tuning.hue} gradi`,
     },
     {
       key: "vivid",
@@ -150,13 +195,18 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
       key: "contrast",
       name: "Contrasto",
       max: 100,
-      track: gradient(["rgb(255 255 255 / 0.15) 0%", "rgb(255 255 255 / 0.95) 100%"]),
+      track: gradient([
+        "rgb(255 255 255 / 0.15) 0%",
+        "rgb(255 255 255 / 0.95) 100%",
+      ]),
       spoken: `${tuning.contrast} su 100`,
     },
   ];
 
   const toggle = (option: MapOption, on: boolean) =>
-    setMapOptions(MAP_OPTIONS.filter((o) => (o === option ? on : options.includes(o))));
+    setMapOptions(
+      MAP_OPTIONS.filter((o) => (o === option ? on : options.includes(o))),
+    );
   const custom = !isUntuned(tuning) || !isDefaultMapOptions(options);
 
   const group = (label: string, list: readonly MapOption[]) => (
@@ -191,8 +241,12 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
     >
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-xl font-semibold leading-tight tracking-[-0.02em]">La mappa</h2>
-          <p className="text-caption text-ink-muted">Cosa vedi dietro la pagina, e come è colorato.</p>
+          <h2 className="font-display text-xl font-semibold leading-tight tracking-[-0.02em]">
+            La mappa
+          </h2>
+          <p className="text-caption text-ink-muted">
+            Cosa vedi dietro la pagina, e come è colorato.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {custom && (
@@ -221,18 +275,28 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
       <section aria-label="Cosa mostrare" className="mt-4 flex flex-col gap-4">
         {group("La città", CITY_OPTIONS)}
         {group("Da aggiungere", EXTRA_OPTIONS)}
+        {group("Mezzi pubblici", TRANSIT_OPTIONS)}
         {/* Keeps its height whether or not it has a line to say, so the panel doesn't jump as the pointer moves */}
-        <p aria-live="polite" className="min-h-[1.35em] text-caption text-ink-muted">
+        <p
+          aria-live="polite"
+          className="min-h-[1.35em] text-caption text-ink-muted"
+        >
           {hint || "Tocca uno strato per mostrarlo o toglierlo."}
         </p>
       </section>
 
-      <section aria-label="Colori" className="mt-5 border-t border-white/15 pt-4">
+      <section
+        aria-label="Colori"
+        className="mt-5 border-t border-white/15 pt-4"
+      >
         <p className="mb-3 text-caption text-ink-muted">Colori</p>
         <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
           {sliders.map((sl) => (
             <div key={sl.key}>
-              <label htmlFor={`${sliderId}-${sl.key}`} className="mb-1 flex items-baseline justify-between gap-2 text-sm">
+              <label
+                htmlFor={`${sliderId}-${sl.key}`}
+                className="mb-1 flex items-baseline justify-between gap-2 text-sm"
+              >
                 {sl.name}
                 <span className="text-caption text-ink-muted">{sl.spoken}</span>
               </label>
@@ -243,7 +307,9 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
                 max={sl.max}
                 step={1}
                 value={tuning[sl.key]}
-                onChange={(e) => setMapTuning({ ...tuning, [sl.key]: Number(e.target.value) })}
+                onChange={(e) =>
+                  setMapTuning({ ...tuning, [sl.key]: Number(e.target.value) })
+                }
                 aria-valuetext={sl.spoken}
                 className="map-tune h-7 w-full cursor-pointer"
                 style={{ "--track": sl.track } as CSSProperties}
@@ -284,7 +350,11 @@ function Pill({
       onBlur={() => onPoint(false)}
       className="inline-flex h-10 items-center gap-2 rounded-full border border-white/25 pl-3 pr-4 text-sm transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-pressed:border-transparent aria-pressed:bg-accent aria-pressed:font-medium aria-pressed:text-[#0c0f25] aria-pressed:hover:bg-accent/85"
     >
-      <span aria-hidden="true" className="size-3 shrink-0 rounded-full ring-1 ring-black/25" style={{ backgroundColor: color }} />
+      <span
+        aria-hidden="true"
+        className="size-3 shrink-0 rounded-full ring-1 ring-black/25"
+        style={{ backgroundColor: color }}
+      />
       {label}
     </button>
   );
