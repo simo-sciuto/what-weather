@@ -12,7 +12,7 @@ import type {
 /*
  * The city as the page draws it, shared by the map behind the page and the
  * poster: Mapbox Streets reduced to water and three ranks of road, and, when
- * the viewer asks (see map-options.ts), meadows, relief, contours, rails,
+ * the viewer asks (see map-options.ts), meadows, relief, contours, the ways of getting about (trains, metro, trams, buses),
  * buildings (outlines, or in 3D) and their shadows, the traffic, and the city's lights at night.
  * The extra layers are in the style from the start but hidden, and a hidden
  * layer asks Mapbox for nothing: what is not chosen costs no tiles.
@@ -71,6 +71,14 @@ const byRank = <T extends string | number>(
   streets,
 ];
 
+/** The lines of one kind of rail: by their `type` (rail, subway, tram...), and, if given, only of these classes */
+const transitLines = (types: string[], classes?: string[]): FilterSpecification => [
+  "all",
+  ["==", ["geometry-type"], "LineString"],
+  ["match", ["get", "type"], types, true, false],
+  ...(classes ? [["match", ["get", "class"], classes, true, false] as ExpressionSpecification] : []),
+];
+
 const roads = (classes: string[]): FilterSpecification => [
   "all",
   ["==", ["geometry-type"], "LineString"],
@@ -123,6 +131,16 @@ const trafficBlur = (
     byRank(b(1.8), b(3), b(4)),
   ];
 };
+
+/** The stops of each way of getting about: what the data calls it, whether only its stations count, from which zoom, how large a dot */
+const STOPS: { id: string; mode: string; stationsOnly: boolean; minzoom: number; radius: [number, number] }[] = [
+  { id: "train-stops", mode: "rail", stationsOnly: true, minzoom: 11, radius: [2, 5] },
+  // The metro's entrances are left out: a station has many
+  { id: "metro-stops", mode: "metro_rail", stationsOnly: true, minzoom: 11, radius: [2, 5] },
+  { id: "tram-stops", mode: "tram", stationsOnly: false, minzoom: 14, radius: [1.2, 3] },
+  // The data has the trams' and the buses' stops from zoom 14, and no more than that
+  { id: "bus-stops", mode: "bus", stationsOnly: false, minzoom: 14, radius: [1, 2.6] },
+];
 
 /**
  * The map as a drawing: only the city's lines, and nothing else. No background layer, so the canvas is transparent
@@ -232,25 +250,35 @@ export const STYLE: StyleSpecification = {
         "line-opacity": 0.85,
       },
     },
+    // The ways of getting about, plain lines like the roads (no dashes to stand for tracks), each in its own
+    // colour. The data has them from different zooms: the metro's lines from 11, its stations and the buildings
+    // from 13, the trams and the bus stops from 14 (Mapbox Streets' tiles).
     {
-      id: "rail",
+      id: "train",
       type: "line",
       source: "streets",
       "source-layer": "road",
       layout: hidden(),
-      filter: [
-        "match",
-        ["get", "class"],
-        ["major_rail", "minor_rail"],
-        true,
-        false,
-      ],
-      paint: {
-        "line-color": "#eeeeee",
-        "line-width": width(0.5, 1.4),
-        "line-dasharray": [3, 2],
-        "line-opacity": 0.6,
-      },
+      filter: transitLines(["rail", "narrow_gauge"], ["major_rail", "minor_rail"]),
+      paint: { "line-color": "#eeeeee", "line-width": width(0.7, 2), "line-opacity": 0.8 },
+    },
+    {
+      id: "metro",
+      type: "line",
+      source: "streets",
+      "source-layer": "road",
+      layout: hidden(),
+      filter: transitLines(["subway", "light_rail", "monorail"]),
+      paint: { "line-color": "#eeeeee", "line-width": width(0.7, 2), "line-opacity": 0.8 },
+    },
+    {
+      id: "tram",
+      type: "line",
+      source: "streets",
+      "source-layer": "road",
+      layout: hidden(),
+      filter: transitLines(["tram", "funicular"]),
+      paint: { "line-color": "#eeeeee", "line-width": width(0.6, 1.6), "line-opacity": 0.8 },
     },
     {
       id: "streets",
@@ -357,6 +385,29 @@ export const STYLE: StyleSpecification = {
       },
       paint: { "text-color": "#eeeeee", "text-opacity": 0.8 },
     })),
+    // The stops and stations of the ways of getting about, a dot each in the colour of its line (the metro's
+    // entrances are left out); the buses' are many, so they come only when the map is close
+    ...STOPS.map(
+      ({ id, mode, stationsOnly, minzoom, radius }): LayerSpecification => ({
+        id,
+        type: "circle",
+        source: "streets",
+        "source-layer": "transit_stop_label",
+        minzoom,
+        layout: hidden(),
+        filter: stationsOnly
+          ? ["all", ["==", ["get", "mode"], mode], ["==", ["get", "stop_type"], "station"]]
+          : ["==", ["get", "mode"], mode],
+        paint: {
+          "circle-color": "#eeeeee",
+          "circle-opacity": 0.8,
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, radius[0], 17, radius[1]],
+          "circle-stroke-width": 0.6,
+          "circle-stroke-color": "#000000",
+          "circle-stroke-opacity": 0.25,
+        },
+      }),
+    ),
     // The places that are lit, glowing at night
     {
       id: "lights",
@@ -395,7 +446,13 @@ const KIND: Record<
   green: "fill",
   relief: "hillshade",
   contours: "heights",
-  rail: "line",
+  train: "line",
+  "train-stops": "circle",
+  metro: "line",
+  "metro-stops": "circle",
+  tram: "line",
+  "tram-stops": "circle",
+  "bus-stops": "circle",
   buildings: "fill",
   "buildings-3d": "extrusion",
   shadows: "fill",
@@ -408,7 +465,7 @@ const KIND: Record<
 };
 
 /** The layers each option the viewer may choose turns on */
-const OPTION_LAYERS: Record<MapOption, MapLayer[]> = {
+export const OPTION_LAYERS: Record<MapOption, MapLayer[]> = {
   water: ["water", "waterway"],
   "water-names": ["water-names", "waterway-names"],
   streets: ["streets"],
@@ -417,13 +474,19 @@ const OPTION_LAYERS: Record<MapOption, MapLayer[]> = {
   green: ["green"],
   relief: ["relief"],
   contours: ["contours"],
-  rail: ["rail"],
+  train: ["train", "train-stops"],
+  metro: ["metro", "metro-stops"],
+  tram: ["tram", "tram-stops"],
+  bus: ["bus-stops"],
   buildings: ["buildings"],
   "buildings-3d": ["buildings-3d"],
   shadows: ["shadows"],
   traffic: ["traffic-slow", "traffic-heavy", "traffic-jam"],
   lights: ["lights"],
 };
+
+/** The layers the chosen options turn on */
+export const activeLayers = (options: readonly MapOption[]): Set<MapLayer> => new Set(options.flatMap((o) => OPTION_LAYERS[o]));
 
 const rad = (d: number) => (d * Math.PI) / 180;
 const rgba = (hex: string, alpha: number) => {

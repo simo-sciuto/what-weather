@@ -45,7 +45,13 @@ export type MapLayer =
   | "green"
   | "relief"
   | "contours"
-  | "rail"
+  | "train"
+  | "train-stops"
+  | "metro"
+  | "metro-stops"
+  | "tram"
+  | "tram-stops"
+  | "bus-stops"
   | "buildings"
   | "buildings-3d"
   | "shadows"
@@ -355,7 +361,14 @@ const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
   green: { contrast: 1.2, minOpacity: 0.3 },
   relief: { contrast: 1.25, minOpacity: 0.35 },
   contours: { contrast: 1.3, minOpacity: 0.4 },
-  rail: { contrast: 1.5, minOpacity: 0.4 },
+  // The ways of getting about: lines as strong as the main roads' neighbours, the stops as the lights
+  train: { contrast: 1.5, minOpacity: 0.4 },
+  "train-stops": { contrast: 1.8, minOpacity: 0.7 },
+  metro: { contrast: 1.5, minOpacity: 0.4 },
+  "metro-stops": { contrast: 1.8, minOpacity: 0.7 },
+  tram: { contrast: 1.5, minOpacity: 0.4 },
+  "tram-stops": { contrast: 1.8, minOpacity: 0.7 },
+  "bus-stops": { contrast: 1.7, minOpacity: 0.6 },
   buildings: { contrast: 1.25, minOpacity: 0.3 },
   // Volumes, not outlines: stronger, and opaque enough that the roads do not show through them
   "buildings-3d": { contrast: 1.4, minOpacity: 0.75 },
@@ -423,13 +436,51 @@ export function mapTone(vivid: number): { lightness: number; chroma: number } {
   return { lightness: 0.9 - v.deepen, chroma: 0.1 * v.chroma };
 }
 
+/** How many variants of a layer's colour are tried at most to keep it apart from the others */
+const MAX_TRIES = 14;
+
+/** The ranks of road, which carry the drawing and the viewer's hue: never moved to make room for another layer */
+const ROADS: readonly MapLayer[] = ["streets", "main-roads", "motorways"];
+
+/**
+ * The layers that are kept apart from one another when shown together, each group of layers drawn in one
+ * colour (a line and its stops), in the order they are placed: the first to give way is the last in the list.
+ */
+const GROUPS: readonly (readonly MapLayer[])[] = [
+  ["water", "waterway"],
+  ["buildings", "buildings-3d"],
+  ["train", "train-stops"],
+  ["metro", "metro-stops"],
+  ["tram", "tram-stops"],
+  ["bus-stops"],
+  ["green"],
+];
+
+/** The city as the page always draws it: the layers kept apart unless the viewer chose others (see `mapInksFor`) */
+const CITY_LAYERS: ReadonlySet<MapLayer> = new Set<MapLayer>([
+  "water",
+  "waterway",
+  "streets",
+  "main-roads",
+  "motorways",
+]);
+
+/** Every layer there is, for keeping them all apart */
+export const ALL_MAP_LAYERS: ReadonlySet<MapLayer> = new Set(
+  Object.keys(MAP_INK) as MapLayer[],
+);
+
 /**
  * `tune` moves all the lines together from the colours described above: the
  * hue turns them round the wheel, `vivid` scales their chroma (deepening them
  * to make room for it), `contrast` scales how far from the sky each must
  * stand. A line too deep to read once fully opaque is lightened until it does.
  */
-function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
+function mapInks(
+  sky: RGB,
+  tune: MapTune = UNTUNED,
+  active: ReadonlySet<MapLayer> = CITY_LAYERS,
+): Record<MapLayer, MapInk> {
   const [L, C] = toOklch(sky);
   const hue = skyHue(sky);
   const opposite = hue + Math.PI;
@@ -473,7 +524,14 @@ function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
     relief: road(0.9, 0.03, hue),
     // The contours are coloured by height: the ramp's first colour, the rest worked out from it below
     contours: road(0.8, 0.09, opposite - deg(60)),
-    rail: road(0.9, 0.06, opposite - towardButter * deg(35)),
+    // Each way of getting about its own hue round the wheel, a stop in the colour of its line
+    train: road(0.9, 0.06, opposite - towardButter * deg(35)),
+    "train-stops": road(0.9, 0.06, opposite - towardButter * deg(35)),
+    metro: road(0.84, 0.1, opposite + towardButter * deg(100)),
+    "metro-stops": road(0.84, 0.1, opposite + towardButter * deg(100)),
+    tram: road(0.88, 0.1, opposite - towardButter * deg(110)),
+    "tram-stops": road(0.88, 0.1, opposite - towardButter * deg(110)),
+    "bus-stops": road(0.8, 0.09, opposite + towardButter * deg(160)),
     buildings: road(0.9, 0.03, hue),
     "buildings-3d": road(0.9, 0.03, hue),
     // A shadow is the sky darker, like the water
@@ -501,71 +559,79 @@ function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
     "waterway-names": road(0.94, 0.05, hue),
   };
   /**
-   * A layer drawn from a base colour: lightened and made opaque as far as it takes to stand out
-   * from the sky as it must, whatever the tuning (see the contrast above). `firmer` starts it more
-   * opaque than it needs to be, to stand further from the sky and from the layers beside it.
+   * A layer drawn in one colour (`l`, `c`, `h`): as opaque as it takes to stand out from the sky as it must,
+   * whatever the tuning (see the contrast above); `ok` says whether it does. `firmer` starts it more opaque
+   * than it needs to be, to stand further from the sky and from the layers beside it.
    */
-  const settle = (layer: MapLayer, from: LCH, firmer = 1): MapInk => {
+  const attempt = (
+    layer: MapLayer,
+    l: number,
+    c: number,
+    h: number,
+    firmer: number,
+  ) => {
     const base = MAP_INK[layer];
     const target = 1 + (base.contrast - 1) * k;
-    // What a line must reach whatever the tuning, by lightening if its opacity alone can't: the
-    // viewer's softer contrast when they asked for one, the page's own otherwise.
+    // What a line must reach whatever the tuning: the viewer's softer contrast when they asked for one, the page's own otherwise.
     const floor = Math.min(target, base.contrast);
+    const ink = whole(fromOklch([l, c, h]));
+    const seen = (opacity: number) =>
+      contrast(mix(sky, ink, opacity * MAP_FADE), sky);
+    // The least opacity that reaches the target, to the nearest 0.02: the contrast only grows with it,
+    // so it is bisected rather than stepped up to.
+    let opacity = Math.min(1, base.minOpacity * k * firmer);
+    if (opacity < 1 && seen(opacity) < target) {
+      let lo = opacity;
+      let hi = 1;
+      while (hi - lo > 0.02) {
+        const mid = (lo + hi) / 2;
+        if (seen(mid) >= target) hi = mid;
+        else lo = mid;
+      }
+      // Written to two decimals: round up, never down past the target
+      opacity = Math.min(1, Math.ceil(hi * 100) / 100);
+    }
+    // Water is the sky in shadow: darker than it, so lightening would only lose it.
+    const ok = seen(opacity) >= floor || l < L || KEEP_TONE.has(layer);
+    return { ink, opacity, ok, l, c, h };
+  };
+
+  /** What a drawn layer is as a map ink: its colour and opacity, and the colours it carries by value (a ramp) */
+  const finish = (
+    layer: MapLayer,
+    { ink, opacity, l, c, h }: ReturnType<typeof attempt>,
+  ): MapInk => {
+    const result: MapInk = { color: toHex(ink), opacity: +opacity.toFixed(2) };
+    if (layer === "contours") {
+      // Lowland to peak: the hue turns, the colour thins and lightens, so the heights read as a gradient
+      result.ramp = Array.from({ length: ELEVATION_STEPS }, (_, i) => {
+        const t = i / (ELEVATION_STEPS - 1);
+        return toHex(
+          whole(
+            fromOklch([
+              Math.min(LIGHTEST, l + t * 0.12),
+              c * (1 - 0.5 * t),
+              h + deg(ELEVATION_SWEEP * t),
+            ]),
+          ),
+        );
+      });
+    }
+    if (layer.startsWith("traffic")) {
+      // One colour per road it can be on, each the complement of that road's own (streets, main roads, motorways)
+      result.ramp = roadHues.map((rh) =>
+        toHex(whole(fromOklch([l, c, rh + Math.PI + turn]))),
+      );
+    }
+    return result;
+  };
+
+  /** A layer drawn from a base colour, lightened as far as it takes to stand out from the sky as it must */
+  const settle = (layer: MapLayer, from: LCH): MapInk => {
     const [, c, h] = from;
-    let l = from[0];
-    for (;;) {
-      const ink = whole(fromOklch([l, c, h]));
-      const seen = (opacity: number) =>
-        contrast(mix(sky, ink, opacity * MAP_FADE), sky);
-      // The least opacity that reaches the target, to the nearest 0.02: the contrast only grows with it,
-      // so it is bisected rather than stepped up to.
-      let opacity = Math.min(1, base.minOpacity * k * firmer);
-      if (opacity < 1 && seen(opacity) < target) {
-        let lo = opacity;
-        let hi = 1;
-        while (hi - lo > 0.02) {
-          const mid = (lo + hi) / 2;
-          if (seen(mid) >= target) hi = mid;
-          else lo = mid;
-        }
-        // Written to two decimals: round up, never down past the target
-        opacity = Math.min(1, Math.ceil(hi * 100) / 100);
-      }
-      // Water is the sky in shadow: darker than it, so lightening would only lose it.
-      if (
-        seen(opacity) >= floor ||
-        l >= LIGHTEST ||
-        l < L ||
-        KEEP_TONE.has(layer)
-      ) {
-        const result: MapInk = {
-          color: toHex(ink),
-          opacity: +opacity.toFixed(2),
-        };
-        if (layer === "contours") {
-          // Lowland to peak: the hue turns, the colour thins and lightens, so the heights read as a gradient
-          result.ramp = Array.from({ length: ELEVATION_STEPS }, (_, i) => {
-            const t = i / (ELEVATION_STEPS - 1);
-            return toHex(
-              whole(
-                fromOklch([
-                  Math.min(LIGHTEST, l + t * 0.12),
-                  c * (1 - 0.5 * t),
-                  h + deg(ELEVATION_SWEEP * t),
-                ]),
-              ),
-            );
-          });
-        }
-        if (layer.startsWith("traffic")) {
-          // One colour per road it can be on, each the complement of that road's own (streets, main roads, motorways)
-          result.ramp = roadHues.map((rh) =>
-            toHex(whole(fromOklch([l, c, rh + Math.PI + turn]))),
-          );
-        }
-        return result;
-      }
-      l += 0.02;
+    for (let l = from[0]; ; l += 0.02) {
+      const drawn = attempt(layer, l, c, h, 1);
+      if (drawn.ok || l >= LIGHTEST) return finish(layer, drawn);
     }
   };
 
@@ -580,41 +646,48 @@ function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
   const shown = (ink: MapInk) => mix(sky, hex(ink.color), ink.opacity);
   const gapFrom = (ink: MapInk, others: readonly MapLayer[]) =>
     Math.min(...others.map((o) => oklabDistance(shown(ink), shown(inks[o]))));
-  const ROADS: readonly MapLayer[] = ["streets", "main-roads", "motorways"];
 
   /**
-   * Keeps a group of layers (water, buildings) clear of the ones it lies among: if the colour it came
-   * out in is closer than MAP_SEPARATION (less if the viewer asked for a fainter map) to any of theirs, it is looked for again among variants of
-   * itself, the nearest to the intended colour first (the same hue a little darker or more vivid, then
-   * a turn of the hue, then both), and the first that clears the gap is taken. If none does, the one
-   * that comes nearest to it is.
+   * Keeps a group of layers (the water, the buildings, a way of getting about) clear of the ones already
+   * placed: if the colour it came out in is closer than MAP_SEPARATION (less if the viewer asked for a
+   * fainter map) to any of theirs, it is looked for again among variants of itself, the nearest to the
+   * intended colour first (the same hue a little darker or lighter, more opaque, then a turn of the
+   * hue, then both), and the first that clears the gap is taken. If none does, the one that comes
+   * nearest to it is.
    */
   const keepApart = (
     group: readonly MapLayer[],
     among: readonly MapLayer[],
   ) => {
     const wanted = MAP_SEPARATION * Math.min(1, k);
-    /** The group's layers drawn from one base; its gap is its worst layer's */
+    /** The group's layers drawn from one base, or null if one does not stand out from the sky as it must; its gap is its worst layer's */
     const draw = (from: LCH, firmer: number) => {
-      const drawn = Object.fromEntries(
-        group.map((layer) => [layer, settle(layer, from, firmer)]),
-      ) as Record<string, MapInk>;
+      const drawn: Record<string, MapInk> = {};
+      for (const layer of group) {
+        const one = attempt(layer, from[0], from[1], from[2], firmer);
+        if (!one.ok) return null;
+        drawn[layer] = finish(layer, one);
+      }
       return {
         drawn,
         gap: Math.min(...group.map((layer) => gapFrom(drawn[layer], among))),
       };
     };
     const [l0, c0, h0] = colors[group[0]];
-    let best = { ...draw(colors[group[0]], 1), from: colors[group[0]] };
+    // The colour it came out in, as it stands
+    let best = {
+      drawn: Object.fromEntries(
+        group.map((layer) => [layer, inks[layer]]),
+      ) as Record<string, MapInk>,
+      gap: Math.min(...group.map((layer) => gapFrom(inks[layer], among))),
+    };
     if (best.gap >= wanted) return;
-    // What separates a layer from its neighbours, nearest to its own colour first: lighter or darker,
-    // more opaque, a turn of the hue
     const variants: { from: LCH; firmer: number; cost: number }[] = [];
     for (const turnBy of [0, 90, -90, 180]) {
-      for (const dl of [0, -0.12, -0.24, -0.34]) {
+      for (const dl of [0, -0.12, -0.24, -0.34, 0.06]) {
         for (const firmer of [1, 1.8]) {
           const l = l0 + dl;
-          if (l < 0.3) continue;
+          if (l < 0.3 || l > LIGHTEST) continue;
           variants.push({
             from: [l, c0 * 1.6, h0 + deg(turnBy)],
             firmer,
@@ -625,33 +698,46 @@ function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
       }
     }
     variants.sort((a, b) => a.cost - b.cost);
+    // At most this many that stand out from the sky are looked at: a group that cannot be kept apart takes
+    // the best of them, so the colours of a busy map are worked out in a few milliseconds, not in a search
+    // of everything
+    let tries = 0;
     for (const { from, firmer } of variants) {
       const tried = draw(from, firmer);
-      if (tried.gap > best.gap) best = { ...tried, from };
-      if (tried.gap >= wanted) break;
+      if (!tried) continue;
+      if (tried.gap > best.gap) best = tried;
+      if (tried.gap >= wanted || ++tries >= MAX_TRIES) break;
     }
     Object.assign(inks, best.drawn);
   };
-  // The roads carry the drawing and the viewer's hue, so they stay as they are; the water gives way
-  // to them, and the buildings to both.
-  keepApart(["water", "waterway"], ROADS);
-  keepApart(["buildings", "buildings-3d"], [...ROADS, "water"]);
+
+  // The roads carry the drawing and the viewer's hue, so they stay as they are. Each group after them, in
+  // order of weight, gives way to everything placed before it, and only the layers on show count: there is
+  // no use keeping apart what the viewer cannot see.
+  const placed = ROADS.filter((layer) => active.has(layer));
+  for (const group of GROUPS) {
+    if (!group.some((layer) => active.has(layer))) continue;
+    keepApart(group, placed);
+    placed.push(...group);
+  }
   return inks;
 }
 
 /**
  * The map's lines over a sky (a palette's `sky2`) as the viewer tuned them
- * (see MapControls): their hue, how vivid, how strong against the sky.
+ * (see MapControls): their hue, how vivid, how strong against the sky. The layers in
+ * `active` (the city's own unless said otherwise) are kept apart from one another in colour.
  */
 export function mapInksFor(
   sky: string,
   tune: MapTune,
+  active: ReadonlySet<MapLayer> = CITY_LAYERS,
 ): Record<MapLayer, MapInk> {
-  // Worked out once per sky and tuning: scrubbing the timeline asks again and again for the same few
-  const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}`;
+  // Worked out once per sky, tuning and choice of layers: scrubbing the timeline asks again and again for the same few
+  const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}|${[...active].sort().join(",")}`;
   const known = inksMemo.get(key);
   if (known) return known;
-  const inks = mapInks(hex(sky), tune);
+  const inks = mapInks(hex(sky), tune, active);
   if (inksMemo.size >= INKS_MEMO)
     inksMemo.delete(inksMemo.keys().next().value as string);
   inksMemo.set(key, inks);

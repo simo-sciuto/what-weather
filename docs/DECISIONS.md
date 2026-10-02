@@ -68,3 +68,8 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - Cost and limit: not always the full gap. Measured over 4 states of sky and many tunings: at the page's own contrast the worst case reaches about 0.72 of the wanted distance (median 0.84), at strong contrast all of it, at a faint one (30) 0.5 at worst. Before, the worst case was a distance of 0.012. The tests assert the minimums the search really gives (65% and 45%), not the target.
 - Status: Accepted.
 
+### ADR-011 update (2026-10-02): the whole map, and only what is on show
+- The search now covers every group of layers, placed in order of weight after the roads (which never move): water, buildings (outline and 3D), trains, metro, trams, buses' stops, meadows; each gives way to everything placed before it. Only the layers on show are placed (`mapInksFor(sky, tune, active)`); the page's own drawing (the city layers) is what `skyPalette().map` holds, so the palette of every moment stays cheap.
+- At most 14 variants that stand out from the sky are tried per group (a variant that does not is dropped without lightening it). Measured: median 4 to 8 ms with the trains, metro, trams and buses on; the distance wanted (0.1 OKLab) is reached in about half to all of the cases with every layer on, always for the water against the roads.
+- Mapbox Streets' tiles have buildings from zoom 13, the metro's lines from 11, its stations from 13, the trams and the bus stops from 14. A map that starts closer when such a choice is on was built and removed on the user's decision: they show only as the page comes down.
+

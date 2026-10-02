@@ -18,6 +18,9 @@ Items marked (audit) were noticed while reading the code on 2026-10-01, not requ
 - [ ] WTH-010 Rework the UI of the modal that opens from "La mappa".
 - [ ] WTH-013 Poster on a phone: the actions are now docked to the foot of the screen (`HeroActionsDock`, always visible while scrolling). Still to decide and check on a real phone: the poster dialog on a small screen, how the file is delivered (share sheet or download, see `share()` in `PosterButton.tsx`), formats, canvas size limits and memory.
 - [ ] WTH-008 Give character to the "Crea poster" and "La mappa" buttons: they should stand out and feel part of the poster identity.
+- [ ] WTH-015 Show the buildings from above too, the 3D ones included. Not solved: Mapbox Streets' tiles have buildings only from zoom 13 (and the trams and bus stops from 14), and the page's top is zoom 11. Starting the map closer when such a choice is on was tried and removed on the user's decision (2026-10-02); what is left is to decide how to have them from the top, if at all (a closer start for everyone, or a different source).
+- [ ] WTH-017 Redefine the layout of the left column (the poster): head, name, temperature, low and high, glyph, outlook and the room left for the map, as one composition (continues WTH-012).
+- [ ] WTH-018 Make the right column (the weather information) more Swiss editorial: the same font as the left, a more elegant arrangement on the page (timeline, quick facts, air, activities, week, details).
 
 ## LATER
 
@@ -32,6 +35,8 @@ Rebuilt on 2026-10-02 from git history (13 commits, 2026-09-24 to 2026-10-01), g
 
 ### Recenti
 
+- [x] WTH-016 Colours of the map's layers kept apart as a whole: the layers on show are placed in order of weight (roads fixed, then water, buildings, trains, metro, trams, buses, meadows), each looked for among variants of its colour until it clears a distance in OKLab from everything placed before it; only the layers on show count (`mapInksFor(sky, tune, active)`, ADR-011 extended). Median 4 to 8 ms; the distance wanted is not always reached (about 0.5 to 1.0 of it with every layer on)
+- [x] WTH-019 "Ferrovie" replaced by trains, metro, tram and bus, each a choice with its own colour: plain lines, and stops as dots (stations of the trains and the metro, the trams' and the buses' stops). The buses have stops only, no routes: Mapbox Streets has none. Trams and bus stops are in the tiles only from zoom 14, so they show only when the page has come down. A stored "rail" choice becomes trains
 - [x] WTH-014 Buildings in 3D as an option of "La mappa" ("Edifici 3D": extruded volumes as tall as they are, from zoom 13, seen when the map tilts), and the colours of water, roads and buildings kept apart by measuring their distance in OKLab as they show over the sky and searching a variant (darker, more opaque, turned hue) when too close (`palette.ts`, `map-style.ts`; ADR-011)
 - [x] WTH-011 A bare address lands on a random city (a different one at each visit; a place in the URL wins; sample data keeps Milano), and a "Città casuale" button draws a populated place from the whole world through random GeoNames ids, hamlets included (`lib/weather/random-places.ts`, `random-city.ts`, `/api/random-place`; ADR-010)
 - [x] WTH-164 Interactive board in the browser (`npm run board`): columns, drag and drop, edits written to docs/BOARD.md (`scripts/board/`)

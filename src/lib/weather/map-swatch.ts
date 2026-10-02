@@ -29,8 +29,14 @@ export function optionColor(p: SkyPalette, option: MapOption): string {
     // The contours are a ramp of colours: the middle of it stands for them
     case "contours":
       return over(map.contours, map.contours.ramp?.[3]);
-    case "rail":
-      return over(map.rail);
+    case "train":
+      return over(map.train);
+    case "metro":
+      return over(map.metro);
+    case "tram":
+      return over(map.tram);
+    case "bus":
+      return over(map["bus-stops"]);
     case "buildings":
       return over(map.buildings);
     case "buildings-3d":
