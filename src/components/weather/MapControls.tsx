@@ -171,6 +171,8 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
     max: number;
     track: string;
     spoken: string;
+    /** What shows beside the name, short */
+    short: string;
   }[] = [
     {
       key: "hue",
@@ -183,6 +185,7 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
         tuning.hue === 0
           ? "Quella del cielo"
           : `Ruotata di ${tuning.hue} gradi`,
+      short: `${tuning.hue}°`,
     },
     {
       key: "vivid",
@@ -190,6 +193,7 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
       max: 100,
       track: gradient([0, 25, 50, 75, 100].map((v) => `${tone(v)} ${v}%`)),
       spoken: `${tuning.vivid} su 100`,
+      short: `${tuning.vivid}`,
     },
     {
       key: "contrast",
@@ -200,6 +204,7 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
         "rgb(255 255 255 / 0.95) 100%",
       ]),
       spoken: `${tuning.contrast} su 100`,
+      short: `${tuning.contrast}`,
     },
   ];
 
@@ -211,15 +216,15 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
 
   const group = (label: string, list: readonly MapOption[]) => (
     <div role="group" aria-label={label}>
-      <p className="mb-2 flex items-baseline justify-between text-caption text-ink-muted">
+      <p className="mb-2.5 flex items-baseline justify-between border-t border-white/16 pt-2 label">
         {label}
         <span className="tabular-nums">
           {list.filter((o) => options.includes(o)).length} di {list.length}
         </span>
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-x-5 gap-y-3">
         {list.map((option) => (
-          <Pill
+          <Word
             key={option}
             on={options.includes(option)}
             onChange={(on) => toggle(option, on)}
@@ -237,18 +242,13 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
       id={id}
       role="dialog"
       aria-label="La mappa"
-      className="fixed inset-x-3 bottom-3 z-50 max-h-[72dvh] overflow-y-auto rounded-2xl border border-white/15 bg-popover/90 p-4 text-left text-ink shadow-2xl backdrop-blur-2xl sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-[min(46rem,calc(100vw-3rem))] sm:-translate-x-1/2 sm:p-5"
+      className="fixed inset-x-3 bottom-3 z-50 max-h-[78dvh] overflow-y-auto border border-white/20 bg-popover/92 p-4 text-left text-ink shadow-2xl backdrop-blur-2xl sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-[min(40rem,calc(100vw-3rem))] sm:-translate-x-1/2 sm:p-6"
     >
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="font-display text-xl font-semibold leading-tight tracking-[-0.02em]">
-            La mappa
-          </h2>
-          <p className="text-caption text-ink-muted">
-            Cosa vedi dietro la pagina, e come è colorato.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="flex items-baseline justify-between gap-4 border-b border-white/30 pb-2.5">
+        <h2 className="font-display text-2xl font-extrabold leading-none tracking-[-0.04em]">
+          La mappa
+        </h2>
+        <div className="flex items-baseline gap-5 text-sm">
           {custom && (
             <button
               type="button"
@@ -256,7 +256,7 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
                 setMapTuning(MAP_TUNING);
                 setMapOptions(DEFAULT_MAP_OPTIONS);
               }}
-              className="h-9 rounded-full border border-white/25 px-4 text-sm text-ink-muted transition-colors hover:bg-white/10 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="text-ink-muted underline decoration-white/35 underline-offset-4 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
               Torna agli automatici
             </button>
@@ -264,69 +264,70 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Chiudi"
-            className="-mr-1 grid size-9 place-items-center rounded-full text-2xl leading-none text-ink-muted transition-colors hover:bg-white/10 hover:text-ink focus-visible:outline-2 focus-visible:outline-accent"
+            className="text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
-            ×
+            Chiudi
           </button>
         </div>
       </div>
 
-      <section aria-label="Cosa mostrare" className="mt-4 flex flex-col gap-4">
+      {/* The three colours first, on one row, so the map is seen changing as they move */}
+      <section
+        aria-label="Colori"
+        className="grid grid-cols-3 gap-x-4 pt-3 sm:gap-x-6"
+      >
+        {sliders.map((sl) => (
+          <div key={sl.key} className="min-w-0">
+            <label
+              htmlFor={`${sliderId}-${sl.key}`}
+              className="flex items-baseline justify-between gap-2"
+            >
+              <span className="text-[0.9375rem] font-medium">{sl.name}</span>
+              <span className="text-caption tabular-nums text-ink-muted">
+                {sl.short}
+              </span>
+            </label>
+            <input
+              id={`${sliderId}-${sl.key}`}
+              type="range"
+              min={0}
+              max={sl.max}
+              step={1}
+              value={tuning[sl.key]}
+              onChange={(e) =>
+                setMapTuning({ ...tuning, [sl.key]: Number(e.target.value) })
+              }
+              aria-valuetext={sl.spoken}
+              className="map-tune h-7 w-full cursor-pointer"
+              style={{ "--track": sl.track } as CSSProperties}
+            />
+          </div>
+        ))}
+      </section>
+
+      <section aria-label="Cosa mostrare" className="mt-3 flex flex-col gap-5">
         {group("La città", CITY_OPTIONS)}
         {group("Da aggiungere", EXTRA_OPTIONS)}
         {group("Mezzi pubblici", TRANSIT_OPTIONS)}
         {/* Keeps its height whether or not it has a line to say, so the panel doesn't jump as the pointer moves */}
         <p
           aria-live="polite"
-          className="min-h-[1.35em] text-caption text-ink-muted"
+          className="min-h-[2.7em] border-t border-white/16 pt-2.5 text-caption text-ink-muted"
         >
-          {hint || "Tocca uno strato per mostrarlo o toglierlo."}
+          {hint || "Tocca una parola per accenderla o spegnerla."}
         </p>
-      </section>
-
-      <section
-        aria-label="Colori"
-        className="mt-5 border-t border-white/15 pt-4"
-      >
-        <p className="mb-3 text-caption text-ink-muted">Colori</p>
-        <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
-          {sliders.map((sl) => (
-            <div key={sl.key}>
-              <label
-                htmlFor={`${sliderId}-${sl.key}`}
-                className="mb-1 flex items-baseline justify-between gap-2 text-sm"
-              >
-                {sl.name}
-                <span className="text-caption text-ink-muted">{sl.spoken}</span>
-              </label>
-              <input
-                id={`${sliderId}-${sl.key}`}
-                type="range"
-                min={0}
-                max={sl.max}
-                step={1}
-                value={tuning[sl.key]}
-                onChange={(e) =>
-                  setMapTuning({ ...tuning, [sl.key]: Number(e.target.value) })
-                }
-                aria-valuetext={sl.spoken}
-                className="map-tune h-7 w-full cursor-pointer"
-                style={{ "--track": sl.track } as CSSProperties}
-              />
-            </div>
-          ))}
-        </div>
       </section>
     </div>
   );
 }
 
 /**
- * One layer as a choice: a dot in the colour it has on the map, then its name;
- * filled when on, outlined when off. Pointing at it (or tabbing to it) says what it does.
+ * One layer as a word: light and faint when off, extra bold when on and in its colour on the map lightened
+ * enough to read on the panel (the water is nearly the sky's own), with a bar of the exact colour under it
+ * either way (full when on, faint when off). Pointing at it (or
+ * tabbing to it) says what it does.
  */
-function Pill({
+function Word({
   on,
   onChange,
   onPoint,
@@ -348,14 +349,16 @@ function Pill({
       onMouseLeave={() => onPoint(false)}
       onFocus={() => onPoint(true)}
       onBlur={() => onPoint(false)}
-      className="inline-flex h-10 items-center gap-2 rounded-full border border-white/25 pl-3 pr-4 text-sm transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-pressed:border-transparent aria-pressed:bg-accent aria-pressed:font-medium aria-pressed:text-[#0c0f25] aria-pressed:hover:bg-accent/85"
+      style={{ "--c": color } as CSSProperties}
+      className="group flex flex-col gap-1 text-left text-white/45 transition-colors hover:text-ink-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent aria-pressed:text-[color-mix(in_oklab,var(--c)_60%,white)]"
     >
+      <span className="font-display text-[1.5rem] font-light leading-[1.05] tracking-[-0.035em] group-aria-pressed:font-extrabold sm:text-[1.7rem]">
+        {label}
+      </span>
       <span
         aria-hidden="true"
-        className="size-3 shrink-0 rounded-full ring-1 ring-black/25"
-        style={{ backgroundColor: color }}
+        className="h-[3px] w-full bg-(--c) opacity-30 transition-opacity group-hover:opacity-60 group-aria-pressed:opacity-100"
       />
-      {label}
     </button>
   );
 }
