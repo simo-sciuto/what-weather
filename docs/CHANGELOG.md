@@ -3,6 +3,7 @@
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
 ## 2026-10-02
+- The weather data as tiles (Weather app style) on phone and computer; Territorio with the country and the capitals as links with their weather; "Ricentra" no longer over the search button (WTH-025, WTH-026).
 - Phone: the bar stays in view with a sheet open and marks the page on show; the sheets stop above it (WTH-022).
 - Territorio moves right after the timeline and gains the capitals and the nearest towns (WTH-026); the poster's name and country take the temperature's colour, its coordinates and colour bar are set on a grid (WTH-027).
 - Phone poster laid out as the user chose (temperature on top, the map between, the hour, the name and the outlook at the foot); the search as a round glass button, only "Città casuale" left outside; the poster maker a centred modal; "Condividi" sends the poster with the link and a message. Towns around keep their region and country (looked up by name when a link carries only it).

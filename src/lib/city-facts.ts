@@ -16,6 +16,13 @@ import { cacheLife } from "next/cache";
  *
  * Every fact is optional: whatever can't be had is simply left out.
  */
+/** A place known by its name and point */
+export interface Town {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
 export interface CityFacts {
   /** "Capoluogo di provincia", "Capitale", "Città", "Paese"… */
   rank?: string;
@@ -29,8 +36,8 @@ export interface CityFacts {
   peaks?: { name: string; elevation?: number }[];
   /** The towns around, far enough to have a weather of their own: the two best known, then the nearest */
   nearby?: { name: string; lat: number; lon: number }[];
-  /** The capital of the place's country, and of its region (its first-level division) where it has one */
-  capitals?: { country?: string; region?: string; regionName?: string };
+  /** The capital of the place's country, and of its region (its first-level division) where it has one, each with its point */
+  capitals?: { country?: Town; region?: Town; regionName?: string };
 }
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -455,29 +462,36 @@ async function townsNear(
   return towns;
 }
 
-/** The capital of the place's country, and of its first-level division (region, state) where that has one */
+/** The capital of the place's country, and of its first-level division (region, state) where that has one, each with its point */
 async function capitalsOf(id: string): Promise<CityFacts["capitals"]> {
+  type Value = { value: string };
   type Row = {
-    capitalLabel?: { value: string };
-    regionLabel?: { value: string };
-    regionCapitalLabel?: { value: string };
+    capitalLabel?: Value;
+    capitalAt?: Value;
+    regionLabel?: Value;
+    regionCapitalLabel?: Value;
+    regionCapitalAt?: Value;
   };
   const [row] = await sparql<Row>(`
-    SELECT ?capitalLabel ?regionLabel ?regionCapitalLabel WHERE {
-      OPTIONAL { wd:${id} wdt:P17 ?country . ?country wdt:P36 ?capital . }
+    SELECT ?capitalLabel ?capitalAt ?regionLabel ?regionCapitalLabel ?regionCapitalAt WHERE {
+      OPTIONAL { wd:${id} wdt:P17 ?country . ?country wdt:P36 ?capital . ?capital wdt:P625 ?capitalAt . }
       OPTIONAL {
         wd:${id} wdt:P131+ ?region .
         ?region wdt:P31/wdt:P279* wd:${FIRST_LEVEL} ; wdt:P36 ?regionCapital .
+        ?regionCapital wdt:P625 ?regionCapitalAt .
       }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en" . }
     } LIMIT 1`);
   if (!row) return undefined;
-  const label = (v?: { value: string }) =>
-    v?.value && !isEntityId(v.value) ? v.value : undefined;
+  const town = (name?: Value, at?: Value) =>
+    townOf({ itemLabel: name, at }) ?? undefined;
   const capitals = {
-    country: label(row.capitalLabel),
-    region: label(row.regionCapitalLabel),
-    regionName: label(row.regionLabel),
+    country: town(row.capitalLabel, row.capitalAt),
+    region: town(row.regionCapitalLabel, row.regionCapitalAt),
+    regionName:
+      row.regionLabel?.value && !isEntityId(row.regionLabel.value)
+        ? row.regionLabel.value
+        : undefined,
   };
   return capitals.country || capitals.region ? capitals : undefined;
 }

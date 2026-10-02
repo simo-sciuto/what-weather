@@ -121,7 +121,7 @@ export function MapGestures() {
         <button
           type="button"
           onClick={recentre}
-          className="fixed right-5 top-[max(1rem,env(safe-area-inset-top))] z-40 flex h-8 items-center gap-1.5 rounded-full bg-[color-mix(in_oklab,var(--sky-1)_28%,transparent)] px-3 text-[0.8125rem] font-medium text-ink shadow-[0_10px_28px_rgb(0_0_0/0.4),inset_0_1px_0_rgb(255_255_255/0.2)] backdrop-blur-2xl backdrop-saturate-[1.8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:hidden"
+          className="fixed right-[4.25rem] top-[max(1.25rem,calc(env(safe-area-inset-top)+0.375rem))] z-40 sm:right-[5.25rem] flex h-8 items-center gap-1.5 rounded-full bg-[color-mix(in_oklab,var(--sky-1)_28%,transparent)] px-3 text-[0.8125rem] font-medium text-ink shadow-[0_10px_28px_rgb(0_0_0/0.4),inset_0_1px_0_rgb(255_255_255/0.2)] backdrop-blur-2xl backdrop-saturate-[1.8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:hidden"
         >
           <svg
             viewBox="0 0 24 24"
