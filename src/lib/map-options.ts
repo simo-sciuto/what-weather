@@ -7,11 +7,11 @@
  * access is guarded.
  */
 
-export const MAP_OPTIONS = ["water", "water-names", "streets", "main-roads", "motorways", "green", "relief", "contours", "train", "metro", "tram", "bus", "buildings", "buildings-3d", "shadows", "traffic", "lights"] as const;
+export const MAP_OPTIONS = ["water", "streets", "main-roads", "motorways", "green", "relief", "contours", "train", "metro", "tram", "bus", "buildings", "buildings-3d", "shadows", "traffic", "lights"] as const;
 export type MapOption = (typeof MAP_OPTIONS)[number];
 
 /** What the map shows until the viewer chooses otherwise: the city as it always was */
-export const DEFAULT_MAP_OPTIONS: readonly MapOption[] = ["water", "water-names", "streets", "main-roads", "motorways"];
+export const DEFAULT_MAP_OPTIONS: readonly MapOption[] = ["water", "streets", "main-roads", "motorways"];
 
 /** The ways of getting about the city, shown together in the controls */
 export const TRANSIT_OPTIONS: readonly MapOption[] = ["train", "metro", "tram", "bus"];
@@ -19,7 +19,6 @@ export const TRANSIT_OPTIONS: readonly MapOption[] = ["train", "metro", "tram", 
 /** What each is called and says, for the controls */
 export const MAP_OPTION_INFO: Record<MapOption, { label: string; hint: string }> = {
   water: { label: "Acqua", hint: "Fiumi, laghi e mare" },
-  "water-names": { label: "Nomi delle acque", hint: "I nomi di fiumi, laghi e mari, e solo quelli" },
   streets: { label: "Strade", hint: "Le vie del quartiere" },
   "main-roads": { label: "Strade principali", hint: "I grandi assi" },
   motorways: { label: "Autostrade", hint: "Autostrade e tangenziali" },

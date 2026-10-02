@@ -6,17 +6,18 @@ import { WeatherIcon } from "../weather/WeatherIcon";
 import { useMoment, useView } from "./TimeContext";
 
 /**
- * The temperature of the moment on show, set as part of the title: the same
- * size as the place's name (a little larger, 1.15em) and on its last baseline,
- * right against it, bold but not as heavy as the name's black, and in the
- * temperature's own colour (the scale the week's bars use).
+ * The temperature of the moment on show, at the right edge of the title: 1.9 times the name's size, light,
+ * and in the temperature's own colour (the scale the week's bars use). Its figures (0.727 of their size,
+ * in a box that tall and no taller) end on the baseline of the name's first line, which is 1.694em from
+ * the top of the block over the name (the block 0.9em, then 0.79em into the name's line), so it starts
+ * 1.694 - 0.727 x 1.9 = 0.313em down, 0.165 of its own size.
  */
 export function HeroTemp() {
   const { frame } = useMoment();
   return (
     <p
       aria-hidden="true"
-      className="font-poster text-[1.15em] font-semibold leading-[0.75] tracking-[-0.05em] whitespace-nowrap tabular-nums transition-colors duration-700"
+      className="mt-[0.165em] font-poster text-[1.9em] font-light leading-[0.727] tracking-[-0.05em] whitespace-nowrap tabular-nums transition-colors duration-700"
       style={{ color: tempColor(frame.temp) }}
     >
       {formatTemp(frame.temp)}
@@ -39,10 +40,10 @@ function useRange(high: number, low: number, note?: string) {
 }
 
 /**
- * Over the place's name, in one tight row: the day's low and high (the low, a
- * rule of the colours between them as in the week with a mark where the moment
- * on show sits, and the high, each numeral in its own colour) and then the sky as
- * a glyph in the temperature's own colour with a soft shadow under it.
+ * Over the place's name, in one tight row: the sky as a glyph in the
+ * temperature's own colour with a soft shadow under it, and then the day's low and
+ * high (the low, a rule of the colours between them as in the week with a mark
+ * where the moment on show sits, and the high, each numeral in its own colour).
  * The range is the day's in day view and today's while live; a scrubbed hour
  * has none, and then the glyph is alone. A note on the range (a partial day) is
  * set small under the row. Sized from the title's size (it sets the font size
@@ -70,6 +71,16 @@ export function HeroGlyph({
   return (
     <div aria-hidden="true" className={`font-poster tabular-nums ${className}`}>
       <div className="flex flex-wrap items-center gap-x-[0.04em] gap-y-[0.05em]">
+        <WeatherIcon
+          condition={frame.condition}
+          night={frame.phase === "night"}
+          className="size-[0.9em] shrink-0 transition-colors duration-700"
+          strokeWidth={1.4}
+          style={{
+            color: tempColor(frame.temp),
+            filter: "drop-shadow(0 0.06em 0.14em rgb(0 0 0 / 0.55))",
+          }}
+        />
         {range && (
           <div className="flex items-center gap-[0.4rem] text-[max(0.8125rem,0.12em)] font-medium leading-none tracking-[-0.02em]">
             <span style={{ color: tempColor(range.low) }}>
@@ -89,16 +100,6 @@ export function HeroGlyph({
             </span>
           </div>
         )}
-        <WeatherIcon
-          condition={frame.condition}
-          night={frame.phase === "night"}
-          className="size-[0.9em] shrink-0 transition-colors duration-700"
-          strokeWidth={1.4}
-          style={{
-            color: tempColor(frame.temp),
-            filter: "drop-shadow(0 0.06em 0.14em rgb(0 0 0 / 0.55))",
-          }}
-        />
       </div>
       {range?.note && (
         <p className="mt-1 text-caption font-normal leading-tight text-ink-muted">

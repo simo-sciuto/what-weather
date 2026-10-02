@@ -51,19 +51,17 @@ export function WeatherHero({
   const longest = Math.max(
     ...place.name.split(/\s+/).map((word) => word.length),
   );
-  // The temperature shares the size on two columns (about 30 of the 100 units): its longest
-  // reading of the day, sign and degree included, at about 0.75em a figure (it is set at 1.15em,
-  // semibold), must fit there too.
+  // The temperature sits right of the name, 1.9 times its size, a semibold figure at about 0.58em: its
+  // longest reading of the day, sign and degree included, must fit beside the name's longest word.
   const widestTemp = Math.max(
     ...[current.temp, range.min, range.max].map((t) => formatTemp(t).length),
   );
-  // The name's four columns are some 60 of the reading's 100 units; 56 of them at 0.58em a letter
-  // leave room for a word of wide letters ("Amsterdam"), so none ever breaks onto a second line.
+  // The whole width is 100 units, 96 of them kept for the line, so no word ever breaks onto a second
+  // line (a heavy grotesk runs about 0.58em a letter).
   const titleSize = Math.min(
     15,
-    56 / (0.58 * longest),
+    96 / (0.58 * longest + 0.58 * 1.9 * widestTemp + 0.1),
     place.name.length > 20 ? 8 : 15,
-    30 / (0.75 * widestTemp),
   );
 
   return (
@@ -102,30 +100,29 @@ export function WeatherHero({
       />
 
       {/*
-        The composition, on the six-column grid: the name on four columns and the temperature on
-        the last two, against each other on one baseline, and under the temperature the day's low
-        and high with the sky's glyph. The name and the temperature are one size, set here once,
-        as large as the name's longest word and the temperature's widest reading allow on their
-        columns, and stepping down for a long name.
+        The composition: over the name, close to it, the day's low and high with the sky's glyph; the
+        temperature at the right edge, 1.9 times its size and ending on the baseline of the name's first line (see
+        HeroTemp), so it is the largest thing on the poster. The name sets the size, the temperature
+        follows it, and both step down together for a long name.
       */}
       <div
-        className="mt-3 grid grid-cols-6 gap-x-4 lg:mt-5"
+        className="mt-3 flex items-start justify-between gap-x-[0.08em] lg:mt-5"
         style={{
           fontSize: `max(2rem, min(${titleSize}cqw, ${titleSize * 0.85}cqh))`,
         }}
       >
-        <div className="col-span-4 min-w-0 self-baseline-last">
+        <div className="min-w-0">
+          <HeroGlyph
+            high={range.max}
+            low={range.min}
+            note={range.note}
+            className="rise-in"
+          />
           <LocationControl />
         </div>
-        <div className="rise-in col-span-2 self-baseline-last">
+        <div className="rise-in shrink-0">
           <HeroTemp />
         </div>
-        <HeroGlyph
-          high={range.max}
-          low={range.min}
-          note={range.note}
-          className="rise-in col-span-2 col-start-5 row-start-2"
-        />
       </div>
 
       <HeroMetaPhone

@@ -44,18 +44,6 @@ const STREET_CLASSES = [
   "tertiary_link",
   "secondary_link",
 ];
-/** The kinds of water that have a name on the map */
-const WATER_CLASSES = [
-  "water",
-  "sea",
-  "ocean",
-  "bay",
-  "reservoir",
-  "river",
-  "stream",
-  "canal",
-];
-
 /** A colour or a width that depends on the rank of the road it is on (a feature's `class`): streets, main roads, motorways */
 const byRank = <T extends string | number>(
   streets: T,
@@ -72,11 +60,24 @@ const byRank = <T extends string | number>(
 ];
 
 /** The lines of one kind of rail: by their `type` (rail, subway, tram...), and, if given, only of these classes */
-const transitLines = (types: string[], classes?: string[]): FilterSpecification => [
+const transitLines = (
+  types: string[],
+  classes?: string[],
+): FilterSpecification => [
   "all",
   ["==", ["geometry-type"], "LineString"],
   ["match", ["get", "type"], types, true, false],
-  ...(classes ? [["match", ["get", "class"], classes, true, false] as ExpressionSpecification] : []),
+  ...(classes
+    ? [
+        [
+          "match",
+          ["get", "class"],
+          classes,
+          true,
+          false,
+        ] as ExpressionSpecification,
+      ]
+    : []),
 ];
 
 const roads = (classes: string[]): FilterSpecification => [
@@ -132,14 +133,75 @@ const trafficBlur = (
   ];
 };
 
+/** The shadow under each rank of road: its layer, the road classes it follows, its width at zooms 10 and 15, and the choice it goes with */
+const ROAD_SHADOWS: {
+  id: string;
+  option: "streets" | "main-roads" | "motorways";
+  classes: string[];
+  at10: number;
+  at15: number;
+}[] = [
+  {
+    id: "streets-shadow",
+    option: "streets",
+    classes: STREET_CLASSES,
+    at10: 1,
+    at15: 3.6,
+  },
+  {
+    id: "main-roads-shadow",
+    option: "main-roads",
+    classes: MAIN_CLASSES,
+    at10: 1.8,
+    at15: 6,
+  },
+  {
+    id: "motorways-shadow",
+    option: "motorways",
+    classes: MOTORWAY_CLASSES,
+    at10: 2.6,
+    at15: 8,
+  },
+];
+
 /** The stops of each way of getting about: what the data calls it, whether only its stations count, from which zoom, how large a dot */
-const STOPS: { id: string; mode: string; stationsOnly: boolean; minzoom: number; radius: [number, number] }[] = [
-  { id: "train-stops", mode: "rail", stationsOnly: true, minzoom: 11, radius: [2, 5] },
+const STOPS: {
+  id: string;
+  mode: string;
+  stationsOnly: boolean;
+  minzoom: number;
+  radius: [number, number];
+}[] = [
+  {
+    id: "train-stops",
+    mode: "rail",
+    stationsOnly: true,
+    minzoom: 11,
+    radius: [2, 5],
+  },
   // The metro's entrances are left out: a station has many
-  { id: "metro-stops", mode: "metro_rail", stationsOnly: true, minzoom: 11, radius: [2, 5] },
-  { id: "tram-stops", mode: "tram", stationsOnly: false, minzoom: 14, radius: [1.2, 3] },
+  {
+    id: "metro-stops",
+    mode: "metro_rail",
+    stationsOnly: true,
+    minzoom: 11,
+    radius: [2, 5],
+  },
+  {
+    id: "tram-stops",
+    mode: "tram",
+    stationsOnly: false,
+    minzoom: 14,
+    radius: [1.2, 3],
+  },
   // The data has the trams' and the buses' stops from zoom 14, and no more than that
-  { id: "bus-stops", mode: "bus", stationsOnly: false, minzoom: 14, radius: [1, 2.6] },
+  {
+    id: "bus-stops",
+    mode: "bus",
+    stationsOnly: false,
+    minzoom: 14,
+    radius: [1, 2.6],
+  },
 ];
 
 /**
@@ -151,8 +213,6 @@ const STOPS: { id: string; mode: string; stationsOnly: boolean; minzoom: number;
  */
 export const STYLE: StyleSpecification = {
   version: 8,
-  // The letters of the waters' names
-  glyphs: "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
   sources: {
     streets: { type: "vector", url: "mapbox://mapbox.mapbox-streets-v8" },
     terrain: { type: "vector", url: "mapbox://mapbox.mapbox-terrain-v2" },
@@ -259,8 +319,15 @@ export const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "road",
       layout: hidden(),
-      filter: transitLines(["rail", "narrow_gauge"], ["major_rail", "minor_rail"]),
-      paint: { "line-color": "#eeeeee", "line-width": width(0.7, 2), "line-opacity": 0.8 },
+      filter: transitLines(
+        ["rail", "narrow_gauge"],
+        ["major_rail", "minor_rail"],
+      ),
+      paint: {
+        "line-color": "#eeeeee",
+        "line-width": width(0.7, 2),
+        "line-opacity": 0.8,
+      },
     },
     {
       id: "metro",
@@ -269,7 +336,11 @@ export const STYLE: StyleSpecification = {
       "source-layer": "road",
       layout: hidden(),
       filter: transitLines(["subway", "light_rail", "monorail"]),
-      paint: { "line-color": "#eeeeee", "line-width": width(0.7, 2), "line-opacity": 0.8 },
+      paint: {
+        "line-color": "#eeeeee",
+        "line-width": width(0.7, 2),
+        "line-opacity": 0.8,
+      },
     },
     {
       id: "tram",
@@ -278,8 +349,31 @@ export const STYLE: StyleSpecification = {
       "source-layer": "road",
       layout: hidden(),
       filter: transitLines(["tram", "funicular"]),
-      paint: { "line-color": "#eeeeee", "line-width": width(0.6, 1.6), "line-opacity": 0.8 },
+      paint: {
+        "line-color": "#eeeeee",
+        "line-width": width(0.6, 1.6),
+        "line-opacity": 0.8,
+      },
     },
+    // A light shadow under each rank of road, so they lift off the sky a little: the road's own lines drawn
+    // a touch broader, a deep dark, blurred and moved down, under them (a line has no shadow of its own in
+    // Mapbox). A fixed colour: the sky's own shadow is nearly the sky itself at night, and would not show.
+    // Each is shown with its rank of road and goes when that road does (see ROAD_SHADOWS).
+    ...ROAD_SHADOWS.map(({ id, classes, at10, at15 }): LayerSpecification => ({
+      id,
+      type: "line",
+      source: "streets",
+      "source-layer": "road",
+      layout: hidden(),
+      filter: roads(classes),
+      paint: {
+        "line-color": "#04050f",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 10, at10, 15, at15],
+        "line-blur": 1.6,
+        "line-translate": [0, 1],
+        "line-opacity": 0.58,
+      },
+    })),
     {
       id: "streets",
       type: "line",
@@ -359,32 +453,6 @@ export const STYLE: StyleSpecification = {
         "line-opacity": 0.9,
       },
     })),
-    // The names of the waters, and only the waters' (the page's own words stay on the page)
-    ...(
-      [
-        ["water-names", "Point", "point"],
-        ["waterway-names", "LineString", "line"],
-      ] as const
-    ).map(([id, geometry, placement]): LayerSpecification => ({
-      id,
-      type: "symbol",
-      source: "streets",
-      "source-layer": "natural_label",
-      filter: [
-        "all",
-        ["==", ["geometry-type"], geometry],
-        ["match", ["get", "class"], WATER_CLASSES, true, false],
-      ],
-      layout: {
-        "symbol-placement": placement,
-        "text-field": ["coalesce", ["get", "name_it"], ["get", "name"]],
-        "text-font": ["DIN Pro Italic", "Arial Unicode MS Regular"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 15, 14],
-        "text-letter-spacing": 0.12,
-        "text-max-width": 8,
-      },
-      paint: { "text-color": "#eeeeee", "text-opacity": 0.8 },
-    })),
     // The stops and stations of the ways of getting about, a dot each in the colour of its line (the metro's
     // entrances are left out); the buses' are many, so they come only when the map is close
     ...STOPS.map(
@@ -396,12 +464,24 @@ export const STYLE: StyleSpecification = {
         minzoom,
         layout: hidden(),
         filter: stationsOnly
-          ? ["all", ["==", ["get", "mode"], mode], ["==", ["get", "stop_type"], "station"]]
+          ? [
+              "all",
+              ["==", ["get", "mode"], mode],
+              ["==", ["get", "stop_type"], "station"],
+            ]
           : ["==", ["get", "mode"], mode],
         paint: {
           "circle-color": "#eeeeee",
           "circle-opacity": 0.8,
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, radius[0], 17, radius[1]],
+          "circle-radius": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            11,
+            radius[0],
+            17,
+            radius[1],
+          ],
           "circle-stroke-width": 0.6,
           "circle-stroke-color": "#000000",
           "circle-stroke-opacity": 0.25,
@@ -429,14 +509,7 @@ export const STYLE: StyleSpecification = {
 /** What each layer is drawn as: its colour and opacity follow the sky (see mapInks in palette.ts) */
 const KIND: Record<
   MapLayer,
-  | "fill"
-  | "line"
-  | "circle"
-  | "hillshade"
-  | "heights"
-  | "ranked"
-  | "text"
-  | "extrusion"
+  "fill" | "line" | "circle" | "hillshade" | "heights" | "ranked" | "extrusion"
 > = {
   water: "fill",
   waterway: "line",
@@ -460,14 +533,11 @@ const KIND: Record<
   "traffic-heavy": "ranked",
   "traffic-jam": "ranked",
   lights: "circle",
-  "water-names": "text",
-  "waterway-names": "text",
 };
 
 /** The layers each option the viewer may choose turns on */
 export const OPTION_LAYERS: Record<MapOption, MapLayer[]> = {
   water: ["water", "waterway"],
-  "water-names": ["water-names", "waterway-names"],
   streets: ["streets"],
   "main-roads": ["main-roads"],
   motorways: ["motorways"],
@@ -486,7 +556,8 @@ export const OPTION_LAYERS: Record<MapOption, MapLayer[]> = {
 };
 
 /** The layers the chosen options turn on */
-export const activeLayers = (options: readonly MapOption[]): Set<MapLayer> => new Set(options.flatMap((o) => OPTION_LAYERS[o]));
+export const activeLayers = (options: readonly MapOption[]): Set<MapLayer> =>
+  new Set(options.flatMap((o) => OPTION_LAYERS[o]));
 
 const rad = (d: number) => (d * Math.PI) / 180;
 const rgba = (hex: string, alpha: number) => {
@@ -550,6 +621,8 @@ export interface MapScene {
   sun: SunPosition;
   /** The place's latitude, for the scale of the shadows */
   lat: number;
+  /** How much larger than on the page the roads' shadows are drawn (the poster is a large picture: 1 on the page) */
+  roadShadowScale?: number;
 }
 
 /**
@@ -559,7 +632,10 @@ export interface MapScene {
  * that make no sense at this hour stay hidden although chosen: no shadows
  * once the sun has set, no lights while it is up.
  */
-export function syncMap(map: Map, { inks, options, sun, lat }: MapScene) {
+export function syncMap(
+  map: Map,
+  { inks, options, sun, lat, roadShadowScale = 1 }: MapScene,
+) {
   for (const layer of Object.keys(KIND) as MapLayer[]) {
     const { color, opacity } = inks[layer];
     switch (KIND[layer]) {
@@ -594,10 +670,6 @@ export function syncMap(map: Map, { inks, options, sun, lat }: MapScene) {
         map.setPaintProperty(layer, "line-opacity", opacity);
         break;
       }
-      case "text":
-        map.setPaintProperty(layer, "text-color", color);
-        map.setPaintProperty(layer, "text-opacity", opacity);
-        break;
       case "heights":
         // Each contour in the colour of its height: the ramp's stops laid along the metres they stand for
         map.setPaintProperty(layer, "line-color", [
@@ -647,6 +719,19 @@ export function syncMap(map: Map, { inks, options, sun, lat }: MapScene) {
   const visible = new Set<MapLayer>(options.flatMap((o) => OPTION_LAYERS[o]));
   if (sun.altitude <= 0) visible.delete("shadows");
   if (sun.altitude > 0 || !chosen.has("lights")) visible.delete("lights");
+  // The shadow under each rank of road is there while that road is, and goes with it
+  for (const { id, option } of ROAD_SHADOWS) {
+    map.setPaintProperty(id, "line-translate", [
+      0,
+      +(1.2 * roadShadowScale).toFixed(2),
+    ]);
+    map.setPaintProperty(id, "line-blur", +(1.6 * roadShadowScale).toFixed(2));
+    map.setLayoutProperty(
+      id,
+      "visibility",
+      chosen.has(option) ? "visible" : "none",
+    );
+  }
   for (const layers of Object.values(OPTION_LAYERS)) {
     for (const layer of layers)
       map.setLayoutProperty(

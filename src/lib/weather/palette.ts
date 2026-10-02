@@ -58,9 +58,7 @@ export type MapLayer =
   | "traffic-slow"
   | "traffic-heavy"
   | "traffic-jam"
-  | "lights"
-  | "water-names"
-  | "waterway-names";
+  | "lights";
 export interface MapInk {
   color: string;
   opacity: number;
@@ -377,9 +375,6 @@ const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
   "traffic-heavy": { contrast: 2.1, minOpacity: 0.95 },
   "traffic-jam": { contrast: 2.2, minOpacity: 1 },
   lights: { contrast: 2, minOpacity: 0.7 },
-  // The names of the waters: pale and quiet, written in the water's own hue
-  "water-names": { contrast: 1.8, minOpacity: 0.7 },
-  "waterway-names": { contrast: 1.8, minOpacity: 0.7 },
 };
 /**
  * The share of each line that shows through the backdrop's fade (65% away from the city, see
@@ -555,8 +550,6 @@ function mapInks(
       opposite + towardButter * deg(35) + Math.PI,
     ),
     lights: road(0.95, 0.09, BUTTER_HUE),
-    "water-names": road(0.94, 0.05, hue),
-    "waterway-names": road(0.94, 0.05, hue),
   };
   /**
    * A layer drawn in one colour (`l`, `c`, `h`): as opaque as it takes to stand out from the sky as it must,
