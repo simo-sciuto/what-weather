@@ -65,11 +65,14 @@ export function useSheet(name: Exclude<PhonePage, "poster">) {
 export const GLASS =
   "bg-[color-mix(in_oklab,var(--sky-1)_44%,transparent)] shadow-[0_-18px_48px_rgb(0_0_0/0.32),inset_0_1px_0_rgb(255_255_255/0.12)] backdrop-blur-2xl backdrop-saturate-[1.8]";
 
+/** The room the bar of pages takes at the foot of the screen: the sheets stop above it, so it stays in view */
+const BAR_ROOM = "max(5.25rem, env(safe-area-inset-bottom) + 4.5rem)";
+
 /** The heights the sheet stops at */
 const HEIGHT: Record<SheetState, string> = {
   closed: "0px",
-  half: "52dvh",
-  full: "calc(100dvh - max(3.5rem, env(safe-area-inset-top) + 2.5rem))",
+  half: "48dvh",
+  full: `calc(100dvh - max(3.5rem, env(safe-area-inset-top) + 2.5rem) - ${BAR_ROOM})`,
 };
 /** How far the finger must go before the sheet starts to follow it (a tap moves less), in pixels */
 const DRAG_START = 6;
@@ -77,11 +80,13 @@ const DRAG_START = 6;
 const FLING = 0.5;
 /** The sheet at the top stops this far below the screen's top, in pixels (see HEIGHT.full) */
 const TOP_GAP = 56;
+/** BAR_ROOM in pixels, near enough for the drag's arithmetic */
+const BAR_PX = 84;
 
 /** The heights of the three stops, in pixels, for the screen as it is now */
 function stops() {
   const vh = window.innerHeight;
-  return { closed: 0, half: vh * 0.52, full: vh - TOP_GAP };
+  return { closed: 0, half: vh * 0.48, full: vh - TOP_GAP - BAR_PX };
 }
 
 /** Where a sheet let go at height `h` comes to rest: the nearest stop, or, if flung, the next one in the fling's direction */
@@ -235,7 +240,7 @@ export function Sheet({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
-      className={`max-lg:fixed max-lg:inset-x-2 max-lg:bottom-0 max-lg:z-40 max-lg:flex max-lg:flex-col max-lg:overflow-hidden max-lg:rounded-t-[1.75rem] max-lg:bg-[color-mix(in_oklab,var(--sky-1)_44%,transparent)] max-lg:shadow-[0_-18px_48px_rgb(0_0_0/0.32),inset_0_1px_0_rgb(255_255_255/0.12)] max-lg:backdrop-blur-2xl max-lg:backdrop-saturate-[1.8] max-lg:transition-[height] max-lg:duration-300 max-lg:ease-out motion-reduce:transition-none max-lg:data-[dragging]:transition-none max-lg:data-[state=closed]:invisible ${
+      className={`max-lg:fixed max-lg:inset-x-2 max-lg:bottom-[max(5.25rem,calc(env(safe-area-inset-bottom)+4.5rem))] max-lg:z-40 max-lg:flex max-lg:flex-col max-lg:overflow-hidden max-lg:rounded-[1.75rem] max-lg:bg-[color-mix(in_oklab,var(--sky-1)_44%,transparent)] max-lg:shadow-[0_18px_48px_rgb(0_0_0/0.35),inset_0_1px_0_rgb(255_255_255/0.12)] max-lg:backdrop-blur-2xl max-lg:backdrop-saturate-[1.8] max-lg:transition-[height] max-lg:duration-300 max-lg:ease-out motion-reduce:transition-none max-lg:data-[dragging]:transition-none max-lg:data-[state=closed]:invisible ${
         desktop === "contents" ? "lg:contents" : "lg:hidden"
       } ${state === "half" ? "max-lg:touch-pan-x" : ""}`}
     >
@@ -284,7 +289,7 @@ export function Sheet({
       {/* Halfway the content stays still under the finger (the sheet moves); at the top it scrolls */}
       <div
         ref={scroller}
-        className={`max-lg:min-h-0 max-lg:flex-1 max-lg:overscroll-contain max-lg:px-5 max-lg:pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:max-lg:px-8 ${
+        className={`max-lg:min-h-0 max-lg:flex-1 max-lg:overscroll-contain max-lg:px-5 max-lg:pb-6 sm:max-lg:px-8 ${
           desktop === "contents" ? "lg:contents" : ""
         } ${state === "full" ? "max-lg:overflow-y-auto" : "max-lg:overflow-hidden"}`}
       >

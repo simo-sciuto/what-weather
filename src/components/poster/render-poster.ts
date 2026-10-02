@@ -1,3 +1,4 @@
+import { tempColor } from "@/lib/weather/temp-color";
 import { dayOfYear, formatCoords } from "@/lib/weather/formatters";
 import type { MapOption } from "@/lib/map-options";
 import { optionColor } from "@/lib/weather/map-swatch";
@@ -53,6 +54,8 @@ export interface PosterInput {
   sun: SunPosition;
   /** How the map behind the page was when the poster was asked for: the poster shows the same stretch of city, from the same angle */
   view: { zoom: number; pitch: number; bearing?: number };
+  /** The temperature on show: the name and the country are set in its colour (the scale the page uses) */
+  temp: number;
   token: string;
   loadMapbox: () => Promise<Mapbox>;
 }
@@ -73,6 +76,7 @@ export async function renderPoster({
   options,
   sun,
   view,
+  temp,
   token,
   loadMapbox,
 }: PosterInput): Promise<Blob> {
@@ -98,6 +102,7 @@ export async function renderPoster({
     dayKey,
     palette,
     fonts,
+    tempColor(temp),
     legendFor(palette, options, sun, mapZoom(W, H, place.lat, view.zoom)),
   );
 
@@ -134,7 +139,7 @@ async function drawMap({
   view,
   token,
   loadMapbox,
-}: Omit<PosterInput, "format" | "dayKey"> & {
+}: Omit<PosterInput, "format" | "dayKey" | "temp"> & {
   W: number;
   H: number;
 }): Promise<HTMLCanvasElement> {
@@ -331,6 +336,8 @@ function paintType(
   dayKey: PosterInput["dayKey"],
   p: SkyPalette,
   fonts: Fonts,
+  /** The colour of the temperature on show, for the name and the country */
+  accent: string,
   legend: Swatch[],
 ) {
   const short = Math.min(W, H);
@@ -355,51 +362,73 @@ function paintType(
   ctx.fillStyle = "#ffffff";
   ctx.textBaseline = "alphabetic";
 
-  // Head: the region flush left and the country flush right (with only one of
-  // the two, it keeps to the left), over a hairline across the grid.
+  // Head: the region flush left, the country flush right in bold capitals in the colour of the temperature
+  // (with only one of the two, it keeps to its own side), over a hairline across the grid.
   const placeBase = m + small * 1.1;
-  setType(ctx, `500 SIZE ${fonts.sans}`, small * 1.35, 0);
-  ctx.globalAlpha = 0.9;
-  const [left, right] = place.region
-    ? [place.region, place.country]
-    : [place.country, ""];
-  ctx.textAlign = "left";
-  ctx.fillText(left, m, placeBase);
-  if (right) {
-    ctx.textAlign = "right";
-    ctx.fillText(right, W - m, placeBase);
+  if (place.region) {
+    setType(ctx, `500 SIZE ${fonts.sans}`, small * 1.35, 0);
+    ctx.globalAlpha = 0.9;
     ctx.textAlign = "left";
+    ctx.fillText(place.region, m, placeBase);
+    ctx.globalAlpha = 1;
   }
+  if (place.country) {
+    setType(ctx, `700 SIZE ${fonts.sans}`, small * 1.35, 0.06);
+    ctx.fillStyle = accent;
+    ctx.textAlign = place.region ? "right" : "left";
+    ctx.fillText(
+      place.country.toUpperCase(),
+      place.region ? W - m : m,
+      placeBase,
+    );
+    ctx.fillStyle = "#ffffff";
+  }
+  ctx.textAlign = "left";
   const headRule = placeBase + small * 0.9;
   ctx.globalAlpha = 0.45;
   ctx.fillRect(m, headRule, W - 2 * m, rule);
   ctx.globalAlpha = 1;
 
-  // Foot, laid from the bottom up. Centred at the very foot, the day of the year
-  // and under it the wordmark, like a print's number and signature. Over them,
-  // under a hairline, two columns of small print: on the left where (latitude
-  // over longitude), on the right the colours this poster was drawn in, then
-  // the map's credits. Over the hairline, the name.
+  // Foot, laid from the bottom up. Centred at the very foot, the day of the year and under it the
+  // wordmark, like a print's number and signature. Over them, under a hairline, a grid of small print:
+  // on the left where (two columns, latitude and longitude, each a label over its figure), on the right
+  // the colours this poster was drawn in, on an even grid of their own, and under them the map's
+  // credits. Over the hairline, the name.
   const bottom = H - m;
   const mark = small * 1.9;
   const dayBase = bottom - mark * 1.3;
   const creditsBase = dayBase - small * 2.6;
-  const lonBase = creditsBase;
-  const latBase = lonBase - small * 1.9;
-  // The colour bar may take several rows; the hairline, and with it the name, make room for them
-  const bar = layoutSwatches(ctx, legend, (W - 2 * m) * 0.6, small, fonts.sans);
-  const ruleY = latBase - small * 2.3 - (bar.rows.length - 1) * bar.rowHeight;
-  const swatchesTop = ruleY + small * 0.8;
+  const right = W - m;
+  const barLeft = m + (W - 2 * m) * 0.42;
+  const bar = layoutSwatches(ctx, legend, right - barLeft, small, fonts.sans);
+  const barHeight = bar.rows.length * bar.rowHeight;
+  const swatchesTop = creditsBase - small * 1.6 - barHeight;
+  const ruleY = swatchesTop - small * 1.1;
 
   ctx.globalAlpha = 0.45;
   ctx.fillRect(m, ruleY, W - 2 * m, rule);
   ctx.globalAlpha = 1;
 
+  // Latitude and longitude, side by side, each a small label over its figure, lined up with the colours' first row
   const [lat, lon] = formatCoords(place.lat, place.lon);
-  ctx.textAlign = "left";
-  setType(ctx, `500 SIZE ${fonts.sans}`, small * 1.2, 0.01);
-  ctx.fillText(lat, m, latBase);
-  ctx.fillText(lon, m, lonBase);
+  const coordLabel = small * 0.5;
+  const coordFigure = small * 1.25;
+  const coordTop = swatchesTop;
+  const coordGap = (barLeft - m) / 2;
+  (
+    [
+      ["Latitudine", lat],
+      ["Longitudine", lon],
+    ] as const
+  ).forEach(([label, figure], i) => {
+    const x = m + i * coordGap;
+    setType(ctx, `600 SIZE ${fonts.sans}`, coordLabel, LABEL_TRACKING);
+    ctx.globalAlpha = 0.65;
+    ctx.fillText(label.toUpperCase(), x, coordTop + coordLabel);
+    ctx.globalAlpha = 1;
+    setType(ctx, `500 SIZE ${fonts.sans}`, coordFigure, -0.005);
+    ctx.fillText(figure, x, coordTop + coordLabel + coordFigure * 1.25);
+  });
 
   // Last, centred at the foot: the day of the year, like the number pencilled under a limited edition print.
   setType(ctx, `300 SIZE ${fonts.poster}`, small * 1.1, 0.04);
@@ -409,12 +438,12 @@ function paintType(
   ctx.globalAlpha = 1;
   ctx.textAlign = "left";
 
-  paintSwatches(ctx, W - m, swatchesTop, bar, fonts.sans);
+  paintSwatches(ctx, barLeft, swatchesTop, bar, fonts.sans);
 
   setType(ctx, `500 SIZE ${fonts.sans}`, small * 0.7, 0.02);
-  ctx.textAlign = "right";
+  ctx.textAlign = "left";
   ctx.globalAlpha = 0.6;
-  ctx.fillText("© Mapbox  © OpenStreetMap", W - m, creditsBase);
+  ctx.fillText("© Mapbox  © OpenStreetMap", barLeft, creditsBase);
   ctx.globalAlpha = 1;
   ctx.textAlign = "left";
 
@@ -436,6 +465,7 @@ function paintType(
     H * 0.32,
   );
   setType(ctx, `800 SIZE ${fonts.poster}`, size, -0.045);
+  ctx.fillStyle = accent;
   const lead = size * 0.86;
   // The last line's baseline sits a little above the hairline.
   const lastBase = ruleY - size * 0.2;
@@ -519,79 +549,72 @@ interface SwatchBar {
 /** What a name is set as: capitals, small and widely spaced, as a printer's colour bar names its inks */
 const LABEL_TRACKING = 0.1;
 
-/** Sets the chips in rows no wider than `maxWidth`, every chip as wide as the longest name. */
+/**
+ * Sets the chips on an even grid as wide as `width`: as many columns as fit, every chip the same width and
+ * every gap the same, so the columns line up from row to row. The sky's colours take the first row, the
+ * map's start the next.
+ */
 function layoutSwatches(
   ctx: CanvasRenderingContext2D,
   swatches: Swatch[],
-  maxWidth: number,
+  width: number,
   small: number,
   family: string,
 ): SwatchBar {
   const label = small * 0.5;
   setType(ctx, `600 SIZE ${family}`, label, LABEL_TRACKING);
-  const chipW =
-    Math.max(
-      ...swatches.map((s) => ctx.measureText(s.label.toUpperCase()).width),
-    ) +
-    label * 0.3;
-  // A thin bar, not a block: the colour is a rule, as fine as the poster's own hairlines
-  const chipH = small * 0.2;
-  const gap = small * 0.6;
-  const groupGap = small * 1.5;
-  const rows: Swatch[][] = [[]];
-  let used = 0;
+  const widest = Math.max(
+    ...swatches.map((s) => ctx.measureText(s.label.toUpperCase()).width),
+  );
+  const gap = small * 0.7;
+  const columns = Math.max(1, Math.floor((width + gap) / (widest + gap)));
+  const chipW = (width - gap * (columns - 1)) / columns;
+  const chipH = small * 0.22;
+  const rows: Swatch[][] = [];
+  let row: Swatch[] = [];
   for (const s of swatches) {
-    const row = rows[rows.length - 1];
-    const before = row.length ? (s.groupStart ? groupGap : gap) : 0;
-    if (row.length && used + before + chipW > maxWidth) {
-      rows.push([s]);
-      used = chipW;
-    } else {
-      row.push(s);
-      used += before + chipW;
+    if (row.length === columns || (s.groupStart && row.length > 0)) {
+      rows.push(row);
+      row = [];
     }
+    row.push(s);
   }
+  if (row.length) rows.push(row);
   return {
     rows,
     chipW,
     chipH,
     gap,
-    groupGap,
+    groupGap: gap,
     label,
-    rowHeight: chipH + label * 1.6 + small * 0.9,
+    rowHeight: chipH + label * 1.7 + small * 0.85,
   };
 }
 
 /**
- * The poster's colours as a printer's colour bar, each row flush right from
- * `right`: a fine bar of each colour over the name of what it stands for (sky,
- * water, a kind of road, a building…) in small capitals.
+ * The poster's colours as a printer's colour bar, on an even grid from `left`: a fine bar of each colour
+ * over the name of what it stands for (sky, water, a kind of road, a building…) in small capitals.
  */
 function paintSwatches(
   ctx: CanvasRenderingContext2D,
-  right: number,
+  left: number,
   top: number,
   bar: SwatchBar,
   family: string,
 ) {
-  const { rows, chipW, chipH, gap, groupGap, label } = bar;
+  const { rows, chipW, chipH, gap, label } = bar;
   setType(ctx, `600 SIZE ${family}`, label, LABEL_TRACKING);
   ctx.textAlign = "left";
   rows.forEach((row, r) => {
     const y = top + r * bar.rowHeight;
-    const widths = row.map(
-      (s, i) => chipW + (i === 0 ? 0 : s.groupStart ? groupGap : gap),
-    );
-    let x = right - widths.reduce((a, b) => a + b, 0);
     row.forEach((s, i) => {
-      x += i === 0 ? 0 : s.groupStart ? groupGap : gap;
+      const x = left + i * (chipW + gap);
       ctx.fillStyle = s.hex;
       ctx.fillRect(x, y, chipW, chipH);
       ctx.fillStyle = "#ffffff";
       ctx.globalAlpha = 0.75;
-      ctx.fillText(s.label.toUpperCase(), x, y + chipH + label * 1.6);
+      ctx.fillText(s.label.toUpperCase(), x, y + chipH + label * 1.7);
       ctx.globalAlpha = 1;
-      x += chipW;
     });
   });
 }

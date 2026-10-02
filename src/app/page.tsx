@@ -201,6 +201,15 @@ export default async function Home({
                     {/* The moment's quick facts lead the data: this column on a computer, the sheet on a phone */}
                     <MomentFacts />
 
+                    {/* The place itself, right after the hours: what it is, its capitals, the towns around, its waters and peaks (streamed; nothing known, no chapter) */}
+                    <Suspense fallback={null}>
+                      <Territory
+                        lat={data.place.lat}
+                        lon={data.place.lon}
+                        name={data.place.name}
+                      />
+                    </Suspense>
+
                     {urgent && (
                       <div className="flex flex-col gap-8">
                         <WeatherAlerts
@@ -248,15 +257,6 @@ export default async function Home({
                     <Chapter id="chapter-almanac" title="Dettagli">
                       <Almanac data={data} modules={modules} />
                     </Chapter>
-
-                    {/* The place itself, after its weather: what it is, the towns around, its waters and peaks (streamed; nothing known, no chapter) */}
-                    <Suspense fallback={null}>
-                      <Territory
-                        lat={data.place.lat}
-                        lon={data.place.lon}
-                        name={data.place.name}
-                      />
-                    </Suspense>
 
                     <SiteFooter
                       provider={provider}

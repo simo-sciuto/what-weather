@@ -24,14 +24,16 @@ test("on a phone the data are in a sheet: put away, then halfway, then high", as
   await expect(sheet).toHaveAttribute("data-state", "closed");
   await expect(page.getByRole("region", { name: /^Settimana/ })).toBeHidden();
 
-  await page.getByRole("navigation", { name: "Pagine" }).getByRole("button", { name: "Meteo" }).click();
+  const meteo = page.getByRole("navigation", { name: "Pagine" }).getByRole("button", { name: "Meteo" });
+  await meteo.click();
   await expect(sheet).toHaveAttribute("data-state", "half");
+  // The bar of pages stays in view, marking the page on show
+  await expect(meteo).toHaveAttribute("aria-current", "page");
   await page.getByRole("button", { name: "Alza meteo" }).click();
   await expect(sheet).toHaveAttribute("data-state", "full");
   await page.keyboard.press("Escape");
   await expect(sheet).toHaveAttribute("data-state", "closed");
-  // The bar of pages is away while a sheet is open, and back once it is put away
-  await expect(page.getByRole("navigation", { name: "Pagine" })).not.toHaveAttribute("data-away");
+  await expect(meteo).not.toHaveAttribute("aria-current", "page");
 });
 
 test("on a phone, picking a day brings the sheet down to halfway, the reading above it", async ({ page }) => {
