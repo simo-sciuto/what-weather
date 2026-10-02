@@ -5,6 +5,7 @@ import { tempColor } from "@/lib/weather/temp-color";
 import { PosterButton } from "../poster/PosterButton";
 import { LocalClock } from "../weather/LocalClock";
 import { MapControls } from "../weather/MapControls";
+import { BAR_ITEM, useDataSheet } from "../layout/DataSheet";
 import { useMoment, useView } from "./TimeContext";
 
 /**
@@ -23,20 +24,30 @@ export function HeroActions() {
 }
 
 /**
- * The same two actions on a phone, docked to the foot of the screen: the map
- * stays put behind the page while it scrolls, and so do the ways to make a
- * poster of it and to change it, always a tap away. They sit left of the round
- * search button that docks at the bottom right, over a veil of the night sky so
- * the page can scroll under them. A computer has them in the poster's head.
+ * On a phone, a slab of glass floating over the foot of the screen (rounded, no edge drawn: its tint
+ * and shadow lift it off the page), always there under the thumb: the weather data
+ * (the sheet that rises over the map, see DataSheet), the poster, and the map's layers and colours.
+ * A computer has the poster and the map in the poster's head, and the data in a column.
  */
-export function HeroActionsDock() {
+export function PhoneBar() {
+  const { state, setState } = useDataSheet();
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-[linear-gradient(to_top,var(--popover)_60%,transparent)] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-5 pr-20 pt-10 lg:hidden">
-      <div className="pointer-events-auto flex items-baseline justify-between gap-3 text-[0.9375rem]">
-        <PosterButton />
-        <MapControls />
-      </div>
-    </div>
+    <nav
+      aria-label="Azioni"
+      className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-3 items-end gap-6 rounded-[1.375rem] bg-[color-mix(in_oklab,var(--sky-1)_58%,transparent)] px-5 pb-3 pt-3 shadow-[0_12px_40px_rgb(0_0_0/0.35),inset_0_1px_0_rgb(255_255_255/0.14)] backdrop-blur-2xl backdrop-saturate-[1.8] lg:hidden"
+    >
+      <button
+        type="button"
+        aria-expanded={state !== "closed"}
+        aria-controls="data-sheet"
+        onClick={() => setState(state === "closed" ? "half" : "closed")}
+        className={`${BAR_ITEM} items-start`}
+      >
+        Dati
+      </button>
+      <PosterButton bar className="items-center" />
+      <MapControls bar />
+    </nav>
   );
 }
 

@@ -41,6 +41,7 @@ import { createPortal } from "react-dom";
 import { useMoment } from "../time/TimeContext";
 import { useMap } from "./MapContext";
 import { activeLayers } from "./map-style";
+import { BAR_ITEM } from "../layout/DataSheet";
 
 /** The viewer's tuning of the map's colours; the page's own on the server and until the browser says otherwise. */
 function useMapTuning(): MapTuning {
@@ -99,7 +100,13 @@ const EXTRA_OPTIONS = MAP_OPTIONS.filter(
  * without covering it or darkening it, so the map can be seen changing as it
  * is changed. Without Mapbox there is no map, and so no controls.
  */
-export function MapControls({ className = "" }: { className?: string }) {
+export function MapControls({
+  className = "",
+  bar = false,
+}: {
+  className?: string;
+  /** As one of the phone's bar actions */ bar?: boolean;
+}) {
   const { token } = useMap();
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -119,22 +126,35 @@ export function MapControls({ className = "" }: { className?: string }) {
   if (!token) return null;
   return (
     <div className={className}>
-      <button
-        ref={trigger}
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((o) => !o)}
-        className="group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-ink aria-expanded:text-accent"
-      >
-        Personalizza la mappa
-        <span
-          aria-hidden="true"
-          className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent"
+      {bar ? (
+        <button
+          ref={trigger}
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((o) => !o)}
+          className={`${BAR_ITEM} items-end`}
         >
-          →
-        </span>
-      </button>
+          Mappa
+        </button>
+      ) : (
+        <button
+          ref={trigger}
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((o) => !o)}
+          className="group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-ink aria-expanded:text-accent"
+        >
+          Personalizza la mappa
+          <span
+            aria-hidden="true"
+            className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent"
+          >
+            →
+          </span>
+        </button>
+      )}
       {/* In the body, not here: a parent's blur or transform would make "fixed" mean "fixed to the parent" */}
       {open &&
         createPortal(
