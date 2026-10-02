@@ -15,7 +15,10 @@ export type PosterFormat = "print" | "story" | "square";
  * graphics cards can draw in one go: the print size is A4 at 300 dpi (A3 at
  * about 210), the story a phone's 9:16, the square a social post.
  */
-export const POSTER_FORMATS: Record<PosterFormat, { label: string; width: number; height: number }> = {
+export const POSTER_FORMATS: Record<
+  PosterFormat,
+  { label: string; width: number; height: number }
+> = {
   print: { label: "Stampa A", width: 2480, height: 3508 },
   story: { label: "Storia 9:16", width: 1440, height: 2560 },
   square: { label: "Quadrato", width: 2400, height: 2400 },
@@ -35,7 +38,13 @@ const ACCENT = "#f9e8a7";
 export interface PosterInput {
   format: PosterFormat;
   /** The place, with its region and country in Italian (either may be empty) */
-  place: { name: string; region: string; country: string; lat: number; lon: number };
+  place: {
+    name: string;
+    region: string;
+    country: string;
+    lat: number;
+    lon: number;
+  };
   /** The local day ("2026-09-30") whose sky the poster is drawn in, for its number in the year */
   dayKey: string;
   palette: SkyPalette;
@@ -56,9 +65,22 @@ export interface PosterInput {
  * drawn in. The map is the subject; the
  * type holds the edges. Returns a PNG.
  */
-export async function renderPoster({ format, place, dayKey, palette, options, sun, view, token, loadMapbox }: PosterInput): Promise<Blob> {
+export async function renderPoster({
+  format,
+  place,
+  dayKey,
+  palette,
+  options,
+  sun,
+  view,
+  token,
+  loadMapbox,
+}: PosterInput): Promise<Blob> {
   const { width: W, height: H } = POSTER_FORMATS[format];
-  const [mapImage, fonts] = await Promise.all([drawMap({ W, H, place, palette, options, sun, view, token, loadMapbox }), loadFonts()]);
+  const [mapImage, fonts] = await Promise.all([
+    drawMap({ W, H, place, palette, options, sun, view, token, loadMapbox }),
+    loadFonts(),
+  ]);
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -68,10 +90,22 @@ export async function renderPoster({ format, place, dayKey, palette, options, su
 
   paintSky(ctx, W, H, palette);
   ctx.drawImage(mapImage, 0, 0, W, H);
-  paintType(ctx, W, H, place, dayKey, palette, fonts, legendFor(palette, options, sun, mapZoom(W, H, place.lat, view.zoom)));
+  paintType(
+    ctx,
+    W,
+    H,
+    place,
+    dayKey,
+    palette,
+    fonts,
+    legendFor(palette, options, sun, mapZoom(W, H, place.lat, view.zoom)),
+  );
 
   return new Promise((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Export failed"))), "image/png"),
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Export failed"))),
+      "image/png",
+    ),
   );
 }
 
@@ -84,7 +118,9 @@ export async function renderPoster({ format, place, dayKey, palette, options, su
 function mapZoom(W: number, H: number, lat: number, viewZoom: number): number {
   const span = SPAN_METRES / 2 ** (viewZoom - BASE_ZOOM);
   const metresPerPx = span / (Math.min(W, H) / PIXEL_RATIO);
-  return Math.log2((156_543.03 * Math.cos((lat * Math.PI) / 180)) / metresPerPx);
+  return Math.log2(
+    (156_543.03 * Math.cos((lat * Math.PI) / 180)) / metresPerPx,
+  );
 }
 
 /** A Mapbox map off screen, at the poster's size, in the moment's colours; resolves with its drawing. */
@@ -98,13 +134,23 @@ async function drawMap({
   view,
   token,
   loadMapbox,
-}: Omit<PosterInput, "format" | "dayKey"> & { W: number; H: number }): Promise<HTMLCanvasElement> {
+}: Omit<PosterInput, "format" | "dayKey"> & {
+  W: number;
+  H: number;
+}): Promise<HTMLCanvasElement> {
   const mapboxgl = await loadMapbox();
   const cssW = W / PIXEL_RATIO;
   const cssH = H / PIXEL_RATIO;
   const box = document.createElement("div");
   box.setAttribute("aria-hidden", "true");
-  Object.assign(box.style, { position: "fixed", left: "-100000px", top: "0", width: `${cssW}px`, height: `${cssH}px`, pointerEvents: "none" });
+  Object.assign(box.style, {
+    position: "fixed",
+    left: "-100000px",
+    top: "0",
+    width: `${cssW}px`,
+    height: `${cssH}px`,
+    pointerEvents: "none",
+  });
   document.body.append(box);
 
   const zoom = mapZoom(W, H, place.lat, view.zoom);
@@ -112,7 +158,10 @@ async function drawMap({
   // Mapbox draws at the screen's pixel density and takes no option for it, so, as its print
   // plugins do, the density is set for as long as this map lives, then given back.
   const density = Object.getOwnPropertyDescriptor(window, "devicePixelRatio");
-  Object.defineProperty(window, "devicePixelRatio", { configurable: true, get: () => PIXEL_RATIO });
+  Object.defineProperty(window, "devicePixelRatio", {
+    configurable: true,
+    get: () => PIXEL_RATIO,
+  });
   const restoreDensity = () => {
     if (density) Object.defineProperty(window, "devicePixelRatio", density);
     else delete (window as { devicePixelRatio?: number }).devicePixelRatio;
@@ -143,9 +192,18 @@ async function drawMap({
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Map timed out")), MAP_TIMEOUT_MS);
+      const timer = setTimeout(
+        () => reject(new Error("Map timed out")),
+        MAP_TIMEOUT_MS,
+      );
       map.once("load", () => {
-        syncMap(map, { inks: palette.map, options, sun, lat: place.lat });
+        syncMap(map, {
+          inks: palette.map,
+          options,
+          sun,
+          lat: place.lat,
+          roadShadowScale: 2.2,
+        });
         map.once("idle", () => {
           clearTimeout(timer);
           resolve();
@@ -176,7 +234,12 @@ function rgba(hex: string, alpha: number) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function paintSky(ctx: CanvasRenderingContext2D, W: number, H: number, p: SkyPalette) {
+function paintSky(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  p: SkyPalette,
+) {
   const sky = ctx.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, p.sky1);
   sky.addColorStop(0.55, p.sky2);
@@ -186,7 +249,14 @@ function paintSky(ctx: CanvasRenderingContext2D, W: number, H: number, p: SkyPal
 
   // The light, high on the right as on the page, softly.
   const r = Math.max(W, H) * 0.6;
-  const glow = ctx.createRadialGradient(W * 0.78, H * 0.14, 0, W * 0.78, H * 0.14, r);
+  const glow = ctx.createRadialGradient(
+    W * 0.78,
+    H * 0.14,
+    0,
+    W * 0.78,
+    H * 0.14,
+    r,
+  );
   glow.addColorStop(0, p.glow);
   glow.addColorStop(0.35, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = glow;
@@ -203,23 +273,38 @@ interface Fonts {
 /** The page's own two families (named by next/font), loaded in the weights the poster sets. */
 async function loadFonts(): Promise<Fonts> {
   const css = getComputedStyle(document.documentElement);
-  const poster = css.getPropertyValue("--font-inter-tight").trim() || "'Helvetica Neue', Helvetica, Arial, sans-serif";
+  const poster =
+    css.getPropertyValue("--font-inter-tight").trim() ||
+    "'Helvetica Neue', Helvetica, Arial, sans-serif";
   const sans = poster;
   await Promise.all([
     document.fonts.load(`800 100px ${poster}`),
     document.fonts.load(`300 100px ${poster}`),
     document.fonts.load(`500 100px ${sans}`),
+    document.fonts.load(`600 100px ${sans}`),
   ]).catch(() => undefined);
   return { poster, sans };
 }
 
-function setType(ctx: CanvasRenderingContext2D, font: string, size: number, tracking = 0) {
+function setType(
+  ctx: CanvasRenderingContext2D,
+  font: string,
+  size: number,
+  tracking = 0,
+) {
   ctx.font = `${font.replace("SIZE", `${size}px`)}`;
   if ("letterSpacing" in ctx) ctx.letterSpacing = `${tracking * size}px`;
 }
 
 /** The name in lines of whole words, as large as fits the width and a third of the height. */
-function setName(ctx: CanvasRenderingContext2D, name: string, family: string, maxWidth: number, maxSize: number, maxHeight: number) {
+function setName(
+  ctx: CanvasRenderingContext2D,
+  name: string,
+  family: string,
+  maxWidth: number,
+  maxSize: number,
+  maxHeight: number,
+) {
   const words = name.split(/\s+/);
   for (let size = maxSize; size > 24; size *= 0.97) {
     setType(ctx, `800 SIZE ${family}`, size, -0.045);
@@ -227,7 +312,8 @@ function setName(ctx: CanvasRenderingContext2D, name: string, family: string, ma
     const lines: string[] = [];
     for (const w of words) {
       const last = lines.at(-1);
-      if (last && ctx.measureText(`${last} ${w}`).width <= maxWidth) lines[lines.length - 1] = `${last} ${w}`;
+      if (last && ctx.measureText(`${last} ${w}`).width <= maxWidth)
+        lines[lines.length - 1] = `${last} ${w}`;
       else lines.push(w);
     }
     if (lines.length * size * 0.86 <= maxHeight) return { size, lines };
@@ -272,7 +358,9 @@ function paintType(
   const placeBase = m + small * 1.1;
   setType(ctx, `500 SIZE ${fonts.sans}`, small * 1.35, 0);
   ctx.globalAlpha = 0.9;
-  const [left, right] = place.region ? [place.region, place.country] : [place.country, ""];
+  const [left, right] = place.region
+    ? [place.region, place.country]
+    : [place.country, ""];
   ctx.textAlign = "left";
   ctx.fillText(left, m, placeBase);
   if (right) {
@@ -329,14 +417,33 @@ function paintType(
   ctx.textAlign = "left";
 
   // The signature: the wordmark, centred under the number, large enough to read across a room.
-  paintWordmark(ctx, (W - wordmarkWidth(ctx, mark, fonts.poster)) / 2, bottom, mark, fonts.poster);
+  paintWordmark(
+    ctx,
+    (W - wordmarkWidth(ctx, mark, fonts.poster)) / 2,
+    bottom,
+    mark,
+    fonts.poster,
+  );
 
-  const { size, lines } = setName(ctx, place.name, fonts.poster, W - 2 * m, short * 0.26, H * 0.32);
+  const { size, lines } = setName(
+    ctx,
+    place.name,
+    fonts.poster,
+    W - 2 * m,
+    short * 0.26,
+    H * 0.32,
+  );
   setType(ctx, `800 SIZE ${fonts.poster}`, size, -0.045);
   const lead = size * 0.86;
   // The last line's baseline sits a little above the hairline.
   const lastBase = ruleY - size * 0.2;
-  lines.forEach((line, i) => ctx.fillText(line, m - size * 0.04, lastBase - (lines.length - 1 - i) * lead));
+  lines.forEach((line, i) =>
+    ctx.fillText(
+      line,
+      m - size * 0.04,
+      lastBase - (lines.length - 1 - i) * lead,
+    ),
+  );
 }
 
 /** The map's buildings are in Mapbox's tiles from this zoom; before it there are none to show. */
@@ -351,39 +458,48 @@ interface Swatch {
 }
 
 /**
- * What the poster's colour bar shows: the sky, then everything the map is
- * drawn with that the viewer has not taken away, each as it shows over the middle of the sky (so the chips follow
+ * What the poster's colour bar shows: the sky, then the colours the map is really
+ * drawn with that the viewer has not taken away (not the shadows and the relief, which are shading, not a colour of their own), each as it shows over the middle of the sky (so the chips follow
  * everything the viewer tuned: the hue, the intensity and, through the lines'
  * opacity, the contrast). Only what is on this poster: the layers the viewer
  * chose, and of those only the ones that can be seen at this zoom and hour.
  */
-function legendFor(p: SkyPalette, options: readonly MapOption[], sun: SunPosition, zoom: number): Swatch[] {
+function legendFor(
+  p: SkyPalette,
+  options: readonly MapOption[],
+  sun: SunPosition,
+  zoom: number,
+): Swatch[] {
   const chosen = new Set(options);
   const close = zoom >= BUILDING_ZOOM;
-  // What each choice is called here, short, in the order the poster lists them; the names of the waters are words, not a colour to show
+  // What each choice is called here, short, in the order the poster lists them
   const named: [MapOption, string, boolean][] = [
     ["water", "Acqua", true],
     ["motorways", "Autostrade", true],
     ["main-roads", "Principali", true],
     ["streets", "Strade", true],
     ["green", "Verde", true],
-    ["relief", "Rilievo", true],
     ["contours", "Curve", true],
     ["train", "Treni", true],
     ["metro", "Metro", true],
     ["tram", "Tram", zoom >= 14],
     ["bus", "Autobus", zoom >= 14],
     ["buildings", "Edifici", close],
-    ["shadows", "Ombre", close && sun.altitude > 0],
     ["traffic", "Traffico", true],
     ["lights", "Luci", sun.altitude <= 0],
   ];
-  const entries = named.filter(([option, , seen]) => seen && chosen.has(option));
+  const entries = named.filter(
+    ([option, , seen]) => seen && chosen.has(option),
+  );
   return [
     { hex: p.sky1, label: "Cielo alto" },
     { hex: p.sky2, label: "Cielo" },
     { hex: p.sky3, label: "Orizzonte" },
-    ...entries.map(([option, label], i): Swatch => ({ hex: optionColor(p, option), label, groupStart: i === 0 })),
+    ...entries.map(([option, label], i): Swatch => ({
+      hex: optionColor(p, option),
+      label,
+      groupStart: i === 0,
+    })),
   ];
 }
 
@@ -398,14 +514,28 @@ interface SwatchBar {
   rowHeight: number;
 }
 
+/** What a name is set as: capitals, small and widely spaced, as a printer's colour bar names its inks */
+const LABEL_TRACKING = 0.1;
+
 /** Sets the chips in rows no wider than `maxWidth`, every chip as wide as the longest name. */
-function layoutSwatches(ctx: CanvasRenderingContext2D, swatches: Swatch[], maxWidth: number, small: number, family: string): SwatchBar {
-  const label = small * 0.62;
-  setType(ctx, `500 SIZE ${family}`, label, 0.02);
-  const chipW = Math.max(...swatches.map((s) => ctx.measureText(s.label).width));
-  const chipH = small * 1.2;
-  const gap = small * 0.35;
-  const groupGap = small * 1.1;
+function layoutSwatches(
+  ctx: CanvasRenderingContext2D,
+  swatches: Swatch[],
+  maxWidth: number,
+  small: number,
+  family: string,
+): SwatchBar {
+  const label = small * 0.5;
+  setType(ctx, `600 SIZE ${family}`, label, LABEL_TRACKING);
+  const chipW =
+    Math.max(
+      ...swatches.map((s) => ctx.measureText(s.label.toUpperCase()).width),
+    ) +
+    label * 0.3;
+  // A thin bar, not a block: the colour is a rule, as fine as the poster's own hairlines
+  const chipH = small * 0.2;
+  const gap = small * 0.6;
+  const groupGap = small * 1.5;
   const rows: Swatch[][] = [[]];
   let used = 0;
   for (const s of swatches) {
@@ -419,29 +549,45 @@ function layoutSwatches(ctx: CanvasRenderingContext2D, swatches: Swatch[], maxWi
       used += before + chipW;
     }
   }
-  return { rows, chipW, chipH, gap, groupGap, label, rowHeight: chipH + label * 1.45 + small * 0.7 };
+  return {
+    rows,
+    chipW,
+    chipH,
+    gap,
+    groupGap,
+    label,
+    rowHeight: chipH + label * 1.6 + small * 0.9,
+  };
 }
 
 /**
  * The poster's colours as a printer's colour bar, each row flush right from
- * `right`: a chip of each colour over the name of what it stands for (sky,
- * water, a kind of road, a building…).
+ * `right`: a fine bar of each colour over the name of what it stands for (sky,
+ * water, a kind of road, a building…) in small capitals.
  */
-function paintSwatches(ctx: CanvasRenderingContext2D, right: number, top: number, bar: SwatchBar, family: string) {
+function paintSwatches(
+  ctx: CanvasRenderingContext2D,
+  right: number,
+  top: number,
+  bar: SwatchBar,
+  family: string,
+) {
   const { rows, chipW, chipH, gap, groupGap, label } = bar;
-  setType(ctx, `500 SIZE ${family}`, label, 0.02);
+  setType(ctx, `600 SIZE ${family}`, label, LABEL_TRACKING);
   ctx.textAlign = "left";
   rows.forEach((row, r) => {
     const y = top + r * bar.rowHeight;
-    const widths = row.map((s, i) => chipW + (i === 0 ? 0 : s.groupStart ? groupGap : gap));
+    const widths = row.map(
+      (s, i) => chipW + (i === 0 ? 0 : s.groupStart ? groupGap : gap),
+    );
     let x = right - widths.reduce((a, b) => a + b, 0);
     row.forEach((s, i) => {
       x += i === 0 ? 0 : s.groupStart ? groupGap : gap;
       ctx.fillStyle = s.hex;
       ctx.fillRect(x, y, chipW, chipH);
       ctx.fillStyle = "#ffffff";
-      ctx.globalAlpha = 0.8;
-      ctx.fillText(s.label, x, y + chipH + label * 1.45);
+      ctx.globalAlpha = 0.75;
+      ctx.fillText(s.label.toUpperCase(), x, y + chipH + label * 1.6);
       ctx.globalAlpha = 1;
       x += chipW;
     });
@@ -449,7 +595,11 @@ function paintSwatches(ctx: CanvasRenderingContext2D, right: number, top: number
 }
 
 /** The wordmark's width at a size, to centre it. */
-function wordmarkWidth(ctx: CanvasRenderingContext2D, size: number, family: string) {
+function wordmarkWidth(
+  ctx: CanvasRenderingContext2D,
+  size: number,
+  family: string,
+) {
   setType(ctx, `300 SIZE ${family}`, size, -0.02);
   const what = ctx.measureText("what").width;
   setType(ctx, `800 SIZE ${family}`, size, -0.05);
@@ -457,13 +607,25 @@ function wordmarkWidth(ctx: CanvasRenderingContext2D, size: number, family: stri
 }
 
 /** what (light), a butter bar low like a horizon, weather (black): the page's wordmark, on the canvas. */
-function paintWordmark(ctx: CanvasRenderingContext2D, x: number, baseline: number, size: number, family: string) {
+function paintWordmark(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseline: number,
+  size: number,
+  family: string,
+) {
   setType(ctx, `300 SIZE ${family}`, size, -0.02);
   ctx.fillText("what", x, baseline);
   x += ctx.measureText("what").width + size * 0.08;
   ctx.fillStyle = ACCENT;
   ctx.beginPath();
-  ctx.roundRect(x, baseline - size * 0.21, size * 0.34, size * 0.09, size * 0.045);
+  ctx.roundRect(
+    x,
+    baseline - size * 0.21,
+    size * 0.34,
+    size * 0.09,
+    size * 0.045,
+  );
   ctx.fill();
   ctx.fillStyle = "#ffffff";
   x += size * 0.34 + size * 0.08;

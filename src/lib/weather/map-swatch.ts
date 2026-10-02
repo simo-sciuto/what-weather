@@ -13,8 +13,6 @@ export function optionColor(p: SkyPalette, option: MapOption): string {
   switch (option) {
     case "water":
       return over(map.water);
-    case "water-names":
-      return over(map["water-names"]);
     case "streets":
       return over(map.streets);
     case "main-roads":

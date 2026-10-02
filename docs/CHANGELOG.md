@@ -3,6 +3,9 @@
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
 ## 2026-10-02
+- Poster top: the day's low and high with the sky's glyph over the name, the temperature (light, 1.9 times the name) at the right edge (WTH-012, WTH-017 in progress).
+- A light shadow under each rank of road, going with its choice; the poster's colour bar without shadows and relief, in fine bars and small capitals (WTH-021).
+- The choice "Nomi delle acque" is gone from the map panel (WTH-020): the map draws no words. A stored choice that had it loads as the page's own.
 - Trains, metro, tram and bus replace "Ferrovie" in the map panel, each its own choice and colour, with plain lines and stops as dots (WTH-019). The buses have stops only.
 - The colours of the map's layers are kept apart as a whole, among the layers on show, in order of weight (WTH-016, ADR-011).
 - Buildings in 3D ("Edifici 3D") as a choice of the map panel, and water, roads and buildings kept apart in colour at every hour and tuning (WTH-014, ADR-011).

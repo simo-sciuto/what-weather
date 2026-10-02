@@ -65,20 +65,9 @@ describe("syncMap", () => {
     ]);
   });
 
-  it("writes the names of the waters only: the river's and the lake's, both with the one choice", () => {
-    const { map, shown } = fakeMap();
-    syncMap(map, {
-      inks,
-      options: ["water-names"],
-      sun: at("2026-10-01T09:00:00Z"),
-      lat,
-    });
-    expect(shown().sort()).toEqual(["water-names", "waterway-names"]);
-    const labels = STYLE.layers.filter((l) => l.type === "symbol");
-    expect(labels.map((l) => l.id).sort()).toEqual([
-      "water-names",
-      "waterway-names",
-    ]);
+  it("draws no words on the map: the page's own stay on the page", () => {
+    expect(STYLE.layers.filter((l) => l.type === "symbol")).toEqual([]);
+    expect(STYLE).not.toHaveProperty("glyphs");
   });
 
   it("shows the buildings in 3D as volumes as tall as they are, apart from their outlines", () => {
