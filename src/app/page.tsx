@@ -31,7 +31,11 @@ import {
   dailyActivityOutlooks,
 } from "@/lib/weather/activities";
 import { detailModules, moonInfo } from "@/lib/weather/details";
-import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
+import {
+  conditionLabel,
+  formatTemp,
+  placeParts,
+} from "@/lib/weather/formatters";
 import { buildNarrative } from "@/lib/weather/narrative";
 import { precipOutlook } from "@/lib/weather/precipitation";
 import { tempRange } from "@/lib/weather/today";
@@ -193,11 +197,11 @@ export default async function Home({
                 {/* On a phone the weather data are a sheet that rises over the map; on a computer the right column */}
                 <Sheet name="data" title="Meteo" desktop="contents">
                   {/* The hours ahead: under the reading on a phone, at the top of the right column on a computer */}
-                  <div className="data-col data-col-first relative pb-8 pt-2 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
+                  <div className="data-col data-col-first relative pb-2.5 pt-2 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
                     <TimeScrubber />
                   </div>
 
-                  <div className="data-col relative flex flex-col gap-14 pb-6 lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pb-10 lg:pt-8 xl:col-span-6 xl:col-start-7">
+                  <div className="data-col relative flex flex-col gap-2.5 pb-6 lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pb-10 lg:pt-8 xl:col-span-6 xl:col-start-7">
                     {/* The moment's quick facts lead the data: this column on a computer, the sheet on a phone */}
                     <MomentFacts />
 
@@ -207,11 +211,12 @@ export default async function Home({
                         lat={data.place.lat}
                         lon={data.place.lon}
                         name={data.place.name}
+                        country={placeParts(data.place).country}
                       />
                     </Suspense>
 
                     {urgent && (
-                      <div className="flex flex-col gap-8">
+                      <div className="flex flex-col gap-2.5">
                         <WeatherAlerts
                           alerts={data.alerts}
                           now={data.current.time}
@@ -254,7 +259,7 @@ export default async function Home({
                       </Chapter>
                     )}
 
-                    <Chapter id="chapter-almanac" title="Dettagli">
+                    <Chapter id="chapter-almanac" title="Dettagli" bare>
                       <Almanac data={data} modules={modules} />
                     </Chapter>
 

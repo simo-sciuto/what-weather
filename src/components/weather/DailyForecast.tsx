@@ -47,7 +47,7 @@ export function DailyForecast({ data, className }: { data: WeatherData; classNam
         <DaySelect
           dayKey={key}
           isToday={isToday}
-          className="grid grid-cols-[4.25rem_1.75rem_2.5rem_2rem_minmax(0,1fr)_2rem] items-center gap-x-2.5 px-2 py-3.5 @md:grid-cols-[minmax(0,8rem)_2rem_3rem_2.5rem_minmax(0,1fr)_2.5rem] @md:gap-x-4"
+          className="grid grid-cols-[4.25rem_1.75rem_2.5rem_2rem_minmax(0,1fr)_2rem] items-center gap-x-2.5 px-2 py-2.5 @md:grid-cols-[minmax(0,8rem)_2rem_3rem_2.5rem_minmax(0,1fr)_2.5rem] @md:gap-x-4"
         >
           <span className="sr-only">
             {name}, {dateNote}: {label.toLowerCase()}, minima {formatTemp(d.min)}, massima {formatTemp(d.max)}

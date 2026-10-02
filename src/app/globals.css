@@ -167,13 +167,17 @@ body {
 }
 
 /*
- * A block of content, set like a poster's row rather than boxed in a card:
- * a hairline across the column, then the content straight on the sky. The
- * rule is the only frame; space does the rest of the separating.
+ * A block of the weather data, as a tile: a faint pane of light with rounded corners and a hairline of
+ * light along its top, the content inside it. The tiles sit close together, so the data read as one
+ * board of facts (as the system's Weather app sets them), not a long column of sections.
  */
 @utility sheet {
-  border-top: 1px solid rgb(255 255 255 / 0.3);
-  padding-top: 0.875rem;
+  border-radius: 1.375rem;
+  background: rgb(255 255 255 / 0.075);
+  box-shadow:
+    inset 0 0.5px 0 rgb(255 255 255 / 0.22),
+    inset 0 0 0 0.5px rgb(255 255 255 / 0.07);
+  padding: 0.875rem 1rem 1rem;
 }
 
 /* Small uppercase metadata label */

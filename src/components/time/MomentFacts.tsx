@@ -35,7 +35,7 @@ export function MomentFacts() {
 
   return (
     // Straight on the sky, between hairlines: nothing here to tap, so no panel.
-    <dl className="on-sky grid grid-cols-3 divide-x divide-white/15 border-y border-white/15 py-3">
+    <dl className="sheet on-sky grid grid-cols-3 divide-x divide-white/15">
       {facts.map((f) => (
         <div key={f.label} className="min-w-0 px-3 first:pl-0 sm:px-4">
           <dt className="label">{f.label}</dt>

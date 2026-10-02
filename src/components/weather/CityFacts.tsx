@@ -12,7 +12,12 @@ const number = (n: number) => new Intl.NumberFormat("it-IT").format(n);
 const asName = (s: string) =>
   s.charAt(0).toLocaleUpperCase("it-IT") + s.slice(1);
 
-type Where = { lat: number; lon: number; name: string };
+type Where = {
+  lat: number;
+  lon: number;
+  name: string;
+  /** The place's country, in Italian */ country?: string;
+};
 
 /* Hairline glyphs for the lists, drawn like the page's weather icons. */
 function PlaceGlyph({ className }: { className: string }) {
@@ -86,6 +91,8 @@ function AroundGlyph({ className }: { className: string }) {
 /** A row: a name, a figure flush right (a height, a temperature), a glyph before it; with `href`, the whole row is a link. */
 type Item = {
   name: string;
+  /** A small line over the name: what the place is to this one ("Capitale del paese") */
+  kind?: string;
   figure?: string;
   icon?: ReactNode;
   href?: string;
@@ -102,18 +109,25 @@ function List({
   Glyph: typeof WaterGlyph;
   items: Item[];
 }) {
-  const row = "flex items-center justify-between gap-4 py-3";
+  const row = "flex items-center justify-between gap-4 py-2.5";
   return (
-    <div className="min-w-0">
-      <h3 className="label flex items-center gap-2 pb-2">
+    <div className="sheet min-w-0">
+      <h3 className="label flex items-center gap-2 pb-1">
         <Glyph className="size-4 text-ink" />
         {title}
       </h3>
-      <ul className="border-t border-rule">
+      <ul>
         {items.map((it) => {
           const content = (
             <>
-              <span className="min-w-0 text-[1.0625rem]">{it.name}</span>
+              <span className="min-w-0 text-[0.9375rem]">
+                {it.kind && (
+                  <span className="block text-xs leading-tight text-ink-muted">
+                    {it.kind}
+                  </span>
+                )}
+                {it.name}
+              </span>
               {(it.icon || it.figure) && (
                 <span className="flex shrink-0 items-center gap-2 text-sm tabular-nums text-ink-muted">
                   {it.icon}
@@ -124,7 +138,10 @@ function List({
             </>
           );
           return (
-            <li key={it.name} className="border-b border-rule">
+            <li
+              key={it.name}
+              className="border-b border-white/10 last:border-b-0"
+            >
               {it.href ? (
                 <Link
                   href={it.href}
@@ -151,7 +168,7 @@ function List({
  * around) and the best-known peaks around, with their heights. No distances. Async and cached, streamed in; a list with nothing
  * known is left out, and with nothing known at all there is no chapter.
  */
-export async function Territory({ lat, lon, name }: Where) {
+export async function Territory({ lat, lon, name, country }: Where) {
   const {
     rank,
     altitude,
@@ -161,30 +178,70 @@ export async function Territory({ lat, lon, name }: Where) {
     nearby = [],
     capitals,
   } = await cityFacts(lat, lon, name);
-  // The towns are named even when their weather can't be had.
-  const readings = await nearbyWeather(nearby);
-  const around: Item[] = nearby.map((town, i) => {
-    const now = readings[i];
-    return {
-      name: town.name,
-      href: placeHref(town),
-      figure: now ? formatTemp(now.temp) : undefined,
-      icon: now && (
-        <WeatherIcon
-          condition={now.condition}
-          night={now.night}
-          colored
-          className="size-5"
-        />
-      ),
-      spoken: now
-        ? conditionLabel({
-            condition: now.condition,
-            intensity: "moderate",
-          }).toLowerCase()
+  // The capitals, unless the place is one of them
+  const capital = {
+    region:
+      capitals?.region && capitals.region.name !== name
+        ? capitals.region
         : undefined,
-    };
+    country:
+      capitals?.country && capitals.country.name !== name
+        ? capitals.country
+        : undefined,
+  };
+  // The towns around and the capitals are named even when their weather can't be had.
+  const listed = [
+    ...nearby,
+    ...[capital.region, capital.country].filter((c) => c !== undefined),
+  ];
+  const readings = await nearbyWeather(listed);
+  const row = (
+    town: { name: string; lat: number; lon: number },
+    now: (typeof readings)[number],
+    kind?: string,
+  ): Item => ({
+    name: town.name,
+    kind,
+    href: placeHref(town),
+    figure: now ? formatTemp(now.temp) : undefined,
+    icon: now && (
+      <WeatherIcon
+        condition={now.condition}
+        night={now.night}
+        colored
+        className="size-5"
+      />
+    ),
+    spoken: now
+      ? conditionLabel({
+          condition: now.condition,
+          intensity: "moderate",
+        }).toLowerCase()
+      : undefined,
   });
+  const around: Item[] = nearby.map((town, i) => row(town, readings[i]));
+  const capitalRows: Item[] = [
+    ...(capital.region
+      ? [
+          row(
+            capital.region,
+            readings[nearby.length],
+            capitals?.regionName
+              ? `Capoluogo, ${capitals.regionName}`
+              : "Capoluogo",
+          ),
+        ]
+      : []),
+    ...(capital.country
+      ? [
+          row(
+            capital.country,
+            readings[nearby.length + (capital.region ? 1 : 0)],
+            "Capitale del paese",
+          ),
+        ]
+      : []),
+  ];
   const place: Item[] = [
     ...(rank ? [{ name: rank }] : []),
     ...(altitude != null
@@ -198,20 +255,8 @@ export async function Territory({ lat, lon, name }: Where) {
           },
         ]
       : []),
-    // The capitals, unless the place is one of them
-    ...(capitals?.region && capitals.region !== name
-      ? [
-          {
-            name: capitals.regionName
-              ? `Capoluogo, ${capitals.regionName}`
-              : "Capoluogo",
-            figure: capitals.region,
-          },
-        ]
-      : []),
-    ...(capitals?.country && capitals.country !== name
-      ? [{ name: "Capitale del paese", figure: capitals.country }]
-      : []),
+    ...(country ? [{ name: "Nazione", figure: country }] : []),
+    ...capitalRows,
   ];
   const lists = [
     { title: "Il luogo", Glyph: PlaceGlyph, items: place },
@@ -242,9 +287,10 @@ export async function Territory({ lat, lon, name }: Where) {
       id="chapter-territory"
       title="Territorio"
       note={`${name}, i dintorni, le acque e le vette`}
+      bare
     >
       <div className="@container reveal on-sky">
-        <div className={`grid gap-8 @lg:gap-x-8 ${columns}`}>
+        <div className={`grid gap-2.5 ${columns}`}>
           {lists.map((l) => (
             <List key={l.title} {...l} />
           ))}
