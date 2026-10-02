@@ -78,10 +78,10 @@ export function SavedPlaces() {
   if (!hydrated) {
     return (
       <div aria-hidden="true" className="flex gap-2 overflow-hidden">
-        {[20, 24, 18].map((w) => (
+        {[30, 24, 18].map((w, i) => (
           <div
             key={w}
-            className="skeleton h-9 shrink-0 rounded-full"
+            className={`skeleton h-9 shrink-0 rounded-full ${i > 0 ? "max-lg:hidden" : ""}`}
             style={{ width: `${w * 0.25}rem` }}
           />
         ))}
@@ -117,7 +117,8 @@ export function SavedPlaces() {
           // On a phone the poster right under the row already names the place on show, so its pill steps aside
           <li
             key={keyOf(p)}
-            className={`shrink-0 snap-start ${current ? "max-lg:hidden" : ""}`}
+            // On a phone only the random city stays out: the saved places are in the search
+            className="shrink-0 snap-start max-lg:hidden"
           >
             <Link
               href={placeHref(p)}
@@ -154,7 +155,7 @@ export function SavedPlaces() {
           </li>
         );
       })}
-      <li className="shrink-0 snap-start">
+      <li className="shrink-0 snap-start max-lg:hidden">
         <button
           type="button"
           onClick={isSaved ? focusSearch : toggleSaved}

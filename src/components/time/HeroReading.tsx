@@ -11,7 +11,7 @@ import { NarrativeText } from "./NarrativeText";
  */
 export function HeroReading({ outlook }: { outlook: string }) {
   return (
-    <div className="items-center max-lg:pb-14 lg:pb-1">
+    <div className="items-center max-lg:pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-1">
       <div className="grid grid-cols-6 gap-x-4 border-t border-white/30 pt-1 items-center">
         <p
           aria-hidden="true"
