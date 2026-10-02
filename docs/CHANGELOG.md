@@ -3,6 +3,7 @@
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
 ## 2026-10-02
+- Phone poster laid out as the user chose (temperature on top, the map between, the hour, the name and the outlook at the foot); the search as a round glass button, only "Città casuale" left outside; the poster maker a centred modal; "Condividi" sends the poster with the link and a message. Towns around keep their region and country (looked up by name when a link carries only it).
 - Phone: a navigation bar of clear glass (Meteo, Modifica mappa, Poster) that hides while a sheet is open; one glass sheet for the weather and the map, the map's panel as colour chips; the page stays still and the finger moves and turns the map, with "Ricentra"; the quick facts move into the weather sheet (WTH-022).
 - Phone: the data sheet follows the finger and settles on the nearest stop; the chapters' scroll-linked reveal is off on a phone (an empty sheet in Chrome on iPhone).
 - Phone: the page no longer scrolls into the data; the poster and the map stay in view, the data rise in a glass sheet from a floating bar with Dati, Poster and Mappa (WTH-022, first checkpoint).

@@ -1,6 +1,6 @@
 "use client";
 
-import { formatTemp } from "@/lib/weather/formatters";
+import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
 import { tempColor, tempGradient } from "@/lib/weather/temp-color";
 import { WeatherIcon } from "../weather/WeatherIcon";
 import { useMoment, useView } from "./TimeContext";
@@ -12,15 +12,34 @@ import { useMoment, useView } from "./TimeContext";
  * the top of the block over the name (the block 0.9em, then 0.79em into the name's line), so it starts
  * 1.694 - 0.727 x 1.9 = 0.313em down, 0.165 of its own size.
  */
-export function HeroTemp() {
+export function HeroTemp({
+  size = "title",
+}: {
+  /** "phone": the headline of the phone's poster, large but held to a set size */
+  size?: "title" | "phone";
+}) {
   const { frame } = useMoment();
   return (
     <p
       aria-hidden="true"
-      className="mt-[0.165em] font-poster text-[1.9em] font-light leading-[0.727] tracking-[-0.05em] whitespace-nowrap tabular-nums transition-colors duration-700"
+      className={`font-poster font-light tracking-[-0.05em] whitespace-nowrap tabular-nums transition-colors duration-700 ${
+        size === "phone"
+          ? "text-[clamp(5.5rem,27vw,7.25rem)] leading-[0.76]"
+          : "mt-[0.165em] text-[1.9em] leading-[0.727]"
+      }`}
       style={{ color: tempColor(frame.temp) }}
     >
       {formatTemp(frame.temp)}
+    </p>
+  );
+}
+
+/** The sky of the moment on show, in words ("Coperto") */
+export function HeroCondition({ className = "" }: { className?: string }) {
+  const { frame } = useMoment();
+  return (
+    <p aria-hidden="true" className={className}>
+      {conditionLabel(frame)}
     </p>
   );
 }

@@ -15,7 +15,7 @@ import {
   HeroNowPhone,
 } from "../time/HeroMeta";
 import { HeroReading } from "../time/HeroReading";
-import { HeroGlyph, HeroTemp } from "../time/HeroTemp";
+import { HeroCondition, HeroGlyph, HeroTemp } from "../time/HeroTemp";
 
 /**
  * The reading as a Swiss typographic poster, on a six-column grid, flush left
@@ -66,15 +66,14 @@ export function WeatherHero({
 
   return (
     // The map behind the page centres the city on the middle of this poster (see MapBackdropGL).
-    // On a phone it fills what the first screen leaves under the search (12.5rem: the name, the field,
-    // the saved places and the gaps), so the reading is that screen: the hour, the name and the
-    // temperature centred on it, over the city, and the outlook at its foot.
+    // On a phone it fills what the screen leaves under the head (7.5rem: the wordmark, the random city
+    // and the gaps): the temperature at its top, the name and the outlook at its foot, the city between.
     <section
       data-map-anchor="poster"
       // On a phone the finger here moves the map (see MapGestures)
       data-map-gestures
       aria-label="Meteo attuale"
-      className="on-sky flex min-h-[calc(100svh-12.5rem)] flex-col lg:min-h-full"
+      className="on-sky flex min-h-[calc(100svh-7.5rem)] flex-col lg:min-h-full"
     >
       <HeroActions />
       <HeroMeta
@@ -87,28 +86,26 @@ export function WeatherHero({
       />
 
       {/*
-        The title: the name on four columns, the temperature on the last two (under the
-        clock), in one size, set here once for both, closing on the name's last baseline.
-        It is as large as the name's longest word allows on its four columns (a heavy
-        grotesk runs about 0.56em a letter), and steps down for a long name.
+        On a phone (the poster is the whole screen there, the data in a sheet): the temperature large at
+        the top, as the poster's headline, with the sky and the day's low and high under it; the map in
+        the middle; the hour, the place's name and its facts at the foot, over the outlook.
       */}
-      {/* On a phone the hour and the day stand over the name, and the block sits at the middle of the screen */}
-      <div aria-hidden="true" className="min-h-4 flex-1 lg:hidden" />
-      <HeroNowPhone
-        timezone={timezone}
-        renderedAt={renderedAt}
-        dataAt={current.time}
-        className="mb-4 lg:hidden"
-      />
+      <div className="rise-in pt-4 lg:hidden">
+        <HeroTemp size="phone" />
+        <div className="mt-3 flex items-center gap-3 text-[1.5rem]">
+          <HeroGlyph high={range.max} low={range.min} note={range.note} />
+          <HeroCondition className="text-[0.8125rem] text-ink-muted" />
+        </div>
+      </div>
 
       {/*
-        The composition: over the name, close to it, the day's low and high with the sky's glyph; the
-        temperature at the right edge, 1.9 times its size and ending on the baseline of the name's first line (see
-        HeroTemp), so it is the largest thing on the poster. The name sets the size, the temperature
-        follows it, and both step down together for a long name.
+        On a computer the composition: over the name, close to it, the day's low and high with the sky's
+        glyph; the temperature at the right edge, 1.9 times its size and ending on the baseline of the
+        name's first line (see HeroTemp), so it is the largest thing on the poster. The name sets the
+        size, the temperature follows it, and both step down together for a long name.
       */}
       <div
-        className="mt-3 flex items-start justify-between gap-x-[0.08em] lg:mt-5"
+        className="mt-5 flex items-start justify-between gap-x-[0.08em] max-lg:hidden"
         style={{
           fontSize: `max(2rem, min(${titleSize}cqw, ${titleSize * 0.85}cqh))`,
         }}
@@ -127,18 +124,34 @@ export function WeatherHero({
         </div>
       </div>
 
-      <HeroMetaPhone
-        region={placeParts(place).region}
-        country={placeParts(place).country}
-        coords={formatCoords(place.lat, place.lon)}
-        className="mt-4 lg:hidden"
-      />
-
       {/*
         The empty field: the map's city shows through it, well in view. On a phone it takes half of
         what the screen leaves (the other half is over the hour), which centres the block between them.
       */}
-      <div aria-hidden="true" className="min-h-10 flex-1 lg:min-h-8" />
+      <div aria-hidden="true" className="min-h-8 flex-1" />
+
+      {/* On a phone, the foot: the hour and the day on one line, a hairline, the name, the place's facts */}
+      <div className="mb-5 lg:hidden">
+        <HeroNowPhone
+          timezone={timezone}
+          renderedAt={renderedAt}
+          dataAt={current.time}
+        />
+        <div
+          className="mt-2 border-t border-white/30 pt-2"
+          style={{
+            fontSize: `min(4.25rem, ${(92 / (0.58 * longest)).toFixed(2)}vw)`,
+          }}
+        >
+          <LocationControl />
+        </div>
+        <HeroMetaPhone
+          region={placeParts(place).region}
+          country={placeParts(place).country}
+          coords={formatCoords(place.lat, place.lon)}
+          className="mt-3"
+        />
+      </div>
 
       <p className="sr-only">
         Adesso {formatTemp(current.temp)}, {label.toLowerCase()}, percepita{" "}

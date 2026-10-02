@@ -215,13 +215,13 @@ export function HeroNowPhone({
   const { dayLabel } = useMoment();
   const day = dayLabel.relative ?? dayLabel.weekday;
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
+    <div className={`flex items-baseline justify-between gap-3 ${className}`}>
       <HeroClock
         timezone={timezone}
         renderedAt={renderedAt}
         dataAt={dataAt}
         className="flex items-baseline gap-x-3 [&>p]:flex [&>p]:items-baseline [&>p]:gap-x-2"
-        timeClassName="font-poster text-4xl font-light leading-none tracking-[-0.03em] tabular-nums text-accent"
+        timeClassName="font-poster text-2xl font-light leading-none tracking-[-0.03em] tabular-nums text-accent"
       />
       <p className="text-caption">
         {day}, {dayLabel.date}

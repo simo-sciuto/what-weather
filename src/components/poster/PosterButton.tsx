@@ -1,5 +1,6 @@
 "use client";
 
+import { placeHref } from "@/lib/place";
 import { placeParts } from "@/lib/weather/formatters";
 import type { MapOption } from "@/lib/map-options";
 import type { SkyPalette } from "@/lib/weather/palette";
@@ -154,15 +155,28 @@ export function PosterButton({
     setDrawn({});
   }
 
+  /**
+   * Shares the poster with a message ready to send and the link to the place's weather. Some apps take
+   * the picture and the words together, others only one of them: where the files can't go, the message
+   * and the link still do.
+   */
   async function share() {
     if (current?.status !== "done") return;
     const file = new File([current.blob], fileName(place.name, format), {
       type: "image/png",
     });
-    if (!navigator.canShare?.({ files: [file] })) return;
-    await navigator
-      .share({ files: [file], title: `${place.name} · what-weather` })
-      .catch(() => undefined);
+    const url = new URL(placeHref(place), window.location.origin).toString();
+    const text = `${place.name}, il cielo di adesso in un poster. Il meteo è qui:`;
+    const title = `${place.name} · what-weather`;
+    const withFile = { files: [file], title, text, url };
+    const message = { title, text, url };
+    const data = navigator.canShare?.(withFile)
+      ? withFile
+      : navigator.canShare?.(message)
+        ? message
+        : null;
+    if (!data) return;
+    await navigator.share(data).catch(() => undefined);
   }
 
   const { width, height } = POSTER_FORMATS[format];
@@ -201,7 +215,7 @@ export function PosterButton({
         ref={dialog}
         onClose={onClose}
         aria-labelledby={titleId}
-        className={`m-auto max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] overflow-y-auto rounded-[1.75rem] p-5 text-left text-ink backdrop:bg-black/30 sm:p-6 max-lg:mb-0 max-lg:max-h-[calc(100dvh-3.5rem)] max-lg:w-[calc(100vw-1rem)] max-lg:max-w-none max-lg:rounded-b-none ${GLASS}`}
+        className={`m-auto max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] overflow-y-auto rounded-[1.75rem] p-5 text-left text-ink backdrop:bg-black/45 backdrop:backdrop-blur-[2px] sm:p-6 ${GLASS}`}
       >
         <div className="flex items-start justify-between gap-4">
           <div>

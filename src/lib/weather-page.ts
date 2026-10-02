@@ -3,15 +3,22 @@ import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
 import { parsePlaceRef, type PlaceRef } from "./place";
 import { DEFAULT_PLACE, getProvider } from "./weather";
-import { COORD_PRECISION, MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS } from "./weather/constants";
+import {
+  COORD_PRECISION,
+  MAX_DATA_AGE_SECONDS,
+  WEATHER_REVALIDATE_SECONDS,
+} from "./weather/constants";
 import { buildTimeline } from "./weather/frames";
 import { lookupPollen } from "./weather/pollen";
 import { randomPlace } from "./weather/random-places";
 import { sinceYesterday } from "./weather/yesterday";
 
-export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+export type SearchParams = Promise<
+  Record<string, string | string[] | undefined>
+>;
 
-const param = (value: string | string[] | undefined) => (typeof value === "string" ? value : undefined);
+const param = (value: string | string[] | undefined) =>
+  typeof value === "string" ? value : undefined;
 const round = (n: number) => Number(n.toFixed(COORD_PRECISION));
 
 /**
@@ -53,21 +60,53 @@ async function load(
     provider.name === "mock" ? undefined : lookupPollen(lat, lon),
   ]);
   const fetched = pollen === undefined ? weather : { ...weather, pollen };
-  // A name picked in search beats reverse geocoding ("Tokyo" rather than "Shibuya"). A link
-  // that gives only the name (a town nearby) keeps the region geocoding found for that same name.
-  const sameName = name === fetched.place.name;
+  // A link that gives only the name (a town nearby, a random city) is told its region and country by the
+  // place search, the result nearest these coordinates; reverse geocoding may know neither (Open-Meteo
+  // has none) or name the spot differently ("Urawa Ward" for Saitama).
+  const named =
+    name && (!region || !country)
+      ? await namesFor(provider, name, lat, lon)
+      : null;
   const data = name
     ? {
         ...fetched,
         place: {
           ...fetched.place,
           name,
-          region: region ?? (sameName ? fetched.place.region : undefined),
-          country: country ?? fetched.place.country,
+          region: region ?? named?.region ?? fetched.place.region,
+          country: country ?? named?.country ?? fetched.place.country,
         },
       }
     : fetched;
-  return { data, timeline: buildTimeline(data), provider: provider.name, yesterday };
+  return {
+    data,
+    timeline: buildTimeline(data),
+    provider: provider.name,
+    yesterday,
+  };
+}
+
+/** The region and country the place search gives a name, from its result nearest these coordinates (within 30 km); null if none is near. */
+async function namesFor(
+  provider: ReturnType<typeof getProvider>,
+  name: string,
+  lat: number,
+  lon: number,
+) {
+  try {
+    const found = await provider.searchPlaces(name);
+    const km = (p: { lat: number; lon: number }) =>
+      Math.hypot(
+        (p.lat - lat) * 111,
+        (p.lon - lon) * 111 * Math.cos((lat * Math.PI) / 180),
+      );
+    const near = found
+      .filter((p) => km(p) < 30)
+      .sort((a, b) => km(a) - km(b))[0];
+    return near ? { region: near.region, country: near.country } : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -76,7 +115,15 @@ async function load(
  * the saved places), so they all reuse one entry per place.
  */
 export function weatherFor(ref: PlaceRef, scenario?: string, at?: string) {
-  return load(round(ref.lat), round(ref.lon), ref.name, ref.region, ref.country, scenario, at);
+  return load(
+    round(ref.lat),
+    round(ref.lon),
+    ref.name,
+    ref.region,
+    ref.country,
+    scenario,
+    at,
+  );
 }
 
 /**
@@ -99,5 +146,11 @@ export async function loadWeatherPage(searchParams: SearchParams) {
   const landed = !linked && getProvider(scenario, at).name !== "mock";
   const ref = linked ?? (landed ? landingPlace() : DEFAULT_PLACE);
   const loaded = await weatherFor(ref, scenario, at);
-  return { ...loaded, scenario, at, landed, renderedAt: Math.floor(Date.now() / 1000) };
+  return {
+    ...loaded,
+    scenario,
+    at,
+    landed,
+    renderedAt: Math.floor(Date.now() / 1000),
+  };
 }
