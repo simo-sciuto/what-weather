@@ -33,6 +33,8 @@ export function optionColor(p: SkyPalette, option: MapOption): string {
       return over(map.rail);
     case "buildings":
       return over(map.buildings);
+    case "buildings-3d":
+      return over(map["buildings-3d"]);
     case "shadows":
       return over(map.shadows);
     // Traffic takes the complement of each road; the main roads' stands for it
