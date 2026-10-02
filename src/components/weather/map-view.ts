@@ -37,7 +37,10 @@ export function zoomAt(progress: number): number {
  * (a smoothstep, so it starts and ends gently), so the city lies back as the page arrives among its streets.
  */
 export function pitchAt(progress: number): number {
-  const t = Math.min(Math.max((progress - PITCH_FROM) / (1 - PITCH_FROM), 0), 1);
+  const t = Math.min(
+    Math.max((progress - PITCH_FROM) / (1 - PITCH_FROM), 0),
+    1,
+  );
   return END_PITCH * t * t * (3 - 2 * t);
 }
 
@@ -72,8 +75,37 @@ export const phoneMap = {
  * The view the viewer has the map at now: on a computer from the scroll (the top's, flat, for those who
  * asked for less motion), on a phone from the finger.
  */
-export function currentView(): { zoom: number; pitch: number; bearing: number } {
+export function currentView(): {
+  zoom: number;
+  pitch: number;
+  bearing: number;
+} {
   if (isPhone()) return { ...viewAt(phone.progress), bearing: phone.bearing };
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return { ...viewAt(0), bearing: 0 };
-  return { ...viewAt(scrollProgress()), bearing: 0 };
+  // The turn is the viewer's on a computer too (dragged, or with the keys on the compass)
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+    return { ...viewAt(0), bearing: phone.bearing };
+  return { ...viewAt(scrollProgress()), bearing: phone.bearing };
+}
+
+/** The eight points, from north clockwise, by their Italian initials */
+const POINTS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"] as const;
+const POINT_NAMES = [
+  "Nord",
+  "Nord-Est",
+  "Est",
+  "Sud-Est",
+  "Sud",
+  "Sud-Ovest",
+  "Ovest",
+  "Nord-Ovest",
+] as const;
+
+/** The nearest of the eight points to a bearing in degrees (0 north, clockwise): its initials ("NE", "SO") */
+export function bearingPoint(bearing: number): (typeof POINTS)[number] {
+  return POINTS[Math.round((((bearing % 360) + 360) % 360) / 45) % 8];
+}
+
+/** The same in words ("Nord-Est"), for those who hear it */
+export function bearingName(bearing: number): string {
+  return POINT_NAMES[Math.round((((bearing % 360) + 360) % 360) / 45) % 8];
 }

@@ -17,6 +17,7 @@ import { MapBackdropGL } from "@/components/weather/MapBackdropGL";
 import { MapProvider } from "@/components/weather/MapContext";
 import { MapView } from "@/components/weather/MapView";
 import { MapSheet } from "@/components/weather/MapControls";
+import { MapCompass } from "@/components/weather/MapCompass";
 import { MapGestures } from "@/components/weather/MapGestures";
 import { Territory } from "@/components/weather/CityFacts";
 import { SiteFooter } from "@/components/weather/SiteFooter";
@@ -139,6 +140,12 @@ export default async function Home({
               <MapBackdropGL className="backdrop-fade pointer-events-none fixed inset-0 -z-1" />
               {/* On a phone the page stays still and the finger moves the map */}
               {MAPBOX && <MapGestures />}
+              {/* The compass, on a phone under the search button (a computer has it in the poster's head) */}
+              {MAPBOX && (
+                <div className="fixed right-[1.125rem] top-[calc(max(0.875rem,env(safe-area-inset-top))+3.25rem)] z-30 sm:right-[2.125rem] lg:hidden">
+                  <MapCompass sigla={false} />
+                </div>
+              )}
               {/* On a phone a bar at the foot of the screen: the weather data, the poster, the map */}
               <PhoneBar />
               <MapSheet />

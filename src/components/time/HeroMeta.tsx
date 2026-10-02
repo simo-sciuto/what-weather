@@ -8,6 +8,7 @@ import { MapControls } from "../weather/MapControls";
 import { useRef, type CSSProperties } from "react";
 import { BarTab, ICONS, useLens, usePhoneNav } from "../layout/PhoneNav";
 import { useMap } from "../weather/MapContext";
+import { MapCompass } from "../weather/MapCompass";
 import { useMoment, useView } from "./TimeContext";
 
 /**
@@ -20,6 +21,7 @@ export function HeroActions() {
   return (
     <div className="flex h-12 items-center justify-between gap-4 max-lg:hidden">
       <PosterButton />
+      <MapCompass />
       <MapControls />
     </div>
   );

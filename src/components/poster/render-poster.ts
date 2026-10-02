@@ -103,6 +103,7 @@ export async function renderPoster({
     palette,
     fonts,
     tempColor(temp),
+    view.bearing ?? 0,
     legendFor(palette, options, sun, mapZoom(W, H, place.lat, view.zoom)),
   );
 
@@ -338,6 +339,8 @@ function paintType(
   fonts: Fonts,
   /** The colour of the temperature on show, for the name and the country */
   accent: string,
+  /** How far the map is turned, in degrees: the compass at the foot shows it */
+  bearing: number,
   legend: Swatch[],
 ) {
   const short = Math.min(W, H);
@@ -392,29 +395,29 @@ function paintType(
   // Foot, laid from the bottom up. Centred at the very foot, the day of the year and under it the
   // wordmark, like a print's number and signature. Over them, under a hairline, a grid of small print:
   // on the left where (two columns, latitude and longitude, each a label over its figure), on the right
-  // the colours this poster was drawn in, on an even grid of their own, and under them the map's
-  // credits. Over the hairline, the name.
+  // the colours this poster was drawn in, on an even grid of their own. The map's credits sit under
+  // the wordmark, in the margin. Over the hairline, the name.
   const bottom = H - m;
   const mark = small * 1.9;
   const dayBase = bottom - mark * 1.3;
-  const creditsBase = dayBase - small * 2.6;
   const right = W - m;
   const barLeft = m + (W - 2 * m) * 0.42;
   const bar = layoutSwatches(ctx, legend, right - barLeft, small, fonts.sans);
   const barHeight = bar.rows.length * bar.rowHeight;
-  const swatchesTop = creditsBase - small * 1.6 - barHeight;
+  const swatchesTop = dayBase - small * 3.4 - barHeight;
   const ruleY = swatchesTop - small * 1.1;
 
   ctx.globalAlpha = 0.45;
   ctx.fillRect(m, ruleY, W - 2 * m, rule);
   ctx.globalAlpha = 1;
 
-  // Latitude and longitude, side by side, each a small label over its figure, lined up with the colours' first row
+  // Latitude and longitude, side by side, each a small label over its figure, lined up with the colours'
+  // first row, and a third column: the compass, with the point the map faces beside it
   const [lat, lon] = formatCoords(place.lat, place.lon);
   const coordLabel = small * 0.5;
   const coordFigure = small * 1.25;
   const coordTop = swatchesTop;
-  const coordGap = (barLeft - m) / 2;
+  const coordGap = (barLeft - m) / 3;
   (
     [
       ["Latitudine", lat],
@@ -429,6 +432,15 @@ function paintType(
     setType(ctx, `500 SIZE ${fonts.sans}`, coordFigure, -0.005);
     ctx.fillText(figure, x, coordTop + coordLabel + coordFigure * 1.25);
   });
+  paintCompass(
+    ctx,
+    m + 2 * coordGap,
+    coordTop,
+    small,
+    bearing,
+    accent,
+    fonts.sans,
+  );
 
   // Last, centred at the foot: the day of the year, like the number pencilled under a limited edition print.
   setType(ctx, `300 SIZE ${fonts.poster}`, small * 1.1, 0.04);
@@ -440,13 +452,6 @@ function paintType(
 
   paintSwatches(ctx, barLeft, swatchesTop, bar, fonts.sans);
 
-  setType(ctx, `500 SIZE ${fonts.sans}`, small * 0.7, 0.02);
-  ctx.textAlign = "left";
-  ctx.globalAlpha = 0.6;
-  ctx.fillText("© Mapbox  © OpenStreetMap", barLeft, creditsBase);
-  ctx.globalAlpha = 1;
-  ctx.textAlign = "left";
-
   // The signature: the wordmark, centred under the number, large enough to read across a room.
   paintWordmark(
     ctx,
@@ -455,6 +460,14 @@ function paintType(
     mark,
     fonts.poster,
   );
+
+  // The map's credits, centred under the wordmark
+  setType(ctx, `500 SIZE ${fonts.sans}`, small * 0.7, 0.02);
+  ctx.textAlign = "center";
+  ctx.globalAlpha = 0.6;
+  ctx.fillText("© Mapbox  © OpenStreetMap", W / 2, bottom + small * 1.7);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = "left";
 
   const { size, lines } = setName(
     ctx,
@@ -476,6 +489,64 @@ function paintType(
       lastBase - (lines.length - 1 - i) * lead,
     ),
   );
+}
+
+/** The eight points, from north clockwise, by their Italian initials */
+const POINTS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+
+/**
+ * The compass at the poster's foot: a hairline ring and a needle in the colour of the temperature
+ * pointing at north as the map is turned, and beside it the point the map faces ("NE"), in bold capitals.
+ * `x` and `top` are its column's left edge and the line it hangs from.
+ */
+function paintCompass(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  top: number,
+  small: number,
+  bearing: number,
+  color: string,
+  family: string,
+) {
+  const r = small * 1.45;
+  const cx = x + r;
+  const cy = top + r + small * 0.05;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = 0.7;
+  ctx.lineWidth = Math.max(2, small * 0.06);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  // The needle turns the other way to the map
+  ctx.translate(cx, cy);
+  ctx.rotate((-bearing * Math.PI) / 180);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -r * 0.8);
+  ctx.lineTo(r * 0.16, 0);
+  ctx.lineTo(-r * 0.16, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 0.28;
+  ctx.beginPath();
+  ctx.moveTo(0, r * 0.8);
+  ctx.lineTo(r * 0.16, 0);
+  ctx.lineTo(-r * 0.16, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.fillStyle = color;
+  setType(ctx, `700 SIZE ${family}`, small * 1.5, 0.04);
+  ctx.textAlign = "left";
+  ctx.fillText(
+    POINTS[Math.round((((bearing % 360) + 360) % 360) / 45) % 8],
+    cx + r + small * 0.6,
+    cy + small * 0.45,
+  );
+  ctx.restore();
 }
 
 /** The map's buildings are in Mapbox's tiles from this zoom; before it there are none to show. */

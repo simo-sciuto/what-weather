@@ -2,6 +2,9 @@
 
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
+## 2026-10-03
+- A compass on the map and the poster, with the point the map faces; the map can be turned on a computer too; the poster's map credits under its wordmark; the page's footer set in rows on a phone (WTH-023).
+
 ## 2026-10-02
 - The weather data as tiles (Weather app style) on phone and computer; Territorio with the country and the capitals as links with their weather; "Ricentra" no longer over the search button (WTH-025, WTH-026).
 - Phone: the bar stays in view with a sheet open and marks the page on show; the sheets stop above it (WTH-022).

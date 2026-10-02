@@ -5,28 +5,61 @@ import type { WeatherProvider } from "@/lib/weather/provider";
 
 type Source = { name: string; href: string };
 
-const OPEN_METEO: Source = { name: "Open-Meteo", href: "https://open-meteo.com/" };
-const OPENWEATHER: Source = { name: "OpenWeather", href: "https://openweathermap.org/" };
+const OPEN_METEO: Source = {
+  name: "Open-Meteo",
+  href: "https://open-meteo.com/",
+};
+const OPENWEATHER: Source = {
+  name: "OpenWeather",
+  href: "https://openweathermap.org/",
+};
 // Mapbox's terms ask for both credits: its maps are drawn from OpenStreetMap data.
-const MAPBOX: Source = { name: "© Mapbox", href: "https://www.mapbox.com/about/maps/" };
+const MAPBOX: Source = {
+  name: "© Mapbox",
+  href: "https://www.mapbox.com/about/maps/",
+};
 const MAPBOX_DATA: Source = { name: "Mapbox", href: "https://www.mapbox.com/" };
-const WIKIDATA: Source = { name: "Wikidata", href: "https://www.wikidata.org/" };
-const OSM: Source = { name: "© OpenStreetMap", href: "https://www.openstreetmap.org/copyright" };
+const WIKIDATA: Source = {
+  name: "Wikidata",
+  href: "https://www.wikidata.org/",
+};
+const OSM: Source = {
+  name: "© OpenStreetMap",
+  href: "https://www.openstreetmap.org/copyright",
+};
 
 /**
  * Who the page's data comes from, worked out from what actually runs (the
  * weather provider, the OpenWeather key, the Mapbox token), so the credits
  * never name a service the page didn't use, nor leave one out.
  */
-function credits(provider: WeatherProvider["name"], openWeatherKey: boolean, maps: boolean) {
-  const weather = provider === "open-meteo" ? [OPEN_METEO] : provider === "mock" ? [] : [OPENWEATHER];
+function credits(
+  provider: WeatherProvider["name"],
+  openWeatherKey: boolean,
+  maps: boolean,
+) {
+  const weather =
+    provider === "open-meteo"
+      ? [OPEN_METEO]
+      : provider === "mock"
+        ? []
+        : [OPENWEATHER];
   // Open-Meteo finds places by name but can't name coordinates: OpenWeather does that when a key is set.
-  const places = provider === "open-meteo" ? (openWeatherKey ? [OPEN_METEO, OPENWEATHER] : [OPEN_METEO]) : weather;
+  const places =
+    provider === "open-meteo"
+      ? openWeatherKey
+        ? [OPEN_METEO, OPENWEATHER]
+        : [OPEN_METEO]
+      : weather;
   return [
     { label: "Previsioni e aria", sources: weather },
     // Today against yesterday and the pollen always come from Open-Meteo: credited on their own
     // when the forecast is someone else's (sample data has neither from outside).
-    { label: "Ieri e polline", sources: provider === "mock" || provider === "open-meteo" ? [] : [OPEN_METEO] },
+    {
+      label: "Ieri e polline",
+      sources:
+        provider === "mock" || provider === "open-meteo" ? [] : [OPEN_METEO],
+    },
     { label: "Luoghi", sources: places },
     // The clouds and rain drawn over the maps, and the weather in the towns around, always come from Open-Meteo.
     ...(maps
@@ -67,8 +100,8 @@ export function SiteFooter({
   const openMeteo = list.some((c) => c.sources.includes(OPEN_METEO));
 
   return (
-    <footer className="sheet on-sky flex flex-col gap-7 pt-5 pb-2">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+    <footer className="sheet on-sky flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
         <Wordmark className="text-3xl" />
         <p className="text-caption tabular-nums text-ink-muted">
           Aggiornato alle {formatTime(updatedAt, timezone)}, ora locale
@@ -78,7 +111,10 @@ export function SiteFooter({
       {provider === "mock" && (
         <div className="flex flex-col gap-2">
           <p className="label text-ink!">Dati di esempio</p>
-          <nav aria-label="Scenari meteo di esempio" className="flex flex-wrap gap-x-3 gap-y-1">
+          <nav
+            aria-label="Scenari meteo di esempio"
+            className="flex flex-wrap gap-x-3 gap-y-1"
+          >
             {MOCK_SCENARIOS.map((s) => (
               <a
                 key={s}
@@ -94,11 +130,15 @@ export function SiteFooter({
       )}
 
       {list.length > 0 && (
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+        // One row to a kind of data: its name on the left, its sources on the right, between hairlines
+        <dl className="border-t border-white/12">
           {list.map((c) => (
-            <div key={c.label} className="min-w-0">
+            <div
+              key={c.label}
+              className="grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] items-baseline gap-x-4 border-b border-white/12 py-2.5"
+            >
               <dt className="label">{c.label}</dt>
-              <dd className="mt-1.5 flex flex-wrap gap-x-2 text-sm">
+              <dd className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-right text-sm">
                 {c.sources.map((s) => (
                   <a
                     key={s.name}
