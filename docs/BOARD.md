@@ -15,7 +15,6 @@ Items marked (audit) were noticed while reading the code on 2026-10-01, not requ
 - [ ] WTH-003 (audit) Validate min/max semantics: `DailyPoint.partial`, `tempRange` (`today.ts`), `days.ts` filtering of partial days, on 3-hourly providers.
 
 - [ ] WTH-009 More variety of colours in the "tinta" menu of the colour tuning.
-- [ ] WTH-010 Rework the UI of the modal that opens from "La mappa".
 - [ ] WTH-013 Poster on a phone: the actions are now docked to the foot of the screen (`HeroActionsDock`, always visible while scrolling). Still to decide and check on a real phone: the poster dialog on a small screen, how the file is delivered (share sheet or download, see `share()` in `PosterButton.tsx`), formats, canvas size limits and memory.
 - [ ] WTH-008 Give character to the "Crea poster" and "La mappa" buttons: they should stand out and feel part of the poster identity.
 - [ ] WTH-015 Show the buildings from above too, the 3D ones included. Not solved: Mapbox Streets' tiles have buildings only from zoom 13 (and the trams and bus stops from 14), and the page's top is zoom 11. Starting the map closer when such a choice is on was tried and removed on the user's decision (2026-10-02); what is left is to decide how to have them from the top, if at all (a closer start for everyone, or a different source).
@@ -35,6 +34,7 @@ Rebuilt on 2026-10-02 from git history (13 commits, 2026-09-24 to 2026-10-01), g
 
 ### Recenti
 
+- [x] WTH-010 "La mappa" panel redesigned with the user from three prototypes (mix of A and B): the three colour sliders on one row at the top, then the layers as words (light when off, extra bold and in their colour when on, a bar of the exact colour under each), groups ruled with their counts, a line at the foot saying what the word touched does; text actions "Torna agli automatici" and "Chiudi" (`MapControls.tsx`)
 - [x] WTH-021 A light shadow under each rank of road (follows its choice: off with the roads), stronger on the poster; the poster's colour bar drops the shadows and the relief and is set as fine bars with small capitals (`map-style.ts`, `render-poster.ts`)
 - [x] WTH-020 The choice "Nomi delle acque" removed from the map panel, with its two label layers, their colours and the glyphs of the style: the map draws no words
 - [x] WTH-016 Colours of the map's layers kept apart as a whole: the layers on show are placed in order of weight (roads fixed, then water, buildings, trains, metro, trams, buses, meadows), each looked for among variants of its colour until it clears a distance in OKLab from everything placed before it; only the layers on show count (`mapInksFor(sky, tune, active)`, ADR-011 extended). Median 4 to 8 ms; the distance wanted is not always reached (about 0.5 to 1.0 of it with every layer on)
