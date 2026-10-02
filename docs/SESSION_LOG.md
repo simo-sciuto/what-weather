@@ -2,6 +2,12 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-02 (third session)
+- Worked on: WTH-014 (3D buildings option and colour separation of water, roads and buildings).
+- Completed: see CHANGELOG, ADR-011. Checked: tsc, ESLint, palette and map-style unit tests (new ones for the separation and the 3D layer), a screenshot of Milano with 3D on and the map tilted.
+- Not verified: the full `palette.test.ts` in one run: its first test (white text on the sky, nothing to do with the map) took about 560 s in four runs, a single call stalling for that long, while alone it takes 4.5 s and no loop guard ever fired; not explained. The 3D layer on a phone and in the poster; the colour separation in the poster's colour bar; no e2e (they run without Mapbox).
+- Next: the modal of "La mappa" (WTH-010), WTH-009, WTH-013.
+
 ## 2026-10-02 (second session)
 - Worked on: WTH-012 and WTH-008 (the poster's top, the two actions), WTH-011 (random city), WTH-013 added.
 - Completed: see CHANGELOG. Checked with a screenshot after each UI change (desktop 1440x900, phone 390x844; the user asked for this), tsc, ESLint, unit tests for the new random code, and e2e for reading, places and phone (8 passed, before the last reorder of the button row).

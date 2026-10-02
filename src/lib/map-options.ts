@@ -1,13 +1,13 @@
 /**
  * Which layers the map behind the page shows, the viewer's to choose: the
  * city's own (the water, the three ranks of road), on until turned off, and
- * the extras (the meadows, the relief, the traffic), off until turned on, so
+ * the extras (the meadows, the relief, the buildings in 3D, the traffic), off until turned on, so
  * the page is as it always was. Kept in localStorage like the map's tuning
  * (see map-tuning.ts) and exposed the same way, as an external store; every
  * access is guarded.
  */
 
-export const MAP_OPTIONS = ["water", "water-names", "streets", "main-roads", "motorways", "green", "relief", "contours", "rail", "buildings", "shadows", "traffic", "lights"] as const;
+export const MAP_OPTIONS = ["water", "water-names", "streets", "main-roads", "motorways", "green", "relief", "contours", "rail", "buildings", "buildings-3d", "shadows", "traffic", "lights"] as const;
 export type MapOption = (typeof MAP_OPTIONS)[number];
 
 /** What the map shows until the viewer chooses otherwise: the city as it always was */
@@ -25,6 +25,7 @@ export const MAP_OPTION_INFO: Record<MapOption, { label: string; hint: string }>
   contours: { label: "Curve di livello", hint: "Le quote come linee sottili, colorate per altitudine" },
   rail: { label: "Ferrovie", hint: "Le linee dei treni" },
   buildings: { label: "Edifici", hint: "Le impronte, avvicinandosi" },
+  "buildings-3d": { label: "Edifici 3D", hint: "In volume, alti come sono: si vedono meglio con la mappa inclinata" },
   shadows: { label: "Ombre", hint: "Quelle degli edifici, dal sole del momento" },
   traffic: { label: "Traffico", hint: "In diretta, dove c'è coda" },
   lights: { label: "Luci di notte", hint: "I luoghi accesi, a sole calato" },

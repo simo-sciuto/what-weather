@@ -47,6 +47,7 @@ export type MapLayer =
   | "contours"
   | "rail"
   | "buildings"
+  | "buildings-3d"
   | "shadows"
   | "traffic-slow"
   | "traffic-heavy"
@@ -67,10 +68,21 @@ const ELEVATION_SWEEP = 180;
 
 /* ---------- Colour helpers ---------- */
 
-const hex = (h: string): RGB => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) as RGB;
-const toHex = (c: RGB) => "#" + c.map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, "0")).join("");
-const rgba = ([r, g, b, a]: RGBA) => `rgb(${Math.round(r)} ${Math.round(g)} ${Math.round(b)} / ${a.toFixed(3)})`;
-const mix = <T extends number[]>(a: T, b: T, t: number) => a.map((v, i) => v + (b[i] - v) * t) as T;
+const hex = (h: string): RGB =>
+  [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) as RGB;
+const toHex = (c: RGB) =>
+  "#" +
+  c
+    .map((v) =>
+      Math.round(Math.min(255, Math.max(0, v)))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("");
+const rgba = ([r, g, b, a]: RGBA) =>
+  `rgb(${Math.round(r)} ${Math.round(g)} ${Math.round(b)} / ${a.toFixed(3)})`;
+const mix = <T extends number[]>(a: T, b: T, t: number) =>
+  a.map((v, i) => v + (b[i] - v) * t) as T;
 const scale = (c: RGB, k: number) => c.map((v) => v * k) as RGB;
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 
@@ -99,13 +111,20 @@ const toLinear = (v: number) => {
   const s = v / 255;
   return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
 };
-const fromLinear = (v: number) => 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+const fromLinear = (v: number) =>
+  255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
 
 function toOklch([r, g, b]: RGB): LCH {
   const [lr, lg, lb] = [r, g, b].map(toLinear);
-  const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
-  const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
-  const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+  const l = Math.cbrt(
+    0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb,
+  );
+  const m = Math.cbrt(
+    0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb,
+  );
+  const s = Math.cbrt(
+    0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb,
+  );
   const L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
   const A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s;
   const B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
@@ -125,11 +144,28 @@ function fromOklch([L, C, h]: LCH): RGB {
       -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
       -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
     ];
-    if (lin.every((v) => v >= -1e-4 && v <= 1 + 1e-4) || c < 1e-3) return lin.map((v) => fromLinear(clamp01(v))) as RGB;
+    if (lin.every((v) => v >= -1e-4 && v <= 1 + 1e-4) || c < 1e-3)
+      return lin.map((v) => fromLinear(clamp01(v))) as RGB;
   }
 }
 
 const whole = (x: RGB) => x.map(Math.round) as RGB;
+
+/** Straight distance in OKLab, where equal steps are about equally visible: 0.02 is the least that can be told apart, 0.1 is plainly another colour. */
+function oklabDistance(a: RGB, b: RGB): number {
+  const [La, Ca, ha] = toOklch(a);
+  const [Lb, Cb, hb] = toOklch(b);
+  return Math.hypot(
+    La - Lb,
+    Ca * Math.cos(ha) - Cb * Math.cos(hb),
+    Ca * Math.sin(ha) - Cb * Math.sin(hb),
+  );
+}
+
+/** How far apart two colours (#rrggbb) look, in OKLab; see `oklabDistance`. */
+export function colorDistance(a: string, b: string): number {
+  return oklabDistance(hex(a), hex(b));
+}
 
 /**
  * Darken until muted (86% white) text reaches `ratio` against it; full white
@@ -142,7 +178,8 @@ function legibleUnderText(c: RGB, ratio: number): RGB {
   let out = whole(c);
   if (contrast(muted(out), out) >= ratio) return out;
   const [L, C, h] = toOklch(c);
-  for (let l = L; l > 0 && contrast(muted(out), out) < ratio; l -= 0.01) out = whole(fromOklch([l, C, h]));
+  for (let l = L; l > 0 && contrast(muted(out), out) < ratio; l -= 0.01)
+    out = whole(fromOklch([l, C, h]));
   return out;
 }
 
@@ -157,27 +194,74 @@ function legibleUnderText(c: RGB, ratio: number): RGB {
  * reads on it.
  */
 const CLEAR: { at: number; sky: [string, string, string]; glow: RGBA }[] = [
-  { at: -1, sky: ["#0c1026", "#171c42", "#29305f"], glow: [191, 203, 254, 0.18] },
-  { at: -0.4, sky: ["#151a47", "#332f6e", "#6c5a98"], glow: [211, 190, 250, 0.24] },
+  {
+    at: -1,
+    sky: ["#0c1026", "#171c42", "#29305f"],
+    glow: [191, 203, 254, 0.18],
+  },
+  {
+    at: -0.4,
+    sky: ["#151a47", "#332f6e", "#6c5a98"],
+    glow: [211, 190, 250, 0.24],
+  },
   { at: 0, sky: ["#262d6a", "#8a5f9c", "#eba68f"], glow: [254, 200, 156, 0.5] },
-  { at: 0.07, sky: ["#2c4f98", "#8b8fcc", "#f2c4a8"], glow: [254, 214, 170, 0.48] },
-  { at: 0.2, sky: ["#2a67ae", "#6ba6d6", "#b4dde8"], glow: [249, 232, 167, 0.38] },
-  { at: 0.45, sky: ["#1c60b6", "#3f92d0", "#a2d7ec"], glow: [249, 232, 167, 0.48] },
-  { at: 0.72, sky: ["#2a59a6", "#6a8ecc", "#c2ccf2"], glow: [252, 224, 170, 0.44] },
-  { at: 0.9, sky: ["#34478e", "#a07eb8", "#f2b598"], glow: [254, 200, 156, 0.5] },
-  { at: 1, sky: ["#2f2765", "#a35784", "#ee9282"], glow: [254, 184, 193, 0.52] },
-  { at: 1.4, sky: ["#141738", "#2d2760", "#5b407e"], glow: [211, 190, 250, 0.2] },
-  { at: 2, sky: ["#0c1026", "#171c42", "#29305f"], glow: [191, 203, 254, 0.18] },
+  {
+    at: 0.07,
+    sky: ["#2c4f98", "#8b8fcc", "#f2c4a8"],
+    glow: [254, 214, 170, 0.48],
+  },
+  {
+    at: 0.2,
+    sky: ["#2a67ae", "#6ba6d6", "#b4dde8"],
+    glow: [249, 232, 167, 0.38],
+  },
+  {
+    at: 0.45,
+    sky: ["#1c60b6", "#3f92d0", "#a2d7ec"],
+    glow: [249, 232, 167, 0.48],
+  },
+  {
+    at: 0.72,
+    sky: ["#2a59a6", "#6a8ecc", "#c2ccf2"],
+    glow: [252, 224, 170, 0.44],
+  },
+  {
+    at: 0.9,
+    sky: ["#34478e", "#a07eb8", "#f2b598"],
+    glow: [254, 200, 156, 0.5],
+  },
+  {
+    at: 1,
+    sky: ["#2f2765", "#a35784", "#ee9282"],
+    glow: [254, 184, 193, 0.52],
+  },
+  {
+    at: 1.4,
+    sky: ["#141738", "#2d2760", "#5b407e"],
+    glow: [211, 190, 250, 0.2],
+  },
+  {
+    at: 2,
+    sky: ["#0c1026", "#171c42", "#29305f"],
+    glow: [191, 203, 254, 0.18],
+  },
 ];
 
 function clearSky(light: number): { sky: [RGB, RGB, RGB]; glow: RGBA } {
   const u = Math.min(2, Math.max(-1, light));
-  const j = Math.max(1, CLEAR.findIndex((k) => k.at >= u));
+  const j = Math.max(
+    1,
+    CLEAR.findIndex((k) => k.at >= u),
+  );
   const a = CLEAR[j - 1];
   const b = CLEAR[j];
   const t = (u - a.at) / (b.at - a.at || 1);
   return {
-    sky: [0, 1, 2].map((i) => mix(hex(a.sky[i]), hex(b.sky[i]), t)) as [RGB, RGB, RGB],
+    sky: [0, 1, 2].map((i) => mix(hex(a.sky[i]), hex(b.sky[i]), t)) as [
+      RGB,
+      RGB,
+      RGB,
+    ],
     glow: mix(a.glow, b.glow, t),
   };
 }
@@ -219,10 +303,16 @@ const GLOW_MAX = 1.3;
  * at dawn, dusk and night, when it is zero whatever the day was like (a
  * sunset keeps its colours).
  */
-const daylight = (light: number) => (light <= 0 || light >= 1 ? 0 : clamp01(2 * Math.sin(light * Math.PI)));
+const daylight = (light: number) =>
+  light <= 0 || light >= 1 ? 0 : clamp01(2 * Math.sin(light * Math.PI));
 
 /** The factor for a UV index between `min` (none) and `max` (full strength), eased in by the daylight. */
-function sunStrength(uv: number, light: number, min: number, max: number): number {
+function sunStrength(
+  uv: number,
+  light: number,
+  min: number,
+  max: number,
+): number {
   return 1 + (min + (max - min) * clamp01(uv / UV_FULL) - 1) * daylight(light);
 }
 
@@ -248,7 +338,11 @@ function vivid(c: RGB, k: number): RGB {
  * of vanishing by day.
  */
 /** Layers whose tone is their point: never lightened to reach their contrast with the sky (see mapInks). */
-const KEEP_TONE: ReadonlySet<MapLayer> = new Set(["traffic-slow", "traffic-heavy", "traffic-jam"]);
+const KEEP_TONE: ReadonlySet<MapLayer> = new Set([
+  "traffic-slow",
+  "traffic-heavy",
+  "traffic-jam",
+]);
 
 const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
   water: { contrast: 1.25, minOpacity: 0.5 },
@@ -263,6 +357,8 @@ const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
   contours: { contrast: 1.3, minOpacity: 0.4 },
   rail: { contrast: 1.5, minOpacity: 0.4 },
   buildings: { contrast: 1.25, minOpacity: 0.3 },
+  // Volumes, not outlines: stronger, and opaque enough that the roads do not show through them
+  "buildings-3d": { contrast: 1.4, minOpacity: 0.75 },
   shadows: { contrast: 1.25, minOpacity: 0.4 },
   "traffic-slow": { contrast: 2, minOpacity: 0.9 },
   "traffic-heavy": { contrast: 2.1, minOpacity: 0.95 },
@@ -277,6 +373,12 @@ const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
  * .backdrop-fade), taken lower on purpose: the contrast holds under the reading's veil too.
  */
 const MAP_FADE = 0.5;
+/**
+ * How far apart, in OKLab (see `colorDistance`), the colours of the water, the roads and the buildings are
+ * kept as they show over the sky: plainly different, so no one is taken for another whatever the hue,
+ * the intensity or the sky.
+ */
+export const MAP_SEPARATION = 0.1;
 /** Below this chroma the sky reads as grey; it counts as a cool grey, so its lines turn warm. */
 const GREY_SKY = 0.035;
 const deg = (d: number) => (d * Math.PI) / 180;
@@ -339,13 +441,25 @@ function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
       : 1 + (CONTRAST_STRONG - 1) * ((tune.contrast - 50) / 50);
   // When the opposite already is butter (a violet night), the neighbour goes warm, to apricot.
   const lean = Math.sin(BUTTER_HUE - opposite);
-  const towardButter = Math.abs(lean) < Math.sin(deg(25)) ? -1 : Math.sign(lean);
+  const towardButter =
+    Math.abs(lean) < Math.sin(deg(25)) ? -1 : Math.sign(lean);
   const shadow: LCH = [L * 0.62, Math.min(C, 0.08) * v.chroma, hue + turn];
   const water: LCH =
-    contrast(mix(sky, whole(fromOklch([shadow[0], Math.min(C, 0.08), hue])), 0.8 * MAP_FADE), sky) >= MAP_INK.water.contrast
+    contrast(
+      mix(
+        sky,
+        whole(fromOklch([shadow[0], Math.min(C, 0.08), hue])),
+        0.8 * MAP_FADE,
+      ),
+      sky,
+    ) >= MAP_INK.water.contrast
       ? shadow
       : [AQUA[0], AQUA[1] * v.chroma, AQUA[2] + turn];
-  const road = (l: number, c: number, h: number): LCH => [l - v.deepen, c * v.chroma, h + turn];
+  const road = (l: number, c: number, h: number): LCH => [
+    l - v.deepen,
+    c * v.chroma,
+    h + turn,
+  ];
   /** The hues of the three ranks of road: streets, main roads, motorways */
   const roadHues = [hue, opposite + towardButter * deg(35), opposite];
   const colors: Record<MapLayer, LCH> = {
@@ -361,62 +475,190 @@ function mapInks(sky: RGB, tune: MapTune = UNTUNED): Record<MapLayer, MapInk> {
     contours: road(0.8, 0.09, opposite - deg(60)),
     rail: road(0.9, 0.06, opposite - towardButter * deg(35)),
     buildings: road(0.9, 0.03, hue),
+    "buildings-3d": road(0.9, 0.03, hue),
     // A shadow is the sky darker, like the water
     shadows: shadow,
     // Traffic is drawn in the complement of the road it is on (see its ramp below), strong: darker and more
     // vivid than the pale roads, and the slower it is the more of both. It keeps its tone rather than being
     // lightened to stand out from the sky: it is the road's contrast it must have.
-    "traffic-slow": road(0.74, 0.17, opposite + towardButter * deg(35) + Math.PI),
-    "traffic-heavy": road(0.66, 0.2, opposite + towardButter * deg(35) + Math.PI),
-    "traffic-jam": road(0.58, 0.23, opposite + towardButter * deg(35) + Math.PI),
+    "traffic-slow": road(
+      0.74,
+      0.17,
+      opposite + towardButter * deg(35) + Math.PI,
+    ),
+    "traffic-heavy": road(
+      0.66,
+      0.2,
+      opposite + towardButter * deg(35) + Math.PI,
+    ),
+    "traffic-jam": road(
+      0.58,
+      0.23,
+      opposite + towardButter * deg(35) + Math.PI,
+    ),
     lights: road(0.95, 0.09, BUTTER_HUE),
     "water-names": road(0.94, 0.05, hue),
     "waterway-names": road(0.94, 0.05, hue),
   };
-  return Object.fromEntries(
-    (Object.keys(MAP_INK) as MapLayer[]).map((layer) => {
-      const base = MAP_INK[layer];
-      const target = 1 + (base.contrast - 1) * k;
-      // What a line must reach whatever the tuning, by lightening if its opacity alone can't: the
-      // viewer's softer contrast when they asked for one, the page's own otherwise.
-      const floor = Math.min(target, base.contrast);
-      const [, c, h] = colors[layer];
-      let l = colors[layer][0];
-      for (;;) {
-        const ink = whole(fromOklch([l, c, h]));
-        const seen = (opacity: number) => contrast(mix(sky, ink, opacity * MAP_FADE), sky);
-        let opacity = Math.min(1, base.minOpacity * k);
-        while (opacity < 1 && seen(opacity) < target) opacity += 0.02;
-        opacity = Math.min(1, opacity);
-        // Water is the sky in shadow: darker than it, so lightening would only lose it.
-        if (seen(opacity) >= floor || l >= LIGHTEST || l < L || KEEP_TONE.has(layer)) {
-          const result: MapInk = { color: toHex(ink), opacity: +opacity.toFixed(2) };
-          if (layer === "contours") {
-            // Lowland to peak: the hue turns, the colour thins and lightens, so the heights read as a gradient
-            result.ramp = Array.from({ length: ELEVATION_STEPS }, (_, i) => {
-              const t = i / (ELEVATION_STEPS - 1);
-              return toHex(whole(fromOklch([Math.min(LIGHTEST, l + t * 0.12), c * (1 - 0.5 * t), h + deg(ELEVATION_SWEEP * t)])));
-            });
-          }
-          if (layer.startsWith("traffic")) {
-            // One colour per road it can be on, each the complement of that road's own (streets, main roads, motorways)
-            result.ramp = roadHues.map((rh) => toHex(whole(fromOklch([l, c, rh + Math.PI + turn]))));
-          }
-          return [layer, result];
+  /**
+   * A layer drawn from a base colour: lightened and made opaque as far as it takes to stand out
+   * from the sky as it must, whatever the tuning (see the contrast above). `firmer` starts it more
+   * opaque than it needs to be, to stand further from the sky and from the layers beside it.
+   */
+  const settle = (layer: MapLayer, from: LCH, firmer = 1): MapInk => {
+    const base = MAP_INK[layer];
+    const target = 1 + (base.contrast - 1) * k;
+    // What a line must reach whatever the tuning, by lightening if its opacity alone can't: the
+    // viewer's softer contrast when they asked for one, the page's own otherwise.
+    const floor = Math.min(target, base.contrast);
+    const [, c, h] = from;
+    let l = from[0];
+    for (;;) {
+      const ink = whole(fromOklch([l, c, h]));
+      const seen = (opacity: number) =>
+        contrast(mix(sky, ink, opacity * MAP_FADE), sky);
+      // The least opacity that reaches the target, to the nearest 0.02: the contrast only grows with it,
+      // so it is bisected rather than stepped up to.
+      let opacity = Math.min(1, base.minOpacity * k * firmer);
+      if (opacity < 1 && seen(opacity) < target) {
+        let lo = opacity;
+        let hi = 1;
+        while (hi - lo > 0.02) {
+          const mid = (lo + hi) / 2;
+          if (seen(mid) >= target) hi = mid;
+          else lo = mid;
         }
-        l += 0.02;
+        // Written to two decimals: round up, never down past the target
+        opacity = Math.min(1, Math.ceil(hi * 100) / 100);
       }
-    }),
+      // Water is the sky in shadow: darker than it, so lightening would only lose it.
+      if (
+        seen(opacity) >= floor ||
+        l >= LIGHTEST ||
+        l < L ||
+        KEEP_TONE.has(layer)
+      ) {
+        const result: MapInk = {
+          color: toHex(ink),
+          opacity: +opacity.toFixed(2),
+        };
+        if (layer === "contours") {
+          // Lowland to peak: the hue turns, the colour thins and lightens, so the heights read as a gradient
+          result.ramp = Array.from({ length: ELEVATION_STEPS }, (_, i) => {
+            const t = i / (ELEVATION_STEPS - 1);
+            return toHex(
+              whole(
+                fromOklch([
+                  Math.min(LIGHTEST, l + t * 0.12),
+                  c * (1 - 0.5 * t),
+                  h + deg(ELEVATION_SWEEP * t),
+                ]),
+              ),
+            );
+          });
+        }
+        if (layer.startsWith("traffic")) {
+          // One colour per road it can be on, each the complement of that road's own (streets, main roads, motorways)
+          result.ramp = roadHues.map((rh) =>
+            toHex(whole(fromOklch([l, c, rh + Math.PI + turn]))),
+          );
+        }
+        return result;
+      }
+      l += 0.02;
+    }
+  };
+
+  const inks = Object.fromEntries(
+    (Object.keys(MAP_INK) as MapLayer[]).map((layer) => [
+      layer,
+      settle(layer, colors[layer]),
+    ]),
   ) as Record<MapLayer, MapInk>;
+
+  // The colour a layer shows over the sky, which is what the eye compares
+  const shown = (ink: MapInk) => mix(sky, hex(ink.color), ink.opacity);
+  const gapFrom = (ink: MapInk, others: readonly MapLayer[]) =>
+    Math.min(...others.map((o) => oklabDistance(shown(ink), shown(inks[o]))));
+  const ROADS: readonly MapLayer[] = ["streets", "main-roads", "motorways"];
+
+  /**
+   * Keeps a group of layers (water, buildings) clear of the ones it lies among: if the colour it came
+   * out in is closer than MAP_SEPARATION (less if the viewer asked for a fainter map) to any of theirs, it is looked for again among variants of
+   * itself, the nearest to the intended colour first (the same hue a little darker or more vivid, then
+   * a turn of the hue, then both), and the first that clears the gap is taken. If none does, the one
+   * that comes nearest to it is.
+   */
+  const keepApart = (
+    group: readonly MapLayer[],
+    among: readonly MapLayer[],
+  ) => {
+    const wanted = MAP_SEPARATION * Math.min(1, k);
+    /** The group's layers drawn from one base; its gap is its worst layer's */
+    const draw = (from: LCH, firmer: number) => {
+      const drawn = Object.fromEntries(
+        group.map((layer) => [layer, settle(layer, from, firmer)]),
+      ) as Record<string, MapInk>;
+      return {
+        drawn,
+        gap: Math.min(...group.map((layer) => gapFrom(drawn[layer], among))),
+      };
+    };
+    const [l0, c0, h0] = colors[group[0]];
+    let best = { ...draw(colors[group[0]], 1), from: colors[group[0]] };
+    if (best.gap >= wanted) return;
+    // What separates a layer from its neighbours, nearest to its own colour first: lighter or darker,
+    // more opaque, a turn of the hue
+    const variants: { from: LCH; firmer: number; cost: number }[] = [];
+    for (const turnBy of [0, 90, -90, 180]) {
+      for (const dl of [0, -0.12, -0.24, -0.34]) {
+        for (const firmer of [1, 1.8]) {
+          const l = l0 + dl;
+          if (l < 0.3) continue;
+          variants.push({
+            from: [l, c0 * 1.6, h0 + deg(turnBy)],
+            firmer,
+            cost:
+              Math.abs(turnBy) / 180 + Math.abs(dl) * 2.5 + (firmer - 1) * 0.3,
+          });
+        }
+      }
+    }
+    variants.sort((a, b) => a.cost - b.cost);
+    for (const { from, firmer } of variants) {
+      const tried = draw(from, firmer);
+      if (tried.gap > best.gap) best = { ...tried, from };
+      if (tried.gap >= wanted) break;
+    }
+    Object.assign(inks, best.drawn);
+  };
+  // The roads carry the drawing and the viewer's hue, so they stay as they are; the water gives way
+  // to them, and the buildings to both.
+  keepApart(["water", "waterway"], ROADS);
+  keepApart(["buildings", "buildings-3d"], [...ROADS, "water"]);
+  return inks;
 }
 
 /**
  * The map's lines over a sky (a palette's `sky2`) as the viewer tuned them
  * (see MapControls): their hue, how vivid, how strong against the sky.
  */
-export function mapInksFor(sky: string, tune: MapTune): Record<MapLayer, MapInk> {
-  return mapInks(hex(sky), tune);
+export function mapInksFor(
+  sky: string,
+  tune: MapTune,
+): Record<MapLayer, MapInk> {
+  // Worked out once per sky and tuning: scrubbing the timeline asks again and again for the same few
+  const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}`;
+  const known = inksMemo.get(key);
+  if (known) return known;
+  const inks = mapInks(hex(sky), tune);
+  if (inksMemo.size >= INKS_MEMO)
+    inksMemo.delete(inksMemo.keys().next().value as string);
+  inksMemo.set(key, inks);
+  return inks;
 }
+const INKS_MEMO = 96;
+const inksMemo = new Map<string, Record<MapLayer, MapInk>>();
 
 /**
  * A line's colour as it shows over a sky: its ink at its opacity. What a
@@ -448,12 +690,26 @@ export function skyPalette({
 }): SkyPalette {
   const { sky, glow: tableGlow } = clearSky(light);
   const glow: RGBA =
-    uv == null ? tableGlow : [tableGlow[0], tableGlow[1], tableGlow[2], tableGlow[3] * sunStrength(uv, light, GLOW_MIN, GLOW_MAX)];
+    uv == null
+      ? tableGlow
+      : [
+          tableGlow[0],
+          tableGlow[1],
+          tableGlow[2],
+          tableGlow[3] * sunStrength(uv, light, GLOW_MIN, GLOW_MAX),
+        ];
   const w = WEATHER[state];
   // Cloud cover greys even a nominally clear or partly cloudy sky a little.
   const grey = clamp01(Math.max(w.grey, (cloudCover / 100) * 0.35));
-  const dulled = sky.map((c) => scale(mix(c, overcast(c, state === "SNOW"), grey), w.dim)) as [RGB, RGB, RGB];
-  const weathered = uv == null ? dulled : (dulled.map((c) => vivid(c, sunStrength(uv, light, VIVID_MIN, VIVID_MAX))) as [RGB, RGB, RGB]);
+  const dulled = sky.map((c) =>
+    scale(mix(c, overcast(c, state === "SNOW"), grey), w.dim),
+  ) as [RGB, RGB, RGB];
+  const weathered =
+    uv == null
+      ? dulled
+      : (dulled.map((c) =>
+          vivid(c, sunStrength(uv, light, VIVID_MIN, VIVID_MAX)),
+        ) as [RGB, RGB, RGB]);
 
   // Text sits on every part of the sky: the reading at the top, and — as the
   // page scrolls over the fixed sky — chapter titles and the footer on the
@@ -464,10 +720,16 @@ export function skyPalette({
 
   // Glass: the thinnest veil over the brightest part of the sky that keeps muted text at AA.
   // The veil is the top of the sky, deepened, so fields and buttons stay in its hue.
-  const veil = whole(fromOklch([0.16, Math.min(0.05, toOklch(sky1)[1]), toOklch(sky1)[2]]));
+  const veil = whole(
+    fromOklch([0.16, Math.min(0.05, toOklch(sky1)[1]), toOklch(sky1)[2]]),
+  );
   // Starts at a clearly frosted panel (the cards read as solid surfaces), thicker where the sky needs it.
   let alpha = 0.34;
-  while (alpha < 0.7 && contrast(muted(mix(sky3, veil, alpha)), mix(sky3, veil, alpha)) < 4.6) alpha += 0.02;
+  while (
+    alpha < 0.7 &&
+    contrast(muted(mix(sky3, veil, alpha)), mix(sky3, veil, alpha)) < 4.6
+  )
+    alpha += 0.02;
   const dark = light < -0.3 || light > 1.3;
 
   return {

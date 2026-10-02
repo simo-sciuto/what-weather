@@ -1,13 +1,19 @@
 import type { MapOption } from "@/lib/map-options";
 import type { MapInk, MapLayer } from "@/lib/weather/palette";
 import type { SunPosition } from "@/lib/weather/sun-position";
-import type { ExpressionSpecification, FilterSpecification, LayerSpecification, Map, StyleSpecification } from "mapbox-gl";
+import type {
+  ExpressionSpecification,
+  FilterSpecification,
+  LayerSpecification,
+  Map,
+  StyleSpecification,
+} from "mapbox-gl";
 
 /*
  * The city as the page draws it, shared by the map behind the page and the
  * poster: Mapbox Streets reduced to water and three ranks of road, and, when
  * the viewer asks (see map-options.ts), meadows, relief, contours, rails,
- * buildings and their shadows, the traffic, and the city's lights at night.
+ * buildings (outlines, or in 3D) and their shadows, the traffic, and the city's lights at night.
  * The extra layers are in the style from the start but hidden, and a hidden
  * layer asks Mapbox for nothing: what is not chosen costs no tiles.
  */
@@ -24,13 +30,38 @@ const hidden = () => ({ visibility: "none" as const });
 
 /** The road classes of each rank: the streets' are the rest */
 const MOTORWAY_CLASSES = ["motorway", "motorway_link"];
-const MAIN_CLASSES = ["secondary", "primary", "primary_link", "trunk", "trunk_link"];
-const STREET_CLASSES = ["street", "street_limited", "tertiary", "tertiary_link", "secondary_link"];
+const MAIN_CLASSES = [
+  "secondary",
+  "primary",
+  "primary_link",
+  "trunk",
+  "trunk_link",
+];
+const STREET_CLASSES = [
+  "street",
+  "street_limited",
+  "tertiary",
+  "tertiary_link",
+  "secondary_link",
+];
 /** The kinds of water that have a name on the map */
-const WATER_CLASSES = ["water", "sea", "ocean", "bay", "reservoir", "river", "stream", "canal"];
+const WATER_CLASSES = [
+  "water",
+  "sea",
+  "ocean",
+  "bay",
+  "reservoir",
+  "river",
+  "stream",
+  "canal",
+];
 
 /** A colour or a width that depends on the rank of the road it is on (a feature's `class`): streets, main roads, motorways */
-const byRank = <T extends string | number>(streets: T, main: T, motorway: T): ExpressionSpecification => [
+const byRank = <T extends string | number>(
+  streets: T,
+  main: T,
+  motorway: T,
+): ExpressionSpecification => [
   "match",
   ["get", "class"],
   MOTORWAY_CLASSES,
@@ -62,16 +93,35 @@ const width = (at10: number, at15: number): ExpressionSpecification => [
  */
 const trafficWidth = (scale: number): ExpressionSpecification => {
   const w = (n: number) => +(n * scale).toFixed(2);
-  return ["interpolate", ["linear"], ["zoom"], 10, byRank(w(0.5), w(0.9), w(1.3)), 15, byRank(w(1.8), w(3), w(4))];
+  return [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    10,
+    byRank(w(0.5), w(0.9), w(1.3)),
+    15,
+    byRank(w(1.8), w(3), w(4)),
+  ];
 };
 
 /**
  * How soft a traffic line's edges are, as a share of its width: the slower the traffic, the softer, so
  * a jam is a broad wash of colour and a slow patch a light touch, like strokes of a brush.
  */
-const trafficBlur = (scale: number, softness: number): ExpressionSpecification => {
+const trafficBlur = (
+  scale: number,
+  softness: number,
+): ExpressionSpecification => {
   const b = (n: number) => +(n * scale * softness).toFixed(2);
-  return ["interpolate", ["linear"], ["zoom"], 10, byRank(b(0.5), b(0.9), b(1.3)), 15, byRank(b(1.8), b(3), b(4))];
+  return [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    10,
+    byRank(b(0.5), b(0.9), b(1.3)),
+    15,
+    byRank(b(1.8), b(3), b(4)),
+  ];
 };
 
 /**
@@ -88,7 +138,12 @@ export const STYLE: StyleSpecification = {
   sources: {
     streets: { type: "vector", url: "mapbox://mapbox.mapbox-streets-v8" },
     terrain: { type: "vector", url: "mapbox://mapbox.mapbox-terrain-v2" },
-    elevation: { type: "raster-dem", url: "mapbox://mapbox.mapbox-terrain-dem-v1", tileSize: 514, maxzoom: 14 },
+    elevation: {
+      type: "raster-dem",
+      url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+      tileSize: 514,
+      maxzoom: 14,
+    },
     traffic: { type: "vector", url: "mapbox://mapbox.mapbox-traffic-v1" },
   },
   layers: [
@@ -99,7 +154,13 @@ export const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "landuse",
       layout: hidden(),
-      filter: ["match", ["get", "class"], ["park", "grass", "wood", "scrub"], true, false],
+      filter: [
+        "match",
+        ["get", "class"],
+        ["park", "grass", "wood", "scrub"],
+        true,
+        false,
+      ],
       paint: { "fill-color": "#b9e0b0", "fill-opacity": 0.3 },
     },
     {
@@ -107,7 +168,10 @@ export const STYLE: StyleSpecification = {
       type: "hillshade",
       source: "elevation",
       layout: hidden(),
-      paint: { "hillshade-illumination-anchor": "map", "hillshade-illumination-direction": 335 },
+      paint: {
+        "hillshade-illumination-anchor": "map",
+        "hillshade-illumination-direction": 335,
+      },
     },
     {
       id: "shadows",
@@ -115,7 +179,11 @@ export const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "building",
       layout: hidden(),
-      paint: { "fill-color": "#000000", "fill-opacity": 0.3, "fill-translate-anchor": "map" },
+      paint: {
+        "fill-color": "#000000",
+        "fill-opacity": 0.3,
+        "fill-translate-anchor": "map",
+      },
     },
     {
       id: "buildings",
@@ -158,7 +226,11 @@ export const STYLE: StyleSpecification = {
       type: "line",
       source: "streets",
       "source-layer": "waterway",
-      paint: { "line-color": "#9ce0f7", "line-width": width(0.8, 2.5), "line-opacity": 0.85 },
+      paint: {
+        "line-color": "#9ce0f7",
+        "line-width": width(0.8, 2.5),
+        "line-opacity": 0.85,
+      },
     },
     {
       id: "rail",
@@ -166,8 +238,19 @@ export const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "road",
       layout: hidden(),
-      filter: ["match", ["get", "class"], ["major_rail", "minor_rail"], true, false],
-      paint: { "line-color": "#eeeeee", "line-width": width(0.5, 1.4), "line-dasharray": [3, 2], "line-opacity": 0.6 },
+      filter: [
+        "match",
+        ["get", "class"],
+        ["major_rail", "minor_rail"],
+        true,
+        false,
+      ],
+      paint: {
+        "line-color": "#eeeeee",
+        "line-width": width(0.5, 1.4),
+        "line-dasharray": [3, 2],
+        "line-opacity": 0.6,
+      },
     },
     {
       id: "streets",
@@ -175,7 +258,11 @@ export const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "road",
       filter: roads(STREET_CLASSES),
-      paint: { "line-color": "#eebae8", "line-width": width(0.3, 1.6), "line-opacity": 0.7 },
+      paint: {
+        "line-color": "#eebae8",
+        "line-width": width(0.3, 1.6),
+        "line-opacity": 0.7,
+      },
     },
     {
       id: "main-roads",
@@ -183,7 +270,11 @@ export const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "road",
       filter: roads(MAIN_CLASSES),
-      paint: { "line-color": "#fec89c", "line-width": width(0.8, 3), "line-opacity": 0.9 },
+      paint: {
+        "line-color": "#fec89c",
+        "line-width": width(0.8, 3),
+        "line-opacity": 0.9,
+      },
     },
     {
       id: "motorways",
@@ -191,7 +282,33 @@ export const STYLE: StyleSpecification = {
       source: "streets",
       "source-layer": "road",
       filter: roads(MOTORWAY_CLASSES),
-      paint: { "line-color": "#f9e8a7", "line-width": width(1.2, 4), "line-opacity": 0.95 },
+      paint: {
+        "line-color": "#f9e8a7",
+        "line-width": width(1.2, 4),
+        "line-opacity": 0.95,
+      },
+    },
+    // The buildings as volumes, as tall as they are, over the roads: seen from above they are their outlines,
+    // and the map's tilt (see MapBackdropGL) is what shows their height
+    {
+      id: "buildings-3d",
+      type: "fill-extrusion",
+      source: "streets",
+      "source-layer": "building",
+      minzoom: 13,
+      layout: hidden(),
+      filter: ["==", ["get", "extrude"], "true"],
+      paint: {
+        "fill-extrusion-color": "#eeeeee",
+        "fill-extrusion-height": [
+          "max",
+          ["to-number", ["get", "height"], 6],
+          3,
+        ],
+        "fill-extrusion-base": ["to-number", ["get", "min_height"], 0],
+        "fill-extrusion-opacity": 0.8,
+        "fill-extrusion-vertical-gradient": true,
+      },
     },
     // The traffic, as strokes of a brush on the road it is on, in a colour that stands against that road's
     ...(
@@ -200,45 +317,46 @@ export const STYLE: StyleSpecification = {
         ["traffic-heavy", "heavy", 1.2, 1],
         ["traffic-jam", "severe", 1.6, 1.5],
       ] as const
-    ).map(
-      ([id, congestion, scale, softness]): LayerSpecification => ({
-        id,
-        type: "line",
-        source: "traffic",
-        "source-layer": "traffic",
-        layout: { ...hidden(), "line-cap": "round", "line-join": "round" },
-        filter: ["==", ["get", "congestion"], congestion],
-        paint: { "line-color": "#f9e8a7", "line-width": trafficWidth(scale), "line-blur": trafficBlur(scale, softness), "line-opacity": 0.9 },
-      }),
-    ),
+    ).map(([id, congestion, scale, softness]): LayerSpecification => ({
+      id,
+      type: "line",
+      source: "traffic",
+      "source-layer": "traffic",
+      layout: { ...hidden(), "line-cap": "round", "line-join": "round" },
+      filter: ["==", ["get", "congestion"], congestion],
+      paint: {
+        "line-color": "#f9e8a7",
+        "line-width": trafficWidth(scale),
+        "line-blur": trafficBlur(scale, softness),
+        "line-opacity": 0.9,
+      },
+    })),
     // The names of the waters, and only the waters' (the page's own words stay on the page)
     ...(
       [
         ["water-names", "Point", "point"],
         ["waterway-names", "LineString", "line"],
       ] as const
-    ).map(
-      ([id, geometry, placement]): LayerSpecification => ({
-        id,
-        type: "symbol",
-        source: "streets",
-        "source-layer": "natural_label",
-        filter: [
-          "all",
-          ["==", ["geometry-type"], geometry],
-          ["match", ["get", "class"], WATER_CLASSES, true, false],
-        ],
-        layout: {
-          "symbol-placement": placement,
-          "text-field": ["coalesce", ["get", "name_it"], ["get", "name"]],
-          "text-font": ["DIN Pro Italic", "Arial Unicode MS Regular"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 15, 14],
-          "text-letter-spacing": 0.12,
-          "text-max-width": 8,
-        },
-        paint: { "text-color": "#eeeeee", "text-opacity": 0.8 },
-      }),
-    ),
+    ).map(([id, geometry, placement]): LayerSpecification => ({
+      id,
+      type: "symbol",
+      source: "streets",
+      "source-layer": "natural_label",
+      filter: [
+        "all",
+        ["==", ["geometry-type"], geometry],
+        ["match", ["get", "class"], WATER_CLASSES, true, false],
+      ],
+      layout: {
+        "symbol-placement": placement,
+        "text-field": ["coalesce", ["get", "name_it"], ["get", "name"]],
+        "text-font": ["DIN Pro Italic", "Arial Unicode MS Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 15, 14],
+        "text-letter-spacing": 0.12,
+        "text-max-width": 8,
+      },
+      paint: { "text-color": "#eeeeee", "text-opacity": 0.8 },
+    })),
     // The places that are lit, glowing at night
     {
       id: "lights",
@@ -258,7 +376,17 @@ export const STYLE: StyleSpecification = {
 };
 
 /** What each layer is drawn as: its colour and opacity follow the sky (see mapInks in palette.ts) */
-const KIND: Record<MapLayer, "fill" | "line" | "circle" | "hillshade" | "heights" | "ranked" | "text"> = {
+const KIND: Record<
+  MapLayer,
+  | "fill"
+  | "line"
+  | "circle"
+  | "hillshade"
+  | "heights"
+  | "ranked"
+  | "text"
+  | "extrusion"
+> = {
   water: "fill",
   waterway: "line",
   streets: "line",
@@ -269,6 +397,7 @@ const KIND: Record<MapLayer, "fill" | "line" | "circle" | "hillshade" | "heights
   contours: "heights",
   rail: "line",
   buildings: "fill",
+  "buildings-3d": "extrusion",
   shadows: "fill",
   "traffic-slow": "ranked",
   "traffic-heavy": "ranked",
@@ -290,6 +419,7 @@ const OPTION_LAYERS: Record<MapOption, MapLayer[]> = {
   contours: ["contours"],
   rail: ["rail"],
   buildings: ["buildings"],
+  "buildings-3d": ["buildings-3d"],
   shadows: ["shadows"],
   traffic: ["traffic-slow", "traffic-heavy", "traffic-jam"],
   lights: ["lights"],
@@ -316,15 +446,30 @@ const SHADOW_ZOOMS = [13, 17] as const;
  * doubles with each), so it is exact at every zoom, not only at those two.
  */
 function shadowOffset(sun: SunPosition, lat: number): ExpressionSpecification {
-  const metres = Math.min(SHADOW_BUILDING / Math.tan(rad(Math.max(sun.altitude, SHADOW_MIN_ALTITUDE))), SHADOW_MAX_LENGTH);
+  const metres = Math.min(
+    SHADOW_BUILDING /
+      Math.tan(rad(Math.max(sun.altitude, SHADOW_MIN_ALTITUDE))),
+    SHADOW_MAX_LENGTH,
+  );
   const east = -Math.sin(rad(sun.azimuth)) * metres;
   // The screen's y runs down: a shadow that falls to the north goes up
   const down = Math.cos(rad(sun.azimuth)) * metres;
   const at = (zoom: number): ExpressionSpecification => {
     const pixels = 2 ** zoom / (156_543.03 * Math.cos(rad(lat)));
-    return ["literal", [+(east * pixels).toFixed(2), +(down * pixels).toFixed(2)]];
+    return [
+      "literal",
+      [+(east * pixels).toFixed(2), +(down * pixels).toFixed(2)],
+    ];
   };
-  return ["interpolate", ["exponential", 2], ["zoom"], SHADOW_ZOOMS[0], at(SHADOW_ZOOMS[0]), SHADOW_ZOOMS[1], at(SHADOW_ZOOMS[1])];
+  return [
+    "interpolate",
+    ["exponential", 2],
+    ["zoom"],
+    SHADOW_ZOOMS[0],
+    at(SHADOW_ZOOMS[0]),
+    SHADOW_ZOOMS[1],
+    at(SHADOW_ZOOMS[1]),
+  ];
 }
 
 /** How much of the relief's shading shows: strongest when the sun is low and shadows are long. */
@@ -363,14 +508,26 @@ export function syncMap(map: Map, { inks, options, sun, lat }: MapScene) {
         map.setPaintProperty(layer, "line-color", color);
         map.setPaintProperty(layer, "line-opacity", opacity);
         break;
+      case "extrusion":
+        map.setPaintProperty(layer, "fill-extrusion-color", color);
+        map.setPaintProperty(layer, "fill-extrusion-opacity", opacity);
+        break;
       case "circle":
         map.setPaintProperty(layer, "circle-color", color);
         map.setPaintProperty(layer, "circle-opacity", opacity);
         break;
       case "ranked": {
         // The colour of each rank of road, its own complement (see the palette's ramp for traffic)
-        const [streets, main, motorway] = inks[layer].ramp ?? [color, color, color];
-        map.setPaintProperty(layer, "line-color", byRank(streets, main, motorway));
+        const [streets, main, motorway] = inks[layer].ramp ?? [
+          color,
+          color,
+          color,
+        ];
+        map.setPaintProperty(
+          layer,
+          "line-color",
+          byRank(streets, main, motorway),
+        );
         map.setPaintProperty(layer, "line-opacity", opacity);
         break;
       }
@@ -384,17 +541,40 @@ export function syncMap(map: Map, { inks, options, sun, lat }: MapScene) {
           "interpolate",
           ["linear"],
           ["get", "ele"],
-          ...ELEVATION_STOPS.flatMap((metres, i) => [metres, inks[layer].ramp?.[i] ?? color]),
+          ...ELEVATION_STOPS.flatMap((metres, i) => [
+            metres,
+            inks[layer].ramp?.[i] ?? color,
+          ]),
         ]);
         map.setPaintProperty(layer, "line-opacity", opacity);
         break;
       case "hillshade":
         // The lit side barely, the other in the sky's own shadow: the relief is shading, and has no lines
-        map.setPaintProperty(layer, "hillshade-highlight-color", rgba(color, opacity * 0.4));
-        map.setPaintProperty(layer, "hillshade-shadow-color", rgba(inks.shadows.color, inks.shadows.opacity));
-        map.setPaintProperty(layer, "hillshade-accent-color", rgba(inks.shadows.color, inks.shadows.opacity));
-        map.setPaintProperty(layer, "hillshade-illumination-direction", sun.altitude > 0 ? Math.round(sun.azimuth) % 360 : 335);
-        map.setPaintProperty(layer, "hillshade-exaggeration", reliefStrength(sun.altitude));
+        map.setPaintProperty(
+          layer,
+          "hillshade-highlight-color",
+          rgba(color, opacity * 0.4),
+        );
+        map.setPaintProperty(
+          layer,
+          "hillshade-shadow-color",
+          rgba(inks.shadows.color, inks.shadows.opacity),
+        );
+        map.setPaintProperty(
+          layer,
+          "hillshade-accent-color",
+          rgba(inks.shadows.color, inks.shadows.opacity),
+        );
+        map.setPaintProperty(
+          layer,
+          "hillshade-illumination-direction",
+          sun.altitude > 0 ? Math.round(sun.azimuth) % 360 : 335,
+        );
+        map.setPaintProperty(
+          layer,
+          "hillshade-exaggeration",
+          reliefStrength(sun.altitude),
+        );
         break;
     }
   }
@@ -405,6 +585,11 @@ export function syncMap(map: Map, { inks, options, sun, lat }: MapScene) {
   if (sun.altitude <= 0) visible.delete("shadows");
   if (sun.altitude > 0 || !chosen.has("lights")) visible.delete("lights");
   for (const layers of Object.values(OPTION_LAYERS)) {
-    for (const layer of layers) map.setLayoutProperty(layer, "visibility", visible.has(layer) ? "visible" : "none");
+    for (const layer of layers)
+      map.setLayoutProperty(
+        layer,
+        "visibility",
+        visible.has(layer) ? "visible" : "none",
+      );
   }
 }

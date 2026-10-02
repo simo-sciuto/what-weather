@@ -32,6 +32,7 @@ Rebuilt on 2026-10-02 from git history (13 commits, 2026-09-24 to 2026-10-01), g
 
 ### Recenti
 
+- [x] WTH-014 Buildings in 3D as an option of "La mappa" ("Edifici 3D": extruded volumes as tall as they are, from zoom 13, seen when the map tilts), and the colours of water, roads and buildings kept apart by measuring their distance in OKLab as they show over the sky and searching a variant (darker, more opaque, turned hue) when too close (`palette.ts`, `map-style.ts`; ADR-011)
 - [x] WTH-011 A bare address lands on a random city (a different one at each visit; a place in the URL wins; sample data keeps Milano), and a "Città casuale" button draws a populated place from the whole world through random GeoNames ids, hamlets included (`lib/weather/random-places.ts`, `random-city.ts`, `/api/random-place`; ADR-010)
 - [x] WTH-164 Interactive board in the browser (`npm run board`): columns, drag and drop, edits written to docs/BOARD.md (`scripts/board/`)
 

@@ -61,3 +61,10 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - The "Città casuale" button (first in the row under the search) draws without a list: `/api/random-place` asks Open-Meteo's geocoding about a batch of random GeoNames ids, keeps the populated places and picks one at random, hamlets included (`lib/weather/random-city.ts`). The landing draw still uses the curated list, for speed.
 - Cost: a returning visitor no longer lands where they left. `AutoRefresh` on a drawn city goes to that city's own address (otherwise the 10 minute refresh would draw again).
 - Status: Accepted (user request, 2026-10-02). Supersedes the "last place in a cookie" part of ADR-008.
+
+## ADR-011: Map colours are kept apart by distance, not only by contrast with the sky
+- Decision: after each layer is made to stand out from the sky, the water, then the buildings (outline and 3D), are compared with the roads (and the buildings with the water) by their distance in OKLab as they show over the sky (`MAP_SEPARATION` 0.1, scaled down when the viewer asked for a fainter map). If one is too close, a variant of its colour is searched, nearest to the intended one first (darker, more vivid or more opaque, a turn of the hue), and the first that clears the gap is taken, else the best found. The roads keep the viewer's hue and are never moved. Results are kept per sky and tuning (`mapInksFor`).
+- Reason: buildings and streets came out almost the same colour (both a pale tint of the sky's hue); contrast against the sky alone says nothing about two layers against each other.
+- Cost and limit: not always the full gap. Measured over 4 states of sky and many tunings: at the page's own contrast the worst case reaches about 0.72 of the wanted distance (median 0.84), at strong contrast all of it, at a faint one (30) 0.5 at worst. Before, the worst case was a distance of 0.012. The tests assert the minimums the search really gives (65% and 45%), not the target.
+- Status: Accepted.
+
