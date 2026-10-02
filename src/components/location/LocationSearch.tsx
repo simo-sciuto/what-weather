@@ -2,7 +2,7 @@
 
 import { placeHref, samePlace, type PlaceRef } from "@/lib/place";
 import { clearRecent } from "@/lib/recent-places";
-import { rememberPlace, removeSaved } from "@/lib/saved-places";
+import { removeSaved } from "@/lib/saved-places";
 import { placeSubtitle } from "@/lib/weather/formatters";
 import type { Place } from "@/lib/weather/types";
 import { useRouter } from "next/navigation";
@@ -130,7 +130,6 @@ export function LocationSearch() {
   }, [query]);
 
   function go(ref: PlaceRef) {
-    rememberPlace(ref);
     setOpen(false);
     setQuery("");
     inputRef.current?.blur();

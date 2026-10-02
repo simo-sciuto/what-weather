@@ -2,12 +2,10 @@ import type { Place } from "./weather/types";
 
 /**
  * How a place travels between the browser and the server: in the URL
- * (?lat&lon, plus optional display names chosen in search) and in a cookie
- * remembering the last place, so a returning visitor lands where they left.
+ * (?lat&lon, plus optional display names chosen in search); a bare address
+ * lands on a city drawn at random (see weather/random-places).
  * Safe to import from both server and client code.
  */
-
-export const LAST_PLACE_COOKIE = "weather-place";
 
 type Raw = Record<string, unknown>;
 
@@ -31,15 +29,6 @@ export function parsePlaceRef(raw: Raw): PlaceRef | null {
   const lon = coord(raw.lon, 180);
   if (lat == null || lon == null) return null;
   return { lat, lon, name: text(raw.name), region: text(raw.region), country: text(raw.country, 3) };
-}
-
-export function parsePlaceCookie(value: string | undefined): PlaceRef | null {
-  if (!value) return null;
-  try {
-    return parsePlaceRef(JSON.parse(decodeURIComponent(value)));
-  } catch {
-    return null;
-  }
 }
 
 export function placeHref(p: PlaceRef): string {

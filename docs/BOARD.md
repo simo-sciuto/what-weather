@@ -6,13 +6,18 @@ Items marked (audit) were noticed while reading the code on 2026-10-01, not requ
 
 ## NOW
 
-- (nothing active: ask the user what to start)
+- [ ] WTH-012 Typographic poster pass on the reading's top (desktop and phone): the two actions on a top line, head set in the poster's own font with labelled facts, hour and date reworked, name tinted a touch off white, the block right of the temperature as a ruled table. Includes WTH-008 (buttons).
 
 ## NEXT
 
 - [ ] WTH-001 (audit) AQI provenance: OpenWeather gives its own 1-5 index, Open-Meteo's index is computed from concentrations (`airIndexOf`, `details.ts`). Decide whether the UI should say which, and whether the two scales are comparable.
 - [ ] WTH-002 (audit) Surface `Frame.measured`: check where the UI shows an interpolated hour as if it were a reading.
 - [ ] WTH-003 (audit) Validate min/max semantics: `DailyPoint.partial`, `tempRange` (`today.ts`), `days.ts` filtering of partial days, on 3-hourly providers.
+
+- [ ] WTH-009 More variety of colours in the "tinta" menu of the colour tuning.
+- [ ] WTH-010 Rework the UI of the modal that opens from "La mappa".
+- [ ] WTH-013 Poster on a phone: the actions are now docked to the foot of the screen (`HeroActionsDock`, always visible while scrolling). Still to decide and check on a real phone: the poster dialog on a small screen, how the file is delivered (share sheet or download, see `share()` in `PosterButton.tsx`), formats, canvas size limits and memory.
+- [ ] WTH-008 Give character to the "Crea poster" and "La mappa" buttons: they should stand out and feel part of the poster identity.
 
 ## LATER
 
@@ -27,6 +32,7 @@ Rebuilt on 2026-10-02 from git history (13 commits, 2026-09-24 to 2026-10-01), g
 
 ### Recenti
 
+- [x] WTH-011 A bare address lands on a random city (a different one at each visit; a place in the URL wins; sample data keeps Milano), and a "Città casuale" button draws a populated place from the whole world through random GeoNames ids, hamlets included (`lib/weather/random-places.ts`, `random-city.ts`, `/api/random-place`; ADR-010)
 - [x] WTH-164 Interactive board in the browser (`npm run board`): columns, drag and drop, edits written to docs/BOARD.md (`scripts/board/`)
 
 ### Foundation: data

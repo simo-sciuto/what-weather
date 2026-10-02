@@ -11,7 +11,7 @@ Next.js here has breaking changes: read `node_modules/next/dist/docs/` before wr
 ## Data flow
 
 ```
-URL (?lat&lon&name..) or cookie "weather-place" or DEFAULT_PLACE (Milano)
+URL (?lat&lon&name..), else a random city (src/lib/weather/random-places.ts); sample data: DEFAULT_PLACE (Milano)
   -> src/lib/weather-page.ts  loadWeatherPage()  -> weatherFor() -> load()   ["use cache", tag weather:lat,lon]
        -> getProvider()  (src/lib/weather/index.ts)
             openweather | openweather-free | open-meteo | mock     (each implements WeatherProvider)
@@ -70,7 +70,7 @@ No state library. React contexts and external stores:
 - `time/TimeContext.tsx`: three contexts at different paces (Timeline fixed per place, View = next 24 h or one picked day, Moment = hour on show). The page remounts the provider with `key={lat,lon}` on a new place.
 - `location/PlaceContext.tsx`, `weather/MapContext.tsx`.
 - localStorage (guarded, exposed as external stores): saved places (`lib/saved-places.ts`), recent places, map tuning (`lib/map-tuning.ts`, key `weather:map-hue`), map layer options (`lib/map-options.ts`).
-- Cookie `weather-place`: last place viewed, read on the server.
+- No place cookie: a bare address draws a random city (ADR-010); `/api/random-place` draws one from the whole world for the "Città casuale" button.
 
 ## UI structure
 

@@ -3,6 +3,7 @@ import { LocationSearch } from "@/components/location/LocationSearch";
 import { PlaceProvider } from "@/components/location/PlaceContext";
 import { SavedPlaces } from "@/components/location/SavedPlaces";
 import { AutoRefresh } from "@/components/time/AutoRefresh";
+import { HeroActionsDock } from "@/components/time/HeroMeta";
 import { MomentFacts } from "@/components/time/MomentFacts";
 import { AtmosphereMain, TimeProvider } from "@/components/time/TimeContext";
 import { TimeScrubber } from "@/components/time/TimeScrubber";
@@ -59,7 +60,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
 }
 
 export default async function Home({ searchParams }: { searchParams: SearchParams }) {
-  const { data, timeline, provider, yesterday, scenario, at, renderedAt } = await loadWeatherPage(searchParams);
+  const { data, timeline, provider, yesterday, scenario, at, landed, renderedAt } = await loadWeatherPage(searchParams);
 
   const range = tempRange(data);
   const precip = precipOutlook(data);
@@ -77,7 +78,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       <PlaceProvider place={data.place}>
         {/* The maps (the backdrop and the chapter) share Mapbox, the place and its cloud grid */}
         <MapProvider timezone={data.timezone}>
-          <AutoRefresh />
+          <AutoRefresh landedAt={landed ? placeHref(data.place) : undefined} />
           <AtmosphereMain className="atmosphere min-h-dvh overflow-x-clip">
             <Sky />
             {/*
@@ -89,6 +90,8 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               paint over it.
             */}
             <MapBackdropGL className="backdrop-fade pointer-events-none fixed inset-0 -z-1" />
+            {/* On a phone the ways to make a poster and to change the map stay docked to the screen */}
+            <HeroActionsDock />
             {/*
             Phone: the first screen is the sky and one reading (place, temperature,
             outlook, the timeline); chapters follow. Desktop: the reading stays
@@ -144,7 +147,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                 <TimeScrubber />
               </div>
 
-              <div className="data-col relative flex flex-col gap-14 pb-[max(2.5rem,env(safe-area-inset-bottom))] lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pt-8 xl:col-span-6 xl:col-start-7">
+              <div className="data-col relative flex flex-col gap-14 pb-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))] lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pb-10 lg:pt-8 xl:col-span-6 xl:col-start-7">
                 {/* On a computer the moment's quick facts lead this column (on a phone they sit under the reading) */}
                 <MomentFacts on="desktop" />
 

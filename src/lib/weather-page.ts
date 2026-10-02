@@ -1,11 +1,12 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { cookies } from "next/headers";
-import { LAST_PLACE_COOKIE, parsePlaceCookie, parsePlaceRef, type PlaceRef } from "./place";
+import { cache } from "react";
+import { parsePlaceRef, type PlaceRef } from "./place";
 import { DEFAULT_PLACE, getProvider } from "./weather";
 import { COORD_PRECISION, MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS } from "./weather/constants";
 import { buildTimeline } from "./weather/frames";
 import { lookupPollen } from "./weather/pollen";
+import { randomPlace } from "./weather/random-places";
 import { sinceYesterday } from "./weather/yesterday";
 
 export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -78,14 +79,25 @@ export function weatherFor(ref: PlaceRef, scenario?: string, at?: string) {
   return load(round(ref.lat), round(ref.lon), ref.name, ref.region, ref.country, scenario, at);
 }
 
-/** Reads the request (URL, then the last-place cookie), then loads through the cache. */
+/**
+ * The city a bare address lands on, drawn once per request: the page and its
+ * metadata both ask, and must be told the same one.
+ */
+const landingPlace = cache(randomPlace);
+
+/**
+ * Reads the request (the URL), then loads through the cache. A link to a place
+ * wins. A bare address lands on a city drawn at random, a different one on each
+ * visit; sample data (`?mock`, the tests) always lands on the default place,
+ * so what it shows stays the same.
+ */
 export async function loadWeatherPage(searchParams: SearchParams) {
   const params = await searchParams;
-  // The URL wins; otherwise the place chosen last time; otherwise the default.
-  const ref =
-    parsePlaceRef(params) ?? parsePlaceCookie((await cookies()).get(LAST_PLACE_COOKIE)?.value) ?? DEFAULT_PLACE;
   const scenario = param(params.mock);
   const at = param(params.at);
+  const linked = parsePlaceRef(params);
+  const landed = !linked && getProvider(scenario, at).name !== "mock";
+  const ref = linked ?? (landed ? landingPlace() : DEFAULT_PLACE);
   const loaded = await weatherFor(ref, scenario, at);
-  return { ...loaded, scenario, at, renderedAt: Math.floor(Date.now() / 1000) };
+  return { ...loaded, scenario, at, landed, renderedAt: Math.floor(Date.now() / 1000) };
 }

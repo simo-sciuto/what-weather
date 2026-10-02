@@ -1,7 +1,5 @@
 "use client";
 
-import { PosterButton } from "../poster/PosterButton";
-import { MapControls } from "../weather/MapControls";
 import { MomentFacts } from "./MomentFacts";
 import { NarrativeText } from "./NarrativeText";
 
@@ -14,7 +12,7 @@ import { NarrativeText } from "./NarrativeText";
  */
 export function HeroReading({ outlook }: { outlook: string }) {
   return (
-    <div className="lg:pb-1 items-center">
+    <div className="items-center max-lg:pb-14 lg:pb-1">
       <div className="grid grid-cols-6 gap-x-4 border-t border-white/30 pt-1 items-center">
         <p aria-hidden="true" className="col-span-6  text-ink-muted lg:col-span-2">
           Previsione
@@ -22,11 +20,6 @@ export function HeroReading({ outlook }: { outlook: string }) {
         <NarrativeText outlook={outlook} className="col-span-6 min-w-0 lg:col-span-4 lg:col-start-3" />
       </div>
       <MomentFacts on="phone" />
-      {/* On a phone the poster and the map's controls close the first screen, out of the reading's way */}
-      <div className="mt-4 flex flex-col items-start gap-1.5 lg:hidden">
-        <PosterButton />
-        <MapControls />
-      </div>
     </div>
   );
 }

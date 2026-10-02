@@ -43,7 +43,7 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - Status: Accepted.
 
 ## ADR-008: No state library; contexts split by pace of change
-- Decision: Timeline / View / Moment contexts; localStorage as guarded external stores; last place in a cookie.
+- Decision: Timeline / View / Moment contexts; localStorage as guarded external stores. (The last-place cookie was dropped on 2026-10-02, see ADR-010.)
 - Reason: scrubbing re-renders only what reads the moment.
 - Status: Accepted.
 
@@ -54,3 +54,10 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 ## ADR-010: Italian UI, English code
 - Decision: all user-facing copy in Italian; code, comments and docs in English.
 - Status: Accepted.
+
+## ADR-010: A bare address lands on a random city
+- Decision: a visit to `/` with no place in the URL draws a city from a curated list (`lib/weather/random-places.ts`), one per request (React `cache`, so the page and its metadata agree). A place in the URL always wins. Sample data (`WEATHER_PROVIDER=mock`) always lands on the default place so tests stay deterministic. The cookie `weather-place` that remembered the last place is no longer written or read.
+- Reason: every visit shows a different poster; the product's identity is the poster of a place, not a dashboard of a home city. Picking a place in search still navigates to its own URL, so reloading that page keeps it.
+- The "Città casuale" button (first in the row under the search) draws without a list: `/api/random-place` asks Open-Meteo's geocoding about a batch of random GeoNames ids, keeps the populated places and picks one at random, hamlets included (`lib/weather/random-city.ts`). The landing draw still uses the curated list, for speed.
+- Cost: a returning visitor no longer lands where they left. `AutoRefresh` on a drawn city goes to that city's own address (otherwise the 10 minute refresh would draw again).
+- Status: Accepted (user request, 2026-10-02). Supersedes the "last place in a cookie" part of ADR-008.

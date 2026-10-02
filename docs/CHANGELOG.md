@@ -3,6 +3,8 @@
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
 ## 2026-10-02
+- Random city: a bare address draws a city at each visit, and a "Città casuale" button draws any populated place in the world (WTH-011, ADR-010). The last-place cookie is gone.
+- The poster's top reworked (WTH-012 in progress, WTH-008): "Crea poster" and "Personalizza la mappa" as typographic text actions (docked to the foot of a phone's screen), head with labelled Luogo / Giorno / Ora and a running clock with seconds, one font (Inter Tight) across the site, the name tinted a touch off white, the temperature bold, under it the day's low and high with a mark for the hour on show and the sky's glyph, the country in bold capitals.
 - Interactive board: `npm run board` serves docs/BOARD.md as columns in the browser and writes every change back (`scripts/board/`, WTH-164).
 - BOARD DONE rebuilt by theme from git history (WTH-100..163).
 

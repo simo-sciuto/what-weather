@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-02 (DONE rebuilt from git)
+Last updated: 2026-10-02 (random city; poster top rework in progress)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -9,10 +9,10 @@ what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / Reac
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-None. NOW on the BOARD is empty; the next step is the user's choice.
+WTH-012 (with WTH-008): the poster's top. Implemented and looked at in screenshots, waiting for the user's sign-off. Then WTH-010 (the "La mappa" modal), WTH-009 (tinta colours), WTH-013 (poster on a phone).
 
 ## Last checkpoint
-`ccd4e85` Let the map's layers be chosen, and make the descent into the city a tilt (2026-10-01). Working tree clean at that point.
+The commit that closes this session (random city, poster top). WTH-011 is done.
 
 ## Known problems / open questions
 Candidates only, from the audit (BOARD WTH-001..003): AQI index is computed differently per provider; interpolated hours vs measured readings in the UI; min/max on partial days. None confirmed as bugs.
@@ -25,7 +25,7 @@ Candidates only, from the audit (BOARD WTH-001..003): AQI index is computed diff
 - Italian copy, English code.
 
 ## Relevant files
-`src/app/page.tsx`, `src/lib/weather-page.ts`, `src/lib/weather/{types,frames,provider}.ts`, `src/components/time/TimeContext.tsx`.
+`src/app/page.tsx`, `src/lib/weather-page.ts`, `src/lib/weather/random-city.ts`, `src/lib/weather/{types,frames,provider}.ts`, `src/components/time/TimeContext.tsx`.
 
 ## Next checkpoint
 Pick a task from NEXT, or add one with "aggiungi alla board".

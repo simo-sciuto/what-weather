@@ -204,7 +204,7 @@ interface Fonts {
 async function loadFonts(): Promise<Fonts> {
   const css = getComputedStyle(document.documentElement);
   const poster = css.getPropertyValue("--font-inter-tight").trim() || "'Helvetica Neue', Helvetica, Arial, sans-serif";
-  const sans = css.getPropertyValue("--font-geist-sans").trim() || "system-ui, sans-serif";
+  const sans = poster;
   await Promise.all([
     document.fonts.load(`800 100px ${poster}`),
     document.fonts.load(`300 100px ${poster}`),

@@ -18,7 +18,7 @@ const STALE_SECONDS = 20 * 60;
 /**
  * The time at the place, always shown. The server renders it from its own
  * render time, so the markup matches; the browser then keeps it running,
- * ticking on the minute (and advancing a simulated sample time from where it
+ * ticking on the minute, or the second if asked (and advancing a simulated sample time from where it
  * began). "ora locale" is added only for a place in another time zone than
  * the viewer's, which the server can't know. When the reading itself is
  * older than a few minutes, it says how old, so the clock and the data don't
@@ -29,6 +29,7 @@ export function LocalClock({
   renderedAt,
   dataAt,
   shownAt,
+  seconds = false,
   className = "",
   timeClassName = "text-lg font-medium tabular-nums text-ink lg:text-xl",
 }: {
@@ -38,6 +39,8 @@ export function LocalClock({
   dataAt: number;
   /** Another moment to show instead of the running clock (an hour picked on the timeline) */
   shownAt?: number;
+  /** Count the seconds too, while the clock is the running one (an hour picked on the timeline has none) */
+  seconds?: boolean;
   className?: string;
   timeClassName?: string;
 }) {
@@ -52,17 +55,18 @@ export function LocalClock({
     const mountedAt = Date.now() / 1000;
     const tick = () => setNow(renderedAt + (Date.now() / 1000 - mountedAt));
     let interval: ReturnType<typeof setInterval> | undefined;
-    // First tick on the next minute boundary, then once a minute.
-    const untilMinute = (60 - (renderedAt % 60)) * 1000;
+    // First tick on the next boundary (the minute, or the second when they are shown), then on each.
+    const step = seconds ? 1 : 60;
+    const untilStep = (step - (renderedAt % step)) * 1000;
     const timeout = setTimeout(() => {
       tick();
-      interval = setInterval(tick, 60_000);
-    }, untilMinute);
+      interval = setInterval(tick, step * 1000);
+    }, untilStep);
     return () => {
       clearTimeout(timeout);
       clearInterval(interval);
     };
-  }, [renderedAt]);
+  }, [renderedAt, seconds]);
 
   const age = now - dataAt;
   const at = shownAt ?? now;
@@ -71,6 +75,9 @@ export function LocalClock({
     <p className={`shrink-0 text-ink-muted ${className}`}>
       <time className={`block ${timeClassName}`} dateTime={new Date(at * 1000).toISOString()}>
         {formatTime(at, timezone)}
+        {seconds && shownAt == null && (
+          <span className="opacity-60">:{String(Math.floor(at) % 60).padStart(2, "0")}</span>
+        )}
       </time>
       {abroad ? (
         <span className="block text-xs">ora locale</span>
