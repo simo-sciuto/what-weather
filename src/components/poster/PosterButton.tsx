@@ -26,6 +26,8 @@ type Snapshot = {
   options: MapOption[];
   sun: SunPosition;
   view: { zoom: number; pitch: number; bearing: number };
+  /** The temperature on show, whose colour the name and the country take */
+  temp: number;
 };
 
 type Drawn =
@@ -95,7 +97,7 @@ export function PosterButton({
   /** Draws one format in the sky and day given; each is drawn once per opening, when first shown. */
   function draw(
     f: PosterFormat,
-    { palette, dayKey, options, sun, view }: Snapshot,
+    { palette, dayKey, options, sun, view, temp }: Snapshot,
   ) {
     if (!token) return;
     setDrawn((d) => ({ ...d, [f]: { status: "drawing" } }));
@@ -113,6 +115,7 @@ export function PosterButton({
       options,
       sun,
       view,
+      temp,
       token,
       loadMapbox,
     })
@@ -132,6 +135,7 @@ export function PosterButton({
       options,
       sun: sunPosition(frame.time, place.lat, place.lon),
       view: currentView(),
+      temp: frame.temp,
     };
     setSnapshot(taken);
     setDrawn({});

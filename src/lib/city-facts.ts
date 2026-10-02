@@ -10,8 +10,9 @@ import { cacheLife } from "next/cache";
  * curated source, says the rest: the official altitude (else Mapbox's terrain
  * contours give one), the population, the waters the town stands on (its
  * "located next to body of water", so Rome's Tiber and Como's lake, not the
- * nearest ditch), and the best-known lakes, peaks and towns around, by how many
- * Wikipedias write about them. No distances: only what the place is known by.
+ * nearest ditch), the best-known lakes and peaks around, by how many Wikipedias
+ * write about them, the capitals of its country and region, and the towns around:
+ * the two best known, then the nearest.
  *
  * Every fact is optional: whatever can't be had is simply left out.
  */
@@ -26,8 +27,10 @@ export interface CityFacts {
   waters?: string[];
   /** The best-known peaks around, with their height when known */
   peaks?: { name: string; elevation?: number }[];
-  /** The best-known towns around, far enough to have a weather of their own */
+  /** The towns around, far enough to have a weather of their own: the two best known, then the nearest */
   nearby?: { name: string; lat: number; lon: number }[];
+  /** The capital of the place's country, and of its region (its first-level division) where it has one */
+  capitals?: { country?: string; region?: string; regionName?: string };
 }
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -37,10 +40,15 @@ const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
  */
 const SITE =
   process.env.SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
 
 /** Wikimedia asks every client to name itself. */
-const WIKIMEDIA = { "User-Agent": `what-weather/1.0 (${SITE})`, Accept: "application/json" };
+const WIKIMEDIA = {
+  "User-Agent": `what-weather/1.0 (${SITE})`,
+  Accept: "application/json",
+};
 
 /** Places don't move: a month between checks, a year before a fact is dropped. */
 const REVALIDATE = 60 * 60 * 24 * 30;
@@ -67,7 +75,13 @@ const LAKE = "Q23397";
  */
 const TOWNS_KM = 50;
 const TOWNS_APART_KM = 10;
-const MAX_TOWNS = 5;
+const MAX_TOWNS = 6;
+/** Of the towns around, how many are the best known; the rest are the nearest */
+const BEST_KNOWN_TOWNS = 2;
+/** The nearest towns count from this many inhabitants (smaller ones are hamlets, or districts) */
+const NEAR_TOWN_POPULATION = 3_000;
+/** Wikidata's class: a country's first-level division (a region, a state, a prefecture) */
+const FIRST_LEVEL = "Q10864048";
 /** A town counts from this many inhabitants, written about by this many Wikipedias. */
 const TOWN_POPULATION = 10_000;
 const TOWN_SITELINKS = 15;
@@ -83,16 +97,27 @@ type Feature = { properties: Props };
  * failure (an error, a slow answer) throws, and a throw is never cached: the
  * next visit asks again, instead of a month of blanks.
  */
-async function cachedJson(url: string, headers: Record<string, string>): Promise<unknown> {
+async function cachedJson(
+  url: string,
+  headers: Record<string, string>,
+): Promise<unknown> {
   "use cache";
   cacheLife({ revalidate: REVALIDATE, expire: EXPIRE });
   // Wikidata's queries over an area take a while; a map API answers at once.
-  const res = await fetch(url, { headers, signal: AbortSignal.timeout(url.includes("query.wikidata.org") ? 15_000 : 8_000) });
+  const res = await fetch(url, {
+    headers,
+    signal: AbortSignal.timeout(
+      url.includes("query.wikidata.org") ? 15_000 : 8_000,
+    ),
+  });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 }
 
-async function getJson<T>(url: string, headers: Record<string, string>): Promise<T | null> {
+async function getJson<T>(
+  url: string,
+  headers: Record<string, string>,
+): Promise<T | null> {
   try {
     return (await cachedJson(url, headers)) as T;
   } catch {
@@ -105,16 +130,33 @@ const isEntityId = (id: string) => /^Q\d+$/.test(id);
 
 /* ---------- Mapbox ---------- */
 
-function tilequery(tileset: string, lat: number, lon: number, params: Record<string, string>) {
+function tilequery(
+  tileset: string,
+  lat: number,
+  lon: number,
+  params: Record<string, string>,
+) {
   const q = new URLSearchParams({ ...params, access_token: TOKEN ?? "" });
-  return getJson<{ features: Feature[] }>(`https://api.mapbox.com/v4/${tileset}/tilequery/${lon},${lat}.json?${q}`, {
-    Referer: SITE,
-  }).then((r) => r?.features ?? []);
+  return getJson<{ features: Feature[] }>(
+    `https://api.mapbox.com/v4/${tileset}/tilequery/${lon},${lat}.json?${q}`,
+    {
+      Referer: SITE,
+    },
+  ).then((r) => r?.features ?? []);
 }
 
 /** The municipality containing the point: where Mapbox puts it, and its Wikidata id. */
-async function municipalityOf(lat: number, lon: number): Promise<{ lat: number; lon: number; wikidata?: string } | null> {
-  const q = new URLSearchParams({ longitude: String(lon), latitude: String(lat), types: "place", limit: "1", access_token: TOKEN ?? "" });
+async function municipalityOf(
+  lat: number,
+  lon: number,
+): Promise<{ lat: number; lon: number; wikidata?: string } | null> {
+  const q = new URLSearchParams({
+    longitude: String(lon),
+    latitude: String(lat),
+    types: "place",
+    limit: "1",
+    access_token: TOKEN ?? "",
+  });
   type Geocoded = {
     properties?: {
       coordinates?: { latitude: number; longitude: number };
@@ -122,10 +164,17 @@ async function municipalityOf(lat: number, lon: number): Promise<{ lat: number; 
       context?: { place?: { wikidata_id?: string } };
     };
   };
-  const res = await getJson<{ features?: Geocoded[] }>(`https://api.mapbox.com/search/geocode/v6/reverse?${q}`, { Referer: SITE });
+  const res = await getJson<{ features?: Geocoded[] }>(
+    `https://api.mapbox.com/search/geocode/v6/reverse?${q}`,
+    { Referer: SITE },
+  );
   const p = res?.features?.[0]?.properties;
   if (!p?.coordinates) return null;
-  return { lat: p.coordinates.latitude, lon: p.coordinates.longitude, wikidata: p.context?.place?.wikidata_id ?? p.wikidata_id };
+  return {
+    lat: p.coordinates.latitude,
+    lon: p.coordinates.longitude,
+    wikidata: p.context?.place?.wikidata_id ?? p.wikidata_id,
+  };
 }
 
 /** Mapbox Streets' settlement types, in Italian. */
@@ -150,11 +199,20 @@ const KINDS: Record<string, string> = {
 function rankOf(labels: Feature[], name: string): string | undefined {
   const lower = name.toLowerCase();
   const named = (f: Feature) =>
-    Object.entries(f.properties).some(([k, v]) => (k === "name" || k.startsWith("name_")) && str(v).toLowerCase() === lower);
-  const sorted = [...labels].sort((a, b) => (a.properties.tilequery?.distance ?? 0) - (b.properties.tilequery?.distance ?? 0));
+    Object.entries(f.properties).some(
+      ([k, v]) =>
+        (k === "name" || k.startsWith("name_")) &&
+        str(v).toLowerCase() === lower,
+    );
+  const sorted = [...labels].sort(
+    (a, b) =>
+      (a.properties.tilequery?.distance ?? 0) -
+      (b.properties.tilequery?.distance ?? 0),
+  );
   const label =
-    sorted.find((f) => str(f.properties.class).startsWith("settlement") && named(f)) ??
-    sorted.find((f) => str(f.properties.class) === "settlement");
+    sorted.find(
+      (f) => str(f.properties.class).startsWith("settlement") && named(f),
+    ) ?? sorted.find((f) => str(f.properties.class) === "settlement");
   if (!label) return undefined;
   const capital = Number(label.properties.capital);
   if (capital === 2) return "Capitale";
@@ -165,7 +223,9 @@ function rankOf(labels: Feature[], name: string): string | undefined {
 
 /** The highest 10-metre contour the point lies within. */
 function altitudeOf(contours: Feature[]): number | undefined {
-  const heights = contours.map((f) => Number(f.properties.ele)).filter(Number.isFinite);
+  const heights = contours
+    .map((f) => Number(f.properties.ele))
+    .filter(Number.isFinite);
   return heights.length ? Math.max(0, ...heights) : undefined;
 }
 
@@ -177,34 +237,59 @@ type Claim<V> = {
   qualifiers?: { P585?: { datavalue?: { value: { time: string } } }[] };
 };
 type Entity = {
-  claims?: { P1082?: Claim<{ amount: string }>[]; P2044?: Claim<{ amount: string }>[]; P206?: Claim<{ id: string }>[] };
+  claims?: {
+    P1082?: Claim<{ amount: string }>[];
+    P2044?: Claim<{ amount: string }>[];
+    P206?: Claim<{ id: string }>[];
+  };
   labels?: Record<string, { value: string }>;
   sitelinks?: Record<string, unknown>;
 };
 
-async function entities(ids: string[], props: string): Promise<Record<string, Entity>> {
-  const q = new URLSearchParams({ action: "wbgetentities", ids: ids.join("|"), props, languages: "it|en", format: "json" });
-  const res = await getJson<{ entities?: Record<string, Entity> }>(`https://www.wikidata.org/w/api.php?${q}`, WIKIMEDIA);
+async function entities(
+  ids: string[],
+  props: string,
+): Promise<Record<string, Entity>> {
+  const q = new URLSearchParams({
+    action: "wbgetentities",
+    ids: ids.join("|"),
+    props,
+    languages: "it|en",
+    format: "json",
+  });
+  const res = await getJson<{ entities?: Record<string, Entity> }>(
+    `https://www.wikidata.org/w/api.php?${q}`,
+    WIKIMEDIA,
+  );
   return res?.entities ?? {};
 }
 
 const current = <V>(claims: Claim<V>[] = []) => {
-  const live = claims.filter((c) => c.rank !== "deprecated" && c.mainsnak.datavalue);
+  const live = claims.filter(
+    (c) => c.rank !== "deprecated" && c.mainsnak.datavalue,
+  );
   const preferred = live.filter((c) => c.rank === "preferred");
   return preferred.length ? preferred : live;
 };
 
 /** The latest population count on the item (P1082), preferred counts first. */
 function populationOf(item: Entity): CityFacts["population"] {
-  const yearOf = (c: Claim<unknown>) => Number(c.qualifiers?.P585?.[0]?.datavalue?.value.time.slice(1, 5)) || 0;
-  const best = current(item.claims?.P1082).sort((a, b) => yearOf(b) - yearOf(a))[0];
+  const yearOf = (c: Claim<unknown>) =>
+    Number(c.qualifiers?.P585?.[0]?.datavalue?.value.time.slice(1, 5)) || 0;
+  const best = current(item.claims?.P1082).sort(
+    (a, b) => yearOf(b) - yearOf(a),
+  )[0];
   const count = Math.round(Number(best?.mainsnak.datavalue?.value.amount));
-  return Number.isFinite(count) && count > 0 ? { count, year: yearOf(best) || undefined } : undefined;
+  return Number.isFinite(count) && count > 0
+    ? { count, year: yearOf(best) || undefined }
+    : undefined;
 }
 
 /** The official altitude on the item (P2044), in metres. */
 function altitudeOfItem(item: Entity): number | undefined {
-  const metres = Math.round(Number(current(item.claims?.P2044)[0]?.mainsnak.datavalue?.value.amount));
+  const metres = Math.round(
+    Number(current(item.claims?.P2044)[0]?.mainsnak.datavalue?.value.amount),
+  );
   return Number.isFinite(metres) ? metres : undefined;
 }
 
@@ -220,8 +305,15 @@ async function watersOf(item: Entity): Promise<Named[]> {
   const found = await entities(ids, "labels|sitelinks");
   return ids
     .filter((id) => found[id]?.labels?.it ?? found[id]?.labels?.en)
-    .sort((a, b) => Object.keys(found[b].sitelinks ?? {}).length - Object.keys(found[a].sitelinks ?? {}).length)
-    .map((id) => ({ id, name: (found[id].labels!.it ?? found[id].labels!.en).value }));
+    .sort(
+      (a, b) =>
+        Object.keys(found[b].sitelinks ?? {}).length -
+        Object.keys(found[a].sitelinks ?? {}).length,
+    )
+    .map((id) => ({
+      id,
+      name: (found[id].labels!.it ?? found[id].labels!.en).value,
+    }));
 }
 
 /**
@@ -249,7 +341,11 @@ async function bestKnownNear(
       OPTIONAL { ?item wdt:P2044 ?height }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en" . }
     } GROUP BY ?item ?itemLabel ORDER BY DESC(?links) LIMIT ${limit}`;
-  type Row = { item: { value: string }; itemLabel?: { value: string }; elevation?: { value: string } };
+  type Row = {
+    item: { value: string };
+    itemLabel?: { value: string };
+    elevation?: { value: string };
+  };
   const res = await getJson<{ results?: { bindings?: Row[] } }>(
     `https://query.wikidata.org/sparql?${new URLSearchParams({ query, format: "json" })}`,
     WIKIMEDIA,
@@ -268,10 +364,16 @@ async function bestKnownNear(
 
 const EARTH_KM = 6371;
 /** Great-circle distance in km. */
-function distanceKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+function distanceKm(
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number },
+): number {
   const rad = (deg: number) => (deg * Math.PI) / 180;
   const h =
-    Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lon - a.lon) / 2) ** 2;
+    Math.sin(rad(b.lat - a.lat) / 2) ** 2 +
+    Math.cos(rad(a.lat)) *
+      Math.cos(rad(b.lat)) *
+      Math.sin(rad(b.lon - a.lon) / 2) ** 2;
   return 2 * EARTH_KM * Math.asin(Math.sqrt(h));
 }
 
@@ -281,68 +383,159 @@ function distanceKm(a: { lat: number; lon: number }, b: { lat: number; lon: numb
  * Monza, Varese and Pavia for Milan, not its own districts nor five suburbs
  * side by side.
  */
-async function townsNear(lat: number, lon: number): Promise<NonNullable<CityFacts["nearby"]>> {
-  const query = `
-    SELECT ?item ?itemLabel (SAMPLE(?where) AS ?at) (MAX(?count) AS ?links) WHERE {
+const sparql = <T>(query: string) =>
+  getJson<{ results?: { bindings?: T[] } }>(
+    `https://query.wikidata.org/sparql?${new URLSearchParams({ query, format: "json" })}`,
+    WIKIMEDIA,
+  ).then((r) => r?.results?.bindings ?? []);
+
+type TownRow = { itemLabel?: { value: string }; at?: { value: string } };
+
+/** A Wikidata row as a town: its name and its point ("Point(9.67 45.695)", longitude first); null if either is missing */
+function townOf(r: TownRow) {
+  const point = r.at?.value.match(/^Point\((-?[\d.]+) (-?[\d.]+)\)$/);
+  const name = r.itemLabel?.value ?? "";
+  if (!point || !name || isEntityId(name)) return null;
+  return { name, lat: Number(point[2]), lon: Number(point[1]) };
+}
+
+/**
+ * The towns around: the two best known (by how many Wikipedias write about them), then the nearest ones,
+ * each far enough from the place and from the others to have a weather of its own.
+ */
+async function townsNear(
+  lat: number,
+  lon: number,
+): Promise<NonNullable<CityFacts["nearby"]>> {
+  const around = (radius: number) => `
       SERVICE wikibase:around {
         ?item wdt:P625 ?where .
         bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral .
-        bd:serviceParam wikibase:radius "${TOWNS_KM}" .
-      }
+        bd:serviceParam wikibase:radius "${radius}" .
+        bd:serviceParam wikibase:distance ?dist .
+      }`;
+  const kinds = `VALUES ?class { wd:${SETTLEMENT} wd:${MUNICIPALITY} }
+      ?item wdt:P31/wdt:P279* ?class .
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en" . }`;
+  const [known, near] = await Promise.all([
+    sparql<TownRow>(`
+    SELECT ?item ?itemLabel (SAMPLE(?where) AS ?at) (MAX(?count) AS ?links) WHERE {
+      ${around(TOWNS_KM)}
       ?item wdt:P1082 ?population ; wikibase:sitelinks ?count .
       FILTER(?population >= ${TOWN_POPULATION} && ?count >= ${TOWN_SITELINKS})
-      VALUES ?class { wd:${SETTLEMENT} wd:${MUNICIPALITY} }
-      ?item wdt:P31/wdt:P279* ?class .
-      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en" . }
-    } GROUP BY ?item ?itemLabel ORDER BY DESC(?links) LIMIT 40`;
-  type Row = { itemLabel?: { value: string }; at?: { value: string } };
-  const res = await getJson<{ results?: { bindings?: Row[] } }>(
-    `https://query.wikidata.org/sparql?${new URLSearchParams({ query, format: "json" })}`,
-    WIKIMEDIA,
-  );
+      ${kinds}
+    } GROUP BY ?item ?itemLabel ORDER BY DESC(?links) LIMIT 20`),
+    sparql<TownRow>(`
+    SELECT ?item ?itemLabel (SAMPLE(?where) AS ?at) (MIN(?dist) AS ?d) WHERE {
+      ${around(TOWNS_KM / 2)}
+      ?item wdt:P1082 ?population .
+      FILTER(?population >= ${NEAR_TOWN_POPULATION})
+      ${kinds}
+    } GROUP BY ?item ?itemLabel ORDER BY ASC(?d) LIMIT 40`),
+  ]);
   const towns: NonNullable<CityFacts["nearby"]> = [];
-  for (const r of res?.results?.bindings ?? []) {
-    // Wikidata writes a point as "Point(9.67 45.695)": longitude first.
-    const point = r.at?.value.match(/^Point\((-?[\d.]+) (-?[\d.]+)\)$/);
-    const name = r.itemLabel?.value ?? "";
-    if (!point || !name || isEntityId(name)) continue;
-    const town = { name, lat: Number(point[2]), lon: Number(point[1]) };
-    if ([{ lat, lon }, ...towns].some((t) => distanceKm(t, town) < TOWNS_APART_KM)) continue;
-    towns.push(town);
-    if (towns.length === MAX_TOWNS) break;
-  }
+  const take = (rows: TownRow[], until: number) => {
+    for (const r of rows) {
+      if (towns.length >= until) return;
+      const town = townOf(r);
+      if (!town || towns.some((t) => t.name === town.name)) continue;
+      if (
+        [{ lat, lon }, ...towns].some(
+          (t) => distanceKm(t, town) < TOWNS_APART_KM,
+        )
+      )
+        continue;
+      towns.push(town);
+    }
+  };
+  take(known, BEST_KNOWN_TOWNS);
+  take(near, MAX_TOWNS);
+  // Too few near ones (a remote place): more of the best known
+  take(known, MAX_TOWNS);
   return towns;
+}
+
+/** The capital of the place's country, and of its first-level division (region, state) where that has one */
+async function capitalsOf(id: string): Promise<CityFacts["capitals"]> {
+  type Row = {
+    capitalLabel?: { value: string };
+    regionLabel?: { value: string };
+    regionCapitalLabel?: { value: string };
+  };
+  const [row] = await sparql<Row>(`
+    SELECT ?capitalLabel ?regionLabel ?regionCapitalLabel WHERE {
+      OPTIONAL { wd:${id} wdt:P17 ?country . ?country wdt:P36 ?capital . }
+      OPTIONAL {
+        wd:${id} wdt:P131+ ?region .
+        ?region wdt:P31/wdt:P279* wd:${FIRST_LEVEL} ; wdt:P36 ?regionCapital .
+      }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en" . }
+    } LIMIT 1`);
+  if (!row) return undefined;
+  const label = (v?: { value: string }) =>
+    v?.value && !isEntityId(v.value) ? v.value : undefined;
+  const capitals = {
+    country: label(row.capitalLabel),
+    region: label(row.regionCapitalLabel),
+    regionName: label(row.regionLabel),
+  };
+  return capitals.country || capitals.region ? capitals : undefined;
 }
 
 /* ---------- Together ---------- */
 
 /** Each request is cached on its own (see cachedJson), so a fact that failed is asked for again next time. */
-export async function cityFacts(lat: number, lon: number, name: string): Promise<CityFacts> {
+export async function cityFacts(
+  lat: number,
+  lon: number,
+  name: string,
+): Promise<CityFacts> {
   if (!TOKEN) return {};
 
   const [town, contours, peaks, lakes, nearby] = await Promise.all([
     municipalityOf(lat, lon),
-    tilequery("mapbox.mapbox-terrain-v2", lat, lon, { layers: "contour", limit: "50" }),
+    tilequery("mapbox.mapbox-terrain-v2", lat, lon, {
+      layers: "contour",
+      limit: "50",
+    }),
     bestKnownNear(MOUNTAIN, lat, lon, PEAKS_KM, MAX_PEAKS),
     bestKnownNear(LAKE, lat, lon, LAKES_KM, MAX_WATERS),
     townsNear(lat, lon),
   ]);
   const at = town ?? { lat, lon };
   const [labels, item] = await Promise.all([
-    tilequery("mapbox.mapbox-streets-v8", at.lat, at.lon, { layers: "place_label", radius: "1500", limit: "50" }),
-    town?.wikidata && isEntityId(town.wikidata) ? entities([town.wikidata], "claims").then((e) => e[town.wikidata!]) : undefined,
+    tilequery("mapbox.mapbox-streets-v8", at.lat, at.lon, {
+      layers: "place_label",
+      radius: "1500",
+      limit: "50",
+    }),
+    town?.wikidata && isEntityId(town.wikidata)
+      ? entities([town.wikidata], "claims").then((e) => e[town.wikidata!])
+      : undefined,
   ]);
+  const capitals =
+    town?.wikidata && isEntityId(town.wikidata)
+      ? await capitalsOf(town.wikidata)
+      : undefined;
 
   // The waters the town stands on first, then the lakes around it is known for (each once).
   const own = item ? await watersOf(item) : [];
-  const waters = [...own, ...lakes.filter((l) => !own.some((w) => w.id === l.id))].slice(0, MAX_WATERS).map((w) => w.name);
+  const waters = [
+    ...own,
+    ...lakes.filter((l) => !own.some((w) => w.id === l.id)),
+  ]
+    .slice(0, MAX_WATERS)
+    .map((w) => w.name);
 
   return {
     rank: rankOf(labels, name),
     altitude: (item && altitudeOfItem(item)) ?? altitudeOf(contours),
     population: item ? populationOf(item) : undefined,
     waters: waters.length ? waters : undefined,
-    peaks: peaks.length ? peaks.map(({ name, elevation }) => ({ name, elevation })) : undefined,
+    peaks: peaks.length
+      ? peaks.map(({ name, elevation }) => ({ name, elevation }))
+      : undefined,
     nearby: nearby.length ? nearby : undefined,
+    capitals,
   };
 }
