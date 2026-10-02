@@ -9,7 +9,7 @@ import { usePlace } from "../location/PlaceContext";
 import { useMoment } from "../time/TimeContext";
 import { useMapOptions, useMapPalette } from "../weather/MapControls";
 import { useMap } from "../weather/MapContext";
-import { BAR_ITEM } from "../layout/DataSheet";
+import { BarTab, GLASS, ICONS, usePhoneNav } from "../layout/PhoneNav";
 import { currentView } from "../weather/map-view";
 import {
   POSTER_FORMATS,
@@ -24,7 +24,7 @@ type Snapshot = {
   dayKey: PosterInput["dayKey"];
   options: MapOption[];
   sun: SunPosition;
-  view: { zoom: number; pitch: number };
+  view: { zoom: number; pitch: number; bearing: number };
 };
 
 type Drawn =
@@ -61,11 +61,13 @@ function fileName(place: string, format: PosterFormat) {
  */
 export function PosterButton({
   className = "",
-  bar = false,
+  tabRef,
 }: {
   className?: string;
-  /** As one of the phone's bar actions */ bar?: boolean;
+  /** As the poster's icon in the phone's bar: away from the poster it goes back to it, on it it makes one */
+  tabRef?: (el: HTMLButtonElement | null) => void;
 }) {
+  const nav = usePhoneNav();
   const { place } = usePlace();
   const { token, loadMapbox } = useMap();
   const { frame } = useMoment();
@@ -169,14 +171,16 @@ export function PosterButton({
 
   return (
     <>
-      {bar ? (
-        <button
-          type="button"
-          onClick={open}
-          className={`${BAR_ITEM} ${className}`}
+      {tabRef ? (
+        <BarTab
+          label="Poster"
+          hint={nav.page === "poster" ? "Crea il poster" : undefined}
+          current={nav.page === "poster"}
+          tabRef={tabRef}
+          onClick={() => (nav.page === "poster" ? open() : nav.go("poster"))}
         >
-          Poster
-        </button>
+          {ICONS.poster}
+        </BarTab>
       ) : (
         <button
           type="button"
@@ -197,7 +201,7 @@ export function PosterButton({
         ref={dialog}
         onClose={onClose}
         aria-labelledby={titleId}
-        className="m-auto max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-white/15 bg-popover/95 p-5 text-left text-ink shadow-2xl backdrop-blur-2xl backdrop:bg-black/55 sm:p-6"
+        className={`m-auto max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] overflow-y-auto rounded-[1.75rem] p-5 text-left text-ink backdrop:bg-black/30 sm:p-6 max-lg:mb-0 max-lg:max-h-[calc(100dvh-3.5rem)] max-lg:w-[calc(100vw-1rem)] max-lg:max-w-none max-lg:rounded-b-none ${GLASS}`}
       >
         <div className="flex items-start justify-between gap-4">
           <div>

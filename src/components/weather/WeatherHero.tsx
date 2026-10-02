@@ -71,6 +71,8 @@ export function WeatherHero({
     // temperature centred on it, over the city, and the outlook at its foot.
     <section
       data-map-anchor="poster"
+      // On a phone the finger here moves the map (see MapGestures)
+      data-map-gestures
       aria-label="Meteo attuale"
       className="on-sky flex min-h-[calc(100svh-12.5rem)] flex-col lg:min-h-full"
     >

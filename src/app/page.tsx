@@ -3,7 +3,7 @@ import { LocationSearch } from "@/components/location/LocationSearch";
 import { PlaceProvider } from "@/components/location/PlaceContext";
 import { SavedPlaces } from "@/components/location/SavedPlaces";
 import { AutoRefresh } from "@/components/time/AutoRefresh";
-import { DataSheet, DataSheetProvider } from "@/components/layout/DataSheet";
+import { PhoneNavProvider, Sheet } from "@/components/layout/PhoneNav";
 import { PhoneBar } from "@/components/time/HeroMeta";
 import { MomentFacts } from "@/components/time/MomentFacts";
 import { AtmosphereMain, TimeProvider } from "@/components/time/TimeContext";
@@ -16,6 +16,8 @@ import { PrecipitationTimeline } from "@/components/weather/PrecipitationTimelin
 import { MapBackdropGL } from "@/components/weather/MapBackdropGL";
 import { MapProvider } from "@/components/weather/MapContext";
 import { MapView } from "@/components/weather/MapView";
+import { MapSheet } from "@/components/weather/MapControls";
+import { MapGestures } from "@/components/weather/MapGestures";
 import { Territory } from "@/components/weather/CityFacts";
 import { SiteFooter } from "@/components/weather/SiteFooter";
 import { Sky } from "@/components/weather/Sky";
@@ -116,7 +118,7 @@ export default async function Home({
       <PlaceProvider place={data.place}>
         {/* The maps (the backdrop and the chapter) share Mapbox, the place and its cloud grid */}
         <MapProvider timezone={data.timezone}>
-          <DataSheetProvider>
+          <PhoneNavProvider>
             <AutoRefresh
               landedAt={landed ? placeHref(data.place) : undefined}
             />
@@ -131,8 +133,11 @@ export default async function Home({
               paint over it.
             */}
               <MapBackdropGL className="backdrop-fade pointer-events-none fixed inset-0 -z-1" />
+              {/* On a phone the page stays still and the finger moves the map */}
+              {MAPBOX && <MapGestures />}
               {/* On a phone a bar at the foot of the screen: the weather data, the poster, the map */}
               <PhoneBar />
+              <MapSheet />
               {/*
             Phone: the first screen is the sky and one reading (place, temperature,
             outlook, the timeline); chapters follow. Desktop: the reading stays
@@ -186,15 +191,15 @@ export default async function Home({
                 </div>
 
                 {/* On a phone the weather data are a sheet that rises over the map; on a computer the right column */}
-                <DataSheet>
+                <Sheet name="data" title="Meteo" desktop="contents">
                   {/* The hours ahead: under the reading on a phone, at the top of the right column on a computer */}
                   <div className="data-col data-col-first relative pb-8 pt-2 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
                     <TimeScrubber />
                   </div>
 
                   <div className="data-col relative flex flex-col gap-14 pb-6 lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pb-10 lg:pt-8 xl:col-span-6 xl:col-start-7">
-                    {/* On a computer the moment's quick facts lead this column (on a phone they sit under the reading) */}
-                    <MomentFacts on="desktop" />
+                    {/* The moment's quick facts lead the data: this column on a computer, the sheet on a phone */}
+                    <MomentFacts />
 
                     {urgent && (
                       <div className="flex flex-col gap-8">
@@ -263,7 +268,7 @@ export default async function Home({
                       at={at}
                     />
                   </div>
-                </DataSheet>
+                </Sheet>
 
                 {/*
                 Desktop: a veil of the sky behind the whole right column, over the map and under
@@ -276,7 +281,7 @@ export default async function Home({
                 />
               </div>
             </AtmosphereMain>
-          </DataSheetProvider>
+          </PhoneNavProvider>
         </MapProvider>
       </PlaceProvider>
     </TimeProvider>

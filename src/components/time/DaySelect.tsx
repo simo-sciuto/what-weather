@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useDataSheet } from "../layout/DataSheet";
+import { useSheet } from "../layout/PhoneNav";
 import { useView } from "./TimeContext";
 
 /**
@@ -22,7 +22,7 @@ export function DaySelect({
 }) {
   // The view only: scrubbing through the hours doesn't re-render the week.
   const { view, selectDay } = useView();
-  const sheet = useDataSheet();
+  const sheet = useSheet("data");
   // Today's row stands for the "now" view.
   const selected = view.kind === "day" ? view.key === dayKey : isToday;
   return (

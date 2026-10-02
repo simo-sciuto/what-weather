@@ -5,7 +5,9 @@ import { tempColor } from "@/lib/weather/temp-color";
 import { PosterButton } from "../poster/PosterButton";
 import { LocalClock } from "../weather/LocalClock";
 import { MapControls } from "../weather/MapControls";
-import { BAR_ITEM, useDataSheet } from "../layout/DataSheet";
+import { useRef, type CSSProperties } from "react";
+import { BarTab, ICONS, useLens, usePhoneNav } from "../layout/PhoneNav";
+import { useMap } from "../weather/MapContext";
 import { useMoment, useView } from "./TimeContext";
 
 /**
@@ -24,29 +26,53 @@ export function HeroActions() {
 }
 
 /**
- * On a phone, a slab of glass floating over the foot of the screen (rounded, no edge drawn: its tint
- * and shadow lift it off the page), always there under the thumb: the weather data
- * (the sheet that rises over the map, see DataSheet), the poster, and the map's layers and colours.
- * A computer has the poster and the map in the poster's head, and the data in a column.
+ * On a phone, the way between its three pages: a wide capsule of glass floating over the map
+ * (clear, untinted, barely blurred, lit along its edge with a curved highlight on top, as the system's own tab bars are: whatever
+ * lies behind it gives it its colour), with an
+ * icon and a name for each (the weather, the map, the poster) and a drop of glass on the page you are on, which travels
+ * to the next as you go (see useLens). It goes away while a sheet is open, so the sheet has the screen;
+ * putting the sheet away brings it back. On the poster, its icon makes one.
  */
 export function PhoneBar() {
-  const { state, setState } = useDataSheet();
+  const { page, go } = usePhoneNav();
+  const { token } = useMap();
+  // The page on show is marked in the colour of the temperature on show, as the reading's figure is
+  const { frame } = useMoment();
+  const tabs = useRef<(HTMLElement | null)[]>([]);
+  const lens = useLens(page, tabs);
+  const away = page !== "poster";
   return (
     <nav
-      aria-label="Azioni"
-      className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-3 items-end gap-6 rounded-[1.375rem] bg-[color-mix(in_oklab,var(--sky-1)_58%,transparent)] px-5 pb-3 pt-3 shadow-[0_12px_40px_rgb(0_0_0/0.35),inset_0_1px_0_rgb(255_255_255/0.14)] backdrop-blur-2xl backdrop-saturate-[1.8] lg:hidden"
+      aria-label="Pagine"
+      data-away={away ? "" : undefined}
+      style={{ "--selected": tempColor(frame.temp) } as CSSProperties}
+      inert={away}
+      className="fixed inset-x-4 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 grid grid-cols-3 items-center overflow-hidden rounded-full bg-[linear-gradient(180deg,rgb(255_255_255/0.07),rgb(255_255_255/0.015))] p-1 [text-shadow:0_1px_4px_rgb(0_0_0/0.45)] shadow-[0_12px_30px_rgb(0_0_0/0.28),inset_0_0.5px_0_rgb(255_255_255/0.55),inset_0_-0.5px_0_rgb(255_255_255/0.2),inset_0_0_0_0.5px_rgb(255_255_255/0.22)] backdrop-blur-[3px] backdrop-brightness-[1.08] backdrop-saturate-[1.6] before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-1/2 before:rounded-b-full before:bg-[radial-gradient(ellipse_at_top,rgb(255_255_255/0.18),transparent_70%)] transition-[translate,opacity] duration-400 ease-[cubic-bezier(0.3,0.8,0.25,1)] data-[away]:translate-y-[160%] data-[away]:opacity-0 data-[away]:delay-150 lg:hidden"
     >
-      <button
-        type="button"
-        aria-expanded={state !== "closed"}
-        aria-controls="data-sheet"
-        onClick={() => setState(state === "closed" ? "half" : "closed")}
-        className={`${BAR_ITEM} items-start`}
+      <span
+        ref={lens}
+        aria-hidden="true"
+        className="absolute bottom-1.5 left-0 top-1.5 rounded-full bg-white/10 shadow-[inset_0_0.5px_0_rgb(255_255_255/0.35),inset_0_0_0_0.5px_rgb(255_255_255/0.12)]"
+      />
+      <BarTab
+        label="Meteo"
+        current={page === "data"}
+        onClick={() => go("data")}
+        tabRef={(el) => void (tabs.current[0] = el)}
       >
-        Dati
-      </button>
-      <PosterButton bar className="items-center" />
-      <MapControls bar />
+        {ICONS.data}
+      </BarTab>
+      {token && (
+        <BarTab
+          label="Modifica mappa"
+          current={page === "map"}
+          onClick={() => go("map")}
+          tabRef={(el) => void (tabs.current[1] = el)}
+        >
+          {ICONS.map}
+        </BarTab>
+      )}
+      <PosterButton tabRef={(el) => void (tabs.current[2] = el)} />
     </nav>
   );
 }

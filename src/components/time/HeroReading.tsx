@@ -1,6 +1,5 @@
 "use client";
 
-import { MomentFacts } from "./MomentFacts";
 import { NarrativeText } from "./NarrativeText";
 
 /**
@@ -14,12 +13,17 @@ export function HeroReading({ outlook }: { outlook: string }) {
   return (
     <div className="items-center max-lg:pb-14 lg:pb-1">
       <div className="grid grid-cols-6 gap-x-4 border-t border-white/30 pt-1 items-center">
-        <p aria-hidden="true" className="col-span-6  text-ink-muted lg:col-span-2">
+        <p
+          aria-hidden="true"
+          className="col-span-6  text-ink-muted lg:col-span-2"
+        >
           Previsione
         </p>
-        <NarrativeText outlook={outlook} className="col-span-6 min-w-0 lg:col-span-4 lg:col-start-3" />
+        <NarrativeText
+          outlook={outlook}
+          className="col-span-6 min-w-0 lg:col-span-4 lg:col-start-3"
+        />
       </div>
-      <MomentFacts on="phone" />
     </div>
   );
 }

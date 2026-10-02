@@ -41,7 +41,7 @@ import { createPortal } from "react-dom";
 import { useMoment } from "../time/TimeContext";
 import { useMap } from "./MapContext";
 import { activeLayers } from "./map-style";
-import { BAR_ITEM } from "../layout/DataSheet";
+import { GLASS, Sheet } from "../layout/PhoneNav";
 
 /** The viewer's tuning of the map's colours; the page's own on the server and until the browser says otherwise. */
 function useMapTuning(): MapTuning {
@@ -100,13 +100,7 @@ const EXTRA_OPTIONS = MAP_OPTIONS.filter(
  * without covering it or darkening it, so the map can be seen changing as it
  * is changed. Without Mapbox there is no map, and so no controls.
  */
-export function MapControls({
-  className = "",
-  bar = false,
-}: {
-  className?: string;
-  /** As one of the phone's bar actions */ bar?: boolean;
-}) {
+export function MapControls({ className = "" }: { className?: string }) {
   const { token } = useMap();
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -126,35 +120,22 @@ export function MapControls({
   if (!token) return null;
   return (
     <div className={className}>
-      {bar ? (
-        <button
-          ref={trigger}
-          type="button"
-          aria-expanded={open}
-          aria-controls={panelId}
-          onClick={() => setOpen((o) => !o)}
-          className={`${BAR_ITEM} items-end`}
+      <button
+        ref={trigger}
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((o) => !o)}
+        className="group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-ink aria-expanded:text-accent"
+      >
+        Personalizza la mappa
+        <span
+          aria-hidden="true"
+          className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent"
         >
-          Mappa
-        </button>
-      ) : (
-        <button
-          ref={trigger}
-          type="button"
-          aria-expanded={open}
-          aria-controls={panelId}
-          onClick={() => setOpen((o) => !o)}
-          className="group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-ink aria-expanded:text-accent"
-        >
-          Personalizza la mappa
-          <span
-            aria-hidden="true"
-            className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent"
-          >
-            →
-          </span>
-        </button>
-      )}
+          →
+        </span>
+      </button>
       {/* In the body, not here: a parent's blur or transform would make "fixed" mean "fixed to the parent" */}
       {open &&
         createPortal(
@@ -171,7 +152,87 @@ export function MapControls({
   );
 }
 
+/** Back to the page's own map: its layers and its colours, as they were */
+function useResetMap() {
+  const tuning = useMapTuning();
+  const options = useMapOptions();
+  const custom = !isUntuned(tuning) || !isDefaultMapOptions(options);
+  const reset = () => {
+    setMapTuning(MAP_TUNING);
+    setMapOptions(DEFAULT_MAP_OPTIONS);
+  };
+  return { custom, reset };
+}
+
+const RESET_LINK =
+  "text-ink-muted underline decoration-white/35 underline-offset-4 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent";
+
+/**
+ * On a phone, the map's colours and layers in a sheet of glass like the data's (see PhoneNav), opened from
+ * the bar's map icon. Without Mapbox there is no map, and so no sheet.
+ */
+export function MapSheet() {
+  const { token } = useMap();
+  const { custom, reset } = useResetMap();
+  if (!token) return null;
+  return (
+    <Sheet
+      name="map"
+      title="Mappa"
+      actions={
+        custom && (
+          <button type="button" onClick={reset} className={RESET_LINK}>
+            Torna agli automatici
+          </button>
+        )
+      }
+    >
+      <MapPanelBody />
+    </Sheet>
+  );
+}
+
+/** On a computer, the map's colours and layers in a panel of glass floating over the foot of the page */
 function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
+  const { custom, reset } = useResetMap();
+  return (
+    <div
+      id={id}
+      role="dialog"
+      aria-label="La mappa"
+      className={`fixed bottom-6 left-1/2 z-50 max-h-[78dvh] w-[min(40rem,calc(100vw-3rem))] -translate-x-1/2 overflow-y-auto rounded-[1.75rem] p-6 text-left text-ink ${GLASS}`}
+    >
+      <div className="flex items-baseline justify-between gap-4 pb-3">
+        <h2 className="font-display text-xl font-bold leading-none tracking-[-0.03em]">
+          La mappa
+        </h2>
+        <div className="flex items-baseline gap-5 text-sm">
+          {custom && (
+            <button type="button" onClick={reset} className={RESET_LINK}>
+              Torna agli automatici
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          >
+            Chiudi
+          </button>
+        </div>
+      </div>
+      <MapPanelBody />
+    </div>
+  );
+}
+
+/**
+ * What may be changed about the map: its colours first, three sliders on one row, so the map is seen
+ * changing as they move; then the layers, as colour chips in three groups (the city, what to add, the ways
+ * of getting about), each chip the colour the layer has on the map, full when on. A line at the foot says
+ * what the chip under the pointer does.
+ */
+function MapPanelBody() {
   const { palette } = useMoment().look;
   const tuning = useMapTuning();
   const options = useMapOptions();
@@ -232,19 +293,18 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
     setMapOptions(
       MAP_OPTIONS.filter((o) => (o === option ? on : options.includes(o))),
     );
-  const custom = !isUntuned(tuning) || !isDefaultMapOptions(options);
 
   const group = (label: string, list: readonly MapOption[]) => (
     <div role="group" aria-label={label}>
-      <p className="mb-2.5 flex items-baseline justify-between border-t border-white/16 pt-2 label">
+      <p className="label mb-2.5 flex items-baseline justify-between">
         {label}
         <span className="tabular-nums">
           {list.filter((o) => options.includes(o)).length} di {list.length}
         </span>
       </p>
-      <div className="flex flex-wrap gap-x-5 gap-y-3">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-x-2 gap-y-3">
         {list.map((option) => (
-          <Word
+          <Chip
             key={option}
             on={options.includes(option)}
             onChange={(on) => toggle(option, on)}
@@ -258,39 +318,7 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
   );
 
   return (
-    <div
-      id={id}
-      role="dialog"
-      aria-label="La mappa"
-      className="fixed inset-x-3 bottom-3 z-50 max-h-[78dvh] overflow-y-auto border border-white/20 bg-popover/92 p-4 text-left text-ink shadow-2xl backdrop-blur-2xl sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:w-[min(40rem,calc(100vw-3rem))] sm:-translate-x-1/2 sm:p-6"
-    >
-      <div className="flex items-baseline justify-between gap-4 border-b border-white/30 pb-2.5">
-        <h2 className="font-display text-2xl font-extrabold leading-none tracking-[-0.04em]">
-          La mappa
-        </h2>
-        <div className="flex items-baseline gap-5 text-sm">
-          {custom && (
-            <button
-              type="button"
-              onClick={() => {
-                setMapTuning(MAP_TUNING);
-                setMapOptions(DEFAULT_MAP_OPTIONS);
-              }}
-              className="text-ink-muted underline decoration-white/35 underline-offset-4 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-            >
-              Torna agli automatici
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-          >
-            Chiudi
-          </button>
-        </div>
-      </div>
-
+    <>
       {/* The three colours first, on one row, so the map is seen changing as they move */}
       <section
         aria-label="Colori"
@@ -325,29 +353,27 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
         ))}
       </section>
 
-      <section aria-label="Cosa mostrare" className="mt-3 flex flex-col gap-5">
+      <section aria-label="Cosa mostrare" className="mt-5 flex flex-col gap-5">
         {group("La città", CITY_OPTIONS)}
         {group("Da aggiungere", EXTRA_OPTIONS)}
         {group("Mezzi pubblici", TRANSIT_OPTIONS)}
         {/* Keeps its height whether or not it has a line to say, so the panel doesn't jump as the pointer moves */}
         <p
           aria-live="polite"
-          className="min-h-[2.7em] border-t border-white/16 pt-2.5 text-caption text-ink-muted"
+          className="min-h-[2.7em] text-caption text-ink-muted"
         >
-          {hint || "Tocca una parola per accenderla o spegnerla."}
+          {hint || "Tocca un colore per mostrare o togliere uno strato."}
         </p>
       </section>
-    </div>
+    </>
   );
 }
 
 /**
- * One layer as a word: light and faint when off, extra bold when on and in its colour on the map lightened
- * enough to read on the panel (the water is nearly the sky's own), with a bar of the exact colour under it
- * either way (full when on, faint when off). Pointing at it (or
- * tabbing to it) says what it does.
+ * One layer as a colour chip: a swatch of the colour it has on the map over its name, full when the layer
+ * is on, a faint ghost of it when off. Pointing at it (or tabbing to it) says what it does.
  */
-function Word({
+function Chip({
   on,
   onChange,
   onPoint,
@@ -370,15 +396,13 @@ function Word({
       onFocus={() => onPoint(true)}
       onBlur={() => onPoint(false)}
       style={{ "--c": color } as CSSProperties}
-      className="group flex flex-col gap-1 text-left text-white/45 transition-colors hover:text-ink-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent aria-pressed:text-[color-mix(in_oklab,var(--c)_60%,white)]"
+      className="group flex min-w-0 flex-col gap-1.5 text-left text-[0.8125rem] leading-tight text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent aria-pressed:text-ink"
     >
-      <span className="font-display text-[1.5rem] font-light leading-[1.05] tracking-[-0.035em] group-aria-pressed:font-extrabold sm:text-[1.7rem]">
-        {label}
-      </span>
       <span
         aria-hidden="true"
-        className="h-[3px] w-full bg-(--c) opacity-30 transition-opacity group-hover:opacity-60 group-aria-pressed:opacity-100"
+        className="h-9 w-full rounded-lg bg-(--c) opacity-25 ring-1 ring-inset ring-white/20 transition-opacity group-hover:opacity-45 group-aria-pressed:opacity-100 group-aria-pressed:ring-black/15"
       />
+      <span className="truncate">{label}</span>
     </button>
   );
 }
