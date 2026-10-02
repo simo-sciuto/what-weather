@@ -225,7 +225,22 @@ body {
     0 1px 20px rgb(0 0 0 / 0.25);
 }
 
-/* On a phone the data sit in a sheet of glass over the map (see DataSheet); on a computer .data-veil keeps them legible. */
+/* On a phone the data sit in a sheet of glass over the map (see PhoneNav); on a computer .data-veil keeps them legible. */
+
+/*
+ * On a phone the page itself never scrolls: it is the poster, and the finger moves the map behind it
+ * (see MapGestures). Where the finger moves the map, the browser must not take the gesture for itself.
+ */
+@media (width < 64rem) {
+  html,
+  body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  [data-map-gestures] {
+    touch-action: none;
+  }
+}
 
 /* ---------- Sky scene ---------- */
 

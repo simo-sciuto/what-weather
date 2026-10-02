@@ -46,8 +46,34 @@ export function viewAt(progress: number): { zoom: number; pitch: number } {
   return { zoom: zoomAt(progress), pitch: pitchAt(progress) };
 }
 
-/** The view the viewer has the map at now; it stays at the top's, flat, for those who asked for less motion. */
-export function currentView(): { zoom: number; pitch: number } {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return viewAt(0);
-  return viewAt(scrollProgress());
+/** A phone: the page doesn't scroll there, the finger moves the map (see MapGestures) */
+export const isPhone = () => window.matchMedia("(width < 64rem)").matches;
+
+/**
+ * On a phone the page stays still and the finger moves the map instead: how far it has come down into
+ * the city (0 to 1, as the scroll is on a computer) and how far it is turned (degrees). Kept here as a
+ * small store, so the map behind the page and the poster made from it read the same.
+ */
+let phone = { progress: 0, bearing: 0 };
+const phoneListeners = new Set<() => void>();
+export const phoneMap = {
+  get: () => phone,
+  set(next: { progress: number; bearing: number }) {
+    phone = next;
+    phoneListeners.forEach((l) => l());
+  },
+  subscribe(listener: () => void) {
+    phoneListeners.add(listener);
+    return () => phoneListeners.delete(listener);
+  },
+};
+
+/**
+ * The view the viewer has the map at now: on a computer from the scroll (the top's, flat, for those who
+ * asked for less motion), on a phone from the finger.
+ */
+export function currentView(): { zoom: number; pitch: number; bearing: number } {
+  if (isPhone()) return { ...viewAt(phone.progress), bearing: phone.bearing };
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return { ...viewAt(0), bearing: 0 };
+  return { ...viewAt(scrollProgress()), bearing: 0 };
 }

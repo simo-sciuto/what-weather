@@ -52,7 +52,7 @@ export interface PosterInput {
   options: readonly MapOption[];
   sun: SunPosition;
   /** How the map behind the page was when the poster was asked for: the poster shows the same stretch of city, from the same angle */
-  view: { zoom: number; pitch: number };
+  view: { zoom: number; pitch: number; bearing?: number };
   token: string;
   loadMapbox: () => Promise<Mapbox>;
 }
@@ -177,6 +177,8 @@ async function drawMap({
       zoom,
       // Tipped as far as the page is, as it is in the viewer's window
       pitch: view.pitch,
+      // Turned as the viewer turned it, on a phone
+      bearing: view.bearing ?? 0,
       interactive: false,
       attributionControl: false,
       fadeDuration: 1,

@@ -7,7 +7,7 @@ import { useMoment } from "../time/TimeContext";
 import { useMapOptions, useMapPalette } from "./MapControls";
 import { useMap } from "./MapContext";
 import { STYLE, syncMap } from "./map-style";
-import { BASE_ZOOM, scrollProgress, viewAt } from "./map-view";
+import { BASE_ZOOM, currentView, phoneMap } from "./map-view";
 
 type Pin = { x: number; y: number };
 
@@ -60,7 +60,7 @@ export function MapBackdropGL({ className }: { className: string }) {
   const [shown, setShown] = useState(false);
   const [pin, setPin] = useState<Pin | null>(null);
   const pinRef = useRef<Pin | null>(null);
-  const viewRef = useRef({ zoom: BASE_ZOOM, pitch: 0 });
+  const viewRef = useRef({ zoom: BASE_ZOOM, pitch: 0, bearing: 0 });
 
   // Measure the pin now and whenever the layout changes (the window, the name itself, the font arriving);
   // move the map to match.
@@ -91,24 +91,26 @@ export function MapBackdropGL({ className }: { className: string }) {
     };
   }, []);
 
-  // Scrolling down zooms into the city and tilts it: the map stays fixed, so the page seems to descend into it.
+  // Scrolling down zooms into the city and tilts it: the map stays fixed, so the page seems to descend into
+  // it. On a phone the page stays still and the finger does the same, and turns the map too (see MapGestures).
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let frame = 0;
-    const onScroll = () => {
+    const apply = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        viewRef.current = viewAt(scrollProgress());
+        viewRef.current = currentView();
         mapRef.current?.jumpTo(viewRef.current);
       });
     };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    apply();
+    window.addEventListener("scroll", apply, { passive: true });
+    window.addEventListener("resize", apply);
+    const off = phoneMap.subscribe(apply);
     return () => {
       cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("scroll", apply);
+      window.removeEventListener("resize", apply);
+      off();
     };
   }, []);
 
@@ -131,6 +133,7 @@ export function MapBackdropGL({ className }: { className: string }) {
           center: [lon, lat],
           zoom: viewRef.current.zoom,
           pitch: viewRef.current.pitch,
+          bearing: viewRef.current.bearing,
           interactive: false,
           attributionControl: false,
           fadeDuration: 0,
