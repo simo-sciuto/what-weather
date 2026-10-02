@@ -2,6 +2,12 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-02 (second session)
+- Worked on: WTH-012 and WTH-008 (the poster's top, the two actions), WTH-011 (random city), WTH-013 added.
+- Completed: see CHANGELOG. Checked with a screenshot after each UI change (desktop 1440x900, phone 390x844; the user asked for this), tsc, ESLint, unit tests for the new random code, and e2e for reading, places and phone (8 passed, before the last reorder of the button row).
+- Not verified: WTH-012 is not closed (the user has not signed it off); long names and the day picked in the week on the new composition; the random button and the landing have no e2e; the poster dialog and share on a real phone (WTH-013); the scrubbed-hour case of the range block was not looked at.
+- Next: the modal of "La mappa" (WTH-010), then the colours of the "tinta" menu (WTH-009).
+
 ## 2026-10-02
 - Worked on: filled BOARD DONE from git history.
 - Completed: DONE rebuilt by theme (WTH-100..163) from the 13 commits' messages and file stats; CHANGELOG aligned with the same ids.

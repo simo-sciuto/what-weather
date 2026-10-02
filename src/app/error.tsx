@@ -1,19 +1,17 @@
 "use client";
 
 import { Wordmark } from "@/components/Wordmark";
-import { LAST_PLACE_COOKIE } from "@/lib/place";
 import { useRouter } from "next/navigation";
 
 /**
  * Upstream failures never show raw errors. Offer a retry, and a way out when
- * the problem is the place itself (the last place is remembered in a cookie,
- * so a plain reload would land on it again).
+ * the problem is the place itself (its link would fail again): the bare address
+ * lands on another city.
  */
 export default function WeatherError({ retry }: { retry: () => void }) {
   const router = useRouter();
 
   function startOver() {
-    document.cookie = `${LAST_PLACE_COOKIE}=; path=/; max-age=0`;
     router.replace("/");
   }
 
@@ -36,7 +34,7 @@ export default function WeatherError({ retry }: { retry: () => void }) {
             onClick={startOver}
             className="rounded-full px-4 py-2 text-sm text-ink-muted underline-offset-4 hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-accent"
           >
-            Ricomincia dalla località predefinita
+            Prova un’altra città
           </button>
         </div>
       </div>

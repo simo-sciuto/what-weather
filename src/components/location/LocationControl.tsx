@@ -6,15 +6,15 @@ import { usePlace } from "./PlaceContext";
 export function LocationControl() {
   const { place, focusSearch } = usePlace();
   return (
-    <h1>
+    <h1 className="leading-none">
       <button
         type="button"
         onClick={focusSearch}
-        className="rounded-md text-left decoration-white/40 underline-offset-[0.15em] hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+        className="block rounded-md text-left decoration-white/40 underline-offset-[0.15em] hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       >
         <span
           // The size comes from the title row it sits in, shared with the temperature (see WeatherHero).
-          className="display-caps block text-balance [overflow-wrap:anywhere]"
+          className="display-caps block text-[var(--title)] text-balance [overflow-wrap:anywhere]"
         >
           {place.name}
         </span>

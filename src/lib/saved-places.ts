@@ -1,4 +1,4 @@
-import { LAST_PLACE_COOKIE, parsePlaceRef, samePlace, type PlaceRef } from "./place";
+import { parsePlaceRef, samePlace, type PlaceRef } from "./place";
 
 /**
  * Saved places live in localStorage (no accounts in the MVP), exposed as an
@@ -60,10 +60,4 @@ export function addSaved(place: SavedPlace) {
 
 export function removeSaved(place: PlaceRef) {
   write(parseSaved(savedSnapshot()).filter((p) => !samePlace(p, place)));
-}
-
-/** Remember the place for the server's next render (see LAST_PLACE_COOKIE). */
-export function rememberPlace(place: PlaceRef) {
-  const value = encodeURIComponent(JSON.stringify(place));
-  document.cookie = `${LAST_PLACE_COOKIE}=${value}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
 }

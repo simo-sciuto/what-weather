@@ -117,10 +117,10 @@ export function PosterButton({ className = "" }: { className?: string }) {
       <button
         type="button"
         onClick={open}
-        className={`inline-flex items-center gap-2 rounded-sm text-caption text-ink-muted underline decoration-white/35 underline-offset-4 hover:text-ink hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent ${className}`}
+        className={`group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-accent ${className}`}
       >
-        <PosterIcon className="size-4" />
         Crea poster
+        <span aria-hidden="true" className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent">↓</span>
       </button>
 
       <dialog
@@ -211,15 +211,5 @@ export function PosterButton({ className = "" }: { className?: string }) {
         </div>
       </dialog>
     </>
-  );
-}
-
-function PosterIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round">
-      <rect x="5" y="3" width="14" height="18" rx="1" />
-      <path d="M8 15.5h8M8 18h5" strokeLinecap="round" />
-      <path d="m7.5 11 3-3 2.5 2.5L16.5 7" strokeLinecap="round" />
-    </svg>
   );
 }

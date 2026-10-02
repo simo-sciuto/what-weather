@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Condition } from "@/lib/weather/types";
 
 /**
@@ -159,12 +160,14 @@ export function WeatherIcon({
   className,
   strokeWidth = 1.25,
   colored = false,
+  style,
 }: {
   condition: Condition;
   night?: boolean;
   className?: string;
   strokeWidth?: number;
   colored?: boolean;
+  style?: CSSProperties;
 }) {
   return (
     <svg
@@ -176,6 +179,7 @@ export function WeatherIcon({
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
+      style={style}
       className={`${colored ? "wi-color" : ""} ${className ?? ""}`}
     >
       {paths(glyphFor(condition, night))}

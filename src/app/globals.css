@@ -28,6 +28,8 @@
   --aqua: #9ce0f7;
   --sage: #a5e9ca;
   --accent: var(--butter);
+  /* The place's name: white with a touch of butter in it */
+  --title: color-mix(in oklab, #fff 76%, var(--butter));
 
   /* Fields and buttons: a darkening veil of the sky itself, so white text holds on any sky */
   --glass: rgb(12 15 37 / 0.4);
@@ -88,10 +90,10 @@
   --color-moon-lit: var(--moon-lit);
   --color-moon-dark: var(--moon-dark);
   --color-alert: var(--alert);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-poster);
   /*
-   * Two voices only, the reading's: the poster's grotesk for everything set
-   * large (names, numbers, headlines), Geist for the small print.
+   * One voice, the poster's grotesk, for everything: the name set heavy, the
+   * numbers light, the small print in between.
    */
   --font-poster: var(--font-inter-tight), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: var(--font-poster);
@@ -123,7 +125,7 @@ body {
 
 body {
   color: var(--ink);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-poster);
 }
 
 /* The page's own background: the sky, fixed behind scrolling content */

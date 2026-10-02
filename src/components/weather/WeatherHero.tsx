@@ -1,22 +1,30 @@
-import { conditionLabel, formatCoords, formatTemp, placeSubtitle } from "@/lib/weather/formatters";
+import {
+  conditionLabel,
+  formatCoords,
+  formatTemp,
+  placeParts,
+} from "@/lib/weather/formatters";
 import type { TempRange } from "@/lib/weather/today";
 import { yesterdayWords } from "@/lib/weather/yesterday";
 import type { CurrentWeather, Place } from "@/lib/weather/types";
 import { LocationControl } from "../location/LocationControl";
-import { HeroMeta, HeroMetaPhone, HeroNowPhone } from "../time/HeroMeta";
+import {
+  HeroActions,
+  HeroMeta,
+  HeroMetaPhone,
+  HeroNowPhone,
+} from "../time/HeroMeta";
 import { HeroReading } from "../time/HeroReading";
-import { HeroSky, HeroTemp } from "../time/HeroTemp";
+import { HeroGlyph, HeroTemp } from "../time/HeroTemp";
 
 /**
  * The reading as a Swiss typographic poster, on a six-column grid, flush left
- * and ragged right. Everything hangs from the same three axes (columns 1, 3
- * and 5), and there are three sizes of text besides the title: small print,
- * text and the outlook. From the top: the head (place,
- * day, hour, with the coordinates and the day of the year as small print);
- * the title, the place's name heavy and the temperature light, closing on one
- * baseline; under the temperature, a short stack of the sky, the range, the
- * feels-like and the change since yesterday; an empty field where the map shows the city; the outlook, large,
- * at the foot.
+ * and ragged right. From the top: the two actions; the head (place, day, hour,
+ * with the coordinates and the day of the year as small print); then one
+ * composition: the place's name heavy, the temperature
+ * bold against it on one baseline, and over the name the day's low and high
+ * and the sky as a glyph in one row; an empty field where the map shows the city; the
+ * outlook, large, at the foot.
  */
 export function WeatherHero({
   place,
@@ -38,14 +46,25 @@ export function WeatherHero({
   yesterday: number | null;
 }) {
   const label = conditionLabel(current);
-  const sinceYesterday = yesterday == null ? undefined : yesterdayWords(yesterday);
-  const longest = Math.max(...place.name.split(/\s+/).map((word) => word.length));
+  const sinceYesterday =
+    yesterday == null ? undefined : yesterdayWords(yesterday);
+  const longest = Math.max(
+    ...place.name.split(/\s+/).map((word) => word.length),
+  );
   // The temperature shares the size on two columns (about 30 of the 100 units): its longest
-  // reading of the day, sign and degree included, at about 0.6em a figure, must fit there too.
-  const widestTemp = Math.max(...[current.temp, range.min, range.max].map((t) => formatTemp(t).length));
+  // reading of the day, sign and degree included, at about 0.75em a figure (it is set at 1.15em,
+  // semibold), must fit there too.
+  const widestTemp = Math.max(
+    ...[current.temp, range.min, range.max].map((t) => formatTemp(t).length),
+  );
   // The name's four columns are some 60 of the reading's 100 units; 56 of them at 0.58em a letter
   // leave room for a word of wide letters ("Amsterdam"), so none ever breaks onto a second line.
-  const titleSize = Math.min(15, 56 / (0.58 * longest), place.name.length > 20 ? 8 : 15, 30 / (0.6 * widestTemp));
+  const titleSize = Math.min(
+    15,
+    56 / (0.58 * longest),
+    place.name.length > 20 ? 8 : 15,
+    30 / (0.75 * widestTemp),
+  );
 
   return (
     // The map behind the page centres the city on the middle of this poster (see MapBackdropGL).
@@ -57,8 +76,10 @@ export function WeatherHero({
       aria-label="Meteo attuale"
       className="on-sky flex min-h-[calc(100svh-12.5rem)] flex-col lg:min-h-full"
     >
+      <HeroActions />
       <HeroMeta
-        region={placeSubtitle(place)}
+        region={placeParts(place).region}
+        country={placeParts(place).country}
         coords={formatCoords(place.lat, place.lon)}
         timezone={timezone}
         renderedAt={renderedAt}
@@ -73,39 +94,46 @@ export function WeatherHero({
       */}
       {/* On a phone the hour and the day stand over the name, and the block sits at the middle of the screen */}
       <div aria-hidden="true" className="min-h-4 flex-1 lg:hidden" />
-      <HeroNowPhone timezone={timezone} renderedAt={renderedAt} dataAt={current.time} className="mb-4 lg:hidden" />
-
-      <div
-        className="grid grid-cols-6 gap-x-4 items-baseline-last lg:mt-1"
-        style={{ fontSize: `max(2rem, min(${titleSize}cqw, ${titleSize * 0.85}cqh))` }}
-      >
-        <div className="col-span-4 min-w-0">
-          <LocationControl />
-        </div>
-        <div className="rise-in col-span-2 min-w-0">
-          <HeroTemp />
-        </div>
-      </div>
+      <HeroNowPhone
+        timezone={timezone}
+        renderedAt={renderedAt}
+        dataAt={current.time}
+        className="mb-4 lg:hidden"
+      />
 
       {/*
-        Under the title, level with each other: on a phone, the place's facts under the name
-        (on a computer they are the head); the sky, the range and the feels-like under the
-        temperature, close to it.
+        The composition, on the six-column grid: the name on four columns and the temperature on
+        the last two, against each other on one baseline, and under the temperature the day's low
+        and high with the sky's glyph. The name and the temperature are one size, set here once,
+        as large as the name's longest word and the temperature's widest reading allow on their
+        columns, and stepping down for a long name.
       */}
-      <div className="mt-1 grid grid-cols-6 items-start gap-x-4 ">
-        <HeroMetaPhone
-          region={placeSubtitle(place)}
-          coords={formatCoords(place.lat, place.lon)}
-          className="col-span-4 min-w-0 lg:hidden"
-        />
-        <HeroSky
+      <div
+        className="mt-3 grid grid-cols-6 gap-x-4 lg:mt-5"
+        style={{
+          fontSize: `max(2rem, min(${titleSize}cqw, ${titleSize * 0.85}cqh))`,
+        }}
+      >
+        <div className="col-span-4 min-w-0 self-baseline-last">
+          <LocationControl />
+        </div>
+        <div className="rise-in col-span-2 self-baseline-last">
+          <HeroTemp />
+        </div>
+        <HeroGlyph
           high={range.max}
           low={range.min}
           note={range.note}
-          yesterday={sinceYesterday}
-          className="rise-in col-span-2 col-start-5 min-w-0"
+          className="rise-in col-span-2 col-start-5 row-start-2"
         />
       </div>
+
+      <HeroMetaPhone
+        region={placeParts(place).region}
+        country={placeParts(place).country}
+        coords={formatCoords(place.lat, place.lon)}
+        className="mt-4 lg:hidden"
+      />
 
       {/*
         The empty field: the map's city shows through it, well in view. On a phone it takes half of
@@ -114,9 +142,11 @@ export function WeatherHero({
       <div aria-hidden="true" className="min-h-10 flex-1 lg:min-h-8" />
 
       <p className="sr-only">
-        Adesso {formatTemp(current.temp)}, {label.toLowerCase()}, percepita {formatTemp(current.feelsLike)}. Massima{" "}
-        {formatTemp(range.max)}, minima {formatTemp(range.min)}
-        {range.note ? ` (${range.note})` : " oggi"}.{sinceYesterday && ` ${sinceYesterday} a quest’ora.`}
+        Adesso {formatTemp(current.temp)}, {label.toLowerCase()}, percepita{" "}
+        {formatTemp(current.feelsLike)}. Massima {formatTemp(range.max)}, minima{" "}
+        {formatTemp(range.min)}
+        {range.note ? ` (${range.note})` : " oggi"}.
+        {sinceYesterday && ` ${sinceYesterday} a quest’ora.`}
       </p>
       <HeroReading outlook={outlook} />
     </section>

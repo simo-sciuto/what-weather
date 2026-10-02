@@ -13,10 +13,11 @@ const CHECK_MS = 60_000;
  * older than the forecast's own refresh (10 minutes), it asks the server for
  * the page again: on returning to the tab, and once a minute while it stays
  * open (an installed app, a kiosk). The server answers from its cache, so
- * this costs little. It waits while someone is exploring another hour on
+ * this costs little. (On a city drawn at random it goes to that city's own
+ * address instead, so the next draw doesn't replace it.) It waits while someone is exploring another hour on
  * the timeline, so the moment under their finger doesn't change beneath it.
  */
-export function AutoRefresh() {
+export function AutoRefresh({ landedAt }: { landedAt?: string }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const { isLive } = useMoment();
@@ -32,7 +33,8 @@ export function AutoRefresh() {
       if (document.visibilityState !== "visible" || !live.current) return;
       if (Date.now() - loadedAt < WEATHER_REVALIDATE_SECONDS * 1000) return;
       loadedAt = Date.now();
-      startTransition(() => router.refresh());
+      // A city drawn at random would be drawn again: stay on this one, at its own address.
+      startTransition(() => (landedAt ? router.replace(landedAt) : router.refresh()));
     };
     const id = setInterval(check, CHECK_MS);
     document.addEventListener("visibilitychange", check);
@@ -42,7 +44,7 @@ export function AutoRefresh() {
       document.removeEventListener("visibilitychange", check);
       window.removeEventListener("online", check);
     };
-  }, [router]);
+  }, [router, landedAt]);
 
   return null;
 }

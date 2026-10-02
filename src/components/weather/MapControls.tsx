@@ -96,10 +96,10 @@ export function MapControls({ className = "" }: { className?: string }) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-10 items-center gap-2 rounded-full border border-white/25 px-4 text-sm text-ink transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-expanded:bg-white/14"
+        className="group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-ink aria-expanded:text-accent"
       >
-        <LayersIcon className="size-4" />
-        La mappa
+        Personalizza la mappa
+        <span aria-hidden="true" className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent">→</span>
       </button>
       {/* In the body, not here: a parent's blur or transform would make "fixed" mean "fixed to the parent" */}
       {open &&
@@ -287,14 +287,5 @@ function Pill({
       <span aria-hidden="true" className="size-3 shrink-0 rounded-full ring-1 ring-black/25" style={{ backgroundColor: color }} />
       {label}
     </button>
-  );
-}
-
-function LayersIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round">
-      <path d="m12 4 8.5 4.5L12 13 3.5 8.5 12 4Z" />
-      <path d="m3.5 12.5 8.5 4.5 8.5-4.5" />
-    </svg>
   );
 }
