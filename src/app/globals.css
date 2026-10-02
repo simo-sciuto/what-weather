@@ -225,35 +225,7 @@ body {
     0 1px 20px rgb(0 0 0 / 0.25);
 }
 
-/*
- * On a phone the data follows the reading down the page, over the map at full
- * strength: a veil of the top of the sky at 70% runs behind it, edge to edge
- * (the page clips it). It rises over an eased ramp above the timeline, so the
- * reading's empty field, where the city shows, stays clear; the chapters
- * below carry it on without a seam. On a computer .data-veil does this job.
- */
-@media (width < 64rem) {
-  .data-col::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset-block: 0;
-    inset-inline: -50vw;
-    background: color-mix(in oklab, var(--sky-1) 70%, transparent);
-  }
-  .data-col-first::before {
-    top: -4rem;
-    background: linear-gradient(
-      180deg,
-      transparent 0,
-      color-mix(in oklab, var(--sky-1) 8%, transparent) 1.25rem,
-      color-mix(in oklab, var(--sky-1) 28%, transparent) 2.5rem,
-      color-mix(in oklab, var(--sky-1) 50%, transparent) 3.75rem,
-      color-mix(in oklab, var(--sky-1) 64%, transparent) 5rem,
-      color-mix(in oklab, var(--sky-1) 70%, transparent) 6rem
-    );
-  }
-}
+/* On a phone the data sit in a sheet of glass over the map (see DataSheet); on a computer .data-veil keeps them legible. */
 
 /* ---------- Sky scene ---------- */
 

@@ -9,18 +9,34 @@ import { usePlace } from "../location/PlaceContext";
 import { useMoment } from "../time/TimeContext";
 import { useMapOptions, useMapPalette } from "../weather/MapControls";
 import { useMap } from "../weather/MapContext";
+import { BAR_ITEM } from "../layout/DataSheet";
 import { currentView } from "../weather/map-view";
-import { POSTER_FORMATS, renderPoster, type PosterFormat, type PosterInput } from "./render-poster";
+import {
+  POSTER_FORMATS,
+  renderPoster,
+  type PosterFormat,
+  type PosterInput,
+} from "./render-poster";
 
 /** The sky, the day, the map's extra layers, the sun and how close and how tipped the map is, as the poster is drawn: taken when the dialog opens. */
-type Snapshot = { palette: SkyPalette; dayKey: PosterInput["dayKey"]; options: MapOption[]; sun: SunPosition; view: { zoom: number; pitch: number } };
+type Snapshot = {
+  palette: SkyPalette;
+  dayKey: PosterInput["dayKey"];
+  options: MapOption[];
+  sun: SunPosition;
+  view: { zoom: number; pitch: number };
+};
 
-type Drawn = { status: "drawing" } | { status: "done"; url: string; blob: Blob } | { status: "error" };
+type Drawn =
+  | { status: "drawing" }
+  | { status: "done"; url: string; blob: Blob }
+  | { status: "error" };
 
 const FORMATS = Object.keys(POSTER_FORMATS) as PosterFormat[];
 
 function revokeAll(drawn: Partial<Record<PosterFormat, Drawn>>) {
-  for (const d of Object.values(drawn)) if (d?.status === "done") URL.revokeObjectURL(d.url);
+  for (const d of Object.values(drawn))
+    if (d?.status === "done") URL.revokeObjectURL(d.url);
 }
 
 /** A file name without accents or spaces: "what-weather-reykjavik-stampa-a.png". */
@@ -43,7 +59,13 @@ function fileName(place: string, format: PosterFormat) {
  * the clock ticking on doesn't redraw it. Without Mapbox there is no map, and
  * so no poster.
  */
-export function PosterButton({ className = "" }: { className?: string }) {
+export function PosterButton({
+  className = "",
+  bar = false,
+}: {
+  className?: string;
+  /** As one of the phone's bar actions */ bar?: boolean;
+}) {
   const { place } = usePlace();
   const { token, loadMapbox } = useMap();
   const { frame } = useMoment();
@@ -68,17 +90,46 @@ export function PosterButton({ className = "" }: { className?: string }) {
   if (!token) return null;
 
   /** Draws one format in the sky and day given; each is drawn once per opening, when first shown. */
-  function draw(f: PosterFormat, { palette, dayKey, options, sun, view }: Snapshot) {
+  function draw(
+    f: PosterFormat,
+    { palette, dayKey, options, sun, view }: Snapshot,
+  ) {
     if (!token) return;
     setDrawn((d) => ({ ...d, [f]: { status: "drawing" } }));
-    const where = { name: place.name, ...placeParts(place), lat: place.lat, lon: place.lon };
-    renderPoster({ format: f, place: where, dayKey, palette, options, sun, view, token, loadMapbox })
-      .then((blob) => setDrawn((d) => ({ ...d, [f]: { status: "done", url: URL.createObjectURL(blob), blob } })))
+    const where = {
+      name: place.name,
+      ...placeParts(place),
+      lat: place.lat,
+      lon: place.lon,
+    };
+    renderPoster({
+      format: f,
+      place: where,
+      dayKey,
+      palette,
+      options,
+      sun,
+      view,
+      token,
+      loadMapbox,
+    })
+      .then((blob) =>
+        setDrawn((d) => ({
+          ...d,
+          [f]: { status: "done", url: URL.createObjectURL(blob), blob },
+        })),
+      )
       .catch(() => setDrawn((d) => ({ ...d, [f]: { status: "error" } })));
   }
 
   function open() {
-    const taken: Snapshot = { palette, dayKey: frame.dayKey, options, sun: sunPosition(frame.time, place.lat, place.lon), view: currentView() };
+    const taken: Snapshot = {
+      palette,
+      dayKey: frame.dayKey,
+      options,
+      sun: sunPosition(frame.time, place.lat, place.lon),
+      view: currentView(),
+    };
     setSnapshot(taken);
     setDrawn({});
     setCanShare(typeof navigator.canShare === "function");
@@ -103,9 +154,13 @@ export function PosterButton({ className = "" }: { className?: string }) {
 
   async function share() {
     if (current?.status !== "done") return;
-    const file = new File([current.blob], fileName(place.name, format), { type: "image/png" });
+    const file = new File([current.blob], fileName(place.name, format), {
+      type: "image/png",
+    });
     if (!navigator.canShare?.({ files: [file] })) return;
-    await navigator.share({ files: [file], title: `${place.name} · what-weather` }).catch(() => undefined);
+    await navigator
+      .share({ files: [file], title: `${place.name} · what-weather` })
+      .catch(() => undefined);
   }
 
   const { width, height } = POSTER_FORMATS[format];
@@ -114,14 +169,29 @@ export function PosterButton({ className = "" }: { className?: string }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={open}
-        className={`group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-accent ${className}`}
-      >
-        Crea poster
-        <span aria-hidden="true" className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent">↓</span>
-      </button>
+      {bar ? (
+        <button
+          type="button"
+          onClick={open}
+          className={`${BAR_ITEM} ${className}`}
+        >
+          Poster
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={open}
+          className={`group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-accent ${className}`}
+        >
+          Crea poster
+          <span
+            aria-hidden="true"
+            className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent"
+          >
+            ↓
+          </span>
+        </button>
+      )}
 
       <dialog
         ref={dialog}
@@ -131,10 +201,16 @@ export function PosterButton({ className = "" }: { className?: string }) {
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id={titleId} className="font-display text-2xl font-semibold leading-tight tracking-[-0.02em]">
+            <h2
+              id={titleId}
+              className="font-display text-2xl font-semibold leading-tight tracking-[-0.02em]"
+            >
               Poster di {place.name}
             </h2>
-            <p className="mt-1 text-sm text-ink-muted">La città nei colori del cielo di questo momento, come la vedi nella mappa.</p>
+            <p className="mt-1 text-sm text-ink-muted">
+              La città nei colori del cielo di questo momento, come la vedi
+              nella mappa.
+            </p>
           </div>
           <button
             type="button"
@@ -146,7 +222,11 @@ export function PosterButton({ className = "" }: { className?: string }) {
           </button>
         </div>
 
-        <div role="group" aria-label="Formato" className="mt-5 grid grid-cols-3 gap-1 rounded-full border border-white/15 p-1">
+        <div
+          role="group"
+          aria-label="Formato"
+          className="mt-5 grid grid-cols-3 gap-1 rounded-full border border-white/15 p-1"
+        >
           {FORMATS.map((f) => (
             <button
               key={f}
@@ -164,11 +244,20 @@ export function PosterButton({ className = "" }: { className?: string }) {
         <div className="mt-5 flex justify-center">
           <div
             className="relative w-full max-w-full overflow-hidden rounded-md bg-white/6"
-            style={{ aspectRatio: `${width} / ${height}`, maxHeight: "min(52dvh, 30rem)", width: "auto", height: "min(52dvh, 30rem)" }}
+            style={{
+              aspectRatio: `${width} / ${height}`,
+              maxHeight: "min(52dvh, 30rem)",
+              width: "auto",
+              height: "min(52dvh, 30rem)",
+            }}
           >
             {current?.status === "done" ? (
               // eslint-disable-next-line @next/next/no-img-element -- a local blob, nothing for next/image to optimise
-              <img src={current.url} alt={`Poster di ${place.name}, formato ${POSTER_FORMATS[format].label}`} className="size-full object-contain" />
+              <img
+                src={current.url}
+                alt={`Poster di ${place.name}, formato ${POSTER_FORMATS[format].label}`}
+                className="size-full object-contain"
+              />
             ) : (
               <div className="skeleton absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-ink-muted">
                 <p role="status">
@@ -187,12 +276,20 @@ export function PosterButton({ className = "" }: { className?: string }) {
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           {canShare && current?.status === "done" && (
-            <button type="button" onClick={share} className={`${action} border border-white/20 hover:bg-white/8`}>
+            <button
+              type="button"
+              onClick={share}
+              className={`${action} border border-white/20 hover:bg-white/8`}
+            >
               Condividi
             </button>
           )}
           {current?.status === "done" ? (
-            <a href={current.url} download={fileName(place.name, format)} className={`${action} bg-accent text-[#0c0f25] hover:bg-accent/85`}>
+            <a
+              href={current.url}
+              download={fileName(place.name, format)}
+              className={`${action} bg-accent text-[#0c0f25] hover:bg-accent/85`}
+            >
               Scarica
             </a>
           ) : current?.status === "error" ? (
@@ -204,7 +301,10 @@ export function PosterButton({ className = "" }: { className?: string }) {
               Riprova
             </button>
           ) : (
-            <span aria-disabled="true" className={`${action} bg-accent/40 text-[#0c0f25]/70`}>
+            <span
+              aria-disabled="true"
+              className={`${action} bg-accent/40 text-[#0c0f25]/70`}
+            >
               Scarica
             </span>
           )}

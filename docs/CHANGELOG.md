@@ -3,6 +3,7 @@
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
 ## 2026-10-02
+- Phone: the page no longer scrolls into the data; the poster and the map stay in view, the data rise in a glass sheet from a floating bar with Dati, Poster and Mappa (WTH-022, first checkpoint).
 - The "La mappa" panel redesigned: sliders on one row on top, the layers as words with a colour bar, ruled groups (WTH-010).
 - Poster top: the day's low and high with the sky's glyph over the name, the temperature (light, 1.9 times the name) at the right edge (WTH-012, WTH-017 in progress).
 - A light shadow under each rank of road, going with its choice; the poster's colour bar without shadows and relief, in fine bars and small capitals (WTH-021).
