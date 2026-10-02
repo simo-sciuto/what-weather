@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { BASE_ZOOM, END_PITCH, END_ZOOM, pitchAt, zoomAt } from "./map-view";
+import {
+  BASE_ZOOM,
+  END_PITCH,
+  END_ZOOM,
+  bearingName,
+  bearingPoint,
+  pitchAt,
+  zoomAt,
+} from "./map-view";
 
 describe("zoomAt", () => {
   it("runs from the whole city at the top of the page to the streets at the bottom", () => {
@@ -11,7 +19,8 @@ describe("zoomAt", () => {
     const steps = [0, 0.25, 0.5, 0.75, 1].map(zoomAt);
     const gains = steps.slice(1).map((z, i) => z - steps[i]);
     // Each quarter of the page descends further than the one before
-    for (let i = 1; i < gains.length; i++) expect(gains[i]).toBeGreaterThan(gains[i - 1]);
+    for (let i = 1; i < gains.length; i++)
+      expect(gains[i]).toBeGreaterThan(gains[i - 1]);
     // The first quarter covers well under a quarter of the way
     expect(gains[0]).toBeLessThan((END_ZOOM - BASE_ZOOM) * 0.1);
   });
@@ -27,6 +36,30 @@ describe("pitchAt", () => {
 
   it("turns smoothly, never backwards", () => {
     const pitches = Array.from({ length: 21 }, (_, i) => pitchAt(i / 20));
-    for (let i = 1; i < pitches.length; i++) expect(pitches[i]).toBeGreaterThanOrEqual(pitches[i - 1]);
+    for (let i = 1; i < pitches.length; i++)
+      expect(pitches[i]).toBeGreaterThanOrEqual(pitches[i - 1]);
+  });
+});
+
+describe("bearingPoint", () => {
+  it("names the nearest of the eight points, by their Italian initials", () => {
+    expect([0, 44, 90, 135, 180, 225, 270, 315].map(bearingPoint)).toEqual([
+      "N",
+      "NE",
+      "E",
+      "SE",
+      "S",
+      "SO",
+      "O",
+      "NO",
+    ]);
+  });
+
+  it("wraps round: a negative or a full turn lands on the same point", () => {
+    expect(bearingPoint(-90)).toBe("O");
+    expect(bearingPoint(360)).toBe("N");
+    expect(bearingPoint(-20)).toBe("N");
+    expect(bearingPoint(-30)).toBe("NO");
+    expect(bearingName(45)).toBe("Nord-Est");
   });
 });

@@ -44,9 +44,17 @@ export function MapGestures() {
       axis: "y" | "x" | null;
     } | null = null;
     const down = (e: PointerEvent) => {
-      if (!isPhone() || !e.isPrimary) return;
+      if (!e.isPrimary) return;
       const target = e.target as HTMLElement;
       if (target.closest(NOT_MAP)) return;
+      // On a computer only a mouse, and only across the poster's own field: it turns the map, sideways
+      if (
+        !isPhone() &&
+        (e.pointerType !== "mouse" ||
+          e.button !== 0 ||
+          !target.closest("[data-map-gestures]"))
+      )
+        return;
       cancelAnimationFrame(back.current);
       const now = phoneMap.get();
       start = {
@@ -63,7 +71,7 @@ export function MapGestures() {
       const dy = e.clientY - start.y;
       if (!start.axis) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) < PICK_PX) return;
-        start.axis = Math.abs(dy) >= Math.abs(dx) ? "y" : "x";
+        start.axis = !isPhone() || Math.abs(dy) < Math.abs(dx) ? "x" : "y";
       }
       const now = phoneMap.get();
       if (start.axis === "y") {
