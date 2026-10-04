@@ -102,6 +102,9 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - Haze is led by visibility (0.65, lost between 10 and 1 km), then dew proximity (0.25) and humidity (0.10). Saturated air alone gives 0.35, below the onset. The UV curve is deliberately kept.
 - User decision: rain, snow and fog are separate values. Snow has its own intensity scale (full at 2 mm/h of water, rain at 12), the view a fall takes away is the fall's and never haze (`hazeLoss = max(0, visibilityLoss - max(wetness, snow))`), and heat and cold weigh 0.8 in the signature as background. Depth now closes only with fog.
 
+### ADR-012 update (2026-10-04): weather fingerprint (WTH-046J)
+- A record's visual DNA is eight whole-hundredth numbers (`phase`, `warmth`, `cloud`, `haze`, `wet`, `snow`, `severity`, `energy`) with a basis of the measurements they rest on, as versioned keys (`wf1/...~tcvp`). The plan's "light" is the solar phase, never the daylight axis. The basis is provenance, not DNA: the same picture from fewer readings is another key. It holds no place, clock, unit, provider, wind or palette. Similarity is deliberately not defined yet. Not connected until the Records track needs it.
+
 ### ADR-012 update (2026-10-04): temperature colour (WTH-046I)
 - Any colour that carries a temperature (the figures, the day's range, the week's bars, the poster's number) stays on the absolute scale of `temp-color.ts`, whatever the weather, so temperatures compare across places, days and records. Only decorative uses (the country's name, the phone bar's marker, the compass needle) take `tempAccent`, which keeps the scale's hue and lightness and follows the weather's saturation. Unchanged on screen until WTH-046L.
 
