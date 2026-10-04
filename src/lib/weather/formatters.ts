@@ -42,6 +42,50 @@ export function localHour(ts: number, timeZone: string): number {
   return get("hour") + get("minute") / 60;
 }
 
+/**
+ * The instants, in seconds, at which the calendar day at the place that holds `ts` begins and ends: a day of
+ * 24 hours, or of 23 or 25 where the clocks change (and of an odd length in the few zones that change by half an
+ * hour). The clock reads the same at both ends, so the place's own offset at each is found, not assumed.
+ */
+export function localDayBounds(ts: number, timeZone: string): [number, number] {
+  const format = dateFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hourCycle: "h23",
+  });
+  const clock = (t: number) => {
+    const parts = format.formatToParts(new Date(t * 1000));
+    const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+    return { y: get("year"), m: get("month"), d: get("day"), seconds: Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second")) / 1000 };
+  };
+  /**
+   * The start of the day that holds `t`: the instant the clock first reads that date. The naive midnight of the
+   * date, less the offset in force around it: tried with the offsets of the day before, of `t` and of the day
+   * after, and the one that is truly the day's first instant (the clock read another date a second before) is
+   * taken. A midnight can occur twice (the clocks going back at midnight, as in the Azores) and then it is the
+   * first; where there is none (going forward at midnight) the offset at `t` decides.
+   */
+  const startOf = (t: number) => {
+    const c = clock(t);
+    const midnight = Date.UTC(c.y, c.m - 1, c.d) / 1000;
+    const offsetAt = (at: number) => clock(at).seconds - at;
+    const candidates = [...new Set([-86400, 0, 86400].map((shift) => midnight - offsetAt(t + shift)))].sort((a, b) => a - b);
+    const sameDate = (at: number) => {
+      const k = clock(at);
+      return k.y === c.y && k.m === c.m && k.d === c.d;
+    };
+    return candidates.find((at) => sameDate(at) && !sameDate(at - 1)) ?? midnight - offsetAt(t);
+  };
+  const start = startOf(ts);
+  // 36 hours on is in the next day whatever this one's length (23 to 25 hours) and short of the one after
+  return [start, startOf(start + 36 * 3600)];
+}
+
 /** A date at the place, in the given Intl format ("mercoledì", "30 set"…). */
 export function formatDate(ts: number, timeZone: string, options: Intl.DateTimeFormatOptions): string {
   return dateFormat("it-IT", { timeZone, ...options }).format(new Date(ts * 1000));
