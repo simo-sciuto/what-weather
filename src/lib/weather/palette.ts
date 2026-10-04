@@ -671,7 +671,8 @@ function mapInks(
   // The weather's say on colour, before the layers are drawn and kept apart from one another
   if (!isClearMap(air))
     for (const layer of Object.keys(colors) as MapLayer[]) {
-      const plane = MAP_PLANE[layer];
+      // The 3D volumes take the flat buildings' colour, since the two are kept apart as one group; their weight stays their own
+      const plane = layer === "buildings-3d" ? "building" : MAP_PLANE[layer];
       const [l, c, h] = colors[layer];
       // Snow brightens the ground; the buildings, already pale, step the other way so they stand against it
       // (lifted too they would meet the ground and the streets)
@@ -840,12 +841,48 @@ function mapInks(
     keepApart(group, placed);
     placed.push(...group);
   }
-  // The weights and the depth last: the colours stay as drawn and kept apart, only each layer's opacity moves
-  if (!isClearMap(air))
-    for (const layer of Object.keys(inks) as MapLayer[])
-      inks[layer] = weathered(inks[layer], layer, air);
+  // The weights and the depth last: the colours stay as drawn and kept apart, only each layer's opacity moves,
+  // by as much of the weather's factor as keeps the layers on show at least `SEPARATION_IN_WEATHER` apart
+  if (!isClearMap(air)) {
+    const kinds = SEPARATED_KINDS.filter((layer) => active.has(layer));
+    const factor = new Map(kinds.map((layer) => [layer, opacityFactor(layer, air)]));
+    const shownAt = (layer: MapLayer, t: number) =>
+      mix(sky, hex(inks[layer].color), clamp01(inks[layer].opacity * (1 + t * ((factor.get(layer) ?? 1) - 1))));
+    const gapAt = (t: number) => {
+      let least = Infinity;
+      for (let i = 0; i < kinds.length; i++)
+        for (let j = i + 1; j < kinds.length; j++) {
+          if (ROADS.includes(kinds[i]) && ROADS.includes(kinds[j])) continue;
+          least = Math.min(least, oklabDistance(shownAt(kinds[i], t), shownAt(kinds[j], t)));
+        }
+      return least;
+    };
+    // Never asked for more than clear air gave, nor than the weather's own floor
+    const need = Math.min(SEPARATION_IN_WEATHER * MAP_SEPARATION * Math.min(1, k), gapAt(0));
+    let t = 1;
+    if (gapAt(1) < need) {
+      let [lo, hi] = [0, 1];
+      for (let i = 0; i < 14; i++) {
+        const mid = (lo + hi) / 2;
+        if (gapAt(mid) >= need) lo = mid;
+        else hi = mid;
+      }
+      t = lo;
+    }
+    for (const layer of Object.keys(inks) as MapLayer[]) {
+      const f = 1 + t * (opacityFactor(layer, air) - 1);
+      inks[layer] = { ...inks[layer], opacity: +clamp01(inks[layer].opacity * f).toFixed(2) };
+    }
+  }
   return inks;
 }
+
+/** The kinds of thing kept apart in weather: what the separation tests look at (a road rank against another is one family) */
+const SEPARATED_KINDS: readonly MapLayer[] = [
+  "streets", "main-roads", "motorways", "water", "buildings", "buildings-3d", "train", "metro", "tram", "bus-stops", "green",
+];
+/** How far apart they are kept in weather, as a share of `MAP_SEPARATION`: above the 0.3 the tests declare, for the rounding of opacities */
+const SEPARATION_IN_WEATHER = 0.33;
 
 /**
  * What the weather does to the map's hierarchy (WTH-046G), the map half of the atmosphere: weights on the
@@ -860,7 +897,7 @@ export interface MapVisualState {
   roadWeight: number;
   buildingWeight: number;
   terrainWeight: number;
-  /** Chroma multiplier of every line but the traffic's and the lights' own tones */
+  /** Chroma multiplier of every line but the streets', the traffic's and the lights' own tones (the 3D volumes follow the flat buildings) */
   saturation: number;
   /** Lightness the ground gains, as snow brightens it; and the water loses, as rain deepens it */
   landLift: number;
@@ -923,10 +960,7 @@ function opacityFactor(layer: MapLayer, air: MapVisualState): number {
   return weight * (1 - (1 - air.depth) * DEPTH_PLANE[layer]);
 }
 
-/** One ink in this air: its opacity as the factor leaves it (the colour was settled before, see `mapInks`). */
-function weathered(ink: MapInk, layer: MapLayer, air: MapVisualState): MapInk {
-  return { ...ink, opacity: +clamp01(ink.opacity * opacityFactor(layer, air)).toFixed(2) };
-}
+
 
 /**
  * The map's lines over a sky (a palette's `sky2`) as the viewer tuned them
@@ -1360,7 +1394,7 @@ export const MAP_WEATHER_LIMITS = {
   stormRoads: 0.25,
   stormWater: 0.1,
   stormDeepen: 0.03,
-  /** No weight goes under this share of its plane's opacity */
+  /** No weight goes under this share of its plane's opacity (only the terrain's, under storm and rain, gets there) */
   floor: 0.4,
 } as const;
 

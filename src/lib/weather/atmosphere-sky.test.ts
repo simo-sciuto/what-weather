@@ -13,6 +13,7 @@ import {
   inkOverSky,
   MAP_SEPARATION,
   mapInksFor,
+  MAP_WEATHER_LIMITS,
   mapVisualState,
   type MapInk,
   type MapLayer,
@@ -521,8 +522,7 @@ describe("meteorological map hierarchy (WTH-046G)", () => {
     for (const light of LIGHTS)
       for (const over of [{ wetness: 1 }, { snow: 1 }, { severity: 1, wetness: 1 }, { haze: 1, snow: 1 }, { warmth: -1, snow: 1, severity: 1 }]) {
         const s = mapVisualState(at(light, over));
-        const X = ATMOSPHERE_LIMITS && 0.4;
-        for (const w of [s.terrainWeight, s.roadWeight, s.buildingWeight]) expect(w).toBeGreaterThanOrEqual(X);
+        for (const w of [s.terrainWeight, s.roadWeight, s.buildingWeight]) expect(w).toBeGreaterThanOrEqual(MAP_WEATHER_LIMITS.floor);
         expect(s.waterWeight).toBeGreaterThanOrEqual(1);
         expect(s.saturation).toBeGreaterThan(0.4);
         expect(s.depth).toBeGreaterThanOrEqual(0);
@@ -557,6 +557,8 @@ describe("meteorological map hierarchy (WTH-046G)", () => {
     expect(mean(wet, WATER, land)).toBeLessThan(mean(clear, WATER, land));
     expect(mean(wet, TERRAIN, opacity)).toBeLessThan(0.8 * mean(clear, TERRAIN, opacity));
     expect(mean(wet, ["main-roads", "motorways"], opacity)).toBeGreaterThanOrEqual(mean(clear, ["main-roads", "motorways"], opacity));
+    // The roads are already opaque in many skies, so the weight itself is what must firm them
+    expect(mapVisualState(noon({ cloudiness: 1, wetness: 0.9 })).roadWeight).toBeGreaterThan(mapVisualState(noon({})).roadWeight);
   });
 
   it("snow: brighter ground, cooler quieter lines, restrained infrastructure, water kept apart", () => {
@@ -591,9 +593,10 @@ describe("meteorological map hierarchy (WTH-046G)", () => {
   });
 
   it("keeps the layers apart in every weather, by a declared floor", { timeout: 60_000 }, () => {
-    // Live: 0.45 of MAP_SEPARATION at worst with ten kinds of thing. Here, with every layer on: clear 0.068, rain 0.05,
-    // snow 0.041, a full storm 0.031 (it compresses the ground on purpose, so ground and buildings meet in the sky).
-    // The floor is 0.3 of the separation, above the 0.02 that is the least visible difference.
+    // Live: 0.45 of MAP_SEPARATION at worst with ten kinds of thing. Here, with every layer on, over every light and
+    // ten mixes of weather (single, half, and the rare ones: snow with storm, fog with snow): the opacity factor is
+    // eased towards 1 as far as it takes to keep 0.33 of the separation (tested at 0.3 for the rounding of opacities),
+    // above the 0.02 that is the least visible difference. Without it the mixes fell to 0.011 and 0.013.
     const GROUPS: MapLayer[][] = [["streets"], ["main-roads"], ["motorways"], ["water"], ["buildings"], ["buildings-3d"], ["train"], ["metro"], ["tram"], ["bus-stops"], ["green"]];
     const gap = (s: string, i: Record<MapLayer, MapInk>) => {
       let least = Infinity;
@@ -604,8 +607,13 @@ describe("meteorological map hierarchy (WTH-046G)", () => {
         }
       return least;
     };
-    for (const l of LIGHTS.filter((_, k) => k % 3 === 0))
-      for (const over of [{ wetness: 1, cloudiness: 1 }, { snow: 1, cloudiness: 1, warmth: -1 }, { severity: 1, wetness: 1, cloudiness: 0.95 }]) {
+    const MIXES: Partial<AtmosphereAxes>[] = [
+      { wetness: 1, cloudiness: 1 }, { wetness: 0.5, cloudiness: 1 }, { snow: 1, cloudiness: 1, warmth: -1 }, { snow: 0.5, cloudiness: 1 },
+      { severity: 1, wetness: 1, cloudiness: 0.95 }, { severity: 0.5, wetness: 0.7, cloudiness: 1 }, { snow: 1, severity: 1, cloudiness: 1, warmth: -0.5 },
+      { haze: 1, snow: 0.8, cloudiness: 1 }, { haze: 1, severity: 1, wetness: 1, cloudiness: 1 }, { warmth: 1, wetness: 0.8, cloudiness: 0.6 },
+    ];
+    for (const l of LIGHTS)
+      for (const over of MIXES) {
         const a = at(l, over);
         const p = atmospherePalette(l, a);
         const inksAll = mapInksFor(p.sky2, PAGE, ALL_MAP_LAYERS, mapVisualState(a));

@@ -13,7 +13,8 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Worked on: K closed and committed; WTH-046G. Mid-session the user added three requests (poster glow, transit stops, the poster's left column): on the board as WTH-179, 180, 181, not started.
 - Completed: `mapVisualState` and its use in `mapInks`. The separation under weather took four attempts: weights inside the search (reverted, it moved hues with depth), then snow lifting the buildings with the ground (met the streets), the streets and 3D volumes taken out of the weights, and a wrong first measure (`p.map` keeps only the city layers apart: the test must use all layers).
 - Checked: 107 tests in six suites; tsc and ESLint; live fingerprint unchanged. A `timeout` command does not exist on this macOS: several silent runs were that, not hangs.
-- Not verified: the look in the lab, the user's. Reviewer pass requested.
+- Reviewer pass: no critical problems; the main finding (separation not guaranteed after the weights) was real: widening the test to every light and ten mixes showed 0.011 with snow and a storm. Added a guard that eases the opacity factor; also made the 3D buildings follow the flat ones' colour. The lab's glow now matches the page's `.sky-glow` (it was harsher, without the clouds' dimming): a small change outside G, noted here.
+- Not verified: the look in the lab, the user's.
 - Next: the user's look; then H or the three new requests.
 
 ## 2026-10-04 (calibration round three)
