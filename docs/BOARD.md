@@ -6,7 +6,7 @@ Items marked (audit) were noticed while reading the code on 2026-10-01, not requ
 
 ## NOW
 
-- [ ] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. Active since 2026-10-04 after user sign-off of WTH-012. WTH-046A/B/C/D/E done (E signed off in the lab `/lab/atmosfera`); active checkpoint WTH-046F. V1 covers the static system; WTH-046M is PARKED. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
+- [ ] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. Active since 2026-10-04 after user sign-off of WTH-012. WTH-046A/B/C/D/E done (E signed off in the lab `/lab/atmosfera`); F implemented, awaiting the user's look in the lab; next checkpoint WTH-046K. V1 covers the static system; WTH-046M is PARKED. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
 
 ```text
 WTH-012 -> WTH-046A -> WTH-046B -> WTH-046C -> WTH-046D
@@ -21,13 +21,13 @@ WTH-046M: PARKED, outside V1
   - [x] WTH-046C Carry atmospheric data through the timeline: humidity, visibility and dew point with their origin from every provider to `frameLook()`. Done 2026-10-04.
   - [x] WTH-046D Solar base palette: `solarPalette(light)` exposes the existing natural-light base, values unchanged. Done 2026-10-04.
   - [x] WTH-046E OKLCH atmosphere transform: `atmosphereSky`/`atmospherePalette` in `palette.ts` section 6, bounded and in a fixed order, sharing the live finish; live `skyPalette` byte-identical. Dev-only lab `/lab/atmosfera`. Done 2026-10-04, signed off by the user in the lab.
-  - [ ] WTH-046F Atmospheric depth: haze compresses depth instead of greying; visible in grayscale.
+  - [ ] WTH-046F Atmospheric depth: haze compresses depth instead of greying; visible in grayscale. Implemented 2026-10-04: `atmosphereDepth` and map planes in `palette.ts` (far ground fades, middle softens, foreground holds), live map byte-identical; visual judgement in the lab is the user's.
   - [ ] WTH-046K Scenario calibration suite: critical gate before G/H/L; measurement-driven scenarios and invariants, never city presets. Started with E: 16 scenarios in `calibration.ts` and the lab. Open findings: the signature ranks `cloud` over rain/snow in most wet scenarios (A); saturated-air haze and the UV curve differ from the live page (B). See the engine doc.
   - [ ] WTH-046G Meteorological map hierarchy: weather changes map hierarchy and depth, not just hue; separation and user tuning preserved.
   - [ ] WTH-046H Unified visual palette contract: evolve `SkyPalette` into one whole-record palette for UI, Mapbox and poster.
   - [ ] WTH-046I Temperature colour integration: decide which `temp-color.ts` uses stay absolute and which follow the engine.
   - [ ] WTH-046J Weather Fingerprint: deterministic internal visual DNA of a record; no V1 UI.
-  - [ ] WTH-046L Map / poster / UI integration: after calibration, one weather visual state on screen and in the exported poster.
+  - [ ] WTH-046L Map / poster / UI integration: after calibration, one weather visual state on screen and in the exported poster. From F's review: `MapControls` recomputes inks with `mapInksFor` and must receive the atmosphere's depth (expose it on the palette or pass it), or map and poster diverge; quantize depth (e.g. 0.05) before it keys the 96-entry memo, since haze moves continuously along the timeline.
   - [ ] WTH-046M Future motion layer. PARKED, outside V1: wind reserved for motion, never colour.
 
 Board tooling limitation: `scripts/board/board-md.mjs` recognizes numeric IDs only. WTH-046 is a browser board card; the letter-suffixed subtasks above are Markdown lines preserved by the parser, not independently editable or draggable cards, and do not follow the card if it is moved. Do not renumber them to work around this.

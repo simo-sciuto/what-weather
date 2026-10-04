@@ -2,6 +2,13 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-04 (atmospheric depth)
+- Worked on: WTH-165 added to the board (phone search bar); E committed after the user's sign-off; WTH-046F.
+- Completed: depth from haze and map planes as a final opacity step. A first version that lowered contrast targets before the separation search jumped between colour variants (a layer could come back stronger or change hue): replaced.
+- Checked: live inks byte-identical on 2,232 sets, now guarded by a fingerprint test; 31 tests in `atmosphere-sky` (42 with `palette`); tsc and ESLint. Reviewer: no critical problems; fixed a tautological test, added separation and visibility tests, kept 3D buildings opaque; integration follow-ups on WTH-046L. Full-page lab screenshot sent to the user at their request.
+- Not verified: the look, which is the user's call. Snow and rain with moderate visibility reach near-zero depth because of the saturated-air haze baseline (K finding).
+- Next: user looks at F; commit; WTH-046K.
+
 ## 2026-10-04 (atmosphere transform)
 - Worked on: board tidy-up (WTH-046 plan moved into WEATHER_VISUAL_ENGINE.md), checkpoint commit of A-D on `feature/visual-engine`, then WTH-046E with the start of K.
 - Completed: the bounded OKLCH transform, the shared finish, 16 calibration scenarios, the dev-only lab. A first trial collapsed every wet sky onto one grey (multiplied pulls, a veil above the white-text cap): fixed with combined pulls, a veil cap at 0.56 and the haze onset at 0.45. A four-lens review workflow confirmed 13 problems (floors bypassed, snow veil turning magenta at dusk, tests that could not fail, lab twilight, docs); all fixed.
@@ -30,8 +37,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Not verified: visual output, E2E and full scenario calibration, because the new model is not yet connected to the application. Existing palette, providers, timeline, map, poster and UI unchanged.
 - Next: WTH-046B (measurement normalization). WTH-046M remains PARKED.
 
-## 2026-10-02 (fourth session)
-- Worked on: WTH-019 (trains, metro, tram, bus), WTH-016 (colour algorithm), WTH-015 (buildings from above: not solved, see BOARD); WTH-015..019 added to the board.
-- Completed: see CHANGELOG, ADR-011 update. Checked: tsc, ESLint, palette, map-style and map-view unit tests (26 passed), screenshots of Tokyo at night with the metro, trains, trams and buses on (the map takes over 12 s to draw at zoom 14 in the headless browser: it is slow there, not broken).
-- Not verified: the poster with trams and buses; the transit layers on a phone; the colours of the transit layers by day (the day sky made the map nearly invisible in the screenshots); no e2e (they run without Mapbox). Tram and bus layers only show from zoom 14, which the page reaches in the last fifth of the scroll.
-- Next: the user chooses among WTH-017, WTH-018, WTH-010, WTH-009, WTH-013; WTH-012 is still waiting for their sign-off.

@@ -393,6 +393,39 @@ const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
   lights: { contrast: 2, minOpacity: 0.7 },
 };
 /**
+ * How much of each layer's opacity, and so of its contrast with the sky, the thickest haze takes (WTH-046F): the ground
+ * (meadows, relief, contours, shadows) fades most, the middle (water, streets, flat buildings) softens, and
+ * what the map is read by (the main roads, the ways of getting about, traffic, lights) holds. Faded layers
+ * draw towards the sky and so towards one another: their separation shrinks with them (see the engine doc).
+ */
+const DEPTH_FAR = 0.75;
+const DEPTH_MID = 0.35;
+const DEPTH_PLANE: Record<MapLayer, number> = {
+  green: DEPTH_FAR,
+  relief: DEPTH_FAR,
+  contours: DEPTH_FAR,
+  shadows: DEPTH_FAR,
+  water: DEPTH_MID,
+  waterway: DEPTH_MID,
+  streets: DEPTH_MID,
+  buildings: DEPTH_MID,
+  // Volumes stay as opaque as MAP_INK makes them, or the roads would show through them in fog
+  "buildings-3d": 0,
+  "main-roads": 0,
+  motorways: 0,
+  train: 0,
+  "train-stops": 0,
+  metro: 0,
+  "metro-stops": 0,
+  tram: 0,
+  "tram-stops": 0,
+  "bus-stops": 0,
+  "traffic-slow": 0,
+  "traffic-heavy": 0,
+  "traffic-jam": 0,
+  lights: 0,
+};
+/**
  * The share of each line that shows through the backdrop's fade (65% away from the city, see
  * .backdrop-fade), taken lower on purpose: the contrast holds under the reading's veil too.
  */
@@ -486,11 +519,16 @@ export const ALL_MAP_LAYERS: ReadonlySet<MapLayer> = new Set(
  * hue turns them round the wheel, `vivid` scales their chroma (deepening them
  * to make room for it), `contrast` scales how far from the sky each must
  * stand. A line too deep to read once fully opaque is lightened until it does.
+ * `depth` (1 clear air, 0 the thickest haze; see `atmosphereDepth`) closes
+ * the distance last of all: the colours are chosen and kept apart as in
+ * clear air, then each layer's opacity gives up its plane's share of the
+ * haze, so the far ground fades, the middle softens and the foreground holds.
  */
 function mapInks(
   sky: RGB,
   tune: MapTune = UNTUNED,
   active: ReadonlySet<MapLayer> = CITY_LAYERS,
+  depth = 1,
 ): Record<MapLayer, MapInk> {
   const [L, C] = toOklch(sky);
   const hue = skyHue(sky);
@@ -729,6 +767,14 @@ function mapInks(
     keepApart(group, placed);
     placed.push(...group);
   }
+  // Depth last: the same colours, thinner the farther their plane, so haze never moves a hue or makes a
+  // layer stronger, and the layers keep apart in hue as they fade together into the sky
+  if (depth < 1)
+    for (const layer of Object.keys(inks) as MapLayer[]) {
+      const near = 1 - (1 - depth) * DEPTH_PLANE[layer];
+      if (near < 1)
+        inks[layer] = { ...inks[layer], opacity: +(inks[layer].opacity * near).toFixed(2) };
+    }
   return inks;
 }
 
@@ -736,17 +782,19 @@ function mapInks(
  * The map's lines over a sky (a palette's `sky2`) as the viewer tuned them
  * (see MapControls): their hue, how vivid, how strong against the sky. The layers in
  * `active` (the city's own unless said otherwise) are kept apart from one another in colour.
+ * `depth` is the air's (see `atmosphereDepth`); the live page has none yet, so clear air.
  */
 export function mapInksFor(
   sky: string,
   tune: MapTune,
   active: ReadonlySet<MapLayer> = CITY_LAYERS,
+  depth = 1,
 ): Record<MapLayer, MapInk> {
   // Worked out once per sky, tuning and choice of layers: scrubbing the timeline asks again and again for the same few
-  const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}|${[...active].sort().join(",")}`;
+  const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}|${[...active].sort().join(",")}|${depth}`;
   const known = inksMemo.get(key);
   if (known) return known;
-  const inks = mapInks(hex(sky), tune, active);
+  const inks = mapInks(hex(sky), tune, active, depth);
   if (inksMemo.size >= INKS_MEMO)
     inksMemo.delete(inksMemo.keys().next().value as string);
   inksMemo.set(key, inks);
@@ -853,6 +901,7 @@ function finishPalette(
   glow: RGBA,
   light: number,
   cloud: RGBA,
+  depth = 1,
 ): SkyPalette {
   const [sky1, sky2, sky3] = legibleSky(weathered);
 
@@ -879,7 +928,7 @@ function finishPalette(
     // The "now" markers: the glow's own colour by day, a periwinkle moonlight at night.
     sun: dark ? "#bfcbfe" : toHex([glow[0], glow[1], glow[2]]),
     cloud: rgba(cloud),
-    map: mapInks(sky2),
+    map: mapInks(sky2, UNTUNED, CITY_LAYERS, depth),
   };
 }
 
@@ -1131,14 +1180,25 @@ export function atmosphereSky(light: number, a: AtmosphereAxes): SolarPalette {
 }
 
 /**
+ * How much depth the air leaves the scene (WTH-046F): 1 in clear air, falling
+ * to 0 as haze passes `hazeOnset` towards its full value, on the same curve as
+ * the sky's veil. The map's far layers lose their contrast with it (see
+ * `mapInks`), so a foggy city reads close and flat, in grayscale too.
+ */
+export function atmosphereDepth(a: AtmosphereAxes): number {
+  return 1 - smooth(ATMOSPHERE_LIMITS.hazeOnset, 1, a.haze);
+}
+
+/**
  * The whole palette from the atmosphere: `atmosphereSky`, then the same text
- * protection, glass, markers and map as the live page. The clouds' marker
- * turns from white to slate continuously with rain and storm.
+ * protection, glass, markers and map as the live page, the map in the air's
+ * depth. The clouds' marker turns from white to slate continuously with rain
+ * and storm.
  */
 export function atmospherePalette(light: number, a: AtmosphereAxes): SkyPalette {
   const { sky, glow } = atmosphereSky(light, a);
   const rain = clamp01(1.5 * Math.max(a.wetness, a.severity));
   const dark = isDark(light);
   const cloud: RGBA = [...mix(WHITE, RAIN_CLOUD, rain), dark ? 0.06 + 0.01 * rain : 0.2];
-  return finishPalette(sky, glow, light, cloud);
+  return finishPalette(sky, glow, light, cloud, atmosphereDepth(a));
 }

@@ -1,6 +1,6 @@
 # Weather Visual Engine
 
-Current checkpoint: WTH-046A/B/C/D implemented. Provider atmospheric measurements now reach samples, frames and client-derived FrameLook atmosphere. The rendered palette remains unchanged until later calibrated integration.
+Current checkpoint: WTH-046A-F implemented (E signed off in the lab). The atmosphere transform and atmospheric depth exist in `palette.ts`; the live page still renders `skyPalette` until calibrated integration (WTH-046L).
 
 This document holds the WTH-046 plan (what each subtask must achieve) followed by the contract of each implemented checkpoint. `docs/BOARD.md` tracks status, one line per subtask, and links here.
 
@@ -323,3 +323,20 @@ White text caps how light any sky may be: about OKLCH lightness 0.5. A first vei
 The text-protection test over every atmosphere is a smoke test: the protection is shared and would make any colour pass. These are relative behaviours, not hex snapshots. Visual judgement of the scenarios is the user's, in the lab.
 
 Next: WTH-046F, atmospheric depth on the map side. Calibration (WTH-046K) continues in the lab before any integration.
+
+## WTH-046F: atmospheric depth
+
+Haze compresses the scene instead of greying it. The sky half already exists: E's veil draws the three stops together past `hazeOnset`. F adds the map half in `palette.ts`.
+
+- **Depth:** `atmosphereDepth(axes) = 1 - smoothstep(hazeOnset, 1, haze)`, on the same curve as the veil. It is 1 in clear or only humid air (saturated air gives 0.45 of haze, below the onset) and 0 at full haze. Only haze sets depth; rain, snow and storm hierarchy belong to WTH-046G.
+- **Planes:** each map layer belongs to a plane (`DEPTH_PLANE`). Far ground (green, relief, contours, shadows) loses up to 75% of its opacity, the middle (water, waterway, streets, flat buildings) up to 35%, and the foreground the map is read by (main roads, motorways, transit lines and stops, traffic, lights) none. 3D buildings keep their opacity: `MAP_INK` makes volumes opaque so the roads do not show through them, and fading them would show roads inside the buildings.
+- **Order:** depth is the last step of `mapInks`. Colours, contrast with the sky and the separation between layers are chosen as in clear air, then each layer's opacity is multiplied by `1 - (1 - depth) * plane`. A first attempt that lowered each layer's contrast target before the separation search was dropped: the search jumped between colour variants as depth changed, so a fading layer could change hue or come back stronger. As the last step, haze never moves a hue, never strengthens a layer, and the layers keep their hue separation as they fade together into the sky. Because contrast is luminance, the compression shows in grayscale.
+- **Contract:** `mapInks`, `mapInksFor` and `finishPalette` take an optional `depth`, default 1, which is part of the memo key. `atmospherePalette` passes the atmosphere's depth; the live `skyPalette` and `MapControls` pass none. With depth 1 nothing changes: a dump of 2,232 palettes and tuned ink sets (9 states, 2 cloud covers, 31 phases, 3 tunings, city and all layers) is byte-identical before and after.
+
+- **Separation under haze (declared limit):** faded layers draw towards the sky and so towards one another, so their separation shrinks with them. Live, ten layers on one map reach 0.45 of `MAP_SEPARATION` at worst; under haze 0.8 to 1 the floor is 0.4 of it (0.04 OKLab, twice the least visible difference). This is the intended reading of "compressed", not a lapse of ADR-011's separation.
+
+Validation: `atmosphere-sky.test.ts`, seven new tests. Depth is 1 up to the onset, 0 at full haze and never rises with haze; through `computeAtmosphere`, lower visibility never gives more depth. A SHA-256 fingerprint of a sample of the live path (eight states, seven phases, live palettes and a tuned all-layer ink set), taken on the code before F, guards that live stays identical. Under haze the layers keep 0.4 of the separation. Over skies round the day, no far or middle layer stands further from the sky as haze thickens, and none changes colour. At full haze the far ground keeps under 60% of its contrast, less than the middle, and the foreground inks are unchanged. Dense fog shows its ground at under 60% of a clear noon's contrast, and humid fog under Mediterranean sun's. The lab adds far and middle layers to its schematic map and a "Profondità" row.
+
+Known limit: since saturated air already gives 0.45 of haze (WTH-046B finding), snow and rain scenarios with moderate visibility reach haze 0.9 or more and so nearly no depth. Their map is compressed as much as dense fog's. Whether that is right is part of the haze calibration in WTH-046K.
+
+Next: WTH-046K, the calibration gate, before G/H/L.

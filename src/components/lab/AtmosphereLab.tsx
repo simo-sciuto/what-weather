@@ -6,6 +6,7 @@ import { CALIBRATION_SCENARIOS, type CalibrationScenario } from "@/lib/weather/c
 import { THRESHOLDS } from "@/lib/weather/constants";
 import { TWILIGHT } from "@/lib/weather/frames";
 import {
+  atmosphereDepth,
   atmospherePalette,
   atmosphereSky,
   colorDistance,
@@ -229,6 +230,8 @@ const ScenarioCard = memo(function ScenarioCard({
         </dd>
         <dt className="label self-center text-white/60">Scarto dal cielo di oggi</dt>
         <dd className="text-right tabular-nums">ΔE {fmt(shift * 100, 1)}</dd>
+        <dt className="label self-center text-white/60">Profondità</dt>
+        <dd className="text-right tabular-nums">{fmt(atmosphereDepth(atmosphere) * 100, 0)}%</dd>
       </dl>
 
       <DayStrips live={strips.live} next={strips.next} light={light} />
@@ -257,7 +260,11 @@ function measurements({ input: m }: CalibrationScenario): string {
 function SkyPanel({ name, palette: p, sky }: { name: string; palette: SkyPalette; sky: ReturnType<typeof skyAt> }) {
   const x = 12 + 76 * sky.progress;
   const y = sky.body === "moon" ? 22 : 78 - 58 * Math.max(0, sky.elevation);
+  // Far to near: the ground (meadow, contours), the middle (buildings, water, streets), the roads the map is read by
   const lines = [
+    { layer: "green", width: 22, d: "M 20 168 C 40 150, 70 176, 84 160" },
+    { layer: "contours", width: 0.8, d: "M 120 160 C 150 140, 190 150, 205 170 M 112 176 C 150 154, 196 164, 210 186 M 108 194 C 150 170, 200 180, 215 202" },
+    { layer: "buildings", width: 1, d: "M 58 70 h 12 v 10 h -12 Z M 76 72 h 9 v 14 h -9 Z M 60 86 h 14 v 9 h -14 Z M 128 88 h 11 v 11 h -11 Z M 144 90 h 8 v 8 h -8 Z" },
     { layer: "water", width: 14, d: "M -5 112 C 40 100, 70 128, 110 114 S 170 96, 210 108" },
     { layer: "streets", width: 1.2, d: "M 10 0 L 46 200 M 120 0 L 96 200 M 0 60 L 200 84 M 0 150 L 200 138" },
     { layer: "main-roads", width: 2.6, d: "M -5 30 C 60 56, 130 40, 205 70" },

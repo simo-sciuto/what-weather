@@ -1,11 +1,21 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { AtmosphereAxes } from "./atmosphere";
 import { CALIBRATION_SCENARIOS } from "./calibration";
 import {
+  ALL_MAP_LAYERS,
   ATMOSPHERE_LIMITS,
+  atmosphereDepth,
   atmospherePalette,
   atmosphereSky,
+  colorDistance,
+  inkOverSky,
+  MAP_SEPARATION,
+  mapInksFor,
+  type MapInk,
+  type MapLayer,
   skyColors,
+  skyPalette,
   solarPalette,
 } from "./palette";
 import { computeAtmosphere } from "./visual-input";
@@ -358,5 +368,117 @@ describe("calibration scenarios", () => {
       });
       expect(p.glow).toMatch(/^rgb\(\d+ \d+ \d+ \/ [\d.]+\)$/);
     }
+  });
+});
+
+const LIVE_FINGERPRINT = "6b313f8deb9f913a994d4ad203955311ce21f8d1ae1e826c89c9486211fb35e6";
+
+describe("atmospheric depth (WTH-046F)", () => {
+  const PAGE = { hue: 0, vivid: 50, contrast: 50 };
+  const FAR: MapLayer[] = ["green", "relief", "contours", "shadows"];
+  const MID: MapLayer[] = ["water", "streets", "buildings"];
+  const FORE: MapLayer[] = ["main-roads", "motorways", "train", "traffic-jam", "lights"];
+  /** How far a layer stands from the sky as the page shows it: its ink at its opacity through the backdrop's fade (0.5) */
+  const stands = (sky: string, ink: MapInk) => {
+    const [s, c] = [rgb(sky), rgb(ink.color)];
+    const k = ink.opacity * 0.5;
+    return contrast(s.map((v, i) => v + (c[i] - v) * k), s);
+  };
+  /** Skies from the clear solar base round the day, as the map sees them */
+  const SKIES = LIGHTS.filter((_, i) => i % 3 === 0).map((l) => atmospherePalette(l, at(l)).sky2);
+
+  it("is whole in clear and merely humid air, and closes as haze thickens", () => {
+    expect(atmosphereDepth(at(0.5))).toBe(1);
+    expect(atmosphereDepth(at(0.5, { haze: ATMOSPHERE_LIMITS.hazeOnset }))).toBe(1);
+    expect(atmosphereDepth(at(0.5, { haze: 1 }))).toBe(0);
+    let last = 1;
+    for (let h = 0; h <= 1.0001; h += 0.05) {
+      const d = atmosphereDepth(at(0.5, { haze: h }));
+      expect(d).toBeLessThanOrEqual(last + EPS);
+      last = d;
+    }
+  });
+
+  it("leaves the live palette and the tuned map exactly as they were before depth existed", { timeout: 30_000 }, () => {
+    // A fingerprint of a sample of the live path, taken before WTH-046F (the full 2,232-set dump matched byte for byte)
+    const states = ["CLEAR_DAY", "CLEAR_NIGHT", "CLOUDY", "FOG", "RAIN", "HEAVY_RAIN", "STORM", "SNOW"] as const;
+    const sample = states.flatMap((state) =>
+      [-0.6, 0, 0.3, 0.5, 0.9, 1.2, 1.8].flatMap((light) => {
+        const p = skyPalette({ light, state, cloudCover: 40, uv: 4 });
+        return [p, mapInksFor(p.sky2, { hue: 40, vivid: 90, contrast: 15 }, ALL_MAP_LAYERS)];
+      }),
+    );
+    expect(createHash("sha256").update(JSON.stringify(sample)).digest("hex")).toBe(LIVE_FINGERPRINT);
+  });
+
+  it("never strengthens a far or middle layer as haze thickens", () => {
+    for (const sky of SKIES) {
+      const depths = [1, 0.75, 0.5, 0.25, 0].map((d) => mapInksFor(sky, PAGE, ALL_MAP_LAYERS, d));
+      for (const layer of [...FAR, ...MID]) {
+        const seen = depths.map((inks) => stands(sky, inks[layer]));
+        seen.slice(1).forEach((v, i) => expect(v).toBeLessThanOrEqual(seen[i] + EPS));
+        depths.slice(1).forEach((inks) => expect(inks[layer].color).toBe(depths[0][layer].color));
+      }
+    }
+  });
+
+  it("fades the far ground most, softens the middle and holds the foreground", () => {
+    for (const sky of SKIES) {
+      const [clear, fog] = [1, 0].map((d) => mapInksFor(sky, PAGE, ALL_MAP_LAYERS, d));
+      const kept = (layer: MapLayer) => (stands(sky, fog[layer]) - 1) / (stands(sky, clear[layer]) - 1);
+      const mean = (layers: MapLayer[]) => layers.reduce((sum, l) => sum + kept(l), 0) / layers.length;
+      expect(mean(FAR)).toBeLessThan(0.6);
+      expect(mean(FAR)).toBeLessThan(mean(MID));
+      expect(mean(MID)).toBeLessThan(1);
+      for (const layer of FORE) expect(fog[layer]).toEqual(clear[layer]);
+    }
+  });
+
+  it("keeps the layers apart as they fade, by a floor declared for the thickest haze", { timeout: 60_000 }, () => {
+    const GROUPS: MapLayer[][] = [
+      ["streets"], ["main-roads"], ["motorways"], ["water"], ["buildings"], ["buildings-3d"],
+      ["train"], ["metro"], ["tram"], ["bus-stops"], ["green"],
+    ];
+    const gap = (sky: string, inks: Record<MapLayer, MapInk>) => {
+      let least = Infinity;
+      for (let i = 0; i < GROUPS.length; i++)
+        for (let j = i + 1; j < GROUPS.length; j++) {
+          if (i < 3 && j < 3) continue; // the ranks of road are one family on purpose
+          const [a, b] = [inks[GROUPS[i][0]], inks[GROUPS[j][0]]];
+          least = Math.min(least, colorDistance(inkOverSky(sky, a), inkOverSky(sky, b)));
+        }
+      return least;
+    };
+    for (const l of LIGHTS.filter((_, i) => i % 3 === 0))
+      for (const haze of [0.8, 1]) {
+        const p = atmospherePalette(l, at(l, { haze }));
+        // Live, ten kinds of thing reach 0.45 of the separation at worst; in fog they may come closer as they fade
+        // into the sky, but stay plainly twice the least visible difference (0.02)
+        expect(gap(p.sky2, mapInksFor(p.sky2, PAGE, ALL_MAP_LAYERS, atmosphereDepth(at(l, { haze }))))).toBeGreaterThanOrEqual(
+          MAP_SEPARATION * 0.4,
+        );
+      }
+  });
+
+  it("never gives more depth to thicker air: lower visibility, the same or less", () => {
+    const sc = CALIBRATION_SCENARIOS.find((x) => x.id === "humid-fog-plain")!;
+    let last = 1;
+    for (const visibility of [30, 20, 10, 6, 4, 2, 1, 0.5, 0.2]) {
+      const d = atmosphereDepth(computeAtmosphere({ ...sc.input, visibility }).atmosphere);
+      expect(d).toBeLessThanOrEqual(last + EPS);
+      last = d;
+    }
+    expect(last).toBeLessThan(0.2);
+  });
+
+  it("shows a foggy city closer than a clear one, in grayscale too", () => {
+    const ground = (id: string) => {
+      const sc = CALIBRATION_SCENARIOS.find((x) => x.id === id)!;
+      const p = atmospherePalette(sc.input.light, computeAtmosphere(sc.input).atmosphere);
+      // Luminance contrast only: what is left in grayscale
+      return FAR.reduce((sum, l) => sum + stands(p.sky2, p.map[l]), 0) / FAR.length;
+    };
+    expect(ground("dense-fog") - 1).toBeLessThan(0.6 * (ground("clear-summer-noon") - 1));
+    expect(ground("humid-fog-plain") - 1).toBeLessThan(ground("mediterranean-sun") - 1);
   });
 });
