@@ -2,6 +2,13 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-04 (atmosphere transform)
+- Worked on: board tidy-up (WTH-046 plan moved into WEATHER_VISUAL_ENGINE.md), checkpoint commit of A-D on `feature/visual-engine`, then WTH-046E with the start of K.
+- Completed: the bounded OKLCH transform, the shared finish, 16 calibration scenarios, the dev-only lab. A first trial collapsed every wet sky onto one grey (multiplied pulls, a veil above the white-text cap): fixed with combined pulls, a veil cap at 0.56 and the haze onset at 0.45. A four-lens review workflow confirmed 13 problems (floors bypassed, snow veil turning magenta at dusk, tests that could not fail, lab twilight, docs); all fixed.
+- Checked: live `skyPalette` byte-identical on 4,464 palettes; 135 tests across nine suites (24 new, one verified to fail when the green rule is removed); tsc and ESLint; the lab served 200 by the dev server.
+- Not verified: how the scenarios look, which is the user's call in the lab; no screenshots taken (project rule). Not on the live page, map or poster.
+- Next: the user looks at `/lab/atmosfera`; then WTH-046F. Open K findings: signature grammar (A), saturated-air haze and UV curve (B).
+
 ## 2026-10-04 (timeline checkpoint)
 - Worked on: WTH-046C, atmospheric transport through provider adapters, hourly samples, frames and FrameLook.
 - Completed: optional atmospheric measurements/origin metadata, unit conversion and unavailable-value handling; labelled free-tier dew estimates; missing-aware interpolation and exact endpoints; synthetic daily overviews; selected-frame atmosphere derivation alongside the unchanged palette. Updated architecture, board, project state and ADR-012.
@@ -28,9 +35,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Completed: see CHANGELOG, ADR-011 update. Checked: tsc, ESLint, palette, map-style and map-view unit tests (26 passed), screenshots of Tokyo at night with the metro, trains, trams and buses on (the map takes over 12 s to draw at zoom 14 in the headless browser: it is slow there, not broken).
 - Not verified: the poster with trams and buses; the transit layers on a phone; the colours of the transit layers by day (the day sky made the map nearly invisible in the screenshots); no e2e (they run without Mapbox). Tram and bus layers only show from zoom 14, which the page reaches in the last fifth of the scroll.
 - Next: the user chooses among WTH-017, WTH-018, WTH-010, WTH-009, WTH-013; WTH-012 is still waiting for their sign-off.
-
-## 2026-10-02 (third session)
-- Worked on: WTH-014 (3D buildings option and colour separation of water, roads and buildings).
-- Completed: see CHANGELOG, ADR-011. Checked: tsc, ESLint, palette and map-style unit tests (new ones for the separation and the 3D layer), a screenshot of Milano with 3D on and the map tilted.
-- Not verified: the full `palette.test.ts` in one run: its first test (white text on the sky, nothing to do with the map) took about 560 s in four runs, a single call stalling for that long, while alone it takes 4.5 s and no loop guard ever fired; not explained. The 3D layer on a phone and in the poster; the colour separation in the poster's colour bar; no e2e (they run without Mapbox).
-- Next: the modal of "La mappa" (WTH-010), WTH-009, WTH-013.

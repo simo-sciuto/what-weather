@@ -49,6 +49,8 @@ Sources used regardless of provider: Open-Meteo for yesterday's comparison (`yes
 
 The palette now exposes `solarPalette(light): SolarPalette` (WTH-046D): the unchanged natural-light anchors/interpolation, before weather, UV, contrast protection and map inks. Its -1..2 phase input is distinct from 0..1 atmospheric daylight.
 
+The palette has two ways of weathering that base, sharing one finish (`finishPalette`: text protection, glass, markers, map inks). The live one is `skyPalette` = `stateSky` (WeatherState grey/dim, UV vividness) + finish. The other is `atmospherePalette` (WTH-046E, section 6) = `atmosphereSky` (bounded OKLCH transforms of the normalized `AtmosphereAxes`) + finish. The second is not yet on the page: it is calibrated against the first in the dev-only lab before integration (WTH-046K/L).
+
 ## Caching
 
 - `load()` in `weather-page.ts` is the single cached unit per place: `"use cache"`, coordinates rounded to 2 decimals (~1 km, `COORD_PRECISION`), `cacheLife` revalidate 600 s, expire 3600 s, stale 300 s. Mock uses `cacheLife("seconds")`.
@@ -61,6 +63,7 @@ The palette now exposes `solarPalette(light): SolarPalette` (WTH-046D): the unch
 | Route | Purpose |
 | --- | --- |
 | `/` (`src/app/page.tsx`) | the poster page; server component, reads searchParams |
+| `/lab/atmosfera` | dev-only calibration lab for the Weather Visual Engine (both palette engines over the calibration scenarios); `notFound()` in production |
 | `/api/places` | place search, runs server-side so keys stay hidden |
 | `/api/summary` | small summary for a saved place's card |
 | `/api/clouds` | cloud and precipitation grid for the map animation |

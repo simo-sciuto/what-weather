@@ -6,7 +6,7 @@ Items marked (audit) were noticed while reading the code on 2026-10-01, not requ
 
 ## NOW
 
-- [ ] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. Active since 2026-10-04 after user sign-off of WTH-012. WTH-046A/B/C/D implemented; next checkpoint WTH-046E. V1 covers the static system; WTH-046M is PARKED. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
+- [ ] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. Active since 2026-10-04 after user sign-off of WTH-012. WTH-046A/B/C/D/E done (E signed off in the lab `/lab/atmosfera`); active checkpoint WTH-046F. V1 covers the static system; WTH-046M is PARKED. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
 
 ```text
 WTH-012 -> WTH-046A -> WTH-046B -> WTH-046C -> WTH-046D
@@ -20,9 +20,9 @@ WTH-046M: PARKED, outside V1
   - [x] WTH-046B Weather input normalization: continuous curves from measurements to axes, per-input status and fallbacks (`visual-input.ts`). Done 2026-10-04.
   - [x] WTH-046C Carry atmospheric data through the timeline: humidity, visibility and dew point with their origin from every provider to `frameLook()`. Done 2026-10-04.
   - [x] WTH-046D Solar base palette: `solarPalette(light)` exposes the existing natural-light base, values unchanged. Done 2026-10-04.
-  - [ ] WTH-046E OKLCH atmosphere transform: bounded continuous operations replacing the categorical grey/dim, with explicit composition order, gamut and accessibility protection.
+  - [x] WTH-046E OKLCH atmosphere transform: `atmosphereSky`/`atmospherePalette` in `palette.ts` section 6, bounded and in a fixed order, sharing the live finish; live `skyPalette` byte-identical. Dev-only lab `/lab/atmosfera`. Done 2026-10-04, signed off by the user in the lab.
   - [ ] WTH-046F Atmospheric depth: haze compresses depth instead of greying; visible in grayscale.
-  - [ ] WTH-046K Scenario calibration suite: critical gate before G/H/L; measurement-driven scenarios and invariants, never city presets.
+  - [ ] WTH-046K Scenario calibration suite: critical gate before G/H/L; measurement-driven scenarios and invariants, never city presets. Started with E: 16 scenarios in `calibration.ts` and the lab. Open findings: the signature ranks `cloud` over rain/snow in most wet scenarios (A); saturated-air haze and the UV curve differ from the live page (B). See the engine doc.
   - [ ] WTH-046G Meteorological map hierarchy: weather changes map hierarchy and depth, not just hue; separation and user tuning preserved.
   - [ ] WTH-046H Unified visual palette contract: evolve `SkyPalette` into one whole-record palette for UI, Mapbox and poster.
   - [ ] WTH-046I Temperature colour integration: decide which `temp-color.ts` uses stay absolute and which follow the engine.
@@ -45,6 +45,7 @@ Board tooling limitation: `scripts/board/board-md.mjs` recognizes numeric IDs on
 - [ ] WTH-015 Show the buildings from above too, the 3D ones included. Not solved: Mapbox Streets' tiles have buildings only from zoom 13 (and the trams and bus stops from 14), and the page's top is zoom 11. Starting the map closer when such a choice is on was tried and removed on the user's decision (2026-10-02); what is left is to decide how to have them from the top, if at all (a closer start for everyone, or a different source).
 - [ ] WTH-017 Redefine the layout of the left column (the poster): head, name, temperature, low and high, glyph, outlook and the room left for the map, as one composition (continues WTH-012).
 - [ ] WTH-018 Make the right column (the weather information) more Swiss editorial: the same font as the left, a more elegant arrangement on the page (timeline, quick facts, air, activities, week, details).
+- [ ] WTH-165 Phone, city search: while the page loads the full search bar shows, though on a phone only the search icon should; and on iPhone, after tapping the icon, the typed text is often not visible (the search itself works). Reported by the user 2026-10-04.
 
 ## LATER
 

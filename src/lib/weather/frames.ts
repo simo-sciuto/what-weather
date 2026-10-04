@@ -90,7 +90,7 @@ export interface Timeline {
 }
 
 /** How long twilight lasts on the light scale, before sunrise and after sunset */
-const TWILIGHT = 90 * 60;
+export const TWILIGHT = 90 * 60;
 
 interface Sample extends AtmosphericMeasurements {
   time: number;

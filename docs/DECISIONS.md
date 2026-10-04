@@ -96,3 +96,9 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - `solarPalette(light): SolarPalette` replaces the private `clearSky` name inside `palette.ts`; the shared natural-light base remains in the existing engine. `SOLAR_STOPS` retains every previous anchor and the same interpolation.
 - The finite input is solar phase (-1..2), not normalized daylight brightness. Output is raw interpolated sRGB sky triples and RGBA glow; weather, UV, accessibility protection and map generation remain downstream in `skyPalette()`.
 - No runtime calculation changes. Polar fallbacks remain in `frames.ts`; no new colour system, phase thresholds or astronomical model introduced. The bounded atmosphere transform is WTH-046E, with final visual integration after calibration.
+
+### ADR-012 update (2026-10-04): atmosphere transform
+- `atmosphereSky()` transforms the solar base with the normalized axes through bounded OKLCH operations in a fixed order (white balance and turns, chroma, depth veil, lightness, stop spread, floors, gamut). It shares `finishPalette()` (text protection, glass, markers, map inks) with the live `skyPalette()`, whose output is byte-identical after the split.
+- Same-property pulls combine as the strongest in full plus 25% of each other, never as a product, and floors bound the final stops. Temperature is a white-balance offset, not a hue theme. Haze acts only past the 0.45 that saturated air alone gives.
+- The white-text contract caps sky lightness near OKLCH 0.5: bright atmospheres (fog, snow) can differ there only by hue, chroma, gradient and glow. The veil stops just above the cap so rain and storm still darken visibly.
+- Not on the live page. Calibrated first in the dev-only `/lab/atmosfera` over the shared scenarios in `calibration.ts` (WTH-046K), then integrated (WTH-046L). Constants are calibration values, not final.

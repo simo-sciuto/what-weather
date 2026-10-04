@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-04 (Weather Visual Engine solar-base checkpoint)
+Last updated: 2026-10-04 (Weather Visual Engine atmosphere-transform checkpoint)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -9,12 +9,13 @@ what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / Reac
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-WTH-046 Weather Visual Engine. WTH-046A/B/C/D (model, normalization, atmospheric timeline transport and solar base) are implemented and checked. FrameLook now derives atmosphere for the selected frame. The existing palette is still the sole renderer; atmospheric colour integration remains after calibration. Next checkpoint: WTH-046E, bounded OKLCH atmosphere transforms. WTH-046M remains PARKED.
+WTH-046 Weather Visual Engine, on branch `feature/visual-engine` (A-E committed; the user signed off E in the lab on 2026-10-04). WTH-046A-E are implemented and checked: model, normalization, atmospheric transport, solar base and the bounded OKLCH atmosphere transform. The live page still renders with `skyPalette`; the new `atmospherePalette` is compared with it in the dev-only lab `/lab/atmosfera` over 16 calibration scenarios (start of WTH-046K). WTH-046M remains PARKED.
 
 ## Last checkpoint
-WTH-046D exposes the existing natural-light base as `solarPalette(light): SolarPalette`; anchor values and all calculations remain identical after the naming/export change. The user signed off WTH-012 on 2026-10-04, including WTH-008. Added WTH-046A/B/C: atmosphere model and normalization, provider current/hourly atmospheric fields and origins, missing-aware interpolation, synthetic daily overviews and client-side FrameLook derivation. Ninety-two tests pass across model, pipeline and narrative/activity/window regressions. The current precipitation contract combines rain/snow, so phase follows condition; no quantitative mixed-phase reconstruction is claimed. Current/hourly contracts and frames now carry humidity, visibility, dew point and source metadata. Existing palette, UI, maps and poster remain visually unchanged. Current-detail numeric fallbacks remain for compatibility but are excluded from the atmospheric timeline. WTH-015 (buildings from above) remains unsolved: the data starts at zoom 13.
+WTH-046E: `atmosphereSky`/`atmospherePalette` in `palette.ts` section 6. Fixed order (white balance and hue turns, chroma, depth veil, lightness, stop spread, floors, gamut), same-property pulls combined as strongest plus 25% of the rest, final floors, no hue through green, haze acting past the 0.45 saturated-air baseline, veil capped at 0.56 just above the white-text cap. `skyPalette` split into `stateSky` + shared `finishPalette`, byte-identical on 4,464 palettes. 135 tests pass across nine suites (24 new). A four-lens review confirmed 13 problems, all fixed. The user signed off the scenarios in the lab. Earlier: A-D as in the engine doc; WTH-015 still unsolved (building data from zoom 13).
 
 ## Known problems / open questions
+Calibration findings (WTH-046K, see WEATHER_VISUAL_ENGINE.md): the force signature ranks `cloud` over rain and snow in most wet scenarios; saturated air alone gives 0.45 haze; the axes' UV curve and missing-UV value differ from the live page. Bright atmospheres can differ only by hue, chroma, gradient and glow under the white-text cap.
 Candidates only, from the audit (BOARD WTH-001..003): AQI index is computed differently per provider; interpolated hours vs measured readings in the UI; min/max on partial days. None confirmed as bugs.
 
 ## Constraints to respect
@@ -25,7 +26,7 @@ Candidates only, from the audit (BOARD WTH-001..003): AQI index is computed diff
 - Italian copy, English code.
 
 ## Relevant files
-`src/lib/weather/{atmosphere,atmospheric-data,visual-input,types,transformers,openmeteo,mock,frames,look,palette,state}.ts`, `src/lib/weather/{atmosphere,visual-input,atmospheric-pipeline}.test.ts`, `docs/WEATHER_VISUAL_ENGINE.md`.
+`src/lib/weather/{atmosphere,atmospheric-data,visual-input,types,transformers,openmeteo,mock,frames,look,palette,state}.ts`, `src/lib/weather/{atmosphere,visual-input,atmospheric-pipeline,atmosphere-sky}.test.ts`, `src/lib/weather/calibration.ts`, `src/components/lab/AtmosphereLab.tsx`, `src/app/lab/atmosfera/page.tsx`, `docs/WEATHER_VISUAL_ENGINE.md`.
 
 ## Next checkpoint
-WTH-046E: implement bounded OKLCH atmosphere transforms over the shared solar base, with explicit composition order, gamut and accessibility protection. Preserve the existing rendering path until calibrated integration. Follow BOARD.md's execution order; calibrate before map/UI/poster integration. Motion remains PARKED.
+WTH-046F, atmospheric depth on the map side. Decide the open K findings before the signature or UV curve are relied on. Calibrate before map/UI/poster integration; motion remains PARKED.

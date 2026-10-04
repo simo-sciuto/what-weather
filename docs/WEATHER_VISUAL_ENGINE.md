@@ -252,3 +252,74 @@ Every anchor value and the existing piecewise linear interpolation are preserved
 `skyPalette()` consumes this base, then applies the existing weather modifiers, daylight-gated UV behaviour, text/glass contrast protection and map-ink generation. That downstream computation is unchanged. A comparison of the TypeScript-transpiled implementation against the prior file, allowing only the intended names/export, confirms identical executable calculations. Existing palette and atmospheric pipeline suites provide regression coverage; no duplicate colour fixtures or new implementation-mirroring tests were added for this refactor.
 
 Next: WTH-046E, develop bounded OKLCH atmosphere transforms over this shared solar base. The successful solar progression remains the foundation; final UI/map/poster integration still follows scenario calibration.
+
+## WTH-046E: OKLCH atmosphere transform
+
+`palette.ts` section 6 adds `atmosphereSky(light, atmosphere): SolarPalette` and `atmospherePalette(light, atmosphere): SkyPalette`. They transform the solar base with the normalized axes instead of a `WeatherState` grey/dim. They are not on the live page: `skyPalette()` still renders, and calibration (WTH-046K) comes before integration (WTH-046L).
+
+### Shared finish and the live path
+
+`skyPalette()` was split, without changing its output, into `stateSky()` (the categorical grey/dim and UV vividness, exported for comparison) and `finishPalette()` (text protection, glass, markers, map inks), which both engines now share. Equivalence was checked on 4,464 palettes (9 states x 4 cloud covers x 31 light phases x 4 UV values, map inks included): the serialized output is byte-identical before and after. `skyColors()` gives the three protected stops and the glow without glass or map, cheap enough for whole-day strips.
+
+### Transform table
+
+Every effect is reached only at the axis's full value; constants live in `ATMOSPHERE_LIMITS`. Inputs are the normalized axes (WTH-046A/B), each 0..1 (warmth -1..1); measurement curves stay in `visual-input.ts`.
+
+| Axis | Property | Curve | Maximum influence |
+| --- | --- | --- | --- |
+| light (phase) | base lightness and hue | `solarPalette` (WTH-046D) | the base itself |
+| warmth | white balance | linear offset in OKLab (a, b) towards amber 50 deg (warm) or cyan 200 deg by day / deep blue 255 deg by night (cool), interpolated by daylight | 0.022 OKLab on the sky; the glow takes the warm offset only, and in the cold loses up to 30% chroma instead (a cool tint would turn its butter green) |
+| cloudiness | chroma, lightness, stop spread, glow | linear | chroma -72%, lightness -8%, spread -50%, glow -55% |
+| haze | depth, chroma, glow | smoothstep from 0.45 to 1 for all three (saturated air alone gives 0.45: a humid noon with perfect visibility stays clear) | stops move into one veil (top 80%, middle 65%, horizon 45%); chroma -50%; glow -45% |
+| wetness | lightness, chroma, hue, spread, glow | linear | lightness -30%, chroma -40%, turn 8 deg towards slate 240 deg, spread -30%, glow -30% |
+| snow | lightness, chroma, hue, veil tint, spread, glow | linear | lift 14% towards white, chroma -55%, turn 10 deg towards 225 deg, veil mixed in OKLab towards a cold blue (225 deg, chroma 0.05), spread -35%, glow -30% |
+| severity | lightness, top of sky, chroma, hue, glow | linear | lightness -42%, top a further -14%, chroma -35%, turn 8 deg towards indigo 270 deg, glow -80% |
+| energy (UV) | chroma, glow | `1 + (min-1)*daylight + (max-min)*energy`, the shape of the live `sunStrength` | chroma x0.6..1.3, glow x0.7..1.3 |
+
+### Composition
+
+The order is fixed, each step reading the previous one: (1) white balance, then rain, snow and storm hue turns; (2) chroma; (3) depth veil; (4) lightness; (5) stop spread; (6) floors; (7) sRGB with gamut reduction.
+
+- **Same-property pulls are combined, not stacked.** When several axes reduce one property (chroma, lightness, spread, glow), the strongest counts in full and every other adds 25% of its own (`combined()`), capped at 1. A rainy, misty, overcast sky is greyer than any one alone, but the reductions do not multiply into the floor. The first trial used plain products: every wet scenario collapsed onto the same grey and the glow fell to 1-9% of its base.
+- **Floors, on the final result:** whatever the steps before did, every stop keeps at least 45% of its base lightness and 18% of its base chroma (an overcast sunset keeps its trace). The glow keeps at least 6% of what the sun gives it.
+- **Hue:** precipitation turns never exceed 20 deg in all on any stop, and take the way round that does not cross green (140 deg): a warm sunset stop turned towards rain's slate goes through rose, not yellow. The white balance and the veil are offsets and mixes in OKLab, not turns, so a hot clear day stays the same blue with a little less chroma, and snowy fog at dusk cools to a blue white without passing through lilac or magenta.
+- **Depth before darkness:** haze builds the veil first, then rain and storm darken it, so a wet veil reads darker than a dry one.
+- **Gamut:** `fromOklch` gives up chroma, never hue, until a colour fits sRGB.
+- **Accessibility:** the existing `legibleUnderText` protection runs unchanged afterwards (4.8, 4.6 and 4.5 for muted text on the three stops), as for the live sky.
+
+### The legibility cap, and why the veil stops at 0.56
+
+White text caps how light any sky may be: about OKLCH lightness 0.5. A first veil reaching 0.92 was flattened back to the same cap whatever rain did to it, so heavy rain could not look darker than light rain. The veil now stops at 0.56 (`veilLightest`), just above the cap: fog and snow reach the cap, and rain and storm visibly darken below it. This is a structural limit of the white-text contract: fog, snow, light rain and maritime rain can differ in lightness only within a narrow band near the cap, so their distinction rests on hue, chroma, gradient and glow. Map depth and hierarchy (WTH-046F/G) are expected to carry more of it.
+
+### Calibration scenarios and lab
+
+`calibration.ts` holds 16 measurement scenarios: the ten required, five archetypes (`humid-fog-plain`, `mediterranean-sun`, `maritime-rain`, `northern-snow`, `subtropical-night`) and `snowy-dusk`, which guards the warm-horizon snow case. No city name appears in the code. Temperature, dew point and humidity agree with the Magnus formula within 3 points. Night scenarios sit at light 2, the value real night frames carry, not in late twilight. Each records its expected dominant/secondary forces and the visual behaviour wanted.
+
+`src/app/lab/atmosfera` (`npm run dev`, then `/lab/atmosfera`; 404 in production) shows both engines for every scenario, at its own moment or at one chosen with a slider. For each it shows whole-day strips, axes, measurements, the OKLab shift from the live sky and a grayscale switch. Dawn and dusk are the 40 minutes before sunrise and after sunset, as the live page's `dayPhase` has them, so the glow sits where the page puts the sun.
+
+### Findings for calibration (not changed here)
+
+- **Signature grammar (WTH-046A):** most precipitation scenarios disagree with their expected forces. With precipitation cloudiness is near 1, so `cloud` always outranks `rain` and `snow`, and saturated air makes `haze` the usual secondary: heavy rain reads cloud/haze, snow cloud/haze. The signature drives no colour, so the transform is unaffected, but the force strengths need revisiting before the signature explains a record or feeds the fingerprint (WTH-046J).
+- **Haze in saturated air (WTH-046B):** dew proximity plus humidity give 0.45 of haze with perfect visibility, and rain with 8-10 km visibility reaches 0.7-0.85. The transform's onset (0.45) absorbs the baseline for depth, colour and glow; the B coefficients remain calibration hypotheses.
+- **UV curve (WTH-046B):** energy uses a smoothstep of UV and a neutral mid value when UV is missing; the live page scales linearly with UV and leaves the colours untouched without it. At noon, UV 2 gives chroma x0.71 here against x0.78 live, and missing UV x0.95 against x1.0. Part of any difference the lab shows on clear days is this, not the weather transform. Whether energy should follow the live curve is a WTH-046B calibration decision.
+
+### Validation
+
+`atmosphere-sky.test.ts` (24 tests) checks over 31 light phases, five combinations of other axes and six levels per axis:
+- determinism, and identity with the solar base when nothing acts;
+- monotonic rules: more cloud never raises glow or chroma; more haze never separates top and horizon or raises glow; more rain never lightens or saturates; a stronger storm never raises glow or the top's lightness;
+- floors on the final stops under every axis piled up;
+- hue turns within 20 deg;
+- no sky stop or glow turned green, and a warm stop turned the long way round (verified to fail if the green rule is removed);
+- the glow only whitened in the cold;
+- snowy fog at dawn and dusk within 60 deg of the snow's blue;
+- a humid but clear noon identical to a dry one;
+- snow lighter than rain and at least 0.03 OKLab apart;
+- a hot clear day within 15 deg and 80% chroma of its base;
+- an overcast sunset's trace;
+- continuity: a 0.001 change of any axis moves no channel by 1.5/255 or more;
+- scenario orderings, before text protection (thunderstorm darker than heavy rain, heavy rain darker than fog and snow) and after it (heavy rain darker than light rain, fog and snow lighter than heavy rain, fog depth under half a clear noon's).
+
+The text-protection test over every atmosphere is a smoke test: the protection is shared and would make any colour pass. These are relative behaviours, not hex snapshots. Visual judgement of the scenarios is the user's, in the lab.
+
+Next: WTH-046F, atmospheric depth on the map side. Calibration (WTH-046K) continues in the lab before any integration.
