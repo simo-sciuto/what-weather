@@ -8,10 +8,12 @@ import {
   atmosphereDepth,
   atmospherePalette,
   atmosphereSky,
+  CLEAR_MAP,
   colorDistance,
   inkOverSky,
   MAP_SEPARATION,
   mapInksFor,
+  mapVisualState,
   type MapInk,
   type MapLayer,
   skyColors,
@@ -430,7 +432,7 @@ describe("atmospheric depth (WTH-046F)", () => {
 
   it("never strengthens a far or middle layer as haze thickens", () => {
     for (const sky of SKIES) {
-      const depths = [1, 0.75, 0.5, 0.25, 0].map((d) => mapInksFor(sky, PAGE, ALL_MAP_LAYERS, d));
+      const depths = [1, 0.75, 0.5, 0.25, 0].map((d) => mapInksFor(sky, PAGE, ALL_MAP_LAYERS, { ...CLEAR_MAP, depth: d }));
       for (const layer of [...FAR, ...MID]) {
         const seen = depths.map((inks) => stands(sky, inks[layer]));
         seen.slice(1).forEach((v, i) => expect(v).toBeLessThanOrEqual(seen[i] + EPS));
@@ -441,7 +443,7 @@ describe("atmospheric depth (WTH-046F)", () => {
 
   it("fades the far ground most, softens the middle and holds the foreground", () => {
     for (const sky of SKIES) {
-      const [clear, fog] = [1, 0].map((d) => mapInksFor(sky, PAGE, ALL_MAP_LAYERS, d));
+      const [clear, fog] = [1, 0].map((d) => mapInksFor(sky, PAGE, ALL_MAP_LAYERS, { ...CLEAR_MAP, depth: d }));
       const kept = (layer: MapLayer) => (stands(sky, fog[layer]) - 1) / (stands(sky, clear[layer]) - 1);
       const mean = (layers: MapLayer[]) => layers.reduce((sum, l) => sum + kept(l), 0) / layers.length;
       expect(mean(FAR)).toBeLessThan(0.6);
@@ -471,7 +473,7 @@ describe("atmospheric depth (WTH-046F)", () => {
         const p = atmospherePalette(l, at(l, { haze }));
         // Live, ten kinds of thing reach 0.45 of the separation at worst; in fog they may come closer as they fade
         // into the sky, but stay plainly twice the least visible difference (0.02)
-        expect(gap(p.sky2, mapInksFor(p.sky2, PAGE, ALL_MAP_LAYERS, atmosphereDepth(at(l, { haze }))))).toBeGreaterThanOrEqual(
+        expect(gap(p.sky2, mapInksFor(p.sky2, PAGE, ALL_MAP_LAYERS, { ...CLEAR_MAP, depth: atmosphereDepth(at(l, { haze })) }))).toBeGreaterThanOrEqual(
           MAP_SEPARATION * 0.4,
         );
       }
@@ -497,5 +499,117 @@ describe("atmospheric depth (WTH-046F)", () => {
     };
     expect(ground("dense-fog") - 1).toBeLessThan(0.6 * (ground("clear-summer-noon") - 1));
     expect(ground("humid-fog-plain") - 1).toBeLessThan(ground("mediterranean-sun") - 1);
+  });
+});
+
+describe("meteorological map hierarchy (WTH-046G)", () => {
+  const PAGE = { hue: 0, vivid: 50, contrast: 50 };
+  const TERRAIN: MapLayer[] = ["green", "relief", "contours", "shadows"];
+  const ROADS: MapLayer[] = ["streets", "main-roads", "motorways", "train", "metro", "tram", "bus-stops"];
+  const WATER: MapLayer[] = ["water", "waterway"];
+  const noon = (over: Partial<AtmosphereAxes>) => at(0.5, { daylight: 1, energy: 0.5, ...over });
+  const sky = atmospherePalette(0.5, noon({})).sky2;
+  const inks = (over: Partial<AtmosphereAxes>) => mapInksFor(sky, PAGE, ALL_MAP_LAYERS, mapVisualState(noon(over)));
+  const mean = (i: Record<MapLayer, MapInk>, layers: MapLayer[], pick: (k: MapInk) => number) =>
+    layers.reduce((sum, l) => sum + pick(i[l]), 0) / layers.length;
+  const opacity = (k: MapInk) => k.opacity;
+  const land = (k: MapInk) => lightness(rgb(k.color));
+  const chromaOf = (k: MapInk) => chroma(rgb(k.color));
+
+  it("is the plain map at night with nothing acting, and bounded in every weather", () => {
+    expect(mapVisualState(at(-0.5))).toEqual(CLEAR_MAP);
+    for (const light of LIGHTS)
+      for (const over of [{ wetness: 1 }, { snow: 1 }, { severity: 1, wetness: 1 }, { haze: 1, snow: 1 }, { warmth: -1, snow: 1, severity: 1 }]) {
+        const s = mapVisualState(at(light, over));
+        const X = ATMOSPHERE_LIMITS && 0.4;
+        for (const w of [s.terrainWeight, s.roadWeight, s.buildingWeight]) expect(w).toBeGreaterThanOrEqual(X);
+        expect(s.waterWeight).toBeGreaterThanOrEqual(1);
+        expect(s.saturation).toBeGreaterThan(0.4);
+        expect(s.depth).toBeGreaterThanOrEqual(0);
+        expect(s.depth).toBeLessThanOrEqual(1);
+      }
+  });
+
+  it("moves each plane the way its weather says, and never against it as the weather grows", () => {
+    const axisSteps = [0, 0.25, 0.5, 0.75, 1];
+    const states = (axis: "wetness" | "snow" | "severity") => axisSteps.map((v) => mapVisualState(noon({ [axis]: v })));
+    const nonDecreasing = (xs: number[]) => xs.slice(1).every((v, i) => v >= xs[i] - EPS);
+    const nonIncreasing = (xs: number[]) => xs.slice(1).every((v, i) => v <= xs[i] + EPS);
+    const rain = states("wetness");
+    expect(nonDecreasing(rain.map((s) => s.waterWeight))).toBe(true);
+    expect(nonDecreasing(rain.map((s) => s.waterDeepen))).toBe(true);
+    expect(nonDecreasing(rain.map((s) => s.roadWeight))).toBe(true);
+    expect(nonIncreasing(rain.map((s) => s.terrainWeight))).toBe(true);
+    const snow = states("snow");
+    expect(nonDecreasing(snow.map((s) => s.landLift))).toBe(true);
+    expect(nonDecreasing(snow.map((s) => s.waterWeight))).toBe(true);
+    expect(nonIncreasing(snow.map((s) => s.saturation))).toBe(true);
+    expect(nonIncreasing(snow.map((s) => s.roadWeight))).toBe(true);
+    const storm = states("severity");
+    expect(nonIncreasing(storm.map((s) => s.terrainWeight))).toBe(true);
+    expect(nonIncreasing(storm.map((s) => s.buildingWeight))).toBe(true);
+    expect(nonDecreasing(storm.map((s) => s.roadWeight))).toBe(true);
+  });
+
+  it("rain: stronger and deeper water, quieter ground, firmer roads", () => {
+    const [clear, wet] = [inks({}), inks({ cloudiness: 1, wetness: 0.9 })];
+    expect(mean(wet, WATER, opacity)).toBeGreaterThan(mean(clear, WATER, opacity));
+    expect(mean(wet, WATER, land)).toBeLessThan(mean(clear, WATER, land));
+    expect(mean(wet, TERRAIN, opacity)).toBeLessThan(0.8 * mean(clear, TERRAIN, opacity));
+    expect(mean(wet, ["main-roads", "motorways"], opacity)).toBeGreaterThanOrEqual(mean(clear, ["main-roads", "motorways"], opacity));
+  });
+
+  it("snow: brighter ground, cooler quieter lines, restrained infrastructure, water kept apart", () => {
+    const [clear, snowy] = [inks({}), inks({ cloudiness: 1, snow: 0.9 })];
+    expect(mean(snowy, ["green", "relief"], land)).toBeGreaterThan(mean(clear, ["green", "relief"], land));
+    expect(mean(snowy, [...ROADS, ...TERRAIN], chromaOf)).toBeLessThan(0.85 * mean(clear, [...ROADS, ...TERRAIN], chromaOf));
+    expect(mean(snowy, ROADS, opacity)).toBeLessThan(mean(clear, ROADS, opacity));
+    expect(mean(snowy, WATER, opacity)).toBeGreaterThanOrEqual(mean(clear, WATER, opacity));
+    // Rain is not snow: the water is deeper in rain and the land brighter in snow
+    const wet = inks({ cloudiness: 1, wetness: 0.9 });
+    expect(mean(snowy, ["green", "relief"], land)).toBeGreaterThan(mean(wet, ["green", "relief"], land));
+    expect(mean(snowy, WATER, land)).toBeGreaterThan(mean(wet, WATER, land));
+  });
+
+  it("storm: the background compressed, the roads and the ways of getting about more graphic", () => {
+    const [clear, storm] = [inks({}), inks({ cloudiness: 0.95, wetness: 1, severity: 1 })];
+    // The clear ground is already at full opacity in places (the shadows), which flatters the ratio
+    expect(mean(storm, TERRAIN, opacity)).toBeLessThan(0.75 * mean(clear, TERRAIN, opacity));
+    expect(mean(storm, ["buildings"], opacity)).toBeLessThan(mean(clear, ["buildings"], opacity));
+    expect(mean(storm, ["main-roads", "motorways", "train", "metro", "tram"], opacity)).toBeGreaterThanOrEqual(
+      mean(clear, ["main-roads", "motorways", "train", "metro", "tram"], opacity),
+    );
+  });
+
+  it("leaves the traffic's and the lights' tones as they are in every weather", () => {
+    const clear = inks({});
+    for (const over of [{ wetness: 1 }, { snow: 1 }, { severity: 1 }])
+      for (const layer of ["traffic-slow", "traffic-heavy", "traffic-jam", "lights"] as MapLayer[]) {
+        expect(inks(over)[layer].color).toBe(clear[layer].color);
+        expect(inks(over)[layer].opacity).toBe(clear[layer].opacity);
+      }
+  });
+
+  it("keeps the layers apart in every weather, by a declared floor", { timeout: 60_000 }, () => {
+    // Live: 0.45 of MAP_SEPARATION at worst with ten kinds of thing. Here, with every layer on: clear 0.068, rain 0.05,
+    // snow 0.041, a full storm 0.031 (it compresses the ground on purpose, so ground and buildings meet in the sky).
+    // The floor is 0.3 of the separation, above the 0.02 that is the least visible difference.
+    const GROUPS: MapLayer[][] = [["streets"], ["main-roads"], ["motorways"], ["water"], ["buildings"], ["buildings-3d"], ["train"], ["metro"], ["tram"], ["bus-stops"], ["green"]];
+    const gap = (s: string, i: Record<MapLayer, MapInk>) => {
+      let least = Infinity;
+      for (let a = 0; a < GROUPS.length; a++)
+        for (let b = a + 1; b < GROUPS.length; b++) {
+          if (a < 3 && b < 3) continue;
+          least = Math.min(least, colorDistance(inkOverSky(s, i[GROUPS[a][0]]), inkOverSky(s, i[GROUPS[b][0]])));
+        }
+      return least;
+    };
+    for (const l of LIGHTS.filter((_, k) => k % 3 === 0))
+      for (const over of [{ wetness: 1, cloudiness: 1 }, { snow: 1, cloudiness: 1, warmth: -1 }, { severity: 1, wetness: 1, cloudiness: 0.95 }]) {
+        const a = at(l, over);
+        const p = atmospherePalette(l, a);
+        const inksAll = mapInksFor(p.sky2, PAGE, ALL_MAP_LAYERS, mapVisualState(a));
+        expect(gap(p.sky2, inksAll), `${JSON.stringify(over)} at ${l}`).toBeGreaterThanOrEqual(MAP_SEPARATION * 0.3);
+      }
   });
 });

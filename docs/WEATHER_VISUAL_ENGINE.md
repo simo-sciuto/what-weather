@@ -367,3 +367,27 @@ Decisions taken with the user: signature by weights per force; visibility leads 
 - **Review (reviewer pass):** no critical problems. Fixed from it: the continuous text protection falls back to the stepped one if even the darkest colour fails the ratio, instead of returning near black unchecked; the tripwire measures sky and map, not the sky alone; the conflict test checks the contrast of every stop against 4.8, 4.6 and 4.5; a near-empty test was removed.
 - **Not covered, deliberately:** wind (parked, WTH-046M); the live-page jitter above; the look of any of this, which is the user's call in the lab.
 
+## WTH-046G: meteorological map hierarchy
+
+`sky + AtmosphereState + map semantics -> MapVisualState`. `mapVisualState(axes)` in `palette.ts` returns the map half of the atmosphere; `mapInksFor` and `atmospherePalette` take it as their last argument (`air`, default `CLEAR_MAP`, so the live page is unchanged: the SHA-256 live fingerprint test still passes). It replaces F's bare `depth` number, which is now one field of it.
+
+| Field | Meaning | Effect |
+| --- | --- | --- |
+| `depth` | `atmosphereDepth`, 1 clear to 0 thick haze (F) | opacity share by plane (far ground 75%, middle 35%, foreground 0) |
+| `terrainWeight` | opacity of green, relief, contours, shadows | clear open day x1.15; rain -30%; storm -45%; floor 0.4 |
+| `waterWeight` | opacity of water, waterway | rain +35%, snow +25%, storm +10% |
+| `roadWeight` | opacity of main roads, motorways, train, metro, tram, bus stops | rain +15%, storm +25%, snow -8% |
+| `buildingWeight` | opacity of flat buildings | snow -8%, storm -15% |
+| `saturation` | chroma of every line but the tones below | clear +10%, rain -15%, snow -35% |
+| `landLift` | lightness the ground gains (the flat buildings step down by 0.6 of it) | snow +0.10 |
+| `waterDeepen` | lightness the water loses | rain 0.06, storm 0.03 |
+
+All limits are in `MAP_WEATHER_LIMITS`, each reached only at the axis's full value, zero at zero.
+
+- **Where it acts in `mapInks`.** Chroma, the ground's and the water's lightness enter the base colours before the layers are drawn and kept apart, so the separation search works on the weather's own colours. The opacity weights and the depth act last, as one factor per layer (`opacityFactor`), so haze never moves a hue and the ink's own contrast logic is untouched. A first version put the weights inside the separation search: it kept the layers further apart in snow, but made colours change as depth changed (a meadow went from `#8cefc4` to `#79dbb1`), against F's rule that haze never moves a hue, and was reverted.
+- **Layers outside the weights.** The streets (a pale tint of the sky, the ground of the drawing), the 3D buildings (opaque on purpose, see F), the traffic and the lights keep their weight and tone in every weather: they are structure or information, not weather. Traffic and lights also keep their chroma.
+- **Separation under weather (declared floor).** With every layer on, the least distance between layers is 0.068 in clear air, 0.050 in heavy rain, 0.041 in full snow and 0.031 in a full storm (it compresses the ground on purpose, so ground and buildings meet in the sky). The floor is 0.3 of `MAP_SEPARATION` (0.03), above the 0.02 that is the least visible difference; live, ten kinds of thing reach 0.45 of it at worst. Snow's first version lifted the buildings along with the ground and they met the streets (0.010): the buildings now step the other way, and snow's roads and buildings weigh only 8% less.
+- **Grayscale.** The tripwire of K is replaced by assertions: on the sky and eight map layers together, clear is at least 0.069 from every rain and snow scenario (it was 0.016 by sky alone) and rain at least 0.053 from snow, while fog stays 0.224 from clear; rain with rain and snow with snow stay close (0.034, 0.027), as they should.
+- **Tests (`atmosphere-sky.test.ts`, seven; `calibration-invariants.test.ts`, one changed).** Bounds and the plain map at night; every plane moves the way its weather says and never against it as the weather grows; rain firms and deepens the water, quiets the ground, firms the roads; snow brightens the ground, cools and quiets the lines, restrains the infrastructure, keeps the water apart and is not rain; a storm compresses the background and sharpens the roads; the traffic and lights tones never move; the separation floor in every weather.
+- **Not done here (L).** `MapControls` still builds the live inks with `mapInksFor(sky, tuning, active)` and so with a clear map: the atmosphere reaches the page only when WTH-046L connects `MapVisualState` to it (and quantizes the depth before it keys the memo). The user's tuning (hue, vivid, contrast) is carried through unchanged: it acts inside `mapInks` before the weather's last word.
+

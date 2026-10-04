@@ -63,19 +63,21 @@ describe("grayscale", () => {
     expect(farGround("dense-fog")).toBeLessThan(0.5 * farGround("clear-summer-noon"));
   });
 
-  it("known limit, to be lifted by WTH-046G: bright days (clear, rain, snow) share one grayscale, sky and map", () => {
-    // The white-text contract caps the sky's lightness near 0.5, and their depth is whole too. The whole picture
-    // is the sky's three stops and eight map layers' lightness over the sky; the bright days stay within 0.047 of
-    // one another (0.016 by sky alone) while fog is 0.185 from a clear day. When map hierarchy (G) separates
-    // them, this fires: replace it with an assertion that they differ.
+  it("tells the bright days apart in grayscale, sky and map: clear, rain and snow are three pictures (WTH-046G)", () => {
+    // The sky alone cannot (white-text cap: 0.016 apart); the map's hierarchy does. The whole picture is the sky's
+    // three stops and eight map layers' lightness over the sky.
     const layers = ["water", "streets", "main-roads", "motorways", "green", "relief", "contours", "buildings"] as const;
     const picture = (id: string) => {
       const p = palette(scenario(id));
       return [p.sky1, p.sky2, p.sky3].map(lightness).concat(layers.map((l) => lightness(inkOverSky(p.sky2, p.map[l]))));
     };
     const whole = (a: string, b: string) => Math.hypot(...picture(a).map((v, i) => v - picture(b)[i]));
-    const bright = ["clear-summer-noon", "light-rain", "snow", "maritime-rain", "northern-snow"];
-    for (const a of bright) for (const b of bright) expect(whole(a, b)).toBeLessThan(0.06);
+    const rain = ["light-rain", "maritime-rain"];
+    const snow = ["snow", "northern-snow"];
+    for (const other of [...rain, ...snow]) expect(whole("clear-summer-noon", other), `clear against ${other}`).toBeGreaterThan(0.06);
+    // Measured: 0.053 at the least (light rain against northern snow). Within a family they are close, as they should be
+    // (light against maritime rain 0.034, snow against northern snow 0.027)
+    for (const r of rain) for (const sn of snow) expect(whole(r, sn), `${r} against ${sn}`).toBeGreaterThan(0.045);
     expect(whole("dense-fog", "clear-summer-noon")).toBeGreaterThan(0.1);
   });
 });

@@ -205,6 +205,7 @@ const ScenarioCard = memo(function ScenarioCard({
   const agrees = got.dominant === want.dominant && got.secondary === want.secondary;
   const shift = colorDistance(live.sky2, next.sky2);
   const sky = skyAt(light, phaseOf(light));
+  const cover = Math.min(Math.max((scenario.input.cloudCover ?? 0) / 100, 0), 1);
 
   return (
     <li className="grid content-start gap-5">
@@ -217,8 +218,8 @@ const ScenarioCard = memo(function ScenarioCard({
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <SkyPanel name="Oggi" palette={live} sky={sky} />
-        <SkyPanel name="Atmosfera" palette={next} sky={sky} />
+        <SkyPanel name="Oggi" palette={live} sky={sky} cover={cover} />
+        <SkyPanel name="Atmosfera" palette={next} sky={sky} cover={cover} />
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 border-y border-white/20 py-3 text-caption">
@@ -257,7 +258,7 @@ function measurements({ input: m }: CalibrationScenario): string {
 }
 
 /** A sky as the page paints it: its three stops, the glow where the light source sits, white text on it, and the city's lines over it */
-function SkyPanel({ name, palette: p, sky }: { name: string; palette: SkyPalette; sky: ReturnType<typeof skyAt> }) {
+function SkyPanel({ name, palette: p, sky, cover }: { name: string; palette: SkyPalette; sky: ReturnType<typeof skyAt>; cover: number }) {
   const x = 12 + 76 * sky.progress;
   const y = sky.body === "moon" ? 22 : 78 - 58 * Math.max(0, sky.elevation);
   // Far to near: the ground (meadow, contours), the middle (buildings, water, streets), the roads the map is read by
@@ -280,7 +281,11 @@ function SkyPanel({ name, palette: p, sky }: { name: string; palette: SkyPalette
       <div
         aria-hidden
         className="absolute inset-0 -z-10"
-        style={{ background: `radial-gradient(circle at ${x}% ${y}%, ${p.glow} 0%, transparent 42%)` }}
+        // The page's own .sky-glow: three stops, and the clouds dim it (Sky.tsx), so the lab shows what the page shows
+        style={{
+          opacity: 1 - cover * 0.6,
+          background: `radial-gradient(circle at ${x}% ${y}%, ${p.glow} 0%, color-mix(in oklab, ${p.glow} 40%, transparent) 14%, transparent 42%)`,
+        }}
       />
       <svg aria-hidden viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 -z-10 size-full">
         {lines.map(({ layer, width, d }) => (

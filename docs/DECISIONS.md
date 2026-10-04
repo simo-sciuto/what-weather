@@ -102,6 +102,9 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - Haze is led by visibility (0.65, lost between 10 and 1 km), then dew proximity (0.25) and humidity (0.10). Saturated air alone gives 0.35, below the onset. The UV curve is deliberately kept.
 - User decision: rain, snow and fog are separate values. Snow has its own intensity scale (full at 2 mm/h of water, rain at 12), the view a fall takes away is the fall's and never haze (`hazeLoss = max(0, visibilityLoss - max(wetness, snow))`), and heat and cold weigh 0.8 in the signature as background. Depth now closes only with fog.
 
+### ADR-012 update (2026-10-04): map hierarchy (WTH-046G)
+- `MapVisualState` (depth, plane weights, saturation, ground lift, water deepening) is computed from the atmosphere by `mapVisualState` and replaces the bare depth argument of `mapInks`/`mapInksFor`/`finishPalette`. Colour effects enter before the separation search; opacity weights and depth act last. Streets, 3D buildings, traffic and lights stay outside the weights. Default `CLEAR_MAP` leaves the live page unchanged. Connecting it to the page (and `MapControls`) is WTH-046L.
+
 ### ADR-012 update (2026-10-04): continuous gamut and legibility in the atmosphere path (WTH-046K)
 - The atmosphere path uses `fromOklchEdge` and `legibleUnderTextEdge` (bisection) instead of the live page's stepped gamut reduction and 0.01-step darkening, which made a clear noon's sky jump by up to 14/255 between frames seven minutes apart. The live page is unchanged on purpose (its look is shipped); moving it is for WTH-046L.
 

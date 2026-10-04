@@ -579,16 +579,19 @@ export const ALL_MAP_LAYERS: ReadonlySet<MapLayer> = new Set(
  * hue turns them round the wheel, `vivid` scales their chroma (deepening them
  * to make room for it), `contrast` scales how far from the sky each must
  * stand. A line too deep to read once fully opaque is lightened until it does.
- * `depth` (1 clear air, 0 the thickest haze; see `atmosphereDepth`) closes
- * the distance last of all: the colours are chosen and kept apart as in
- * clear air, then each layer's opacity gives up its plane's share of the
- * haze, so the far ground fades, the middle softens and the foreground holds.
+ * `air` (see `MapVisualState`) is the weather: its chroma and the lightness
+ * of the land and the water enter the colours before they are kept apart (so
+ * the separation holds in snow and rain too), and the map's hierarchy is
+ * reweighed last (rain firms the water, snow restrains the infrastructure, a
+ * storm compresses the background and sharpens the roads), with haze closing
+ * the distance: each layer gives up its plane's share of opacity, so the far
+ * ground fades, the middle softens and the foreground holds.
  */
 function mapInks(
   sky: RGB,
   tune: MapTune = UNTUNED,
   active: ReadonlySet<MapLayer> = CITY_LAYERS,
-  depth = 1,
+  air: MapVisualState = CLEAR_MAP,
 ): Record<MapLayer, MapInk> {
   const [L, C] = toOklch(sky);
   const hue = skyHue(sky);
@@ -665,6 +668,16 @@ function mapInks(
     ),
     lights: road(0.95, 0.09, BUTTER_HUE),
   };
+  // The weather's say on colour, before the layers are drawn and kept apart from one another
+  if (!isClearMap(air))
+    for (const layer of Object.keys(colors) as MapLayer[]) {
+      const plane = MAP_PLANE[layer];
+      const [l, c, h] = colors[layer];
+      // Snow brightens the ground; the buildings, already pale, step the other way so they stand against it
+      // (lifted too they would meet the ground and the streets)
+      const lift = plane === "terrain" ? air.landLift : plane === "building" ? -0.6 * air.landLift : plane === "water" ? -air.waterDeepen : 0;
+      colors[layer] = [Math.min(LIGHTEST, Math.max(0.05, l + lift)), c * (plane === "tone" ? 1 : air.saturation), h];
+    }
   /**
    * A layer drawn in one colour (`l`, `c`, `h`): as opaque as it takes to stand out from the sky as it must,
    * whatever the tuning (see the contrast above); `ok` says whether it does. `firmer` starts it more opaque
@@ -827,34 +840,111 @@ function mapInks(
     keepApart(group, placed);
     placed.push(...group);
   }
-  // Depth last: the same colours, thinner the farther their plane, so haze never moves a hue or makes a
-  // layer stronger, and the layers keep apart in hue as they fade together into the sky
-  if (depth < 1)
-    for (const layer of Object.keys(inks) as MapLayer[]) {
-      const near = 1 - (1 - depth) * DEPTH_PLANE[layer];
-      if (near < 1)
-        inks[layer] = { ...inks[layer], opacity: +(inks[layer].opacity * near).toFixed(2) };
-    }
+  // The weights and the depth last: the colours stay as drawn and kept apart, only each layer's opacity moves
+  if (!isClearMap(air))
+    for (const layer of Object.keys(inks) as MapLayer[])
+      inks[layer] = weathered(inks[layer], layer, air);
   return inks;
+}
+
+/**
+ * What the weather does to the map's hierarchy (WTH-046G), the map half of the atmosphere: weights on the
+ * planes (1 leaves a plane as it is), the chroma of every line, how far the land and the water move in
+ * lightness, and the air's depth (WTH-046F). All of it is 1, or 0, in clear air.
+ */
+export interface MapVisualState {
+  /** 1 clear air, 0 the thickest haze: see `atmosphereDepth` */
+  depth: number;
+  /** Opacity weights of the planes */
+  waterWeight: number;
+  roadWeight: number;
+  buildingWeight: number;
+  terrainWeight: number;
+  /** Chroma multiplier of every line but the traffic's and the lights' own tones */
+  saturation: number;
+  /** Lightness the ground gains, as snow brightens it; and the water loses, as rain deepens it */
+  landLift: number;
+  waterDeepen: number;
+}
+
+export const CLEAR_MAP: MapVisualState = {
+  depth: 1,
+  waterWeight: 1,
+  roadWeight: 1,
+  buildingWeight: 1,
+  terrainWeight: 1,
+  saturation: 1,
+  landLift: 0,
+  waterDeepen: 0,
+};
+
+const isClearMap = (s: MapVisualState) =>
+  (Object.keys(CLEAR_MAP) as (keyof MapVisualState)[]).every((k) => s[k] === CLEAR_MAP[k]);
+
+/** The planes of the map's hierarchy: what each layer's weight is */
+type MapPlane = "water" | "road" | "building" | "terrain" | "tone";
+const MAP_PLANE: Record<MapLayer, MapPlane> = {
+  water: "water",
+  waterway: "water",
+  // The streets are a pale tint of the sky, the ground of the drawing: weather weighs on the roads above them
+  streets: "tone",
+  "main-roads": "road",
+  motorways: "road",
+  train: "road",
+  "train-stops": "road",
+  metro: "road",
+  "metro-stops": "road",
+  tram: "road",
+  "tram-stops": "road",
+  "bus-stops": "road",
+  buildings: "building",
+  // Volumes stay as opaque as MAP_INK makes them (see DEPTH_PLANE): weather weighs on the flat buildings
+  "buildings-3d": "tone",
+  green: "terrain",
+  relief: "terrain",
+  contours: "terrain",
+  shadows: "terrain",
+  // Traffic and lights keep their own tone and weight: they are information, not weather
+  "traffic-slow": "tone",
+  "traffic-heavy": "tone",
+  "traffic-jam": "tone",
+  lights: "tone",
+};
+
+/** The share of its opacity a layer keeps in this air: its plane's weight, and the depth's share of its plane. 1 in clear air. */
+function opacityFactor(layer: MapLayer, air: MapVisualState): number {
+  const weight = {
+    water: air.waterWeight,
+    road: air.roadWeight,
+    building: air.buildingWeight,
+    terrain: air.terrainWeight,
+    tone: 1,
+  }[MAP_PLANE[layer]];
+  return weight * (1 - (1 - air.depth) * DEPTH_PLANE[layer]);
+}
+
+/** One ink in this air: its opacity as the factor leaves it (the colour was settled before, see `mapInks`). */
+function weathered(ink: MapInk, layer: MapLayer, air: MapVisualState): MapInk {
+  return { ...ink, opacity: +clamp01(ink.opacity * opacityFactor(layer, air)).toFixed(2) };
 }
 
 /**
  * The map's lines over a sky (a palette's `sky2`) as the viewer tuned them
  * (see MapControls): their hue, how vivid, how strong against the sky. The layers in
  * `active` (the city's own unless said otherwise) are kept apart from one another in colour.
- * `depth` is the air's (see `atmosphereDepth`); the live page has none yet, so clear air.
+ * `air` is the weather's (see `mapVisualState`); the live page has none yet, so clear air.
  */
 export function mapInksFor(
   sky: string,
   tune: MapTune,
   active: ReadonlySet<MapLayer> = CITY_LAYERS,
-  depth = 1,
+  air: MapVisualState = CLEAR_MAP,
 ): Record<MapLayer, MapInk> {
   // Worked out once per sky, tuning and choice of layers: scrubbing the timeline asks again and again for the same few
-  const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}|${[...active].sort().join(",")}|${depth}`;
+  const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}|${[...active].sort().join(",")}|${Object.values(air).join(",")}`;
   const known = inksMemo.get(key);
   if (known) return known;
-  const inks = mapInks(hex(sky), tune, active, depth);
+  const inks = mapInks(hex(sky), tune, active, air);
   if (inksMemo.size >= INKS_MEMO)
     inksMemo.delete(inksMemo.keys().next().value as string);
   inksMemo.set(key, inks);
@@ -958,7 +1048,7 @@ function finishPalette(
   glow: RGBA,
   light: number,
   cloud: RGBA,
-  depth = 1,
+  map: MapVisualState = CLEAR_MAP,
   continuous = false,
 ): SkyPalette {
   const [sky1, sky2, sky3] = legibleSky(weathered, continuous);
@@ -986,7 +1076,7 @@ function finishPalette(
     // The "now" markers: the glow's own colour by day, a periwinkle moonlight at night.
     sun: dark ? "#bfcbfe" : toHex([glow[0], glow[1], glow[2]]),
     cloud: rgba(cloud),
-    map: mapInks(sky2, UNTUNED, CITY_LAYERS, depth),
+    map: mapInks(sky2, UNTUNED, CITY_LAYERS, map),
   };
 }
 
@@ -1247,10 +1337,60 @@ export function atmosphereDepth(a: AtmosphereAxes): number {
   return 1 - smooth(ATMOSPHERE_LIMITS.hazeOnset, 1, a.haze);
 }
 
+/** The most the weather moves the map's hierarchy, each at the axis's full value (WTH-046G) */
+export const MAP_WEATHER_LIMITS = {
+  /** Clear, sunny, open air makes the ground richer (opacity and chroma) */
+  clearTerrain: 0.15,
+  clearChroma: 0.1,
+  /** Rain quiets the ground, strengthens the water, deepens it, and firms the roads a little */
+  wetTerrain: 0.3,
+  wetWater: 0.35,
+  wetDeepen: 0.06,
+  wetRoads: 0.15,
+  wetChroma: 0.15,
+  /** Snow separates the water, brightens the land, cools the lines and restrains the infrastructure */
+  snowWater: 0.25,
+  snowLift: 0.1,
+  snowChroma: 0.35,
+  snowRoads: 0.08,
+  snowBuildings: 0.08,
+  /** A storm compresses the background, sharpens the roads and the ways of getting about, deepens the water */
+  stormTerrain: 0.45,
+  stormBuildings: 0.15,
+  stormRoads: 0.25,
+  stormWater: 0.1,
+  stormDeepen: 0.03,
+  /** No weight goes under this share of its plane's opacity */
+  floor: 0.4,
+} as const;
+
+/**
+ * The atmosphere as the map's hierarchy (WTH-046G): weights on the planes, chroma, and the land and water's
+ * lightness, bounded and continuous, with `atmosphereDepth` for haze. Rain is darker, denser, water-first;
+ * snow brighter, quieter and cooler, water kept apart; a storm compressed in the background and graphic in
+ * the roads; a clear open day richer. Each is zero at zero, so a plain atmosphere is `CLEAR_MAP`.
+ */
+export function mapVisualState(a: AtmosphereAxes): MapVisualState {
+  const X = MAP_WEATHER_LIMITS;
+  const depth = atmosphereDepth(a);
+  const clear = clamp01(a.daylight * (1 - a.cloudiness) * depth);
+  const keep = (w: number) => Math.max(X.floor, w);
+  return {
+    depth,
+    terrainWeight: keep((1 + X.clearTerrain * clear) * (1 - X.wetTerrain * a.wetness) * (1 - X.stormTerrain * a.severity)),
+    waterWeight: 1 + X.wetWater * a.wetness + X.snowWater * a.snow + X.stormWater * a.severity,
+    roadWeight: keep((1 + X.wetRoads * a.wetness + X.stormRoads * a.severity) * (1 - X.snowRoads * a.snow)),
+    buildingWeight: keep((1 - X.snowBuildings * a.snow) * (1 - X.stormBuildings * a.severity)),
+    saturation: (1 + X.clearChroma * clear) * (1 - X.snowChroma * a.snow) * (1 - X.wetChroma * a.wetness),
+    landLift: X.snowLift * a.snow,
+    waterDeepen: X.wetDeepen * a.wetness + X.stormDeepen * a.severity,
+  };
+}
+
 /**
  * The whole palette from the atmosphere: `atmosphereSky`, then the same text
- * protection, glass, markers and map as the live page, the map in the air's
- * depth. The clouds' marker turns from white to slate continuously with rain
+ * protection, glass, markers and map as the live page, the map in the
+ * weather's hierarchy and depth (`mapVisualState`). The clouds' marker turns from white to slate continuously with rain
  * and storm.
  */
 export function atmospherePalette(light: number, a: AtmosphereAxes): SkyPalette {
@@ -1258,5 +1398,5 @@ export function atmospherePalette(light: number, a: AtmosphereAxes): SkyPalette 
   const rain = clamp01(1.5 * Math.max(a.wetness, a.severity));
   const dark = isDark(light);
   const cloud: RGBA = [...mix(WHITE, RAIN_CLOUD, rain), dark ? 0.06 + 0.01 * rain : 0.2];
-  return finishPalette(sky, glow, light, cloud, atmosphereDepth(a), true);
+  return finishPalette(sky, glow, light, cloud, mapVisualState(a), true);
 }

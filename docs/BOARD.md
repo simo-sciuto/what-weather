@@ -6,7 +6,7 @@ Items marked (audit) were noticed while reading the code on 2026-10-01, not requ
 
 ## NOW
 
-- [ ] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. Active since 2026-10-04 after user sign-off of WTH-012. WTH-046A/B/C/D/E done (E signed off in the lab `/lab/atmosfera`); F committed (`d58c2ff`); K closed (rounds committed: `45bfcfb`, `b30b48b`, round three); next checkpoint WTH-046G. V1 covers the static system; WTH-046M is PARKED. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
+- [ ] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. Active since 2026-10-04 after user sign-off of WTH-012. WTH-046A/B/C/D/E done (E signed off in the lab `/lab/atmosfera`); F committed (`d58c2ff`); K closed (`0177581`); G implemented and committed in the atmosphere path; next checkpoint WTH-046H. V1 covers the static system; WTH-046M is PARKED. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
 
 ```text
 WTH-012 -> WTH-046A -> WTH-046B -> WTH-046C -> WTH-046D
@@ -25,7 +25,7 @@ Re-prioritized 2026-10-04 by the user's choice of direction (ROADMAP.md, ADR-013
   - [x] WTH-046E OKLCH atmosphere transform: `atmosphereSky`/`atmospherePalette` in `palette.ts` section 6, bounded and in a fixed order, sharing the live finish; live `skyPalette` byte-identical. Dev-only lab `/lab/atmosfera`. Done 2026-10-04, signed off by the user in the lab.
   - [x] WTH-046F Atmospheric depth: haze compresses depth instead of greying; visible in grayscale. Done 2026-10-04 (committed): `atmosphereDepth` and map planes in `palette.ts` (far ground fades, middle softens, foreground holds), live map byte-identical; visual judgement in the lab is the user's.
   - [x] WTH-046K Scenario calibration suite: critical gate before G/H/L; measurement-driven scenarios and invariants, never city presets. Started with E: 16 scenarios in `calibration.ts` and the lab. Rounds one to three done 2026-10-04 (signature by weights, visibility-led haze, snow on its own scale, precipitation never counted as haze, UV kept; invariants for grayscale, timeline and conflicting forces, with a timeline jitter found and fixed in the atmosphere path). Open for G: bright days share one sky grayscale (white-text cap), the map must separate clear, rain and snow. Closed 2026-10-04 after the user's look in the lab; the gate for G/H/L is open. See the engine doc.
-  - [ ] WTH-046G Meteorological map hierarchy: weather changes map hierarchy and depth, not just hue; separation and user tuning preserved. From K: clear, light rain and snow share one sky grayscale and one depth, so the map must separate them (brighter land and restrained infrastructure for snow, stronger water for rain); replace the tripwire test in `calibration-invariants.test.ts` when it does.
+  - [x] WTH-046G Meteorological map hierarchy: weather changes map hierarchy and depth, not just hue; separation and user tuning preserved. Done 2026-10-04 in the atmosphere path and the lab (`mapVisualState`, `MAP_WEATHER_LIMITS`); not yet on the live page (WTH-046L); visual judgement is the user's. Was, from K: clear, light rain and snow share one sky grayscale and one depth, so the map must separate them (brighter land and restrained infrastructure for snow, stronger water for rain); replace the tripwire test in `calibration-invariants.test.ts` when it does.
   - [ ] WTH-046H Unified visual palette contract: evolve `SkyPalette` into one whole-record palette for UI, Mapbox and poster.
   - [ ] WTH-046I Temperature colour integration: decide which `temp-color.ts` uses stay absolute and which follow the engine.
   - [ ] WTH-046J Weather Fingerprint: deterministic internal visual DNA of a record; no V1 UI.
@@ -58,6 +58,9 @@ Data trust (a record sold must be right):
 Bugs:
 
 - [ ] WTH-165 Phone, city search: while the page loads the full search bar shows, though on a phone only the search icon should; and on iPhone, after tapping the icon, the typed text is often not visible (the search itself works). Reported by the user 2026-10-04.
+- [ ] WTH-179 Poster: the sun's glow is still too sharp in the poster; it should be only a soft bloom. Reported by the user 2026-10-04 (the page's `.sky-glow` and the poster's glow in `render-poster.ts` to compare; no change to the weather data).
+- [ ] WTH-180 Transit stops: the dot with an outline is not liked; give the stops (train, metro, tram, bus) a more graphically advanced representation, in the poster's Swiss language (`map-style.ts`, stop layers; relates to WTH-019/WTH-021). Reported by the user 2026-10-04.
+- [ ] WTH-181 Poster, left column: remove the outlook sentences ("Previsione", `narrative.ts`) and put in their place one line with place, day and time; the block with the city name and the temperature goes to the top. Reported by the user 2026-10-04; continues WTH-017 and supersedes WTH-024 (the sentences are removed, not rewritten).
 
 ## LATER
 
