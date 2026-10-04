@@ -15,7 +15,8 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Mistake caught before it shipped: I built the phone's Tailwind classes by joining strings at run time, which Tailwind never sees; written out whole instead.
 - Checked: six tests on the server's HTML (five fail on the old component); tsc and ESLint. Not verified on a phone, which is the user's.
 - Reviewer: no critical problems; the computer's docked classes made `lg:`-only (no clash with the phone's on a narrowed window), the hidden clear button out of the tab order, wording of the changelog made prudent. Not checked by anyone: a narrowed window at 700 px after scrolling, and an iPhone.
-- Next: the merge into main.
+- Merged into `main` (`a4eacf0`, no-ff, as the earlier feature branches): `main` had no commits the branch lacked, the production build passed first (`next build` exit 0, the lab a 404 in the build). Not pushed: the user did not ask for it.
+- Next: the user's pick (push, WTH-182, data audits, the Records track).
 
 ## 2026-10-04 (the atmosphere becomes the palette)
 - Worked on: closing WTH-046L after the user said "perfetto molto belli" and "ok" to making it the default.
