@@ -205,6 +205,16 @@ function fromOklchEdge([L, C, h]: LCH): RGB {
 
 const whole = (x: RGB) => x.map(Math.round) as RGB;
 
+/**
+ * A colour (channels 0..255) with its chroma scaled by `k` in OKLCH, its lightness and hue kept, to the gamut's edge
+ * (a more vivid one gives up chroma, never hue, where it would leave sRGB). For the accents that follow the weather's
+ * saturation without becoming another colour (WTH-046I).
+ */
+export function scaleChroma(c: readonly [number, number, number], k: number): [number, number, number] {
+  const [L, C, h] = toOklch([...c] as RGB);
+  return whole(fromOklchEdge([L, C * k, h])) as [number, number, number];
+}
+
 /** Straight distance in OKLab, where equal steps are about equally visible: 0.02 is the least that can be told apart, 0.1 is plainly another colour. */
 function oklabDistance(a: RGB, b: RGB): number {
   const [La, Ca, ha] = toOklch(a);

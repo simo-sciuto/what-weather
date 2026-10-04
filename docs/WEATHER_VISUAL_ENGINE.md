@@ -405,3 +405,21 @@ Decision (no rename, no second type): `SkyPalette` is the whole-record palette, 
 - **Tests (four, `atmosphere-sky.test.ts`).** The live palette's air is clear in every state and the atmosphere's is its quantized `mapVisualState`; the palette's own untuned city equals `mapInksFor` with its air; the viewer's tuning keeps the weather (tuned, rain still quiets the ground and a palette without its air would have drawn it clear); nudges within a step share the memo entry and whole steps do not.
 - **Left for WTH-046L.** Making `frameLook` call `atmospherePalette` instead of `skyPalette`, which is the visible change of the page and the poster. H only makes the contract ready, and leaves the live look untouched.
 
+## WTH-046I: temperature colour
+
+`temp-color.ts` is an absolute scale (seven pastel stops from -10 to 36 degrees at one lightness) so that 25 degrees is the same warm tint in any week and any place. The review of its uses (six rows below, the figures, the range and its bar sharing one) separates what carries the number from what only decorates:
+
+| Use | What it colours | Kind | Now |
+| --- | --- | --- | --- |
+| `HeroTemp`: the figure, the day's low and high, the range bar | the number, and its range | quantitative | `tempColor` / `tempGradient`, absolute |
+| `DailyForecast`: each day's bar | the week's ranges | quantitative, compared day to day | `tempGradient`, absolute |
+| `render-poster`: the temperature | the poster's figure | the record's number, comparable across records | `tempColor`, absolute |
+| `HeroMeta`: the country's name | text | decorative accent | `tempAccent` |
+| `HeroMeta`: the phone bar's selected marker | an accent | decorative accent | `tempAccent` |
+| `MapCompass`: the needle | an accent | decorative accent | `tempAccent` |
+
+- **Rule.** A colour that carries a temperature stays on the absolute scale, whatever the weather: a glance at two figures, two bars or two records must compare the temperatures, not the skies. A colour that only decorates may follow the engine.
+- **`tempAccent(t, saturation)`.** The same hue and lightness as the scale (OKLCH, to the gamut's edge, via `scaleChroma` in `palette.ts`), its chroma following the weather's `MapVisualState.saturation` (clear +10%, rain -15%, snow -35%, never under 0.5 or over 1.15 here). At saturation 1 it is `tempColor` exactly, so the page is unchanged until the atmosphere is switched on (WTH-046L, where `air.saturation` stops being 1). It does not follow the sky's hue or lightness: coherence, not sameness, so an accent still reads as a temperature.
+- **Tests (`temp-color.test.ts`, seven).** The scale is unchanged (anchors, clamps, a midpoint; and, checked once against the previous code, 261 temperatures at quarter-degree steps and five gradients identical); `tempAccent(t, 1)` equals `tempColor(t)` on every degree from -15 to 40; lightness within 0.03 and hue within 15 degrees of the scale's, chroma moving only in the direction of the saturation; chroma never rises as the saturation falls; in the quietest weather cold, mild and hot still differ in hue (over 60 and 20 degrees); `scaleChroma` stays in sRGB; a missing or non-numeric saturation gives the scale itself, never an invalid colour (from the review).
+- **Not touched.** The absolute scale itself (its stops, its lightness): the product's comparability depends on it, and ADR-013's records will compare places and dates on it.
+

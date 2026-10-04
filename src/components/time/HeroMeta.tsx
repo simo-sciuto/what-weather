@@ -1,7 +1,7 @@
 "use client";
 
 import { dayOfYear } from "@/lib/weather/formatters";
-import { tempColor } from "@/lib/weather/temp-color";
+import { tempAccent } from "@/lib/weather/temp-color";
 import { PosterButton } from "../poster/PosterButton";
 import { LocalClock } from "../weather/LocalClock";
 import { MapControls } from "../weather/MapControls";
@@ -38,14 +38,14 @@ export function HeroActions() {
 export function PhoneBar() {
   const { page, go } = usePhoneNav();
   const { token } = useMap();
-  // The page on show is marked in the colour of the temperature on show, as the reading's figure is
-  const { frame } = useMoment();
+  // The page on show is marked in the colour of the temperature on show, as an accent in the scene's saturation
+  const { frame, look } = useMoment();
   const tabs = useRef<(HTMLElement | null)[]>([]);
   const lens = useLens(page, tabs);
   return (
     <nav
       aria-label="Pagine"
-      style={{ "--selected": tempColor(frame.temp) } as CSSProperties}
+      style={{ "--selected": tempAccent(frame.temp, look.palette.air.saturation) } as CSSProperties}
       className="fixed inset-x-4 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 grid grid-cols-3 items-center overflow-hidden rounded-full bg-[linear-gradient(180deg,rgb(255_255_255/0.07),rgb(255_255_255/0.015))] p-1 [text-shadow:0_1px_4px_rgb(0_0_0/0.45)] shadow-[0_12px_30px_rgb(0_0_0/0.28),inset_0_0.5px_0_rgb(255_255_255/0.55),inset_0_-0.5px_0_rgb(255_255_255/0.2),inset_0_0_0_0.5px_rgb(255_255_255/0.22)] backdrop-blur-[3px] backdrop-brightness-[1.08] backdrop-saturate-[1.6] before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-1/2 before:rounded-b-full before:bg-[radial-gradient(ellipse_at_top,rgb(255_255_255/0.18),transparent_70%)] lg:hidden"
     >
       <span
@@ -147,12 +147,12 @@ export function HeroMeta({
 
 /** The country: bold capitals, in the temperature's colour */
 function Country({ children }: { children: string }) {
-  const { frame } = useMoment();
+  const { frame, look } = useMoment();
   if (!children) return null;
   return (
     <span
       className="font-bold uppercase transition-colors duration-700"
-      style={{ color: tempColor(frame.temp) }}
+      style={{ color: tempAccent(frame.temp, look.palette.air.saturation) }}
     >
       {children}
     </span>

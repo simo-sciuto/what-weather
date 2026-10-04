@@ -1,6 +1,6 @@
 "use client";
 
-import { tempColor } from "@/lib/weather/temp-color";
+import { tempAccent } from "@/lib/weather/temp-color";
 import { useSyncExternalStore, type KeyboardEvent } from "react";
 import { useMoment } from "../time/TimeContext";
 import { bearingName, bearingPoint, phoneMap } from "./map-view";
@@ -21,13 +21,13 @@ export function MapCompass({
   className?: string;
   sigla?: boolean;
 }) {
-  const { frame } = useMoment();
+  const { frame, look } = useMoment();
   const { bearing } = useSyncExternalStore(
     phoneMap.subscribe,
     phoneMap.get,
     phoneMap.get,
   );
-  const color = tempColor(frame.temp);
+  const color = tempAccent(frame.temp, look.palette.air.saturation);
   const turn = (by: number) =>
     phoneMap.set({ ...phoneMap.get(), bearing: phoneMap.get().bearing + by });
 
