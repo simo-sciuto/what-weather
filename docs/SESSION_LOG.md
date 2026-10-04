@@ -9,6 +9,12 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Not verified: market figures and licence terms are assumptions until WTH-166 and WTH-167.
 - Next: unchanged, the user looks at the lab and K closes.
 
+## 2026-10-04 (poster glow)
+- Worked on: WTH-179, picked first by the user among their three requests.
+- Completed: the poster's glow (two stops, ending in transparent black, a radius half the page's) replaced by a Gaussian bloom with the page's reach, in `lib/weather/bloom.ts`; six tests; tsc and ESLint clean.
+- Not verified: how an exported poster looks. No screenshot taken, per the project rule; the user looks at it.
+- Next: WTH-180 or WTH-181 (each to be proposed as a checkpoint first), or WTH-046H.
+
 ## 2026-10-04 (map hierarchy)
 - Worked on: K closed and committed; WTH-046G. Mid-session the user added three requests (poster glow, transit stops, the poster's left column): on the board as WTH-179, 180, 181, not started.
 - Completed: `mapVisualState` and its use in `mapInks`. The separation under weather took four attempts: weights inside the search (reverted, it moved hues with depth), then snow lifting the buildings with the ground (met the streets), the streets and 3D volumes taken out of the weights, and a wrong first measure (`p.map` keeps only the city layers apart: the test must use all layers).
@@ -24,11 +30,4 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Reviewer pass: no critical problems; fixed the bisection's final check, the tripwire (now sky and map), the conflict contrast test, removed an empty test.
 - Not verified: the look, the user's.
 - Next: user's look; commit; close K; WTH-046G.
-
-## 2026-10-04 (calibration round two)
-- Worked on: round one committed (`45bfcfb`); then the snow decision. The user said rain, snow and fog are separate values, which settled both open points: no precipitation counted as haze, and snow with its own strength.
-- Completed: `snowInfluence`, `hazeLoss` as the residual after the fall's own strength, heat and cold at 0.8. The three snow scenarios, heavy rain and humid fog came back to the expectations written before measuring.
-- Checked: 90 tests in five suites; tsc and ESLint; live palette unchanged.
-- Not verified: the look in the lab, the user's. Downpours and snowfalls with bad visibility no longer flatten the map: to be judged there.
-- Next: the user looks; commit; K's remaining invariants (grayscale, timeline, conflicts).
 

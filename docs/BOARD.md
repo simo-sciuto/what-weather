@@ -58,7 +58,7 @@ Data trust (a record sold must be right):
 Bugs:
 
 - [ ] WTH-165 Phone, city search: while the page loads the full search bar shows, though on a phone only the search icon should; and on iPhone, after tapping the icon, the typed text is often not visible (the search itself works). Reported by the user 2026-10-04.
-- [ ] WTH-179 Poster: the sun's glow is still too sharp in the poster; it should be only a soft bloom. Reported by the user 2026-10-04 (the page's `.sky-glow` and the poster's glow in `render-poster.ts` to compare; no change to the weather data).
+- [x] WTH-179 Poster: the sun's glow is still too sharp in the poster; it should be only a soft bloom. Reported by the user 2026-10-04. Done 2026-10-04: `paintSky` draws a Gaussian bloom (`lib/weather/bloom.ts`) with the page's reach, no hot spot and no edge; the user's look at an exported poster is pending. The page's `.sky-glow` is unchanged.
 - [ ] WTH-180 Transit stops: the dot with an outline is not liked; give the stops (train, metro, tram, bus) a more graphically advanced representation, in the poster's Swiss language (`map-style.ts`, stop layers; relates to WTH-019/WTH-021). Reported by the user 2026-10-04.
 - [ ] WTH-181 Poster, left column: remove the outlook sentences ("Previsione", `narrative.ts`) and put in their place one line with place, day and time; the block with the city name and the temperature goes to the top. Reported by the user 2026-10-04; continues WTH-017 and supersedes WTH-024 (the sentences are removed, not rewritten).
 
