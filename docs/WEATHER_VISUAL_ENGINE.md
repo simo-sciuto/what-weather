@@ -1,6 +1,6 @@
 # Weather Visual Engine
 
-Current checkpoint: WTH-046A-F implemented (E signed off in the lab). The atmosphere transform and atmospheric depth exist in `palette.ts`; the live page still renders `skyPalette` until calibrated integration (WTH-046L).
+Current checkpoint: WTH-046 V1 complete (A to L). The atmosphere is the palette of the page, its map and the poster; `skyPalette` remains only as the lab's reference. WTH-046M (motion) is PARKED.
 
 This document holds the WTH-046 plan (what each subtask must achieve) followed by the contract of each implemented checkpoint. `docs/BOARD.md` tracks status, one line per subtask, and links here.
 
@@ -443,7 +443,7 @@ Decision (no rename, no second type): `SkyPalette` is the whole-record palette, 
 - **Tests (`fingerprint.test.ts`, ten).** Determinism and frozen results; whole hundredths in range with the energy under the daylight of its phase; the 16 calibration scenarios give 16 DNA keys and the families stay near (light against maritime rain differ in fewer fields than rain against snow); a nudge of 0.0001 or 0.001, either way, in any of the seven measurements of all 16 scenarios moves a field by at most one step; the round trip for every scenario at four phases; refusal of seventeen malformed keys (six of them valid numbers written another way) and of a non-finite phase or axis; the empty basis (`~`) read back; phase against daylight; the basis kept apart from the DNA; no field but its own (no place, clock, unit or palette).
 - **Not connected.** Nothing calls it yet: `frameLook` does not carry it (a computed field per frame nobody reads). The Records track (WTH-166 to WTH-173) will call it where a record is made.
 
-## WTH-046L: the switch to the atmosphere (first step)
+## WTH-046L: the switch to the atmosphere (history: removed on 2026-10-04, see the end of this section)
 
 The atmosphere reaches the page behind a switch, so the two palettes can be compared on one place, on one phone, before the atmosphere becomes the page's own. The page without the switch is the page as it was.
 
@@ -454,4 +454,14 @@ The atmosphere reaches the page behind a switch, so the two palettes can be comp
 - **Not switched, on purpose.** The share image and the saved places' summaries (server routes, no look for the viewer); the lab (it shows both engines side by side already). Making the atmosphere the default, and removing the switch, is a decision for the user after the comparison.
 - **Tests (`engine.test.ts`, seven).** On for exactly `atmosfera`; the live page's addresses unchanged and the atmosphere's carrying the parameter once (a fragment kept whole, even empty or with a second `#`; a parameter already there set, never doubled; names, accents and the footer's sample scenarios intact); the default look is the page's own palette on five mock weathers; with the switch, the palette is `atmospherePalette` of the same atmosphere while the sky's position, the atmosphere and its input status are unchanged; the air is clear by default and not under the atmosphere; the rain's sky differs; every frame of a day, the overview of each day included, gives a valid palette.
 - **To compare on a phone.** Open a place, add `?motore=atmosfera` (or `&motore=atmosfera` after `lat` and `lon`), look, remove it, look again. The timeline, the map and the poster follow.
+
+### WTH-046L closed: the atmosphere is the page's palette
+
+After comparing it on a phone behind the switch, the user approved the look ("perfetto molto belli") and asked for it to become the default (2026-10-04). Done:
+
+- `frameLook(frame)` always returns `atmospherePalette(frame.light, atmosphere)`; the page, its tuned map (`palette.air`) and the poster, which read the one palette, are painted from the atmosphere for everyone. `/api/og` (the share image) and `/api/summary` (the saved places' readings) call `frameLook` too, so they follow with no change of their own.
+- The switch is gone: `engine.ts`, `?motore=atmosfera`, `TimeProvider`'s `engine`, `useEngine` and the `withEngine` calls in the search, the saved places, Territorio's towns, the footer's sample scenarios, the wordmark and the automatic return. Links and navigations are as they were before the switch.
+- `skyPalette` and `stateSky` stay in `palette.ts`, no longer used by the page: the lab (`/lab/atmosfera`) draws them as "Oggi" against "Atmosfera", and the palette, calibration, bloom, map-style and look tests refer to them (the pipeline test no longer does). Removing them would remove the lab's comparison; it is a clean-up for later, not a debt on the page.
+- Tests: `look.test.ts` (five) replaces `engine.test.ts`: the palette is the atmosphere's at the frame's solar phase for five mock weathers; the air is not clear in the rain and is clear on a plain night; the rain's sky differs from the old categorical one; every frame of a day (and each day's overview) gives a valid palette; a frame's look is deterministic.
+- What it closes: K's note on the page's stepped gamut and text protection (the continuous versions are the ones in use) and F's review note (the air travels on the palette and is quantized).
 

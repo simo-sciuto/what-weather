@@ -3,7 +3,6 @@
 import { placeHref, samePlace, type PlaceRef } from "@/lib/place";
 import { clearRecent } from "@/lib/recent-places";
 import { removeSaved } from "@/lib/saved-places";
-import { withEngine } from "@/lib/weather/engine";
 import { placeSubtitle } from "@/lib/weather/formatters";
 import type { Place } from "@/lib/weather/types";
 import { useRouter } from "next/navigation";
@@ -15,7 +14,6 @@ import {
   useSyncExternalStore,
   useTransition,
 } from "react";
-import { useEngine } from "../time/TimeContext";
 import { usePlace } from "./PlaceContext";
 
 /** The search field's id, for its label. */
@@ -112,8 +110,6 @@ const isPhoneNow = () => window.matchMedia(PHONE).matches;
  */
 export function LocationSearch() {
   const router = useRouter();
-  // The switch of palettes goes with the viewer to the next place (see lib/weather/engine.ts)
-  const engine = useEngine();
   // The field's ref lives in the place context, so the place name can focus it.
   const {
     place,
@@ -186,7 +182,7 @@ export function LocationSearch() {
     setOpen(false);
     setQuery("");
     inputRef.current?.blur();
-    startTransition(() => router.push(withEngine(placeHref(ref), engine)));
+    startTransition(() => router.push(placeHref(ref)));
   }
 
   function locateMe() {

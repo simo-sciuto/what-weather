@@ -1,6 +1,5 @@
 import { cityFacts } from "@/lib/city-facts";
 import { placeHref } from "@/lib/place";
-import { withEngine, type PaletteEngine } from "@/lib/weather/engine";
 import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
 import { nearbyWeather } from "@/lib/weather/nearby";
 import Link from "next/link";
@@ -18,8 +17,6 @@ type Where = {
   lon: number;
   name: string;
   /** The place's country, in Italian */ country?: string;
-  /** The palette in use, kept in the links to the towns nearby (see `engine.ts`) */
-  engine?: PaletteEngine;
 };
 
 /* Hairline glyphs for the lists, drawn like the page's weather icons. */
@@ -171,7 +168,7 @@ function List({
  * around) and the best-known peaks around, with their heights. No distances. Async and cached, streamed in; a list with nothing
  * known is left out, and with nothing known at all there is no chapter.
  */
-export async function Territory({ lat, lon, name, country, engine = "live" }: Where) {
+export async function Territory({ lat, lon, name, country }: Where) {
   const {
     rank,
     altitude,
@@ -205,7 +202,7 @@ export async function Territory({ lat, lon, name, country, engine = "live" }: Wh
   ): Item => ({
     name: town.name,
     kind,
-    href: withEngine(placeHref(town), engine),
+    href: placeHref(town),
     figure: now ? formatTemp(now.temp) : undefined,
     icon: now && (
       <WeatherIcon

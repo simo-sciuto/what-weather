@@ -1,7 +1,6 @@
 "use client";
 
 import type { DayLabel, DayTimeline, Frame, Timeline } from "@/lib/weather/frames";
-import type { PaletteEngine } from "@/lib/weather/engine";
 import { frameLook, type FrameLook } from "@/lib/weather/look";
 import {
   createContext,
@@ -69,25 +68,7 @@ const TimelineContext = createContext<TimelineState | null>(null);
 const ViewContext = createContext<ViewState | null>(null);
 const MomentContext = createContext<MomentState | null>(null);
 
-const EngineContext = createContext<PaletteEngine>("live");
-
-/** Which palette the page is painted with (see `engine.ts`): for the links and navigations that must keep the switch. */
-export function useEngine(): PaletteEngine {
-  return useContext(EngineContext);
-}
-
-export function TimeProvider({
-  timeline,
-  moon,
-  engine = "live",
-  children,
-}: {
-  timeline: Timeline;
-  moon: Moon;
-  /** The palette in use: the page's own, or the atmosphere's behind `?motore=atmosfera` (see `engine.ts`) */
-  engine?: PaletteEngine;
-  children: ReactNode;
-}) {
+export function TimeProvider({ timeline, moon, children }: { timeline: Timeline; moon: Moon; children: ReactNode }) {
   const [view, setView] = useState<View>({ kind: "now" });
   const [index, setIndex] = useState(0);
 
@@ -129,19 +110,17 @@ export function TimeProvider({
     return {
       index,
       frame,
-      look: frameLook(frame, engine),
+      look: frameLook(frame),
       dayLabel: timeline.dayLabels[frame.dayKey],
       isLive: !day && index === 0,
       setIndex,
     };
-  }, [timeline, frames, day, index, engine]);
+  }, [timeline, frames, day, index]);
 
   return (
     <TimelineContext.Provider value={timelineState}>
       <ViewContext.Provider value={viewState}>
-        <MomentContext.Provider value={momentState}>
-          <EngineContext.Provider value={engine}>{children}</EngineContext.Provider>
-        </MomentContext.Provider>
+        <MomentContext.Provider value={momentState}>{children}</MomentContext.Provider>
       </ViewContext.Provider>
     </TimelineContext.Provider>
   );

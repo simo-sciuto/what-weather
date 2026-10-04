@@ -102,7 +102,10 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - Haze is led by visibility (0.65, lost between 10 and 1 km), then dew proximity (0.25) and humidity (0.10). Saturated air alone gives 0.35, below the onset. The UV curve is deliberately kept.
 - User decision: rain, snow and fog are separate values. Snow has its own intensity scale (full at 2 mm/h of water, rain at 12), the view a fall takes away is the fall's and never haze (`hazeLoss = max(0, visibilityLoss - max(wetness, snow))`), and heat and cold weigh 0.8 in the signature as background. Depth now closes only with fog.
 
-### ADR-012 update (2026-10-04): the switch to the atmosphere (WTH-046L)
+### ADR-012 update (2026-10-04): the atmosphere is the page's palette (WTH-046L closed)
+- After the user compared the two behind the temporary switch and approved the look, `frameLook` paints every frame from `atmospherePalette`; the switch is removed. Page, tuned map and poster read one palette; the share image and the saved places' summaries follow because they use `frameLook`. `skyPalette` and `stateSky` remain only for the dev-only lab's "Oggi" reference and tests. WTH-046 V1 is complete; motion (WTH-046M) stays parked.
+
+### ADR-012 update (2026-10-04): the switch to the atmosphere (WTH-046L), superseded by the above
 - The atmosphere reaches the page behind `?motore=atmosfera`, a temporary switch decided by the user so the two palettes can be compared on a phone: read by the server's page, handed to `TimeProvider`, kept in the links and navigations between places. Off by default: the page is as it was. Page, tuned map and poster read one palette; the share image and `/api/summary` stay on the page's own palette. Making the atmosphere the default (and removing the switch) waits for the user's comparison.
 
 ### ADR-012 update (2026-10-04): weather fingerprint (WTH-046J)

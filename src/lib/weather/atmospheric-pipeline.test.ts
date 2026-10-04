@@ -4,7 +4,7 @@ import { buildTimeline, hourlySamples } from "./frames";
 import { frameLook } from "./look";
 import { createMockProvider } from "./mock";
 import { openMeteoProvider } from "./openmeteo";
-import { skyPalette } from "./palette";
+import { atmospherePalette } from "./palette";
 import { toCurrent, toCurrent25, toForecastPoints, toHourly, type OWCurrent, type OW25Current, type OW25ForecastItem } from "./transformers";
 
 const NOW = Date.parse("2026-10-04T10:00:00Z") / 1000;
@@ -148,7 +148,7 @@ describe("atmospheric timeline", () => {
     expect(samples.slice(1).every(s => s.humidity == null && s.visibility == null && s.dewPoint == null)).toBe(true);
   });
 
-  it("calculates the selected hour's atmosphere while retaining the exact existing palette", async () => {
+  it("calculates the selected hour's atmosphere and paints the sky from it (WTH-046L)", async () => {
     const data = await mock();
     data.hourly[0] = { ...data.hourly[0], humidity: 98, visibility: 0.2, dewPoint: data.hourly[0].temp };
     data.hourly[1] = { ...data.hourly[1], humidity: 20, visibility: 30, dewPoint: data.hourly[1].temp - 15 };
@@ -158,7 +158,12 @@ describe("atmospheric timeline", () => {
     expect(fog.atmosphere.haze).toBeGreaterThan(0.99);
     expect(clear.atmosphere.haze).toBe(0);
     const f = frames[1];
-    expect(fog.palette).toEqual(skyPalette({ light: f.light, state: f.state, cloudCover: f.cloudCover, uv: f.uv }));
+    // The page's palette is the atmosphere's at the frame's solar phase, no longer the categorical one
+    expect(fog.palette).toEqual(atmospherePalette(f.light, fog.atmosphere));
+    // The measured fog and the measured clear hour an hour apart paint different skies: the measurements reach the colours
+    expect([fog.palette.sky1, fog.palette.sky2, fog.palette.sky3].join()).not.toBe([clear.palette.sky1, clear.palette.sky2, clear.palette.sky3].join());
+    expect(fog.palette.air.depth).toBeLessThan(0.1);
+    expect(clear.palette.air.depth).toBe(1);
     expect(frameLook(JSON.parse(JSON.stringify(f)))).toEqual(fog);
   });
 

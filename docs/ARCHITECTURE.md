@@ -49,7 +49,7 @@ Sources used regardless of provider: Open-Meteo for yesterday's comparison (`yes
 
 The palette now exposes `solarPalette(light): SolarPalette` (WTH-046D): the unchanged natural-light anchors/interpolation, before weather, UV, contrast protection and map inks. Its -1..2 phase input is distinct from 0..1 atmospheric daylight.
 
-The palette has two ways of weathering that base, sharing one finish (`finishPalette`: text protection, glass, markers, map inks). The live one is `skyPalette` = `stateSky` (WeatherState grey/dim, UV vividness) + finish. The other is `atmospherePalette` (WTH-046E, section 6) = `atmosphereSky` (bounded OKLCH transforms of the normalized `AtmosphereAxes`) + finish. The second is not yet on the page: it is calibrated against the first in the dev-only lab before integration (WTH-046K/L).
+The palette has two ways of weathering that base, sharing one finish (`finishPalette`: text protection, glass, markers, map inks). The page's is `atmospherePalette` (WTH-046E, section 6) = `atmosphereSky` (bounded OKLCH transforms of the normalized `AtmosphereAxes`) + finish, called by `frameLook` for every frame since WTH-046L: it draws from the weather's continuous axes, with continuous gamut reduction and text protection, and carries `air` (the weather's say on the map: plane weights, saturation, ground lift, depth) so the page's map, the viewer's tuned map and the poster draw one weather. The other, `skyPalette` = `stateSky` (WeatherState grey/dim, UV vividness) + finish, is no longer used by the page: it stays as the dev-only lab's "Oggi" reference and in tests.
 
 ## Caching
 
