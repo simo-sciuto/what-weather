@@ -188,8 +188,8 @@ const STOPS: {
     mode: "rail",
     stationsOnly: true,
     minzoom: 11,
-    ring: { radius: [3, 7.5], width: [0.9, 1.8] },
-    core: [1.2, 3],
+    ring: { radius: [2, 4.2], width: [0.6, 1.1] },
+    core: [0.8, 1.5],
   },
   // The metro's entrances are left out: a station has many
   {
@@ -197,15 +197,15 @@ const STOPS: {
     mode: "metro_rail",
     stationsOnly: true,
     minzoom: 11,
-    ring: { radius: [3.4, 8.5], width: [1.3, 2.4] },
-    core: [1.6, 3.8],
+    ring: { radius: [2.3, 4.8], width: [0.8, 1.5] },
+    core: [1, 1.9],
   },
   {
     id: "tram-stops",
     mode: "tram",
     stationsOnly: false,
     minzoom: 14,
-    ring: { radius: [1.6, 3.4], width: [0.7, 1.1] },
+    ring: { radius: [1.2, 2.4], width: [0.5, 0.8] },
   },
   // The data has the trams' and the buses' stops from zoom 14, and no more than that
   {
@@ -213,7 +213,7 @@ const STOPS: {
     mode: "bus",
     stationsOnly: false,
     minzoom: 14,
-    core: [0.9, 2.2],
+    core: [0.7, 1.6],
   },
 ];
 

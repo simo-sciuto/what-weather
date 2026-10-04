@@ -12,7 +12,8 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 ## 2026-10-04 (transit stops)
 - Worked on: WTH-180, after the user's "vai" (the next of their requests, as proposed).
 - Completed: the stops drawn as forms (roundel, heavier roundel, open ring, dot) in `map-style.ts`, with a companion core layer and a `ring` kind in `syncMap`; five tests; tsc and ESLint clean. The design was mine to choose (the user asked for "something more graphically advanced"): elementary geometry in the line's colour, hierarchy by weight, no outline.
-- Not verified: how it looks on the page and in the poster (the user's call; no screenshot, per the project rule). Marker sizes were chosen by eye from the old radii and may need a pass.
+- The user found the stops too big on first look: the first radii (ring up to 7.5 and 8.5 px at zoom 17) exceeded the old dots (5). Shrunk: train ring 4.2, metro 4.8, tram 2.4, bus dot 1.6 at zoom 17, strokes 0.5 to 1.5. The relations between modes are tested, not the absolute sizes.
+- Not verified: how it looks on the page and in the poster (the user's call; no screenshot, per the project rule).
 - Next: WTH-181 (proposed as a checkpoint first), or WTH-046H.
 
 ## 2026-10-04 (poster glow)
