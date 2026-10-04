@@ -3,9 +3,9 @@
 import { useMoment, useView } from "./TimeContext";
 
 /**
- * The outlook in words, beside the temperature it explains: the forecast
- * sentence for now, the day's summary in day view, a plain sentence for a
- * scrubbed hour.
+ * The outlook in words, for those who hear the page and not for the poster, which no longer sets sentences
+ * (WTH-181): the forecast sentence for now, the day's summary in day view, a plain sentence for a scrubbed
+ * hour. Read out, never shown.
  */
 export function NarrativeText({ outlook, className = "" }: { outlook: string; className?: string }) {
   const { frame, isLive } = useMoment();
@@ -17,7 +17,7 @@ export function NarrativeText({ outlook, className = "" }: { outlook: string; cl
       <h2 id="outlook-label" className="sr-only">
         {heading}
       </h2>
-      <p className="rise-in-late w-full max-w-xl font-poster text-lg leading-snug font-light tracking-[-0.01em] text-pretty lg:text-[1.5rem] lg:leading-[1.25] lg:font-normal lg:tracking-[-0.02em]">{text}</p>
+      <p className="sr-only">{text}</p>
     </section>
   );
 }

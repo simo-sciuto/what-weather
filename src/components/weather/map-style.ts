@@ -164,20 +164,31 @@ const ROAD_SHADOWS: {
   },
 ];
 
-/** The stops of each way of getting about: what the data calls it, whether only its stations count, from which zoom, how large a dot */
+/** A size at zoom 11 and at zoom 17, in pixels */
+type Pair = readonly [number, number];
+
+/**
+ * The stops of each way of getting about: what the data calls it, whether only its stations count, from which
+ * zoom, and the form it is drawn in. Each form is a plain circle in the colour of its line, lifted by a soft
+ * shadow: the train's and the metro's an open ring (the metro's heavier), the tram's a finer ring, the bus's a
+ * small solid dot, so the four tell apart by size and weight as well as by hue (WTH-180).
+ */
 const STOPS: {
   id: string;
   mode: string;
   stationsOnly: boolean;
   minzoom: number;
-  radius: [number, number];
+  /** An open ring: its radius and its line's width */
+  ring?: { radius: Pair; width: Pair };
+  /** A solid dot: its radius */
+  dot?: Pair;
 }[] = [
   {
     id: "train-stops",
     mode: "rail",
     stationsOnly: true,
     minzoom: 11,
-    radius: [2, 5],
+    ring: { radius: [2, 4.2], width: [0.8, 1.4] },
   },
   // The metro's entrances are left out: a station has many
   {
@@ -185,14 +196,14 @@ const STOPS: {
     mode: "metro_rail",
     stationsOnly: true,
     minzoom: 11,
-    radius: [2, 5],
+    ring: { radius: [2.1, 4.4], width: [1.1, 1.9] },
   },
   {
     id: "tram-stops",
     mode: "tram",
     stationsOnly: false,
     minzoom: 14,
-    radius: [1.2, 3],
+    ring: { radius: [1.2, 2.4], width: [0.6, 0.9] },
   },
   // The data has the trams' and the buses' stops from zoom 14, and no more than that
   {
@@ -200,8 +211,29 @@ const STOPS: {
     mode: "bus",
     stationsOnly: false,
     minzoom: 14,
-    radius: [1, 2.6],
+    dot: [0.7, 1.6],
   },
+];
+
+/** The id of the soft shadow under a stop: a layer of its own, below the stop's, that always follows its visibility. */
+export const shadowOf = (stop: string) => `${stop}-shadow`;
+const STOP_IDS = new Set(STOPS.map((s) => s.id));
+/**
+ * The stop's shadow, hard and cast well below it so the stop seems to float: black, as faint as the stop is,
+ * two pixels down, barely blurred. Same shape as the stop.
+ */
+const SHADOW_OPACITY = 0.55;
+const SHADOW_OFFSET: [number, number] = [0, 2];
+const SHADOW_BLUR = 0.2;
+
+const zoomSize = ([a, b]: Pair): ExpressionSpecification => [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  11,
+  a,
+  17,
+  b,
 ];
 
 /**
@@ -453,40 +485,80 @@ export const STYLE: StyleSpecification = {
         "line-opacity": 0.9,
       },
     })),
-    // The stops and stations of the ways of getting about, a dot each in the colour of its line (the metro's
-    // entrances are left out); the buses' are many, so they come only when the map is close
-    ...STOPS.map(
-      ({ id, mode, stationsOnly, minzoom, radius }): LayerSpecification => ({
-        id,
-        type: "circle",
-        source: "streets",
-        "source-layer": "transit_stop_label",
-        minzoom,
-        layout: hidden(),
-        filter: stationsOnly
-          ? [
-              "all",
-              ["==", ["get", "mode"], mode],
-              ["==", ["get", "stop_type"], "station"],
-            ]
-          : ["==", ["get", "mode"], mode],
-        paint: {
-          "circle-color": "#eeeeee",
-          "circle-opacity": 0.8,
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            11,
-            radius[0],
-            17,
-            radius[1],
-          ],
-          "circle-stroke-width": 0.6,
-          "circle-stroke-color": "#000000",
-          "circle-stroke-opacity": 0.25,
-        },
-      }),
+    // The stops and stations of the ways of getting about, each in the form of its mode and the colour of its line
+    // (the metro's entrances are left out); the buses' are many, so they come only when the map is close.
+    // A ring is a stroke with no fill; under each stop goes its shadow, a copy of its shape in black, offset and
+    // blurred (a box-shadow; Mapbox draws none), and both take the stop's ink and visibility (see syncMap).
+    ...STOPS.flatMap(
+      ({ id, mode, stationsOnly, minzoom, ring, dot }): LayerSpecification[] => {
+        const common = {
+          type: "circle" as const,
+          source: "streets",
+          "source-layer": "transit_stop_label",
+          minzoom,
+          layout: hidden(),
+          filter: (stationsOnly
+            ? [
+                "all",
+                ["==", ["get", "mode"], mode],
+                ["==", ["get", "stop_type"], "station"],
+              ]
+            : ["==", ["get", "mode"], mode]) as ExpressionSpecification,
+        };
+        if (ring)
+          return [
+            {
+              ...common,
+              id: shadowOf(id),
+              paint: {
+                "circle-color": "#000000",
+                "circle-opacity": 0,
+                "circle-radius": zoomSize(ring.radius),
+                // A touch wider than the ring, which the blur takes back
+                "circle-stroke-width": zoomSize([ring.width[0] * 1.15, ring.width[1] * 1.15]),
+                "circle-stroke-color": "#000000",
+                "circle-stroke-opacity": SHADOW_OPACITY,
+                "circle-translate": SHADOW_OFFSET,
+                "circle-blur": SHADOW_BLUR,
+              },
+            },
+            {
+              ...common,
+              id,
+              paint: {
+                "circle-color": "#eeeeee",
+                "circle-opacity": 0,
+                "circle-radius": zoomSize(ring.radius),
+                "circle-stroke-width": zoomSize(ring.width),
+                "circle-stroke-color": "#eeeeee",
+                "circle-stroke-opacity": 0.8,
+              },
+            },
+          ];
+        const size = dot ?? ([0, 0] as const);
+        return [
+          {
+            ...common,
+            id: shadowOf(id),
+            paint: {
+              "circle-color": "#000000",
+              "circle-opacity": SHADOW_OPACITY,
+              "circle-radius": zoomSize(size),
+              "circle-translate": SHADOW_OFFSET,
+              "circle-blur": SHADOW_BLUR,
+            },
+          },
+          {
+            ...common,
+            id,
+            paint: {
+              "circle-color": "#eeeeee",
+              "circle-opacity": 0.8,
+              "circle-radius": zoomSize(size),
+            },
+          },
+        ];
+      },
     ),
     // The places that are lit, glowing at night
     {
@@ -509,7 +581,7 @@ export const STYLE: StyleSpecification = {
 /** What each layer is drawn as: its colour and opacity follow the sky (see mapInks in palette.ts) */
 const KIND: Record<
   MapLayer,
-  "fill" | "line" | "circle" | "hillshade" | "heights" | "ranked" | "extrusion"
+  "fill" | "line" | "circle" | "ring" | "hillshade" | "heights" | "ranked" | "extrusion"
 > = {
   water: "fill",
   waterway: "line",
@@ -520,11 +592,11 @@ const KIND: Record<
   relief: "hillshade",
   contours: "heights",
   train: "line",
-  "train-stops": "circle",
+  "train-stops": "ring",
   metro: "line",
-  "metro-stops": "circle",
+  "metro-stops": "ring",
   tram: "line",
-  "tram-stops": "circle",
+  "tram-stops": "ring",
   "bus-stops": "circle",
   buildings: "fill",
   "buildings-3d": "extrusion",
@@ -654,6 +726,15 @@ export function syncMap(
       case "circle":
         map.setPaintProperty(layer, "circle-color", color);
         map.setPaintProperty(layer, "circle-opacity", opacity);
+        if (STOP_IDS.has(layer))
+          map.setPaintProperty(shadowOf(layer), "circle-opacity", SHADOW_OPACITY * opacity);
+        break;
+      case "ring":
+        // A stop drawn as a ring: no fill, the stroke carries the ink; its shadow is as faint as it is
+        map.setPaintProperty(layer, "circle-opacity", 0);
+        map.setPaintProperty(layer, "circle-stroke-color", color);
+        map.setPaintProperty(layer, "circle-stroke-opacity", opacity);
+        map.setPaintProperty(shadowOf(layer), "circle-stroke-opacity", SHADOW_OPACITY * opacity);
         break;
       case "ranked": {
         // The colour of each rank of road, its own complement (see the palette's ramp for traffic)
@@ -733,11 +814,12 @@ export function syncMap(
     );
   }
   for (const layers of Object.values(OPTION_LAYERS)) {
-    for (const layer of layers)
-      map.setLayoutProperty(
-        layer,
-        "visibility",
-        visible.has(layer) ? "visible" : "none",
-      );
+    for (const layer of layers) {
+      const visibility = visible.has(layer) ? "visible" : "none";
+      map.setLayoutProperty(layer, "visibility", visibility);
+      // A stop's shadow goes with it
+      if (STOP_IDS.has(layer))
+        map.setLayoutProperty(shadowOf(layer), "visibility", visibility);
+    }
   }
 }

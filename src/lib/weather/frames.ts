@@ -1,3 +1,4 @@
+import { atmosphericData, interpolateAtmosphericData } from "./atmospheric-data";
 import { bestWindow, windowLabel, type BestWindow } from "./best-window";
 import { TYPICAL_CLOUD_COVER } from "./constants";
 import { visibleDays } from "./days";
@@ -5,7 +6,7 @@ import { capitalize, formatDate, formatTime, localDay, localHour } from "./forma
 import { daySummary, momentSummary } from "./moments";
 import { dayPhase, weatherState, type DayPhase, type WeatherState } from "./state";
 import { nightSpans, sunEvents, sunTimesOn, type SunEvent } from "./sun";
-import type { Condition, Intensity, WeatherData } from "./types";
+import type { AtmosphericMeasurements, Condition, Intensity, WeatherData } from "./types";
 
 /**
  * One moment on the timeline, as sent to the browser. It carries only what
@@ -15,7 +16,9 @@ import type { Condition, Intensity, WeatherData } from "./types";
  * `Timeline.dayLabels`. There are over a hundred frames, so every field
  * counts.
  */
-export interface Frame {
+export interface Frame extends AtmosphericMeasurements {
+  /** Synthetic daily representative, not an hourly measurement. */
+  overview?: true;
   time: number;
   isNow: boolean;
   /** A reading or forecast point as the provider gave it, not an hour interpolated between two */
@@ -87,9 +90,9 @@ export interface Timeline {
 }
 
 /** How long twilight lasts on the light scale, before sunrise and after sunset */
-const TWILIGHT = 90 * 60;
+export const TWILIGHT = 90 * 60;
 
-interface Sample {
+interface Sample extends AtmosphericMeasurements {
   time: number;
   temp: number;
   feelsLike: number;
@@ -129,6 +132,7 @@ export function hourlySamples(d: WeatherData): Sample[] {
   const now = d.current.time;
   const known: Sample[] = [
     {
+      ...atmosphericData(d.current),
       time: now,
       temp: d.current.temp,
       feelsLike: d.current.feelsLike,
@@ -145,6 +149,7 @@ export function hourlySamples(d: WeatherData): Sample[] {
     ...d.hourly
       .filter((h) => h.time > now)
       .map((h) => ({
+        ...atmosphericData(h),
         time: h.time,
         temp: h.temp,
         feelsLike: h.feelsLike,
@@ -171,6 +176,7 @@ export function hourlySamples(d: WeatherData): Sample[] {
     const lerp = (x: number, y: number) => x + (y - x) * f;
     const near = f < 0.5 ? a : b;
     samples.push({
+      ...interpolateAtmosphericData(a, b, f),
       time: t,
       temp: lerp(a.temp, b.temp),
       feelsLike: lerp(a.feelsLike, b.feelsLike),
@@ -201,6 +207,10 @@ function toFrame(d: WeatherData, s: Sample, isNow: boolean, summary: string, tim
   const sun = sunTimesOn(d, s.time);
   const phase = sun ? dayPhase(s.time, sun.sunrise, sun.sunset) : s.night ? "night" : "day";
   return {
+    ...atmosphericData(s),
+    humidity: s.humidity == null ? undefined : round(s.humidity, 2),
+    visibility: s.visibility == null ? undefined : round(s.visibility, 3),
+    dewPoint: s.dewPoint == null ? undefined : round(s.dewPoint, 2),
     time: s.time,
     isNow,
     measured: s.measured,
@@ -286,12 +296,13 @@ export function buildTimeline(d: WeatherData): Timeline {
         // The day's peak, for the brilliance of its sky
         uvIndex: p.uvIndex,
         night: false,
-        measured: true,
+        measured: false,
       },
       false,
       summary,
       "Tutto il giorno",
     );
+    overview.overview = true;
     return {
       key: day.key,
       name: day.name,

@@ -28,7 +28,20 @@ export interface Place {
   lon: number;
 }
 
-export interface CurrentWeather {
+export type AtmosphericField = "humidity" | "visibility" | "dewPoint";
+/** Origin, not temporal sampling: Frame.measured separately marks interpolation. */
+export type AtmosphericSource = "provider" | "estimated" | "mock" | "unknown" | "unavailable";
+export interface AtmosphericMeasurements {
+  /** Percent; absent is not zero. */
+  humidity?: number;
+  /** km; absent is not zero. */
+  visibility?: number;
+  /** Degrees C; estimates are labelled in atmosphericSources. */
+  dewPoint?: number;
+  atmosphericSources?: Partial<Record<AtmosphericField, AtmosphericSource>>;
+}
+
+export interface CurrentWeather extends AtmosphericMeasurements {
   time: number;
   temp: number;
   feelsLike: number;
@@ -64,7 +77,7 @@ export interface QuarterPoint {
   precipitation: number;
 }
 
-export interface HourlyPoint {
+export interface HourlyPoint extends AtmosphericMeasurements {
   time: number;
   temp: number;
   feelsLike: number;

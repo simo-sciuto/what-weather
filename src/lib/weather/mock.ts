@@ -1,3 +1,4 @@
+import { atmosphericData } from "./atmospheric-data";
 import "server-only";
 import { DEFAULT_PLACE, TYPICAL_CLOUD_COVER, isWet } from "./constants";
 import { localHour } from "./formatters";
@@ -170,6 +171,7 @@ function build(scenario: MockScenario, lat: number, lon: number, at?: string): W
       windSpeed: p.wind,
       windGust: p.gust,
       uvIndex: uvAt(time),
+      ...atmosphericData({ humidity: p.humidity, visibility: p.visibility, dewPoint: tempAt(time) - (100 - p.humidity) / 5 }, "mock"),
       pressure: 1016 - i * 0.2,
       cloudCover: TYPICAL_CLOUD_COVER[sky.condition],
     };
@@ -220,6 +222,7 @@ function build(scenario: MockScenario, lat: number, lon: number, at?: string): W
       windSpeed: p.wind,
       windGust: p.gust,
       windDeg: 315,
+      atmosphericSources: { humidity: "mock", visibility: "mock", dewPoint: "mock" },
       humidity: p.humidity,
       pressure: 1016,
       dewPoint: tempAt(now) - (100 - p.humidity) / 5,

@@ -1,8 +1,9 @@
+import { HAZE_ONSET, type AtmosphereAxes } from "./atmosphere";
 import type { WeatherState } from "./state";
 
 /**
  * The sky's colours, computed rather than picked from a table:
- *  1. a clear-sky palette that follows the light through the day — night,
+ *  1. a solar base that follows natural light through the day: night,
  *     blue hour, sunrise, golden hour, a soft hazy morning, a bright midday,
  *     a slightly deeper afternoon, golden hour, sunset, blue hour, night;
  *  2. the weather laid over it — clouds desaturate, rain and storms darken,
@@ -17,6 +18,14 @@ import type { WeatherState } from "./state";
 type RGB = [number, number, number];
 type RGBA = [number, number, number, number];
 
+/** Natural-light base before weather, UV, text protection or map generation. */
+export interface SolarPalette {
+  /** Top, middle and horizon; interpolated sRGB channels in 0..255. */
+  sky: [RGB, RGB, RGB];
+  /** Light-source colour in 0..255, followed by alpha in 0..1. */
+  glow: RGBA;
+}
+
 export interface SkyPalette {
   /** Top, middle and horizon of the sky gradient */
   sky1: string;
@@ -30,6 +39,11 @@ export interface SkyPalette {
   cloud: string;
   /** The city drawn behind the page, one entry per map layer */
   map: Record<MapLayer, MapInk>;
+  /**
+   * The weather's say on the map (WTH-046G/H): what `map` was drawn with. Carried with the palette so every consumer
+   * that redraws the map (the viewer's tuning, the poster) draws it in the same air. `CLEAR_MAP` for the live page.
+   */
+  air: MapVisualState;
 }
 
 /**
@@ -153,7 +167,53 @@ function fromOklch([L, C, h]: LCH): RGB {
   }
 }
 
+/**
+ * `fromOklch` for what moves with the clock: the same lightness and hue, but a colour out of gamut gives up
+ * only as much chroma as it must (the edge, found by bisection), not a 5% step at a time. The steps make
+ * the result jump between levels, and near the sRGB edge a tiny change of light moved a channel by 10 or
+ * more (WTH-046K). The live page keeps `fromOklch` unchanged.
+ */
+function fromOklchEdge([L, C, h]: LCH): RGB {
+  const fits = (c: number) => {
+    const A = c * Math.cos(h);
+    const B = c * Math.sin(h);
+    const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3;
+    const m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3;
+    const s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+    const lin = [
+      4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+    ];
+    return { lin, ok: lin.every((v) => v >= -1e-4 && v <= 1 + 1e-4) };
+  };
+  let best = fits(C);
+  if (!best.ok) {
+    let [lo, hi] = [0, C];
+    for (let i = 0; i < 24; i++) {
+      const mid = (lo + hi) / 2;
+      const t = fits(mid);
+      if (t.ok) {
+        lo = mid;
+        best = t;
+      } else hi = mid;
+    }
+    if (!best.ok) best = fits(0);
+  }
+  return best.lin.map((v) => fromLinear(clamp01(v))) as RGB;
+}
+
 const whole = (x: RGB) => x.map(Math.round) as RGB;
+
+/**
+ * A colour (channels 0..255) with its chroma scaled by `k` in OKLCH, its lightness and hue kept, to the gamut's edge
+ * (a more vivid one gives up chroma, never hue, where it would leave sRGB). For the accents that follow the weather's
+ * saturation without becoming another colour (WTH-046I).
+ */
+export function scaleChroma(c: readonly [number, number, number], k: number): [number, number, number] {
+  const [L, C, h] = toOklch([...c] as RGB);
+  return whole(fromOklchEdge([L, C * k, h])) as [number, number, number];
+}
 
 /** Straight distance in OKLab, where equal steps are about equally visible: 0.02 is the least that can be told apart, 0.1 is plainly another colour. */
 function oklabDistance(a: RGB, b: RGB): number {
@@ -187,17 +247,41 @@ function legibleUnderText(c: RGB, ratio: number): RGB {
   return out;
 }
 
-/* ---------- 1. Clear sky through the day ---------- */
+/**
+ * `legibleUnderText` for what moves with the clock: the lightest colour of the same hue and chroma that
+ * keeps the ratio, found by bisection and drawn to the gamut's edge, instead of 0.01 steps of lightness each
+ * through the stepped gamut reduction. Those steps made the sky jump between levels as the light crept
+ * past the threshold (a channel by 10 or more in 7 minutes, WTH-046K). The live page keeps the stepped one.
+ */
+function legibleUnderTextEdge(c: RGB, ratio: number): RGB {
+  const out = whole(c);
+  if (contrast(muted(out), out) >= ratio) return out;
+  const [L, C, h] = toOklch(c);
+  const ok = (l: number) => {
+    const r = whole(fromOklchEdge([l, C, h]));
+    return contrast(muted(r), r) >= ratio;
+  };
+  let [lo, hi] = [0, L];
+  for (let i = 0; i < 20; i++) {
+    const mid = (lo + hi) / 2;
+    if (ok(mid)) lo = mid;
+    else hi = mid;
+  }
+  // Nothing met the ratio (not even the darkest): the stepped protection's own answer, rather than near black unchecked
+  return ok(lo) ? whole(fromOklchEdge([lo, C, h])) : legibleUnderText(c, ratio);
+}
+
+/* ---------- 1. Natural solar light through the day ---------- */
 
 /**
  * Keyed on the light scale from frames.ts: −1 night … 0 sunrise … 1 sunset … 2 night.
  * Soft pastel light over deep, quiet skies: ink-blue nights with a
  * periwinkle glow, rose and apricot dawns, a clean cerulean day under a
  * butter light, dusty rose and coral sunsets. Hues move gently from one
- * stop to the next; step 3 below still darkens each one until white text
- * reads on it.
+ * stop to the next. These are the existing artistic anchors, not weather
+ * presets. skyPalette applies weather, UV and text protection afterwards.
  */
-const CLEAR: { at: number; sky: [string, string, string]; glow: RGBA }[] = [
+const SOLAR_STOPS: { at: number; sky: [string, string, string]; glow: RGBA }[] = [
   {
     at: -1,
     sky: ["#0c1026", "#171c42", "#29305f"],
@@ -251,14 +335,21 @@ const CLEAR: { at: number; sky: [string, string, string]; glow: RGBA }[] = [
   },
 ];
 
-function clearSky(light: number): { sky: [RGB, RGB, RGB]; glow: RGBA } {
+/**
+ * Existing solar progression, independent of atmospheric measurements.
+ * `light` is a finite Frame.light phase (-1 night, 0 sunrise, 1 sunset,
+ * 2 night), not AtmosphereState.daylight brightness (0..1). Out-of-range
+ * finite phases clamp to the night endpoints. Polar fallbacks live in frames.ts.
+ * Returns fresh channel arrays; consumers transform them before rendering.
+ */
+export function solarPalette(light: number): SolarPalette {
   const u = Math.min(2, Math.max(-1, light));
   const j = Math.max(
     1,
-    CLEAR.findIndex((k) => k.at >= u),
+    SOLAR_STOPS.findIndex((k) => k.at >= u),
   );
-  const a = CLEAR[j - 1];
-  const b = CLEAR[j];
+  const a = SOLAR_STOPS[j - 1];
+  const b = SOLAR_STOPS[j];
   const t = (u - a.at) / (b.at - a.at || 1);
   return {
     sky: [0, 1, 2].map((i) => mix(hex(a.sky[i]), hex(b.sky[i]), t)) as [
@@ -377,6 +468,39 @@ const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
   lights: { contrast: 2, minOpacity: 0.7 },
 };
 /**
+ * How much of each layer's opacity, and so of its contrast with the sky, the thickest haze takes (WTH-046F): the ground
+ * (meadows, relief, contours, shadows) fades most, the middle (water, streets, flat buildings) softens, and
+ * what the map is read by (the main roads, the ways of getting about, traffic, lights) holds. Faded layers
+ * draw towards the sky and so towards one another: their separation shrinks with them (see the engine doc).
+ */
+const DEPTH_FAR = 0.75;
+const DEPTH_MID = 0.35;
+const DEPTH_PLANE: Record<MapLayer, number> = {
+  green: DEPTH_FAR,
+  relief: DEPTH_FAR,
+  contours: DEPTH_FAR,
+  shadows: DEPTH_FAR,
+  water: DEPTH_MID,
+  waterway: DEPTH_MID,
+  streets: DEPTH_MID,
+  buildings: DEPTH_MID,
+  // Volumes stay as opaque as MAP_INK makes them, or the roads would show through them in fog
+  "buildings-3d": 0,
+  "main-roads": 0,
+  motorways: 0,
+  train: 0,
+  "train-stops": 0,
+  metro: 0,
+  "metro-stops": 0,
+  tram: 0,
+  "tram-stops": 0,
+  "bus-stops": 0,
+  "traffic-slow": 0,
+  "traffic-heavy": 0,
+  "traffic-jam": 0,
+  lights: 0,
+};
+/**
  * The share of each line that shows through the backdrop's fade (65% away from the city, see
  * .backdrop-fade), taken lower on purpose: the contrast holds under the reading's veil too.
  */
@@ -470,11 +594,19 @@ export const ALL_MAP_LAYERS: ReadonlySet<MapLayer> = new Set(
  * hue turns them round the wheel, `vivid` scales their chroma (deepening them
  * to make room for it), `contrast` scales how far from the sky each must
  * stand. A line too deep to read once fully opaque is lightened until it does.
+ * `air` (see `MapVisualState`) is the weather: its chroma and the lightness
+ * of the land and the water enter the colours before they are kept apart (so
+ * the separation holds in snow and rain too), and the map's hierarchy is
+ * reweighed last (rain firms the water, snow restrains the infrastructure, a
+ * storm compresses the background and sharpens the roads), with haze closing
+ * the distance: each layer gives up its plane's share of opacity, so the far
+ * ground fades, the middle softens and the foreground holds.
  */
 function mapInks(
   sky: RGB,
   tune: MapTune = UNTUNED,
   active: ReadonlySet<MapLayer> = CITY_LAYERS,
+  air: MapVisualState = CLEAR_MAP,
 ): Record<MapLayer, MapInk> {
   const [L, C] = toOklch(sky);
   const hue = skyHue(sky);
@@ -551,6 +683,17 @@ function mapInks(
     ),
     lights: road(0.95, 0.09, BUTTER_HUE),
   };
+  // The weather's say on colour, before the layers are drawn and kept apart from one another
+  if (!isClearMap(air))
+    for (const layer of Object.keys(colors) as MapLayer[]) {
+      // The 3D volumes take the flat buildings' colour, since the two are kept apart as one group; their weight stays their own
+      const plane = layer === "buildings-3d" ? "building" : MAP_PLANE[layer];
+      const [l, c, h] = colors[layer];
+      // Snow brightens the ground; the buildings, already pale, step the other way so they stand against it
+      // (lifted too they would meet the ground and the streets)
+      const lift = plane === "terrain" ? air.landLift : plane === "building" ? -0.6 * air.landLift : plane === "water" ? -air.waterDeepen : 0;
+      colors[layer] = [Math.min(LIGHTEST, Math.max(0.05, l + lift)), c * (plane === "tone" ? 1 : air.saturation), h];
+    }
   /**
    * A layer drawn in one colour (`l`, `c`, `h`): as opaque as it takes to stand out from the sky as it must,
    * whatever the tuning (see the contrast above); `ok` says whether it does. `firmer` starts it more opaque
@@ -713,24 +856,154 @@ function mapInks(
     keepApart(group, placed);
     placed.push(...group);
   }
+  // The weights and the depth last: the colours stay as drawn and kept apart, only each layer's opacity moves,
+  // by as much of the weather's factor as keeps the layers on show at least `SEPARATION_IN_WEATHER` apart
+  if (!isClearMap(air)) {
+    const kinds = SEPARATED_KINDS.filter((layer) => active.has(layer));
+    const factor = new Map(kinds.map((layer) => [layer, opacityFactor(layer, air)]));
+    const shownAt = (layer: MapLayer, t: number) =>
+      mix(sky, hex(inks[layer].color), clamp01(inks[layer].opacity * (1 + t * ((factor.get(layer) ?? 1) - 1))));
+    const gapAt = (t: number) => {
+      let least = Infinity;
+      for (let i = 0; i < kinds.length; i++)
+        for (let j = i + 1; j < kinds.length; j++) {
+          if (ROADS.includes(kinds[i]) && ROADS.includes(kinds[j])) continue;
+          least = Math.min(least, oklabDistance(shownAt(kinds[i], t), shownAt(kinds[j], t)));
+        }
+      return least;
+    };
+    // Never asked for more than clear air gave, nor than the weather's own floor
+    const need = Math.min(SEPARATION_IN_WEATHER * MAP_SEPARATION * Math.min(1, k), gapAt(0));
+    let t = 1;
+    if (gapAt(1) < need) {
+      let [lo, hi] = [0, 1];
+      for (let i = 0; i < 14; i++) {
+        const mid = (lo + hi) / 2;
+        if (gapAt(mid) >= need) lo = mid;
+        else hi = mid;
+      }
+      t = lo;
+    }
+    for (const layer of Object.keys(inks) as MapLayer[]) {
+      const f = 1 + t * (opacityFactor(layer, air) - 1);
+      inks[layer] = { ...inks[layer], opacity: +clamp01(inks[layer].opacity * f).toFixed(2) };
+    }
+  }
   return inks;
 }
+
+/** The kinds of thing kept apart in weather: what the separation tests look at (a road rank against another is one family) */
+const SEPARATED_KINDS: readonly MapLayer[] = [
+  "streets", "main-roads", "motorways", "water", "buildings", "buildings-3d", "train", "metro", "tram", "bus-stops", "green",
+];
+/** How far apart they are kept in weather, as a share of `MAP_SEPARATION`: above the 0.3 the tests declare, for the rounding of opacities */
+const SEPARATION_IN_WEATHER = 0.33;
+
+/**
+ * What the weather does to the map's hierarchy (WTH-046G), the map half of the atmosphere: weights on the
+ * planes (1 leaves a plane as it is), the chroma of every line, how far the land and the water move in
+ * lightness, and the air's depth (WTH-046F). All of it is 1, or 0, in clear air.
+ */
+export interface MapVisualState {
+  /** 1 clear air, 0 the thickest haze: see `atmosphereDepth` */
+  depth: number;
+  /** Opacity weights of the planes */
+  waterWeight: number;
+  roadWeight: number;
+  buildingWeight: number;
+  terrainWeight: number;
+  /** Chroma multiplier of every line but the streets', the traffic's and the lights' own tones (the 3D volumes follow the flat buildings) */
+  saturation: number;
+  /** Lightness the ground gains, as snow brightens it; and the water loses, as rain deepens it */
+  landLift: number;
+  waterDeepen: number;
+}
+
+/** The step the weather's state is taken to for the inks (WTH-046H): finer than any eye tells, coarse enough to share them */
+export const AIR_STEP = 0.02;
+const quantizedAir = (air: MapVisualState): MapVisualState =>
+  Object.fromEntries(
+    Object.entries(air).map(([k, v]) => [k, Math.round(v / AIR_STEP) * AIR_STEP]),
+  ) as unknown as MapVisualState;
+
+export const CLEAR_MAP: MapVisualState = {
+  depth: 1,
+  waterWeight: 1,
+  roadWeight: 1,
+  buildingWeight: 1,
+  terrainWeight: 1,
+  saturation: 1,
+  landLift: 0,
+  waterDeepen: 0,
+};
+
+const isClearMap = (s: MapVisualState) =>
+  (Object.keys(CLEAR_MAP) as (keyof MapVisualState)[]).every((k) => s[k] === CLEAR_MAP[k]);
+
+/** The planes of the map's hierarchy: what each layer's weight is */
+type MapPlane = "water" | "road" | "building" | "terrain" | "tone";
+const MAP_PLANE: Record<MapLayer, MapPlane> = {
+  water: "water",
+  waterway: "water",
+  // The streets are a pale tint of the sky, the ground of the drawing: weather weighs on the roads above them
+  streets: "tone",
+  "main-roads": "road",
+  motorways: "road",
+  train: "road",
+  "train-stops": "road",
+  metro: "road",
+  "metro-stops": "road",
+  tram: "road",
+  "tram-stops": "road",
+  "bus-stops": "road",
+  buildings: "building",
+  // Volumes stay as opaque as MAP_INK makes them (see DEPTH_PLANE): weather weighs on the flat buildings
+  "buildings-3d": "tone",
+  green: "terrain",
+  relief: "terrain",
+  contours: "terrain",
+  shadows: "terrain",
+  // Traffic and lights keep their own tone and weight: they are information, not weather
+  "traffic-slow": "tone",
+  "traffic-heavy": "tone",
+  "traffic-jam": "tone",
+  lights: "tone",
+};
+
+/** The share of its opacity a layer keeps in this air: its plane's weight, and the depth's share of its plane. 1 in clear air. */
+function opacityFactor(layer: MapLayer, air: MapVisualState): number {
+  const weight = {
+    water: air.waterWeight,
+    road: air.roadWeight,
+    building: air.buildingWeight,
+    terrain: air.terrainWeight,
+    tone: 1,
+  }[MAP_PLANE[layer]];
+  return weight * (1 - (1 - air.depth) * DEPTH_PLANE[layer]);
+}
+
+
 
 /**
  * The map's lines over a sky (a palette's `sky2`) as the viewer tuned them
  * (see MapControls): their hue, how vivid, how strong against the sky. The layers in
  * `active` (the city's own unless said otherwise) are kept apart from one another in colour.
+ * `air` is the weather's (see `mapVisualState`; a palette carries it as `air`), taken to steps of `AIR_STEP`
+ * first, so that the timeline's slowly changing weather asks for the same few inks again and again, not a new
+ * set for every frame; the live page has none yet, so clear air.
  */
 export function mapInksFor(
   sky: string,
   tune: MapTune,
   active: ReadonlySet<MapLayer> = CITY_LAYERS,
+  air: MapVisualState = CLEAR_MAP,
 ): Record<MapLayer, MapInk> {
+  air = quantizedAir(air);
   // Worked out once per sky, tuning and choice of layers: scrubbing the timeline asks again and again for the same few
-  const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}|${[...active].sort().join(",")}`;
+  const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}|${[...active].sort().join(",")}|${Object.values(air).join(",")}`;
   const known = inksMemo.get(key);
   if (known) return known;
-  const inks = mapInks(hex(sky), tune, active);
+  const inks = mapInks(hex(sky), tune, active, air);
   if (inksMemo.size >= INKS_MEMO)
     inksMemo.delete(inksMemo.keys().next().value as string);
   inksMemo.set(key, inks);
@@ -755,19 +1028,21 @@ export function motorwayHue(sky: string): number {
 
 /* ---------- 5. Palette ---------- */
 
-export function skyPalette({
-  light,
-  state,
-  cloudCover,
-  uv,
-}: {
+/** The live page's sky inputs: the categorical weather state over the light. */
+export interface StateSkyInput {
   light: number;
   state: WeatherState;
   cloudCover: number;
   /** The UV index; without it (not every provider has one) the colours are the table's own */
   uv?: number;
-}): SkyPalette {
-  const { sky, glow: tableGlow } = clearSky(light);
+}
+
+/**
+ * Steps 2 and 3 as the live page applies them: the state's grey and dim, then the UV's vividness.
+ * Exported so the atmosphere transform (section 6) can be calibrated against it.
+ */
+export function stateSky({ light, state, cloudCover, uv }: StateSkyInput): SolarPalette {
+  const { sky, glow: tableGlow } = solarPalette(light);
   const glow: RGBA =
     uv == null
       ? tableGlow
@@ -789,13 +1064,55 @@ export function skyPalette({
       : (dulled.map((c) =>
           vivid(c, sunStrength(uv, light, VIVID_MIN, VIVID_MAX)),
         ) as [RGB, RGB, RGB]);
+  return { sky: weathered, glow };
+}
 
-  // Text sits on every part of the sky: the reading at the top, and — as the
-  // page scrolls over the fixed sky — chapter titles and the footer on the
-  // horizon. All of it stays at AA; the glow still brightens the light source.
-  const sky1 = legibleUnderText(weathered[0], 4.8);
-  const sky2 = legibleUnderText(weathered[1], 4.6);
-  const sky3 = legibleUnderText(weathered[2], 4.5);
+/** Below the sunrise's blue hour or past the sunset's: the markers turn to moonlight and the clouds thin. */
+const isDark = (light: number) => light < -0.3 || light > 1.3;
+/** The clouds' tint when they carry rain: a cool slate rather than white */
+const RAIN_CLOUD: RGB = [205, 214, 226];
+
+export function skyPalette(input: StateSkyInput): SkyPalette {
+  const { sky, glow } = stateSky(input);
+  const rainy = input.state === "RAIN" || input.state === "HEAVY_RAIN" || input.state === "STORM";
+  const dark = isDark(input.light);
+  const cloud: RGBA = rainy ? [...RAIN_CLOUD, dark ? 0.07 : 0.2] : [...WHITE, dark ? 0.06 : 0.2];
+  return finishPalette(sky, glow, input.light, cloud);
+}
+
+/**
+ * Text sits on every part of the sky: the reading at the top, and — as the
+ * page scrolls over the fixed sky — chapter titles and the footer on the
+ * horizon. All of it stays at AA; the glow still brightens the light source.
+ */
+function legibleSky(weathered: [RGB, RGB, RGB], continuous = false): [RGB, RGB, RGB] {
+  const protect = continuous ? legibleUnderTextEdge : legibleUnderText;
+  return [protect(weathered[0], 4.8), protect(weathered[1], 4.6), protect(weathered[2], 4.5)];
+}
+
+/** The three sky stops and the glow as the page would paint them, without glass or map: cheap enough for a whole day of strips. */
+export function skyColors({ sky, glow }: SolarPalette, continuous = false): {
+  sky1: string;
+  sky2: string;
+  sky3: string;
+  glow: string;
+} {
+  const [sky1, sky2, sky3] = legibleSky(sky, continuous).map(toHex);
+  return { sky1, sky2, sky3, glow: rgba(glow) };
+}
+
+/** Step 4 and 5, shared by every way of weathering the sky: text protection, glass, the markers and the map. */
+function finishPalette(
+  weathered: [RGB, RGB, RGB],
+  glow: RGBA,
+  light: number,
+  cloud: RGBA,
+  map: MapVisualState = CLEAR_MAP,
+  continuous = false,
+): SkyPalette {
+  const [sky1, sky2, sky3] = legibleSky(weathered, continuous);
+  // The air as the inks are drawn in it, and as the palette carries it (see `mapInksFor`)
+  const air = quantizedAir(map);
 
   // Glass: the thinnest veil over the brightest part of the sky that keeps muted text at AA.
   // The veil is the top of the sky, deepened, so fields and buttons stay in its hue.
@@ -809,7 +1126,7 @@ export function skyPalette({
     contrast(muted(mix(sky3, veil, alpha)), mix(sky3, veil, alpha)) < 4.6
   )
     alpha += 0.02;
-  const dark = light < -0.3 || light > 1.3;
+  const dark = isDark(light);
 
   return {
     sky1: toHex(sky1),
@@ -819,11 +1136,329 @@ export function skyPalette({
     glow: rgba(glow),
     // The "now" markers: the glow's own colour by day, a periwinkle moonlight at night.
     sun: dark ? "#bfcbfe" : toHex([glow[0], glow[1], glow[2]]),
-    cloud: rgba(
-      state === "RAIN" || state === "HEAVY_RAIN" || state === "STORM"
-        ? [205, 214, 226, dark ? 0.07 : 0.2]
-        : [255, 255, 255, dark ? 0.06 : 0.2],
-    ),
-    map: mapInks(sky2),
+    cloud: rgba(cloud),
+    map: mapInks(sky2, UNTUNED, CITY_LAYERS, air),
+    air,
   };
+}
+
+/* ---------- 6. The atmosphere over the light (WTH-046E) ---------- */
+
+/*
+ * The continuous successor of section 2: each atmosphere axis transforms the
+ * solar base in OKLCH, with a bounded influence and in a fixed order, instead
+ * of a weather state choosing a grey and a dim. Not yet on the live page: it
+ * is calibrated against `stateSky` first (WTH-046K). The table of ranges,
+ * curves and limits is in docs/WEATHER_VISUAL_ENGINE.md (WTH-046E).
+ */
+
+/** Temperature sets the white balance: warm air leans every colour towards amber, cool air towards cyan by day and a deeper blue by night. */
+const WARM_POLE = deg(50);
+const COOL_POLE_DAY = deg(200);
+const COOL_POLE_NIGHT = deg(255);
+/** Rain turns the sky towards slate, snow towards a cold blue, a storm towards indigo. */
+const WET_POLE = deg(240);
+const SNOW_POLE = deg(225);
+const STORM_POLE = deg(270);
+/** No rotation of a sky hue passes through green: it goes the other way round the wheel. */
+const GREEN = deg(140);
+
+/** Each axis's most influence, reached only at the axis's full value. */
+export const ATMOSPHERE_LIMITS = {
+  /** The white balance's shift in OKLab (a, b) at warmth ±1: a tint, never a theme */
+  warmthShift: 0.022,
+  /** Hue rotations in degrees, and the most they may add up to on any stop */
+  wetTurn: 8,
+  snowTurn: 10,
+  stormTurn: 8,
+  totalTurn: 20,
+  /** Chroma taken away at the axis's full value */
+  cloudChroma: 0.72,
+  hazeChroma: 0.5,
+  wetChroma: 0.4,
+  snowChroma: 0.55,
+  stormChroma: 0.35,
+  /** No stop ends with less than this share of its base chroma (an overcast sunset keeps a trace of it) */
+  chromaFloor: 0.18,
+  /** Lightness taken away at the axis's full value, and what snow gives back towards white */
+  cloudDim: 0.08,
+  wetDim: 0.3,
+  stormDim: 0.42,
+  snowLift: 0.14,
+  /** No stop ends darker than this share of its base lightness */
+  dimFloor: 0.45,
+  /** How far a storm deepens the top of the sky against the horizon, for a local hierarchy */
+  stormTop: 0.14,
+  /** The spread of lightness between the stops taken away at the axis's full value */
+  cloudSpread: 0.5,
+  wetSpread: 0.3,
+  snowSpread: 0.35,
+  /**
+   * Haze below this has no say on depth; from it to full haze the veil eases in (smoothstep). Saturated
+   * air alone (dew point and humidity, WTH-046B) gives 0.45 of haze: depth starts closing only once
+   * visibility is lost on top of it.
+   */
+  hazeOnset: HAZE_ONSET,
+  /**
+   * The veil's lightness at most: just above where text protection caps any sky under white text
+   * (about 0.5 in OKLCH), so the veil reaches that cap but rain and storm can still be seen to darken it.
+   */
+  veilLightest: 0.56,
+  /** Snow mixes the veil in OKLab towards a cold blue (the snow's pole) of this chroma, all the way at full snow */
+  snowVeilChroma: 0.05,
+  /** How far each stop (top, middle, horizon) moves into the haze's veil at full haze: the farthest most */
+  hazeVeil: [0.8, 0.65, 0.45] as const,
+  /** Glow taken away at the axis's full value */
+  cloudGlow: 0.55,
+  hazeGlow: 0.45,
+  wetGlow: 0.3,
+  snowGlow: 0.3,
+  stormGlow: 0.8,
+  /** The share of the sun's glow the weather always leaves: a storm dims the light source, it does not remove it */
+  glowFloor: 0.06,
+  /** Glow chroma taken away in the coldest air: a whiter light */
+  coldGlowChroma: 0.3,
+  /** When several axes pull one property the same way, the strongest counts in full and the rest by this share */
+  rest: 0.25,
+} as const;
+
+const mod = (x: number, m: number) => ((x % m) + m) % m;
+const TAU = 2 * Math.PI;
+
+/** Turn hue `h` towards `pole` by at most `most` radians, the way round that does not cross green. */
+function turnToward(h: number, pole: number, most: number): number {
+  if (most <= 0) return h;
+  const forward = mod(pole - h, TAU);
+  const viaGreen = mod(GREEN - h, TAU) < forward;
+  const arc = viaGreen ? forward - TAU : forward;
+  return h + Math.sign(arc) * Math.min(Math.abs(arc), most);
+}
+
+/** The signed difference between two hues, in -π..π. */
+const hueDelta = (a: number, b: number) => mod(a - b + Math.PI, TAU) - Math.PI;
+
+const toLab = ([L, C, h]: LCH): LCH => [L, C * Math.cos(h), C * Math.sin(h)];
+const fromLab = ([L, A, B]: LCH): LCH => [L, Math.hypot(A, B), Math.atan2(B, A)];
+
+/**
+ * Several axes pulling one property the same way (each a share 0..1 taken
+ * away): the strongest counts in full, the others by `rest` of theirs, so
+ * a rainy, misty, overcast sky is greyer than any one of them alone but
+ * the pulls do not multiply into the floor. Never more than 1.
+ */
+function combined(...pulls: number[]): number {
+  const strongest = Math.max(0, ...pulls);
+  const all = pulls.reduce((sum, p) => sum + Math.max(0, p), 0);
+  return Math.min(1, strongest + ATMOSPHERE_LIMITS.rest * (all - strongest));
+}
+
+const smooth = (low: number, high: number, x: number) => {
+  const t = clamp01((x - low) / (high - low));
+  return t * t * (3 - 2 * t);
+};
+
+/** The white balance's shift in OKLab for an atmosphere: towards amber when warm, cyan (day) or deep blue (night) when cold. */
+function whiteBalance(a: AtmosphereAxes): [number, number] {
+  const pole = a.warmth >= 0 ? WARM_POLE : COOL_POLE_NIGHT + (COOL_POLE_DAY - COOL_POLE_NIGHT) * a.daylight;
+  const k = ATMOSPHERE_LIMITS.warmthShift * Math.abs(a.warmth);
+  return [k * Math.cos(pole), k * Math.sin(pole)];
+}
+
+/**
+ * The solar base under an atmosphere. In order, each step reading the one before:
+ *  1. hue: temperature shifts the white balance (a small offset in OKLab); rain,
+ *     snow and storm each turn the hue a little, never through green and never
+ *     more than `totalTurn` in all;
+ *  2. chroma: the sun's strength (the UV, as on the live page) times what the
+ *     weather leaves of it (`combined`);
+ *  3. depth: past `hazeOnset`, haze draws the stops into one pale veil of the
+ *     horizon's hue (snow cools it in OKLab), the top most, so the sky's depth
+ *     closes in;
+ *  4. lightness: clouds, rain and storm darken it (`combined`), snow lifts it
+ *     towards white, a storm deepens the top;
+ *  5. contrast: clouds, rain and snow draw the stops' lightness together;
+ *  6. floors: whatever came before, each stop keeps at least `dimFloor` of
+ *     its base lightness and `chromaFloor` of its base chroma;
+ *  7. back to sRGB, giving up chroma (not hue) where a colour is out of gamut.
+ * Text protection follows in `atmospherePalette`, as for every sky: it caps
+ * how light any sky may be under white text, so a lighter atmosphere
+ * (fog, snow) shows as one that reaches that cap and flattens there.
+ */
+export function atmosphereSky(light: number, a: AtmosphereAxes): SolarPalette {
+  const base = solarPalette(light);
+  const X = ATMOSPHERE_LIMITS;
+  const [wa, wb] = whiteBalance(a);
+
+  // The sun's strength in the shape of section 3's, read from the normalized axes: daylight eases it in,
+  // energy (daylight times visual-input's UV curve, a smoothstep with a neutral value for missing UV)
+  // carries it up. Not identical to the live page's linear UV and untouched missing UV (see the doc).
+  const sun = (min: number, max: number) => 1 + (min - 1) * a.daylight + (max - min) * a.energy;
+  // Haze has a say only past what saturated air alone gives, the same onset for depth, colour and glow:
+  // a clear, humid noon with perfect visibility stays a clear noon.
+  const haze = smooth(X.hazeOnset, 1, a.haze);
+  const chroma =
+    (1 -
+      combined(
+        X.cloudChroma * a.cloudiness,
+        X.hazeChroma * haze,
+        X.wetChroma * a.wetness,
+        X.snowChroma * a.snow,
+        X.stormChroma * a.severity,
+      )) *
+    sun(VIVID_MIN, VIVID_MAX);
+  const dim = 1 - combined(X.cloudDim * a.cloudiness, X.wetDim * a.wetness, X.stormDim * a.severity);
+  const spread = 1 - combined(X.cloudSpread * a.cloudiness, X.wetSpread * a.wetness, X.snowSpread * a.snow);
+
+  const bases = base.sky.map(toOklch);
+  // 1. Hue and 2. chroma
+  const stops = base.sky.map((c): LCH => {
+    const [L0, C0, h0] = toOklch(c);
+    const [, C1, h1] = fromLab([L0, C0 * Math.cos(h0) + wa, C0 * Math.sin(h0) + wb]);
+    let h = h1;
+    h = turnToward(h, WET_POLE, deg(X.wetTurn) * a.wetness);
+    h = turnToward(h, SNOW_POLE, deg(X.snowTurn) * a.snow);
+    h = turnToward(h, STORM_POLE, deg(X.stormTurn) * a.severity);
+    const turned = hueDelta(h, h1);
+    if (Math.abs(turned) > deg(X.totalTurn)) h = h1 + Math.sign(turned) * deg(X.totalTurn);
+    return [L0, C1 * chroma, h];
+  });
+
+  // 3. Depth: one veil, the horizon's hue, pale and nearly grey, a touch lighter than the lightest stop.
+  // Fog is the horizon's own pale tone; snow mixes it, in OKLab and so the short way, towards a faint
+  // cold blue white, which never reads as rain and never passes through magenta or green on the way.
+  if (haze > 0) {
+    const horizon = stops[2];
+    const fog = toLab([0, Math.min(horizon[1], 0.03), horizon[2]]);
+    const cold = toLab([0, X.snowVeilChroma, SNOW_POLE]);
+    const veil: LCH = [
+      Math.min(X.veilLightest, Math.max(...stops.map((s) => s[0])) + 0.04),
+      fog[1] + (cold[1] - fog[1]) * a.snow,
+      fog[2] + (cold[2] - fog[2]) * a.snow,
+    ];
+    stops.forEach((s, i) => {
+      const [L, C, h] = fromLab(mix(toLab(s), veil, haze * X.hazeVeil[i]));
+      s[0] = L;
+      s[1] = C;
+      // A stop with next to no chroma has no hue of its own: it takes the veil's
+      s[2] = C < 1e-4 ? horizon[2] : h;
+    });
+  }
+
+  // 4. Lightness
+  stops.forEach((s, i) => {
+    let L = s[0] * dim;
+    L += X.snowLift * a.snow * (1 - L);
+    if (i === 0) L *= 1 - X.stormTop * a.severity;
+    s[0] = L;
+  });
+
+  // 5. Contrast between the stops
+  const mean = (stops[0][0] + stops[1][0] + stops[2][0]) / 3;
+  for (const s of stops) s[0] = mean + (s[0] - mean) * spread;
+
+  // 6. Floors, on the result of every step before
+  stops.forEach((s, i) => {
+    s[0] = Math.max(s[0], X.dimFloor * bases[i][0]);
+    s[1] = Math.max(s[1], X.chromaFloor * bases[i][1]);
+  });
+
+  // 7. Out to sRGB
+  const sky = stops.map(fromOklchEdge) as [RGB, RGB, RGB];
+
+  // The glow: warmer in warm air; in the cold only whiter, since a cool tint would turn its butter green.
+  // As strong as the sun and as the weather lets through, never below `glowFloor` of that.
+  const [gL, gC, gh] = toOklch([base.glow[0], base.glow[1], base.glow[2]]);
+  const [ga, gb] = a.warmth > 0 ? [wa, wb] : [0, 0];
+  const [, gC1, gh1] = fromLab([gL, gC * Math.cos(gh) + ga, gC * Math.sin(gh) + gb]);
+  const glowRGB = fromOklchEdge([gL, gC1 * (1 - X.coldGlowChroma * Math.max(0, -a.warmth)), gh1]);
+  const glowAlpha =
+    base.glow[3] *
+    sun(GLOW_MIN, GLOW_MAX) *
+    Math.max(
+      X.glowFloor,
+      1 -
+      combined(
+        X.cloudGlow * a.cloudiness,
+        X.hazeGlow * haze,
+        X.wetGlow * a.wetness,
+        X.snowGlow * a.snow,
+        X.stormGlow * a.severity,
+      ),
+    );
+
+  return { sky, glow: [...glowRGB, glowAlpha] };
+}
+
+/**
+ * How much depth the air leaves the scene (WTH-046F): 1 in clear air, falling
+ * to 0 as haze passes `hazeOnset` towards its full value, on the same curve as
+ * the sky's veil. The map's far layers lose their contrast with it (see
+ * `mapInks`), so a foggy city reads close and flat, in grayscale too.
+ */
+export function atmosphereDepth(a: AtmosphereAxes): number {
+  return 1 - smooth(ATMOSPHERE_LIMITS.hazeOnset, 1, a.haze);
+}
+
+/** The most the weather moves the map's hierarchy, each at the axis's full value (WTH-046G) */
+export const MAP_WEATHER_LIMITS = {
+  /** Clear, sunny, open air makes the ground richer (opacity and chroma) */
+  clearTerrain: 0.15,
+  clearChroma: 0.1,
+  /** Rain quiets the ground, strengthens the water, deepens it, and firms the roads a little */
+  wetTerrain: 0.3,
+  wetWater: 0.35,
+  wetDeepen: 0.06,
+  wetRoads: 0.15,
+  wetChroma: 0.15,
+  /** Snow separates the water, brightens the land, cools the lines and restrains the infrastructure */
+  snowWater: 0.25,
+  snowLift: 0.1,
+  snowChroma: 0.35,
+  snowRoads: 0.08,
+  snowBuildings: 0.08,
+  /** A storm compresses the background, sharpens the roads and the ways of getting about, deepens the water */
+  stormTerrain: 0.45,
+  stormBuildings: 0.15,
+  stormRoads: 0.25,
+  stormWater: 0.1,
+  stormDeepen: 0.03,
+  /** No weight goes under this share of its plane's opacity (only the terrain's, under storm and rain, gets there) */
+  floor: 0.4,
+} as const;
+
+/**
+ * The atmosphere as the map's hierarchy (WTH-046G): weights on the planes, chroma, and the land and water's
+ * lightness, bounded and continuous, with `atmosphereDepth` for haze. Rain is darker, denser, water-first;
+ * snow brighter, quieter and cooler, water kept apart; a storm compressed in the background and graphic in
+ * the roads; a clear open day richer. Each is zero at zero, so a plain atmosphere is `CLEAR_MAP`.
+ */
+export function mapVisualState(a: AtmosphereAxes): MapVisualState {
+  const X = MAP_WEATHER_LIMITS;
+  const depth = atmosphereDepth(a);
+  const clear = clamp01(a.daylight * (1 - a.cloudiness) * depth);
+  const keep = (w: number) => Math.max(X.floor, w);
+  return {
+    depth,
+    terrainWeight: keep((1 + X.clearTerrain * clear) * (1 - X.wetTerrain * a.wetness) * (1 - X.stormTerrain * a.severity)),
+    waterWeight: 1 + X.wetWater * a.wetness + X.snowWater * a.snow + X.stormWater * a.severity,
+    roadWeight: keep((1 + X.wetRoads * a.wetness + X.stormRoads * a.severity) * (1 - X.snowRoads * a.snow)),
+    buildingWeight: keep((1 - X.snowBuildings * a.snow) * (1 - X.stormBuildings * a.severity)),
+    saturation: (1 + X.clearChroma * clear) * (1 - X.snowChroma * a.snow) * (1 - X.wetChroma * a.wetness),
+    landLift: X.snowLift * a.snow,
+    waterDeepen: X.wetDeepen * a.wetness + X.stormDeepen * a.severity,
+  };
+}
+
+/**
+ * The whole palette from the atmosphere: `atmosphereSky`, then the same text
+ * protection, glass, markers and map as the live page, the map in the
+ * weather's hierarchy and depth (`mapVisualState`). The clouds' marker turns from white to slate continuously with rain
+ * and storm.
+ */
+export function atmospherePalette(light: number, a: AtmosphereAxes): SkyPalette {
+  const { sky, glow } = atmosphereSky(light, a);
+  const rain = clamp01(1.5 * Math.max(a.wetness, a.severity));
+  const dark = isDark(light);
+  const cloud: RGBA = [...mix(WHITE, RAIN_CLOUD, rain), dark ? 0.06 + 0.01 * rain : 0.2];
+  return finishPalette(sky, glow, light, cloud, mapVisualState(a), true);
 }

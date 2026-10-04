@@ -76,7 +76,7 @@ export function useMapPalette(): SkyPalette {
   // The colours are worked out for the layers on show, so no two of them are alike
   const active = useMemo(() => activeLayers(options), [options]);
   return useMemo(
-    () => ({ ...palette, map: mapInksFor(palette.sky2, tuning, active) }),
+    () => ({ ...palette, map: mapInksFor(palette.sky2, tuning, active, palette.air) }),
     [palette, tuning, active],
   );
 }

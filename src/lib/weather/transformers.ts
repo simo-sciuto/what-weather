@@ -1,3 +1,4 @@
+import { atmosphericData, estimatedDewPoint } from "./atmospheric-data";
 import { localDay } from "./formatters";
 import { regionName } from "./regions";
 import { isWet } from "./constants";
@@ -134,6 +135,7 @@ const precipOf = (p: { rain?: OWPrecip; snow?: OWPrecip }) =>
   (p.rain?.["1h"] ?? 0) + (p.snow?.["1h"] ?? 0);
 
 export function toCurrent(raw: OWCurrent): CurrentWeather {
+  const atmosphere = atmosphericData({ humidity: raw.humidity, dewPoint: raw.dew_point, visibility: raw.visibility == null ? undefined : raw.visibility / 1000 }, "provider");
   return {
     time: raw.dt,
     temp: raw.temp,
@@ -144,11 +146,12 @@ export function toCurrent(raw: OWCurrent): CurrentWeather {
     windSpeed: msToKmh(raw.wind_speed),
     windGust: optionalKmh(raw.wind_gust),
     windDeg: raw.wind_deg,
-    humidity: raw.humidity,
+    atmosphericSources: atmosphere.atmosphericSources,
+    humidity: atmosphere.humidity ?? 0,
     pressure: raw.pressure,
-    dewPoint: raw.dew_point,
+    dewPoint: atmosphere.dewPoint ?? 0,
     cloudCover: raw.clouds,
-    visibility: (raw.visibility ?? 10000) / 1000,
+    visibility: atmosphere.visibility ?? 10,
     precipitation: precipOf(raw),
   };
 }
@@ -168,6 +171,7 @@ export function toQuarters(raw: OWHour[]): QuarterPoint[] {
 
 export function toHourly(raw: OWHour[]): HourlyPoint[] {
   return raw.map((h) => ({
+    ...atmosphericData({ humidity: h.humidity, dewPoint: h.dew_point, visibility: h.visibility == null ? undefined : h.visibility / 1000 }, "provider"),
     time: h.dt,
     temp: h.temp,
     feelsLike: h.feels_like,
@@ -261,14 +265,6 @@ export interface OW25Forecast {
   city: { timezone: number };
 }
 
-/** Magnus approximation; the current-weather endpoint doesn't report dew point. */
-function dewPointOf(temp: number, humidity: number): number {
-  const a = 17.62;
-  const b = 243.12;
-  const alpha = Math.log(Math.max(humidity, 1) / 100) + (a * temp) / (b + temp);
-  return (b * alpha) / (a - alpha);
-}
-
 /**
  * A fixed UTC offset as an Intl time zone. Whole hours become IANA names
  * (7200 → "Etc/GMT-2", whose sign is inverted by convention), which every
@@ -288,7 +284,20 @@ export function offsetToZone(seconds: number): string {
   return `${sign}${hh}:${mm}`;
 }
 
+function atmosphere25(raw: Pick<OW25Current, "main" | "visibility">) {
+  const supplied = atmosphericData({ humidity: raw.main.humidity, dewPoint: raw.main.dew_point, visibility: raw.visibility == null ? undefined : raw.visibility / 1000 }, "provider");
+  if (supplied.dewPoint == null && supplied.humidity != null) {
+    const estimate = estimatedDewPoint(raw.main.temp, supplied.humidity);
+    if (estimate != null) {
+      supplied.dewPoint = estimate;
+      supplied.atmosphericSources!.dewPoint = "estimated";
+    }
+  }
+  return supplied;
+}
+
 export function toCurrent25(raw: OW25Current): CurrentWeather {
+  const atmosphere = atmosphere25(raw);
   return {
     time: raw.dt,
     temp: raw.main.temp,
@@ -298,17 +307,19 @@ export function toCurrent25(raw: OW25Current): CurrentWeather {
     windSpeed: msToKmh(raw.wind.speed),
     windGust: optionalKmh(raw.wind.gust),
     windDeg: raw.wind.deg,
-    humidity: raw.main.humidity,
+    atmosphericSources: atmosphere.atmosphericSources,
+    humidity: atmosphere.humidity ?? 0,
     pressure: raw.main.pressure,
-    dewPoint: raw.main.dew_point ?? dewPointOf(raw.main.temp, raw.main.humidity),
+    dewPoint: atmosphere.dewPoint ?? 0,
     cloudCover: raw.clouds.all,
-    visibility: (raw.visibility ?? 10000) / 1000,
+    visibility: atmosphere.visibility ?? 10,
     precipitation: precipOf(raw),
   };
 }
 
 export function toForecastPoints(raw: OW25ForecastItem[]): HourlyPoint[] {
   return raw.map((f) => ({
+    ...atmosphere25(f),
     time: f.dt,
     temp: f.main.temp,
     feelsLike: f.main.feels_like,

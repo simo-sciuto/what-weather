@@ -1,20 +1,33 @@
 # PROJECT STATE
 
-Last updated: 2026-10-02 (transit layers, map colour algorithm)
+Last updated: 2026-10-04 (Weather Visual Engine map hierarchy)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
+
+## Direction
+Set by the user 2026-10-04 (ROADMAP.md, ADR-013): Visual Weather Records. Free daily app as shop window, records of meaningful moments as the paid product. Live-app layout work paused.
 
 ## Phase
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-WTH-012 (with WTH-008): the poster's top. Implemented and looked at in screenshots, waiting for the user's sign-off. Then WTH-010 (the "La mappa" modal), WTH-009 (tinta colours), WTH-013 (poster on a phone).
+None open on the engine: WTH-046 V1 is complete (A to L, 2026-10-04). The atmosphere is the page's palette, on the branch `feature/visual-engine`; WTH-046M (motion) is PARKED. Waiting for the user's next pick; candidates on the board: WTH-182 (stops that overlap), WTH-165 (phone search bar), WTH-001 to WTH-003 (data audits), and the Records track WTH-166 to WTH-173 (ADR-013), which will call the fingerprint.
 
 ## Last checkpoint
-The commit that closes this session: trains, metro, tram and bus as map choices, and the map's colours kept apart as a whole (WTH-016, WTH-019). WTH-015 (buildings from above) is not solved: the data starts at zoom 13.
+WTH-165 (committed, reviewed: no critical problems; two points applied): the phone search is CSS-first (`PHONE_FOLDED`, `PHONE_HIDDEN` in `LocationSearch.tsx`), a `lg:hidden` round button and an unseen but laid-out field in the server's HTML; the open field's box is the folded one's; the typed text has `text-ink`; `.pop-in-desktop` replaces `pop-in` on the open field. Six tests on the server's HTML. The iPhone text bug is a hypothesis, to be confirmed on an iPhone. Next: merge `feature/visual-engine` into `main`, as the user asked. Before it, WTH-046L (`af40067`).
+WTH-046L closed (committed, reviewed: no critical or important problems; the outdated pipeline test and one doc sentence fixed): the atmosphere is the page's palette; `frameLook(frame)` paints from `atmospherePalette`, the switch removed (`engine.ts` and its plumbing deleted), five look tests. The share image and `/api/summary` follow. `skyPalette` kept as the lab's reference. Before it, the switch (`9763f0d`).
+WTH-046L, first step (committed, reviewed: no critical problems; the footer's sample links and the wordmark now keep the switch): the switch. `?motore=atmosfera` makes the page, its tuned map and the poster use `atmospherePalette`; the server's page reads it, `TimeProvider` and `useEngine` carry it, the links between places keep it; off by default, nothing changes without it. Share image and `/api/summary` untouched. Seven tests in `engine.test.ts`. Waiting for the user's comparison on a phone: then decide the default, remove the switch, move the share image. Before it, WTH-046J (`e52571e`).
+WTH-046J (committed, reviewed: no critical problems; the parse made canonical, one key per fingerprint): `fingerprint.ts`, the record's visual DNA (`fingerprintOf`, `dnaKey`, `fingerprintKey`, `parseFingerprint`); ten tests; not connected. Next: WTH-046L, the visible switch of the page and the poster to the atmosphere (`frameLook` calling `atmospherePalette`). Before it, WTH-046I (`1aebe70`).
+WTH-046I (committed, reviewed: no critical or important problems): the temperature colour classified (absolute for figures, ranges, week bars and the poster's number; `tempAccent` for the country's name, the phone bar's marker and the compass needle, chroma following `air.saturation`); `scaleChroma` exported from `palette.ts`; seven tests in `temp-color.test.ts`. Unchanged on screen until WTH-046L. Next in the engine: J (fingerprint), then L (the visible switch). Before it, WTH-046H (`4f480db`).
+WTH-046H (committed, reviewed: no critical or important problems; two minor test points fixed): `SkyPalette.air: MapVisualState`, set by `finishPalette` (taken to `AIR_STEP` 0.02), passed by `MapControls.useMapPalette` to `mapInksFor`; live page clear and unchanged (the fingerprint test sets `air` aside). Four tests; 96 across the touched suites. Next in the engine: WTH-046I (temperature colour), then J (fingerprint) and L (the visible switch). Before it, WTH-181.
+WTH-181 committed: the poster's left column without sentences (name and temperature at the top; at the foot the Luogo, Giorno, Ora row on a computer, hour, day and place on a phone; the outlook sr-only; `HeroReading.tsx` deleted). It conflicted with ADR-013, which pauses layout work on the live app (WTH-017, 018, 022, 009, 015); the user confirmed it knowingly, the rest of the pause stands. WTH-024 closed. Not run: the e2e specs (`reading`, `timeline`, `week`), which look for the 'Previsione' region and heading, kept in the sr-only text. Before it, WTH-180 (stops, committed).
+WTH-180 (awaiting the user's look): the transit stops in `map-style.ts` as plain circles in their line's colour, no inner dot: open rings for train, metro (heavier) and tram, a solid dot for the bus, each over a hard black shadow cast 2 px below it (a `<id>-shadow` layer that follows its visibility and its ink's opacity). `syncMap` paints both (kind `ring`), so the poster, which shares `syncMap`, draws the same. 13 tests in `map-style.test.ts`. Before it, WTH-179:
+WTH-179 (committed, awaiting the user's look at an exported poster): the poster's sun is a Gaussian bloom, `lib/weather/bloom.ts` (`bloomStops`, `bloomRadius`, `parseGlow`), used by `paintSky`; six tests. No screenshot taken (project rule). Before it:
+WTH-046G, the meteorological map hierarchy: `mapVisualState(axes): MapVisualState` (depth, terrain, water, road and building weights, saturation, ground lift, water deepening; limits in `MAP_WEATHER_LIMITS`). Chroma and lightness enter before the layers are kept apart, opacity weights and depth act last. Clear, rain and snow are now three pictures in grayscale over sky and map (at least 0.069 from clear, rain at least 0.053 from snow); the declared separation floor under weather is 0.3 of `MAP_SEPARATION`. The live page is unchanged (fingerprint test). 107 tests across six suites; tsc and ESLint clean. Reviewed: no critical problems; a separation guard after the weights was added from it (rare mixes fell to 0.011 without it). Earlier: K closed (`0177581`), F (`d58c2ff`), E, A-D.
 
 ## Known problems / open questions
+For L: the live page's own stepped gamut jitter (8/255 on a clear day) when it moves to the atmosphere path. Watch in the lab: a downpour or snowfall with poor visibility no longer flattens sky or map. For L: `MapControls` must receive the atmosphere's depth, and depth should be quantized before it keys the ink memo. WTH-165 (phone search bar) is on the board, not started.
 Candidates only, from the audit (BOARD WTH-001..003): AQI index is computed differently per provider; interpolated hours vs measured readings in the UI; min/max on partial days. None confirmed as bugs.
 
 ## Constraints to respect
@@ -25,7 +38,7 @@ Candidates only, from the audit (BOARD WTH-001..003): AQI index is computed diff
 - Italian copy, English code.
 
 ## Relevant files
-`src/app/page.tsx`, `src/lib/weather-page.ts`, `src/lib/weather/random-city.ts`, `src/lib/weather/{types,frames,provider}.ts`, `src/components/time/TimeContext.tsx`.
+`src/lib/weather/{atmosphere,atmospheric-data,visual-input,types,transformers,openmeteo,mock,frames,look,palette,state}.ts`, `src/lib/weather/{atmosphere,visual-input,atmospheric-pipeline,atmosphere-sky}.test.ts`, `src/lib/weather/calibration.ts`, `src/components/lab/AtmosphereLab.tsx`, `src/app/lab/atmosfera/page.tsx`, `docs/WEATHER_VISUAL_ENGINE.md`.
 
 ## Next checkpoint
-Pick a task from NEXT, or add one with "aggiungi alla board".
+The user's look at G in the lab; then WTH-046H (unified palette contract), or the user's other requests of 2026-10-04: the poster's left column (WTH-181). WTH-179 (poster glow) and WTH-180 (transit stops) are done and wait for the user's look. Motion remains PARKED. After WTH-046L, the Records track (BOARD NEXT, ADR-013); WTH-166 (licences) can start in parallel.

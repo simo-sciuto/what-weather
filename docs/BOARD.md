@@ -6,24 +6,83 @@ Items marked (audit) were noticed while reading the code on 2026-10-01, not requ
 
 ## NOW
 
-- [ ] WTH-012 Typographic poster pass on the reading's top (desktop and phone): the two actions on a top line, head set in the poster's own font with labelled facts, hour and date reworked, name tinted a touch off white, the block right of the temperature as a ruled table. Includes WTH-008 (buttons).
+- [x] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. V1 (the static system) complete on 2026-10-04: A to L done, the atmosphere is the palette of the page, its map and the poster; the user approved the look after comparing it on a phone. WTH-046M is PARKED, outside V1. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
+
+```text
+WTH-012 -> WTH-046A -> WTH-046B -> WTH-046C -> WTH-046D
+        -> WTH-046E -> WTH-046F -> WTH-046K -> WTH-046G
+        -> WTH-046H -> WTH-046I -> WTH-046J -> WTH-046L
+        -> Records track (NEXT, see ROADMAP.md)
+WTH-046M: PARKED, outside V1
+```
+
+Re-prioritized 2026-10-04 by the user's choice of direction (ROADMAP.md, ADR-013): the engine continues, then the Records track; layout work on the live app (WTH-017, WTH-018, WTH-022, WTH-009, WTH-015) is paused in LATER.
+
+  - [x] WTH-046A Atmosphere model and visual grammar: normalized `AtmosphereState` axes and a deterministic signature of visual forces (`atmosphere.ts`). Done 2026-10-04.
+  - [x] WTH-046B Weather input normalization: continuous curves from measurements to axes, per-input status and fallbacks (`visual-input.ts`). Done 2026-10-04.
+  - [x] WTH-046C Carry atmospheric data through the timeline: humidity, visibility and dew point with their origin from every provider to `frameLook()`. Done 2026-10-04.
+  - [x] WTH-046D Solar base palette: `solarPalette(light)` exposes the existing natural-light base, values unchanged. Done 2026-10-04.
+  - [x] WTH-046E OKLCH atmosphere transform: `atmosphereSky`/`atmospherePalette` in `palette.ts` section 6, bounded and in a fixed order, sharing the live finish; live `skyPalette` byte-identical. Dev-only lab `/lab/atmosfera`. Done 2026-10-04, signed off by the user in the lab.
+  - [x] WTH-046F Atmospheric depth: haze compresses depth instead of greying; visible in grayscale. Done 2026-10-04 (committed): `atmosphereDepth` and map planes in `palette.ts` (far ground fades, middle softens, foreground holds), live map byte-identical; visual judgement in the lab is the user's.
+  - [x] WTH-046K Scenario calibration suite: critical gate before G/H/L; measurement-driven scenarios and invariants, never city presets. Started with E: 16 scenarios in `calibration.ts` and the lab. Rounds one to three done 2026-10-04 (signature by weights, visibility-led haze, snow on its own scale, precipitation never counted as haze, UV kept; invariants for grayscale, timeline and conflicting forces, with a timeline jitter found and fixed in the atmosphere path). Open for G: bright days share one sky grayscale (white-text cap), the map must separate clear, rain and snow. Closed 2026-10-04 after the user's look in the lab; the gate for G/H/L is open. See the engine doc.
+  - [x] WTH-046G Meteorological map hierarchy: weather changes map hierarchy and depth, not just hue; separation and user tuning preserved. Done 2026-10-04 in the atmosphere path and the lab (`mapVisualState`, `MAP_WEATHER_LIMITS`); not yet on the live page (WTH-046L); visual judgement is the user's. Was, from K: clear, light rain and snow share one sky grayscale and one depth, so the map must separate them (brighter land and restrained infrastructure for snow, stronger water for rain); replace the tripwire test in `calibration-invariants.test.ts` when it does.
+  - [x] WTH-046H Unified visual palette contract: evolve `SkyPalette` into one whole-record palette for UI, Mapbox and poster. Done 2026-10-04: `SkyPalette` gains `air: MapVisualState`, `MapControls` passes it, the air is taken to 0.02 steps; no rename, no second type; live page unchanged. The visible switch is WTH-046L.
+  - [x] WTH-046I Temperature colour integration: decide which `temp-color.ts` uses stay absolute and which follow the engine. Done 2026-10-04: the figures, ranges, week bars and the poster's number stay absolute; the country's name, the phone bar's marker and the compass needle take `tempAccent` (saturation follows the weather; unchanged until WTH-046L).
+  - [x] WTH-046J Weather Fingerprint: deterministic internal visual DNA of a record; no V1 UI. Done 2026-10-04: `fingerprint.ts` (`fingerprintOf`, `dnaKey`, `fingerprintKey`, `parseFingerprint`): eight whole-hundredth fields (`phase` is the plan's light, named for what it is) plus a basis of the measurements, versioned keys, round trip; not connected to anything yet.
+  - [x] WTH-046L Map / poster / UI integration: one weather visual state on screen and in the exported poster. Done 2026-10-04: `frameLook` paints from the atmosphere (`atmospherePalette`) for everyone, after the user compared it behind a temporary switch (`?motore=atmosfera`, removed) and approved the look; page, its tuned map (through `palette.air`) and the poster read one palette; the share image and the saved places' summaries follow. The old `skyPalette` stays in `palette.ts` only as the lab's "Oggi" reference and for tests. Closes the notes from K (the continuous gamut and text protection are the ones in use) and F's review (the air travels on the palette and is quantized).
+  - [ ] WTH-046M Future motion layer. PARKED, outside V1: wind reserved for motion, never colour.
+
+Board tooling limitation: `scripts/board/board-md.mjs` recognizes numeric IDs only. WTH-046 is a browser board card; the letter-suffixed subtasks above are Markdown lines preserved by the parser, not independently editable or draggable cards, and do not follow the card if it is moved. Do not renumber them to work around this.
+
+- [ ] WTH-166 Licences for selling records: check that the data and the map may be sold as digital files and prints. Open-Meteo's free API is non-commercial (a paid plan or another source is needed); Mapbox's terms for print and resale of map imagery (attribution, volumes, plan); OpenWeather's plan. Blocks any payment (WTH-172). Can run in parallel with WTH-046.
 
 ## NEXT
+
+Records track, in order. WTH-167 is the gate: WTH-169 onwards are built only if validation says people want records.
+
+- [ ] WTH-168 Historical weather provider: weather of a past place and hour (Open-Meteo archive, ERA5 reanalysis, hourly since 1940) behind the provider abstraction (ADR-001). Architect checkpoint first: `Frame` and the timeline assume present and future. Provenance shown as reconstruction, not measurement, with lower confidence for older dates (rule 7).
+- [ ] WTH-167 Validation landing: a page with five or six records of famous or meaningful dates, the positioning line, and a "prenota il tuo" form; a small paid campaign. Measure sign-ups and pre-orders before building the purchase flow. Needs WTH-168 for the sample records.
+- [ ] WTH-169 Records flow: choose a place and a past date and hour, get its poster; the poster becomes the way in, not one feature among many. Keeps the poster identity.
+- [ ] WTH-170 Print-grade poster: print formats (A3, A2, 50x70), margins and paper, 300 dpi (about 5000x7000 px for A2), likely rendered on the server since phone canvases cannot hold it (see WTH-013).
+- [ ] WTH-171 Dedication line on the poster: optional date, names or a short sentence.
+- [ ] WTH-013 Poster on a phone: the actions are now docked to the foot of the screen (`HeroActionsDock`, always visible while scrolling). Still to decide and check on a real phone: the poster dialog on a small screen, how the file is delivered (share sheet or download, see `share()` in `PosterButton.tsx`), formats, canvas size limits and memory.
+- [ ] WTH-173 English for the Records flow: the gift market is international; the daily app can stay Italian (ADR-010 to be revisited for this flow only).
+- [ ] WTH-172 Payment and print on demand (e.g. Stripe, Gelato or Prodigi): new dependencies, justified when reached. Only after WTH-166 and a positive WTH-167.
+
+Data trust (a record sold must be right):
 
 - [ ] WTH-001 (audit) AQI provenance: OpenWeather gives its own 1-5 index, Open-Meteo's index is computed from concentrations (`airIndexOf`, `details.ts`). Decide whether the UI should say which, and whether the two scales are comparable.
 - [ ] WTH-002 (audit) Surface `Frame.measured`: check where the UI shows an interpolated hour as if it were a reading.
 - [ ] WTH-003 (audit) Validate min/max semantics: `DailyPoint.partial`, `tempRange` (`today.ts`), `days.ts` filtering of partial days, on 3-hourly providers.
 
-- [ ] WTH-009 More variety of colours in the "tinta" menu of the colour tuning.
-- [ ] WTH-022 Phone: poster and map in view, data in sheets. Done so far (2026-10-02): a floating bar of clear glass (Meteo, Modifica mappa, Poster: solid icons, names, the page on show in the temperature's colour, a lens that slides stretching), hidden while a sheet is open; one Sheet component (`components/layout/PhoneNav.tsx`) for Meteo and Mappa that follows the finger; the map's panel as colour chips (also on a computer, in glass); the poster maker in the same glass; the page still, the finger moving the map (vertical: down into the city, a quarter of the screen for the whole way; sideways: turns it; "Ricentra"); the quick facts moved into the Meteo sheet. Next: the iPhone layout of the main page. Not checked: by day, a real finger, the poster drawn turned.
-- [ ] WTH-024 Review the outlook's sentences ("Previsione", narrative engine in `lib/weather/narrative.ts`): the user does not like how they read. Not now; to be planned with the user (tone, length, what to say first).
-- [ ] WTH-013 Poster on a phone: the actions are now docked to the foot of the screen (`HeroActionsDock`, always visible while scrolling). Still to decide and check on a real phone: the poster dialog on a small screen, how the file is delivered (share sheet or download, see `share()` in `PosterButton.tsx`), formats, canvas size limits and memory.
-- [ ] WTH-008 Give character to the "Crea poster" and "La mappa" buttons: they should stand out and feel part of the poster identity.
-- [ ] WTH-015 Show the buildings from above too, the 3D ones included. Not solved: Mapbox Streets' tiles have buildings only from zoom 13 (and the trams and bus stops from 14), and the page's top is zoom 11. Starting the map closer when such a choice is on was tried and removed on the user's decision (2026-10-02); what is left is to decide how to have them from the top, if at all (a closer start for everyone, or a different source).
-- [ ] WTH-017 Redefine the layout of the left column (the poster): head, name, temperature, low and high, glyph, outlook and the room left for the map, as one composition (continues WTH-012).
-- [ ] WTH-018 Make the right column (the weather information) more Swiss editorial: the same font as the left, a more elegant arrangement on the page (timeline, quick facts, air, activities, week, details).
+Bugs:
+
+- [x] WTH-179 Poster: the sun's glow is still too sharp in the poster; it should be only a soft bloom. Reported by the user 2026-10-04. Done 2026-10-04: `paintSky` draws a Gaussian bloom (`lib/weather/bloom.ts`) with the page's reach, no hot spot and no edge; the user's look at an exported poster is pending. The page's `.sky-glow` is unchanged.
+- [x] WTH-180 Transit stops: the dot with an outline is not liked; give the stops (train, metro, tram, bus) a more graphically advanced representation, in the poster's Swiss language (`map-style.ts`, stop layers; relates to WTH-019/WTH-021). Reported by the user 2026-10-04. Done 2026-10-04: each mode its own elementary form in its line's colour, no outline (train: roundel, a ring round a solid core; metro: a heavier roundel; tram: an open ring; bus: a small solid dot); the user's look on the page and the poster is pending.
+- [ ] WTH-182 Transit stops very close together can overlap (Mapbox circle layers have no collision handling, unlike symbols). Candidates: size by zoom more steeply, thin the dense stops by rank, or draw them as symbols. Noticed by the user 2026-10-04 on the new stop forms (WTH-180); to be judged on a dense city first.
 
 ## LATER
+
+Paused 2026-10-04 for the Records direction (layout of the live app):
+
+- [ ] WTH-022 Phone: poster and map in view, data in sheets. Done so far (2026-10-02): a floating bar of clear glass (Meteo, Modifica mappa, Poster: solid icons, names, the page on show in the temperature's colour, a lens that slides stretching), hidden while a sheet is open; one Sheet component (`components/layout/PhoneNav.tsx`) for Meteo and Mappa that follows the finger; the map's panel as colour chips (also on a computer, in glass); the poster maker in the same glass; the page still, the finger moving the map (vertical: down into the city, a quarter of the screen for the whole way; sideways: turns it; "Ricentra"); the quick facts moved into the Meteo sheet. Next: the iPhone layout of the main page. Not checked: by day, a real finger, the poster drawn turned.
+- [ ] WTH-017 Redefine the layout of the left column (the poster): head, name, temperature, low and high, glyph, outlook and the room left for the map, as one composition (continues WTH-012).
+- [ ] WTH-018 Make the right column (the weather information) more Swiss editorial: the same font as the left, a more elegant arrangement on the page (timeline, quick facts, air, activities, week, details).
+- [ ] WTH-009 More variety of colours in the "tinta" menu of the colour tuning.
+- [ ] WTH-015 Show the buildings from above too, the 3D ones included. Not solved: Mapbox Streets' tiles have buildings only from zoom 13 (and the trams and bus stops from 14), and the page's top is zoom 11. Starting the map closer when such a choice is on was tried and removed on the user's decision (2026-10-02); what is left is to decide how to have them from the top, if at all (a closer start for everyone, or a different source).
+
+Records, later products (after the Records track proves itself):
+
+- [ ] WTH-174 "Il tuo anno nel meteo": a yearly poster of a place's weather, a natural December product.
+- [ ] WTH-175 Daily phone wallpaper generated from the real sky of a place; a light subscription.
+- [ ] WTH-176 B2B records: hotels, tourism boards, wedding planners, estate agents.
+
+Spin-off ideas (outside this product):
+
+- [ ] WTH-177 Idea: the project board as the local home while developing (bare localhost shows the board with branch, git and project state, a button opens the app). Built and reviewed on 2026-10-04, then removed at the user's request: kept only as a good idea.
+- [ ] WTH-178 Spin-off from WTH-177, a separate open-source project: a project dashboard any existing repo can install, showing where the work stands (board, project state) and git; it studies the repo it is installed in and rebuilds its look from the site's own style automatically. Idea of the user 2026-10-04, to develop some day; not started.
+
+Audits:
 
 - [ ] WTH-004 (audit) Accessibility audit (timeline scrubber, map controls, contrast on every sky palette).
 - [ ] WTH-005 (audit) Performance audit (frame payload size, Mapbox bundle, first paint on phone).
@@ -36,6 +95,11 @@ Rebuilt on 2026-10-02 from git history (13 commits, 2026-09-24 to 2026-10-01), g
 
 ### Recenti
 
+- [x] WTH-165 Phone, city search: while the page loads the full search bar shows, though on a phone only the search icon should; and on iPhone, after tapping the icon, the typed text is often not visible (the search itself works). Reported by the user 2026-10-04. Done 2026-10-04: the phone's round button is in the server's HTML (CSS, `max-lg:`), the field is unseen and untouched from the first paint but still laid out, in the box where it opens; focusing it moves nothing; the typed text has its own colour. Cause of the flash: the phone was a script's guess (`false` until hydration). The iPhone text bug is addressed by hypothesis (no layout change at focus, no scale animation, explicit text colour), not reproduced; the user is to confirm on an iPhone.
+- [x] WTH-181 Poster, left column: remove the outlook sentences ("Previsione", `narrative.ts`) and put in their place one line with place, day and time; the block with the city name and the temperature goes to the top. Reported by the user 2026-10-04; continues WTH-017 and supersedes WTH-024 (the sentences are removed, not rewritten). Done 2026-10-04. ADR-013 pauses layout work on the live app (WTH-017 and its kin); the user confirmed this one goes ahead on 2026-10-04. Desktop: actions, name and temperature at the top, the map field, and at the foot the Luogo, Giorno, Ora row; phone: the name rises to the top with the temperature, the hour, day and place stay at the foot; the outlook is read out only (sr-only, `NarrativeText`); `HeroReading` deleted.
+- [x] WTH-024 Review the outlook's sentences: closed 2026-10-04, superseded by WTH-181 (the sentences were removed from the poster, not rewritten; `narrative.ts` stays for the read-out text and the share image).
+- [x] WTH-012 Typographic poster pass on the reading's top (desktop and phone): the two actions on a top line, head set in the poster's own font with labelled facts, hour and date reworked, name tinted a touch off white, the block right of the temperature as a ruled table. Includes WTH-008 (buttons). User sign-off: 2026-10-04.
+- [x] WTH-008 Give character to the "Crea poster" and "La mappa" buttons: they should stand out and feel part of the poster identity. Completed within WTH-012; user sign-off: 2026-10-04.
 - [x] WTH-023 A compass (a hairline ring, a needle in the colour of the temperature, pointing at north as the map is turned) with the point the map faces beside it (N, NE, SO...): on a computer in the poster's head between the two actions, on a phone under the search button, and at the poster's foot with the same point. The turn is the viewer's on a computer too: drag sideways across the poster's field with the mouse, the arrow keys on the compass, a click on it for north. The poster follows. The page's footer set in rows; the poster's map credits under its wordmark. Not checked: by day, a real finger, the keys
 - [x] WTH-025 The weather data as tiles, in the style of the system's Weather app (2026-10-02): hours, quick facts, Territorio's lists, activities, the week, the map, each detail (two to a row, three on a wide column) and the footer are tiles of faint light with rounded corners and a hairline of light on top, close together; same on a computer and in the phone's Meteo sheet. Territorio gains the country and the capitals (of the country and of the region) as links with their weather. "Ricentra" moved left of the search button. Not checked: by day, a real finger
 - [x] WTH-027 Poster: name and country (bold capitals) in the colour of the temperature; latitude and longitude as two labelled columns; the colour bar on an even grid, the sky's row first

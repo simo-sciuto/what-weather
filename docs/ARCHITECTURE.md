@@ -43,8 +43,13 @@ Sources used regardless of provider: Open-Meteo for yesterday's comparison (`yes
 ## WeatherData and the timeline
 
 - `WeatherData`: place, timezone (IANA or fixed offset), current, minutely (nullable), quarterHourly (nullable), hourly, daily, airQuality (nullable), alerts, pollen.
-- `frames.ts` turns it into a `Timeline` of 100+ `Frame`s sent to the browser. A frame has `measured: boolean`: true for a provider point, false for an hour interpolated between two. Palettes, sun position and condition labels are derived client-side (`look.ts`, `palette.ts`, `state.ts`) to keep the payload small.
+- Current/hourly data now carry optional atmospheric humidity, visibility and dew point, with per-field origin metadata. Samples/frames preserve missingness and interpolate only between available atmospheric endpoints; current-detail legacy defaults are excluded. `Frame.overview` marks synthetic daily representatives with `measured: false` (WTH-046C, 2026-10-04).
+- `frames.ts` turns it into a `Timeline` of 100+ `Frame`s sent to the browser. A frame has `measured: boolean`: true for a provider point, false for an hour interpolated between two. Atmosphere (`visual-input.ts`), palettes, sun position and condition labels are derived client-side (`look.ts`, `palette.ts`, `state.ts`) to keep the payload small.
 - Pure logic with tests: `narrative.ts` (the outlook sentence), `activities.ts`, `best-window.ts`, `palette.ts`, `precipitation.ts`, `pollen.ts`, `sun-position.ts`, `formatters.ts`, `yesterday.ts`, `map-style.ts`, `map-view.ts`, `map-options.ts`.
+
+The palette now exposes `solarPalette(light): SolarPalette` (WTH-046D): the unchanged natural-light anchors/interpolation, before weather, UV, contrast protection and map inks. Its -1..2 phase input is distinct from 0..1 atmospheric daylight.
+
+The palette has two ways of weathering that base, sharing one finish (`finishPalette`: text protection, glass, markers, map inks). The page's is `atmospherePalette` (WTH-046E, section 6) = `atmosphereSky` (bounded OKLCH transforms of the normalized `AtmosphereAxes`) + finish, called by `frameLook` for every frame since WTH-046L: it draws from the weather's continuous axes, with continuous gamut reduction and text protection, and carries `air` (the weather's say on the map: plane weights, saturation, ground lift, depth) so the page's map, the viewer's tuned map and the poster draw one weather. The other, `skyPalette` = `stateSky` (WeatherState grey/dim, UV vividness) + finish, is no longer used by the page: it stays as the dev-only lab's "Oggi" reference and in tests.
 
 ## Caching
 
@@ -58,6 +63,7 @@ Sources used regardless of provider: Open-Meteo for yesterday's comparison (`yes
 | Route | Purpose |
 | --- | --- |
 | `/` (`src/app/page.tsx`) | the poster page; server component, reads searchParams |
+| `/lab/atmosfera` | dev-only calibration lab for the Weather Visual Engine (both palette engines over the calibration scenarios); `notFound()` in production |
 | `/api/places` | place search, runs server-side so keys stay hidden |
 | `/api/summary` | small summary for a saved place's card |
 | `/api/clouds` | cloud and precipitation grid for the map animation |

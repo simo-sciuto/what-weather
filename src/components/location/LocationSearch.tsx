@@ -19,6 +19,20 @@ import { usePlace } from "./PlaceContext";
 /** The search field's id, for its label. */
 const LOCATION_SEARCH_ID = "location-search";
 
+/** Where the open field is pinned: the top of the screen, above a phone's keyboard, with room for suggestions below */
+const FIELD_AT_TOP =
+  "fixed inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-50 sm:inset-x-auto sm:right-6 sm:w-104";
+/**
+ * On a phone, folded: the same box as when open (so focusing moves nothing: WebKit leaves a field that changes
+ * place and size at the moment of focus with its text unpainted), letting touches through to the poster, with the
+ * round button at its right edge.
+ */
+// Written out whole: Tailwind finds a class only as text in the source, never as one put together while running
+const PHONE_FOLDED =
+  "max-lg:pointer-events-none max-lg:fixed max-lg:inset-x-4 max-lg:top-[max(1rem,env(safe-area-inset-top))] max-lg:bottom-auto max-lg:z-50 sm:max-lg:inset-x-auto sm:max-lg:right-6 sm:max-lg:w-104";
+/** The field itself, folded on a phone: laid out where it opens, not seen, not touched; still focusable */
+const PHONE_HIDDEN = "max-lg:opacity-0 max-lg:pointer-events-none";
+
 type SearchState =
   | { status: "idle" }
   | { status: "loading" }
@@ -129,11 +143,14 @@ export function LocationSearch() {
   // Docked: the field's place in the page has scrolled off the top. Unfolded: docked and open to type.
   const slot = useRef<HTMLDivElement>(null);
   const [scrolledPast, setDocked] = useState(false);
-  // On a phone the page doesn't scroll (it is the poster): the field is a round button at the top from the start
+  // On a phone the page doesn't scroll (it is the poster): the field is a round button at the top from the very
+  // first paint. That is the CSS's to say (`max-lg:` below), not this script's: the server's HTML and the
+  // paint before hydration must already show the button, not the whole field folding into it afterwards. The
+  // script only needs to know, when the field takes focus, that it is on a phone.
   const phone = useSyncExternalStore(subscribePhone, isPhoneNow, () => false);
-  const docked = phone || scrolledPast;
+  // On a computer: the field's place has scrolled off the top
+  const docked = scrolledPast;
   const [unfolded, setUnfolded] = useState(false);
-  const folded = docked && !unfolded;
 
   useEffect(() => {
     const el = slot.current;
@@ -253,13 +270,14 @@ export function LocationSearch() {
     <div ref={slot} className="h-12 max-lg:h-0">
       <div
         className={
-          !docked
-            ? "relative"
-            : unfolded
-              ? "pop-in fixed inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-50 sm:inset-x-auto sm:right-6 sm:w-104"
-              : phone
-                ? "fixed right-4 top-[max(0.875rem,env(safe-area-inset-top))] z-50 sm:right-8"
-                : "fixed right-4 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-50 sm:right-6"
+          unfolded
+            ? // Open: pinned at the top. On a phone it is the very place the folded field already holds, so
+              // nothing moves when it takes focus (the keyboard opens within the tap, over a field that stays put)
+              `${FIELD_AT_TOP} pop-in-desktop`
+            : docked
+              ? // A computer, scrolled: a round button at the bottom right. A phone, whatever the page: the folded field.
+                `lg:fixed lg:right-4 lg:bottom-[max(1.25rem,env(safe-area-inset-bottom))] lg:z-50 sm:lg:right-6 ${PHONE_FOLDED}`
+              : `lg:relative ${PHONE_FOLDED}`
         }
         // Close (and fold, when docked) when focus leaves the whole control, not when moving inside it.
         onBlur={(e) => {
@@ -268,20 +286,29 @@ export function LocationSearch() {
           setUnfolded(false);
         }}
       >
-        {folded && (
+        {!unfolded && (
+          // A phone's round button, from the first paint (see above); at the right of the folded field's width
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden="true"
+            onClick={() => inputRef.current?.focus()}
+            className="pointer-events-auto absolute right-0 top-0 flex size-11 items-center justify-center rounded-full bg-white/6 text-ink shadow-[0_8px_22px_rgb(0_0_0/0.28),inset_0_0.5px_0_rgb(255_255_255/0.55),inset_0_0_0_0.5px_rgb(255_255_255/0.22)] backdrop-blur-[3px] backdrop-saturate-[1.6] lg:hidden"
+          >
+            <SearchIcon className="size-5" />
+          </button>
+        )}
+        {docked && !unfolded && (
+          // A computer's, once the field has scrolled out of view.
           // For a pointer only: keyboards and screen readers reach the field itself, which unfolds on focus.
           <button
             type="button"
             tabIndex={-1}
             aria-hidden="true"
             onClick={() => inputRef.current?.focus()}
-            className={
-              phone
-                ? "flex size-11 items-center justify-center rounded-full bg-white/6 text-ink shadow-[0_8px_22px_rgb(0_0_0/0.28),inset_0_0.5px_0_rgb(255_255_255/0.55),inset_0_0_0_0.5px_rgb(255_255_255/0.22)] backdrop-blur-[3px] backdrop-saturate-[1.6]"
-                : "pop-in flex size-14 items-center justify-center rounded-full border border-white/20 bg-popover/85 text-ink shadow-[0_8px_30px_rgb(0_0_0/0.35)] backdrop-blur-xl transition-colors hover:border-accent/70"
-            }
+            className="pop-in flex size-14 items-center justify-center rounded-full border border-white/20 bg-popover/85 text-ink shadow-[0_8px_30px_rgb(0_0_0/0.35)] backdrop-blur-xl transition-colors hover:border-accent/70 max-lg:hidden"
           >
-            <SearchIcon className={phone ? "size-5" : "size-5.5"} />
+            <SearchIcon className="size-5.5" />
           </button>
         )}
         {/* A hairline progress bar while the new place loads */}
@@ -297,11 +324,12 @@ export function LocationSearch() {
 
         <div
           className={`flex h-12 items-center gap-3 rounded-full px-4 transition-colors focus-within:border-white/40 ${
-            folded
-              ? "sr-only"
+            unfolded
+              ? "border border-white/20 bg-popover/90 shadow-2xl backdrop-blur-xl"
               : docked
-                ? "border border-white/20 bg-popover/90 shadow-2xl backdrop-blur-xl"
-                : "glass"
+                ? // Folded on a computer: out of sight, reachable. On a phone: where it will open, unseen (below)
+                  `lg:sr-only ${PHONE_HIDDEN}`
+                : `glass ${PHONE_HIDDEN}`
           }`}
         >
           <SearchIcon className="size-4.5 shrink-0 text-ink-muted" />
@@ -326,14 +354,14 @@ export function LocationSearch() {
             onFocus={() => {
               setOpen(true);
               setLocate({ status: "idle" });
-              if (docked) setUnfolded(true);
+              if (docked || phone) setUnfolded(true);
             }}
             onKeyDown={onKeyDown}
             placeholder="Cerca una città"
             autoComplete="off"
             spellCheck={false}
             // 16px on a phone: below that, Safari on iPhone zooms the page in on focus and leaves it panned
-            className="min-w-0 flex-1 bg-transparent text-base outline-none lg:text-[0.9375rem] placeholder:text-ink-muted [&::-webkit-search-cancel-button]:appearance-none"
+            className="min-w-0 flex-1 bg-transparent text-base text-ink caret-accent outline-none lg:text-[0.9375rem] placeholder:text-ink-muted [&::-webkit-search-cancel-button]:appearance-none"
           />
           {query && (
             <button
@@ -342,6 +370,8 @@ export function LocationSearch() {
                 setQuery("");
                 inputRef.current?.focus();
               }}
+              // Folded (out of sight, on a phone or docked), the field is reached by its input, which unfolds it
+              tabIndex={!unfolded && (docked || phone) ? -1 : undefined}
               className="-mr-1 shrink-0 rounded-full px-2 py-1 text-sm text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-accent"
             >
               Cancella

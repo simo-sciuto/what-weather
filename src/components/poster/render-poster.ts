@@ -3,6 +3,7 @@ import { dayOfYear, formatCoords } from "@/lib/weather/formatters";
 import type { MapOption } from "@/lib/map-options";
 import { optionColor } from "@/lib/weather/map-swatch";
 import type { SkyPalette } from "@/lib/weather/palette";
+import { bloomRadius, bloomStops, parseGlow } from "@/lib/weather/bloom";
 import type { SunPosition } from "@/lib/weather/sun-position";
 import { STYLE, syncMap } from "../weather/map-style";
 import { BASE_ZOOM } from "../weather/map-view";
@@ -255,18 +256,14 @@ function paintSky(
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, H);
 
-  // The light, high on the right as on the page, softly.
-  const r = Math.max(W, H) * 0.6;
-  const glow = ctx.createRadialGradient(
-    W * 0.78,
-    H * 0.14,
-    0,
-    W * 0.78,
-    H * 0.14,
-    r,
-  );
-  glow.addColorStop(0, p.glow);
-  glow.addColorStop(0.35, "rgba(0, 0, 0, 0)");
+  // The light, high on the right as on the page: a bloom with the page's reach, its colour fading in alpha only
+  const [x, y] = [W * 0.78, H * 0.14];
+  const channels = parseGlow(p.glow);
+  if (!channels) return;
+  const [gr, gg, gb, ga] = channels;
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, bloomRadius(W, H, x, y));
+  for (const { offset, share } of bloomStops())
+    glow.addColorStop(offset, `rgba(${gr}, ${gg}, ${gb}, ${(ga * share).toFixed(4)})`);
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 }
