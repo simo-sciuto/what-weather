@@ -169,27 +169,26 @@ type Pair = readonly [number, number];
 
 /**
  * The stops of each way of getting about: what the data calls it, whether only its stations count, from which
- * zoom, and the form it is drawn in. Each form is an elementary shape in the colour of its line, no outline:
- * the train's a roundel (a ring round a solid core), the metro's a heavier roundel, the tram's an open ring,
- * the bus's a small solid dot, so the four tell apart by form and weight as well as by hue (WTH-180).
+ * zoom, and the form it is drawn in. Each form is a plain circle in the colour of its line, lifted by a soft
+ * shadow: the train's and the metro's an open ring (the metro's heavier), the tram's a finer ring, the bus's a
+ * small solid dot, so the four tell apart by size and weight as well as by hue (WTH-180).
  */
 const STOPS: {
   id: string;
   mode: string;
   stationsOnly: boolean;
   minzoom: number;
-  /** The ring (or, for the tram, the whole stop): its radius and its line's width. Absent for the bus's dot */
+  /** An open ring: its radius and its line's width */
   ring?: { radius: Pair; width: Pair };
-  /** The solid core inside a ring, or the bus's whole dot: its radius */
-  core?: Pair;
+  /** A solid dot: its radius */
+  dot?: Pair;
 }[] = [
   {
     id: "train-stops",
     mode: "rail",
     stationsOnly: true,
     minzoom: 11,
-    ring: { radius: [2, 4.2], width: [0.6, 1.1] },
-    core: [0.8, 1.5],
+    ring: { radius: [2, 4.2], width: [0.8, 1.4] },
   },
   // The metro's entrances are left out: a station has many
   {
@@ -197,15 +196,14 @@ const STOPS: {
     mode: "metro_rail",
     stationsOnly: true,
     minzoom: 11,
-    ring: { radius: [2.3, 4.8], width: [0.8, 1.5] },
-    core: [1, 1.9],
+    ring: { radius: [2.1, 4.4], width: [1.1, 1.9] },
   },
   {
     id: "tram-stops",
     mode: "tram",
     stationsOnly: false,
     minzoom: 14,
-    ring: { radius: [1.2, 2.4], width: [0.5, 0.8] },
+    ring: { radius: [1.2, 2.4], width: [0.6, 0.9] },
   },
   // The data has the trams' and the buses' stops from zoom 14, and no more than that
   {
@@ -213,14 +211,20 @@ const STOPS: {
     mode: "bus",
     stationsOnly: false,
     minzoom: 14,
-    core: [0.7, 1.6],
+    dot: [0.7, 1.6],
   },
 ];
 
-/** The id of the solid core drawn inside a stop's ring: a layer of its own that always follows its stop's. */
-export const coreOf = (stop: string) => `${stop}-core`;
-/** The ringed stops that also have a solid core inside (the train's and the metro's) */
-const CORED = new Set(STOPS.filter((s) => s.ring && s.core).map((s) => s.id));
+/** The id of the soft shadow under a stop: a layer of its own, below the stop's, that always follows its visibility. */
+export const shadowOf = (stop: string) => `${stop}-shadow`;
+const STOP_IDS = new Set(STOPS.map((s) => s.id));
+/**
+ * The stop's shadow, hard and cast well below it so the stop seems to float: black, as faint as the stop is,
+ * two pixels down, barely blurred. Same shape as the stop.
+ */
+const SHADOW_OPACITY = 0.55;
+const SHADOW_OFFSET: [number, number] = [0, 2];
+const SHADOW_BLUR = 0.2;
 
 const zoomSize = ([a, b]: Pair): ExpressionSpecification => [
   "interpolate",
@@ -483,9 +487,10 @@ export const STYLE: StyleSpecification = {
     })),
     // The stops and stations of the ways of getting about, each in the form of its mode and the colour of its line
     // (the metro's entrances are left out); the buses' are many, so they come only when the map is close.
-    // A ring is a stroke with no fill and its core a layer above it; both take the stop's ink (see syncMap).
+    // A ring is a stroke with no fill; under each stop goes its shadow, a copy of its shape in black, offset and
+    // blurred (a box-shadow; Mapbox draws none), and both take the stop's ink and visibility (see syncMap).
     ...STOPS.flatMap(
-      ({ id, mode, stationsOnly, minzoom, ring, core }): LayerSpecification[] => {
+      ({ id, mode, stationsOnly, minzoom, ring, dot }): LayerSpecification[] => {
         const common = {
           type: "circle" as const,
           source: "streets",
@@ -500,31 +505,59 @@ export const STYLE: StyleSpecification = {
               ]
             : ["==", ["get", "mode"], mode]) as ExpressionSpecification,
         };
-        const layers: LayerSpecification[] = [];
         if (ring)
-          layers.push({
+          return [
+            {
+              ...common,
+              id: shadowOf(id),
+              paint: {
+                "circle-color": "#000000",
+                "circle-opacity": 0,
+                "circle-radius": zoomSize(ring.radius),
+                // A touch wider than the ring, which the blur takes back
+                "circle-stroke-width": zoomSize([ring.width[0] * 1.15, ring.width[1] * 1.15]),
+                "circle-stroke-color": "#000000",
+                "circle-stroke-opacity": SHADOW_OPACITY,
+                "circle-translate": SHADOW_OFFSET,
+                "circle-blur": SHADOW_BLUR,
+              },
+            },
+            {
+              ...common,
+              id,
+              paint: {
+                "circle-color": "#eeeeee",
+                "circle-opacity": 0,
+                "circle-radius": zoomSize(ring.radius),
+                "circle-stroke-width": zoomSize(ring.width),
+                "circle-stroke-color": "#eeeeee",
+                "circle-stroke-opacity": 0.8,
+              },
+            },
+          ];
+        const size = dot ?? ([0, 0] as const);
+        return [
+          {
+            ...common,
+            id: shadowOf(id),
+            paint: {
+              "circle-color": "#000000",
+              "circle-opacity": SHADOW_OPACITY,
+              "circle-radius": zoomSize(size),
+              "circle-translate": SHADOW_OFFSET,
+              "circle-blur": SHADOW_BLUR,
+            },
+          },
+          {
             ...common,
             id,
             paint: {
               "circle-color": "#eeeeee",
-              "circle-opacity": 0,
-              "circle-radius": zoomSize(ring.radius),
-              "circle-stroke-width": zoomSize(ring.width),
-              "circle-stroke-color": "#eeeeee",
-              "circle-stroke-opacity": 0.8,
-            },
-          });
-        if (core)
-          layers.push({
-            ...common,
-            id: ring ? coreOf(id) : id,
-            paint: {
-              "circle-color": "#eeeeee",
               "circle-opacity": 0.8,
-              "circle-radius": zoomSize(core),
+              "circle-radius": zoomSize(size),
             },
-          });
-        return layers;
+          },
+        ];
       },
     ),
     // The places that are lit, glowing at night
@@ -693,16 +726,15 @@ export function syncMap(
       case "circle":
         map.setPaintProperty(layer, "circle-color", color);
         map.setPaintProperty(layer, "circle-opacity", opacity);
+        if (STOP_IDS.has(layer))
+          map.setPaintProperty(shadowOf(layer), "circle-opacity", SHADOW_OPACITY * opacity);
         break;
       case "ring":
-        // A stop drawn as a ring: no fill, the stroke carries the ink; the core inside it, if it has one, is its own layer
+        // A stop drawn as a ring: no fill, the stroke carries the ink; its shadow is as faint as it is
         map.setPaintProperty(layer, "circle-opacity", 0);
         map.setPaintProperty(layer, "circle-stroke-color", color);
         map.setPaintProperty(layer, "circle-stroke-opacity", opacity);
-        if (CORED.has(layer)) {
-          map.setPaintProperty(coreOf(layer), "circle-color", color);
-          map.setPaintProperty(coreOf(layer), "circle-opacity", opacity);
-        }
+        map.setPaintProperty(shadowOf(layer), "circle-stroke-opacity", SHADOW_OPACITY * opacity);
         break;
       case "ranked": {
         // The colour of each rank of road, its own complement (see the palette's ramp for traffic)
@@ -785,9 +817,9 @@ export function syncMap(
     for (const layer of layers) {
       const visibility = visible.has(layer) ? "visible" : "none";
       map.setLayoutProperty(layer, "visibility", visibility);
-      // A stop's core goes with its ring
-      if (CORED.has(layer))
-        map.setLayoutProperty(coreOf(layer), "visibility", visibility);
+      // A stop's shadow goes with it
+      if (STOP_IDS.has(layer))
+        map.setLayoutProperty(shadowOf(layer), "visibility", visibility);
     }
   }
 }
