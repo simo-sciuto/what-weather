@@ -11,7 +11,7 @@ CLAUDE.md (loaded automatically), docs/PROJECT_STATE.md, docs/BOARD.md
 | Weather data, providers, caching, API routes | ARCHITECTURE.md, DECISIONS.md |
 | UI, layout, copy, interaction | PRODUCT.md, ARCHITECTURE.md (UI structure) |
 | Anything that touches an earlier decision | DECISIONS.md |
-| Weather Visual Engine, atmospheric grammar | WEATHER_VISUAL_ENGINE.md, DECISIONS.md |
+| Weather Visual Engine: V1 plan, subtask scope, atmospheric grammar | WEATHER_VISUAL_ENGINE.md, DECISIONS.md |
 | Planning, "what next" | ROADMAP.md, BOARD.md |
 | "What did we do" | CHANGELOG.md, SESSION_LOG.md |
 

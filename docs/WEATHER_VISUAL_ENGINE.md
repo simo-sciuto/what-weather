@@ -2,6 +2,107 @@
 
 Current checkpoint: WTH-046A/B/C/D implemented. Provider atmospheric measurements now reach samples, frames and client-derived FrameLook atmosphere. The rendered palette remains unchanged until later calibrated integration.
 
+This document holds the WTH-046 plan (what each subtask must achieve) followed by the contract of each implemented checkpoint. `docs/BOARD.md` tracks status, one line per subtask, and links here.
+
+## V1 plan
+
+### Direction
+
+`PLACE + TIME + WEATHER -> VISUAL RECORD`. Translate weather into colour, hierarchy and atmosphere rather than choosing a palette that looks good with it. Meteorological and solar data must shape the whole composition: sky, atmosphere, contrast, map hierarchy, typography/accent relationships, UI surfaces, poster and future record outputs. The same place, time and relevant weather inputs must produce the same visual state. No random visual generation and no second independent palette system: the current visual engine evolves into the Weather Visual Engine.
+
+Conceptual pipeline: `WeatherData -> WeatherVisualInput -> normalization -> AtmosphereState -> solar base -> OKLCH weather transform -> WeatherVisualPalette -> UI / Mapbox / poster / future outputs`. `AtmosphereAxes`, `AtmosphereState` and `VisualForce` exist (WTH-046A); `WeatherVisualInput` and `computeAtmosphere` exist (WTH-046B); `solarPalette` exists (WTH-046D). The other pipeline names remain planned, not fixed API shapes. Continuous measurements increasingly drive the result; categorical weather retains semantic value.
+
+### Execution order
+
+```text
+WTH-012 -> WTH-046A -> WTH-046B -> WTH-046C -> WTH-046D
+        -> WTH-046E -> WTH-046F -> WTH-046K -> WTH-046G
+        -> WTH-046H -> WTH-046I -> WTH-046J -> WTH-046L
+        -> WTH-017 -> WTH-018 -> WTH-022
+WTH-046M: PARKED, outside V1
+```
+
+WTH-012 (including WTH-008) was signed off by the user on 2026-10-04. The sequence governs this track, including the remaining work on WTH-022. Calibration deliberately precedes final map/system integration. WTH-010, already DONE, is not reopened by this sequence.
+
+### Foundations and relationships
+
+Planning baseline verified on 2026-10-04, updated where WTH-046C/D changed it:
+
+- `src/lib/weather/palette.ts` provides `solarPalette(light)` (formerly `clearSky`, WTH-046D), categorical `WEATHER` grey/dim modifiers plus continuous cloud cover, daylight-gated UV vividness/glow, OKLCH operations, text/glass contrast protection, `SkyPalette`, generated map inks and `mapInksFor(sky, tune, active)`. Evolve these foundations, preserving active-layer separation and user tuning (ADR-011), including the documented limits of the separation target.
+- `src/lib/weather/state.ts` supplies `WeatherState`; `frames.ts` builds `Sample` and `Frame`; `look.ts` derives `FrameLook` in the browser through `frameLook()`. Keep that client-side derivation and compact frame payload (ADR-007). `Frame.light` is a solar progression from -1 to 2, not normalized daylight brightness.
+- `src/lib/weather/types.ts`: humidity, visibility (km) and dew point now travel through `HourlyPoint`, `Sample` and `Frame` with their origin (WTH-046C). `windGust` is available on current/hourly data but still omitted from samples/frames; it is reserved for WTH-046M. `Frame.uv` comes from `uvIndex`.
+- `src/components/weather/map-style.ts` consumes map inks. `MapContext.tsx` shares place, timezone, Mapbox loading/token and cloud-grid data; it does not own palette generation. `src/components/time/TimeContext.tsx` derives the frame look. `src/components/poster/render-poster.ts` already consumes `SkyPalette` and shares the map style. Preserve this reuse.
+- `src/lib/weather/temp-color.ts` supplies the absolute temperature scale (`tempColor`, `tempGradient`), deliberately comparable across places and weeks.
+
+Relationships, without merging, deleting or reopening existing IDs: WTH-009 (tinta options) and completed WTH-010/WTH-150 (map tuning) must remain compatible; WTH-014/WTH-016 (map separation), WTH-019/WTH-021 (transit/road hierarchy), WTH-111/WTH-130/WTH-131/WTH-134 (sky, palette, map and UV) and WTH-142/WTH-154 (poster reuse) are foundations to evolve. WTH-002/WTH-003 concern measured/interpolated and partial-day semantics relevant to WTH-046C. WTH-004/WTH-005/WTH-006 remain separate accessibility, performance and map-coverage audits supporting calibration/integration. WTH-013 concerns phone poster delivery; WTH-017/WTH-018/WTH-022 follow the engine on this track. WTH-015's missing building tiles are a source/zoom issue, not something palette or hierarchy changes can solve.
+
+### Subtasks
+
+**WTH-046A Atmosphere model and visual grammar** (done, see below). Define the canonical normalized `AtmosphereState`: daylight, cloudiness, haze, clarity, wetness, severity, snow and energy in 0..1; warmth in -1..1. Define each axis, its relationship to the others and deterministic conflict resolution through `signature: { dominant: VisualForce; secondary: VisualForce }`, with forces sun, heat, cold, cloud, haze, rain, snow and storm. Document precedence and tie-breaking: 90% clouds with fog must differ from 90% clouds with thunderstorm. Retain `WeatherState` for semantics, icons, narrative, exceptional phenomena and categorical interpretation, while removing its role as primary colour art director.
+
+**WTH-046B Weather input normalization** (done, see below). Specify deterministic continuous curves from normalized provider measurements to atmospheric axes, with units, clamping, missing-data rules and calibrated influence limits. Avoid arbitrary binary thresholds when a curve is appropriate. The implemented curves are in the WTH-046B section; they remain initial calibration hypotheses, not final constants. The intended visual effect of each axis, which WTH-046E/F/G must realize:
+
+| Axis | Intended visual behaviour |
+| --- | --- |
+| warmth (temperature) | Transform the solar palette rather than assigning blue to cold and orange to heat. Midday: cold slightly cyan, heat subtly warmer/clearer; horizon: cold lilac/pink, heat peach/amber; night: cold indigo, heat slightly violet/ink. A clear 38-degree day must still read as clear sky. |
+| cloudiness (cloud cover) | More cloud reduces chroma, global contrast and solar glow continuously, without PARTLY_CLOUDY/CLOUDY jumps. Even overcast sunset retains underlying solar information. |
+| haze (humidity, visibility, dew point) | Haze is not humidity alone; visibility initially has more weight. 95% humidity with 18 km visibility should yield moderate haze at most; 85% with 2 km should yield strong haze. Calibrate coefficients and dew-point assumptions through scenarios. |
+| wetness (precipitation) | The 0-to-1 mm/h change matters more than 20-to-21. More wetness lowers lightness/chroma, increases atmospheric density and water prominence, and slightly raises road hierarchy. Graphic interpretation, not photorealistic wet roads. |
+| energy (UV) | More energy increases chroma, glow and sky separation only with solar light. Preserve useful daylight-gated UV vividness and stable behaviour when UV is absent. |
+| severity | More severity lowers background lightness/glow and increases local hierarchy/infrastructure separation. Avoid theatrical storm themes. |
+| snow | More snow raises lightness and land/map luminance, reduces chroma/warmth, and keeps water distinct. Rain is darker/denser/deeper; snow brighter/quieter/cooler. Snow must not become cold rain. |
+
+Wind/severity: gust severity is a possible future severity signal, but V1's rule is that wind must not modify colour, including indirectly through severity. Normalized wind/motion is reserved for WTH-046M. Daylight normalization stays separate from the solar phase coordinate, and clarity is derived from haze rather than being a competing control.
+
+**WTH-046C Carry atmospheric data through the timeline** (done, see below). Propagate humidity, visibility and dew point through `HourlyPoint -> Sample -> Frame -> frameLook() -> computeAtmosphere()`, including the current sample, preserving the provider abstraction (ADR-001) and measured/interpolated semantics (ADR-006). Specify interpolation, units, timestamps, provenance and deterministic fallbacks for absent measurements and daily overview frames, without presenting estimates as observations or borrowing current atmosphere for every future hour.
+
+**WTH-046D Solar base palette** (done, see below). Formalize the clear-sky interpolation as `solarPalette(light)`: natural light, not weather. Preserve the progression night -> blue hour -> dawn -> morning -> solar noon -> afternoon -> golden hour -> sunset -> blue hour -> night, including polar fallbacks. No rewrite solely for naming or architectural purity. Keep solar phase distinct from the normalized daylight axis.
+
+**WTH-046E OKLCH atmosphere transform.** Evolve the existing categorical grey/dim transform into bounded continuous operations. Ownership: solar position sets base lightness/hue; temperature sets restrained warmth/hue shifts; cloud cover sets chroma/global contrast; humidity/visibility/dew point set haze/depth; precipitation sets wetness/luminance; snow sets luminance/cool shift; UV sets chroma/glow; severity sets luminance/local hierarchy. Keep OKLCH unless repository evidence supports another model. Document input range, normalized range, curve, maximum influence, deterministic composition order, gamut protection and accessibility protection for every transform. Resolve competing effects on the same property explicitly instead of stacking unrelated pushes; preserve the recognizability of the solar base.
+
+**WTH-046F Atmospheric depth.** Make fog/haze compress spatial depth rather than apply a grey overlay. A conceptual `depth = 1 - haze` brings sky stops closer, suppresses terrain and background-map contrast strongly, midground contrast moderately, and preserves readable foreground. A foggy city should feel spatially compressed without literal fog texture; the difference should remain visible in grayscale. Exact implementation follows the calibrated grammar.
+
+**WTH-046K Scenario calibration suite.** Critical gate after WTH-046F and before WTH-046G/H/L. Specify fixtures and initial calibration before final map/system integration, then reuse and extend the suite as map hierarchy and shared consumers are connected. Do not tune arbitrary constants against one city's appearance. Each fixture records `WeatherVisualInput -> expected AtmosphereState -> dominant force -> secondary force -> expected visual behaviour`.
+
+Required scenarios: clear summer noon; winter dawn; dense fog; light rain; heavy rain; thunderstorm; snow; clear sunset; overcast night; dry heat. Add geographically varied archetypes: humid/foggy Milan, intense Mediterranean sun, rainy maritime city, snowy northern city and humid subtropical night. These are measurement-driven scenarios, never city presets or city-name conditionals.
+
+Test deterministic output, normalized ranges, monotonic relationships with other inputs held fixed, relative transformations, visual hierarchy, contrast/accessibility, map ordering/separation and graceful missing-data behaviour, not only exact hex snapshots. Invariants: more clouds cannot increase solar glow; lower visibility cannot increase atmospheric depth; heavier rain cannot look drier; higher haze cannot strengthen distant layers; snow cannot behave identically to rain. Include grayscale comparisons, timeline transitions and conflicting forces; preserve realistic separation guarantees instead of claiming an always-reached target.
+
+**WTH-046G Meteorological map hierarchy.** After initial scenario calibration, evolve sky-derived map inks into `sky + AtmosphereState + map semantics -> MapVisualState`. A conceptual contract includes waterWeight, roadWeight, buildingWeight, terrainWeight, depth, contrast and saturation; final shape must fit existing layer types. Preserve active-layer separation, road ranks, user tuning and ADR-011's documented constraints. Weather must change map hierarchy and depth, not just hue: the same city's weather should be distinguishable in grayscale.
+
+| Atmosphere | Expected map behaviour |
+| --- | --- |
+| Clear | Richer terrain, normal depth, crisp hierarchy, balanced roads and water. |
+| Fog | Strongly suppressed terrain/background, softer buildings, readable but restrained roads, compressed depth. |
+| Rain | Stronger water, quieter terrain, slightly stronger roads, darker/denser atmosphere. |
+| Snow | Brighter land, cooler/quieter chroma, restrained infrastructure, clearly separated water. |
+| Storm | Compressed background, deeper overall scene, more graphic infrastructure and stronger local hierarchy, reduced glow. |
+
+**WTH-046H Unified visual palette contract.** Evaluate evolving `SkyPalette` into a whole-record `WeatherVisualPalette`, not adding a parallel grammar. Conceptually include sky (top/middle/horizon/glow), atmosphere (haze/brightness/contrast/chroma/warmth), surfaces (glass/text/mutedText/accent) and `map: Record<MapLayer, MapInk>`. Preserve or compatibly migrate existing sky1/sky2/sky3, sun/cloud markers and map ramps as required by real consumers; do not mandate the illustrative shape. One weather visual state must drive UI, Mapbox, poster and future outputs, with pure client-side derivation preserved.
+
+**WTH-046I Temperature colour integration.** Review `temp-color.ts` and its consumers, distinguishing absolute semantic/quantitative colour from atmospheric accents. Temperature charts and cross-city/time comparisons may retain a stable absolute scale; integrate appropriate decorative/accent uses with the engine. Preserve information design and quantitative comparability. Seek coherence, not forced sameness or a second independent visual grammar.
+
+**WTH-046J Weather Fingerprint.** Define a deterministic internal representation of a record's visual DNA, conceptually light, warmth, cloud, haze, wet, snow, severity and energy. Document normalization and precision so the same relevant place/time/weather inputs yield the same fingerprint. Keep its light coordinate unambiguous relative to solar phase and normalized daylight. No V1 UI required; allow later record/poster metadata, comparisons, archives, collections, fingerprint graphics and similarity between records without implementing those products now.
+
+**WTH-046L Map / poster / UI integration.** Only after calibration, connect the shared state to live sky/background, UI surfaces, appropriate typography/accents, Mapbox, poster rendering and share/export outputs. Screen and exported poster must represent the same selected place and moment through the same weather visual state. Keep `automatic weather visual state -> user map tuning -> final map`: tuning adjusts rather than replaces weather-derived logic. Preserve layer choices, map view and existing poster reuse of shared inks; verify deterministic parity, contrast, timeline behaviour, missing-data fallbacks and operation without a Mapbox token. Do not couple visual generation to MapContext's provider/cloud-grid fetching.
+
+**WTH-046M Future motion layer.** PARKED, explicitly outside Weather Visual Engine V1 and its completion criteria. The normalized model may reserve `motion` from wind speed/gusts for future cloud motion, gradient movement, atmospheric grain, particles and subtle environmental/map animation. Static visual language comes first; no motion implementation or wind-driven colour changes in V1.
+
+### Acceptance principles
+
+1. **Data -> visual:** trace important visual decisions to meteorological or solar inputs.
+2. **Deterministic:** the same relevant inputs produce the same state; no random palettes.
+3. **Continuous:** prefer curves over categorical themes such as clear=blue, cloudy=grey, rain=dark blue, snow=white.
+4. **Solar light is the canvas:** time and solar position establish the scene; weather transforms it.
+5. **Map is weather:** change map hierarchy and depth, not merely colour, including in grayscale.
+6. **One visual language:** sky, UI, Mapbox and poster derive from the existing system as it evolves.
+7. **Weather state is semantic:** keep categories useful without making them the primary colour generator.
+8. **Provider agnostic:** consume normalized project weather data, never raw provider payloads.
+9. **Accessible:** preserve and extend existing contrast and legibility guarantees.
+10. **Explainable:** explain each record's appearance through its meteorological and solar inputs.
+11. **Information before decoration:** never distort quantitative information for attractive output.
+12. **Weather Record first:** express this place, this moment and this atmosphere as a visual record, beyond themed weather-app colours.
+
 ## WTH-046A: normalized atmosphere and visual grammar
 
 The first implementation checkpoint added `src/lib/weather/atmosphere.ts`, a pure internal model and deterministic signature resolver. That checkpoint did not consume weather measurements or change the rendered product; WTH-046B/C below add normalization and transport. `WeatherState`, `SkyPalette`, map tuning and poster rendering retain their current visual behaviour. The existing palette remains the only colour engine.
