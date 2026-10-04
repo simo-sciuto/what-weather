@@ -164,20 +164,32 @@ const ROAD_SHADOWS: {
   },
 ];
 
-/** The stops of each way of getting about: what the data calls it, whether only its stations count, from which zoom, how large a dot */
+/** A size at zoom 11 and at zoom 17, in pixels */
+type Pair = readonly [number, number];
+
+/**
+ * The stops of each way of getting about: what the data calls it, whether only its stations count, from which
+ * zoom, and the form it is drawn in. Each form is an elementary shape in the colour of its line, no outline:
+ * the train's a roundel (a ring round a solid core), the metro's a heavier roundel, the tram's an open ring,
+ * the bus's a small solid dot, so the four tell apart by form and weight as well as by hue (WTH-180).
+ */
 const STOPS: {
   id: string;
   mode: string;
   stationsOnly: boolean;
   minzoom: number;
-  radius: [number, number];
+  /** The ring (or, for the tram, the whole stop): its radius and its line's width. Absent for the bus's dot */
+  ring?: { radius: Pair; width: Pair };
+  /** The solid core inside a ring, or the bus's whole dot: its radius */
+  core?: Pair;
 }[] = [
   {
     id: "train-stops",
     mode: "rail",
     stationsOnly: true,
     minzoom: 11,
-    radius: [2, 5],
+    ring: { radius: [3, 7.5], width: [0.9, 1.8] },
+    core: [1.2, 3],
   },
   // The metro's entrances are left out: a station has many
   {
@@ -185,14 +197,15 @@ const STOPS: {
     mode: "metro_rail",
     stationsOnly: true,
     minzoom: 11,
-    radius: [2, 5],
+    ring: { radius: [3.4, 8.5], width: [1.3, 2.4] },
+    core: [1.6, 3.8],
   },
   {
     id: "tram-stops",
     mode: "tram",
     stationsOnly: false,
     minzoom: 14,
-    radius: [1.2, 3],
+    ring: { radius: [1.6, 3.4], width: [0.7, 1.1] },
   },
   // The data has the trams' and the buses' stops from zoom 14, and no more than that
   {
@@ -200,8 +213,23 @@ const STOPS: {
     mode: "bus",
     stationsOnly: false,
     minzoom: 14,
-    radius: [1, 2.6],
+    core: [0.9, 2.2],
   },
+];
+
+/** The id of the solid core drawn inside a stop's ring: a layer of its own that always follows its stop's. */
+export const coreOf = (stop: string) => `${stop}-core`;
+/** The ringed stops that also have a solid core inside (the train's and the metro's) */
+const CORED = new Set(STOPS.filter((s) => s.ring && s.core).map((s) => s.id));
+
+const zoomSize = ([a, b]: Pair): ExpressionSpecification => [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  11,
+  a,
+  17,
+  b,
 ];
 
 /**
@@ -453,40 +481,51 @@ export const STYLE: StyleSpecification = {
         "line-opacity": 0.9,
       },
     })),
-    // The stops and stations of the ways of getting about, a dot each in the colour of its line (the metro's
-    // entrances are left out); the buses' are many, so they come only when the map is close
-    ...STOPS.map(
-      ({ id, mode, stationsOnly, minzoom, radius }): LayerSpecification => ({
-        id,
-        type: "circle",
-        source: "streets",
-        "source-layer": "transit_stop_label",
-        minzoom,
-        layout: hidden(),
-        filter: stationsOnly
-          ? [
-              "all",
-              ["==", ["get", "mode"], mode],
-              ["==", ["get", "stop_type"], "station"],
-            ]
-          : ["==", ["get", "mode"], mode],
-        paint: {
-          "circle-color": "#eeeeee",
-          "circle-opacity": 0.8,
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            11,
-            radius[0],
-            17,
-            radius[1],
-          ],
-          "circle-stroke-width": 0.6,
-          "circle-stroke-color": "#000000",
-          "circle-stroke-opacity": 0.25,
-        },
-      }),
+    // The stops and stations of the ways of getting about, each in the form of its mode and the colour of its line
+    // (the metro's entrances are left out); the buses' are many, so they come only when the map is close.
+    // A ring is a stroke with no fill and its core a layer above it; both take the stop's ink (see syncMap).
+    ...STOPS.flatMap(
+      ({ id, mode, stationsOnly, minzoom, ring, core }): LayerSpecification[] => {
+        const common = {
+          type: "circle" as const,
+          source: "streets",
+          "source-layer": "transit_stop_label",
+          minzoom,
+          layout: hidden(),
+          filter: (stationsOnly
+            ? [
+                "all",
+                ["==", ["get", "mode"], mode],
+                ["==", ["get", "stop_type"], "station"],
+              ]
+            : ["==", ["get", "mode"], mode]) as ExpressionSpecification,
+        };
+        const layers: LayerSpecification[] = [];
+        if (ring)
+          layers.push({
+            ...common,
+            id,
+            paint: {
+              "circle-color": "#eeeeee",
+              "circle-opacity": 0,
+              "circle-radius": zoomSize(ring.radius),
+              "circle-stroke-width": zoomSize(ring.width),
+              "circle-stroke-color": "#eeeeee",
+              "circle-stroke-opacity": 0.8,
+            },
+          });
+        if (core)
+          layers.push({
+            ...common,
+            id: ring ? coreOf(id) : id,
+            paint: {
+              "circle-color": "#eeeeee",
+              "circle-opacity": 0.8,
+              "circle-radius": zoomSize(core),
+            },
+          });
+        return layers;
+      },
     ),
     // The places that are lit, glowing at night
     {
@@ -509,7 +548,7 @@ export const STYLE: StyleSpecification = {
 /** What each layer is drawn as: its colour and opacity follow the sky (see mapInks in palette.ts) */
 const KIND: Record<
   MapLayer,
-  "fill" | "line" | "circle" | "hillshade" | "heights" | "ranked" | "extrusion"
+  "fill" | "line" | "circle" | "ring" | "hillshade" | "heights" | "ranked" | "extrusion"
 > = {
   water: "fill",
   waterway: "line",
@@ -520,11 +559,11 @@ const KIND: Record<
   relief: "hillshade",
   contours: "heights",
   train: "line",
-  "train-stops": "circle",
+  "train-stops": "ring",
   metro: "line",
-  "metro-stops": "circle",
+  "metro-stops": "ring",
   tram: "line",
-  "tram-stops": "circle",
+  "tram-stops": "ring",
   "bus-stops": "circle",
   buildings: "fill",
   "buildings-3d": "extrusion",
@@ -655,6 +694,16 @@ export function syncMap(
         map.setPaintProperty(layer, "circle-color", color);
         map.setPaintProperty(layer, "circle-opacity", opacity);
         break;
+      case "ring":
+        // A stop drawn as a ring: no fill, the stroke carries the ink; the core inside it, if it has one, is its own layer
+        map.setPaintProperty(layer, "circle-opacity", 0);
+        map.setPaintProperty(layer, "circle-stroke-color", color);
+        map.setPaintProperty(layer, "circle-stroke-opacity", opacity);
+        if (CORED.has(layer)) {
+          map.setPaintProperty(coreOf(layer), "circle-color", color);
+          map.setPaintProperty(coreOf(layer), "circle-opacity", opacity);
+        }
+        break;
       case "ranked": {
         // The colour of each rank of road, its own complement (see the palette's ramp for traffic)
         const [streets, main, motorway] = inks[layer].ramp ?? [
@@ -733,11 +782,12 @@ export function syncMap(
     );
   }
   for (const layers of Object.values(OPTION_LAYERS)) {
-    for (const layer of layers)
-      map.setLayoutProperty(
-        layer,
-        "visibility",
-        visible.has(layer) ? "visible" : "none",
-      );
+    for (const layer of layers) {
+      const visibility = visible.has(layer) ? "visible" : "none";
+      map.setLayoutProperty(layer, "visibility", visibility);
+      // A stop's core goes with its ring
+      if (CORED.has(layer))
+        map.setLayoutProperty(coreOf(layer), "visibility", visibility);
+    }
   }
 }

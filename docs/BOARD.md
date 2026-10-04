@@ -59,7 +59,7 @@ Bugs:
 
 - [ ] WTH-165 Phone, city search: while the page loads the full search bar shows, though on a phone only the search icon should; and on iPhone, after tapping the icon, the typed text is often not visible (the search itself works). Reported by the user 2026-10-04.
 - [x] WTH-179 Poster: the sun's glow is still too sharp in the poster; it should be only a soft bloom. Reported by the user 2026-10-04. Done 2026-10-04: `paintSky` draws a Gaussian bloom (`lib/weather/bloom.ts`) with the page's reach, no hot spot and no edge; the user's look at an exported poster is pending. The page's `.sky-glow` is unchanged.
-- [ ] WTH-180 Transit stops: the dot with an outline is not liked; give the stops (train, metro, tram, bus) a more graphically advanced representation, in the poster's Swiss language (`map-style.ts`, stop layers; relates to WTH-019/WTH-021). Reported by the user 2026-10-04.
+- [x] WTH-180 Transit stops: the dot with an outline is not liked; give the stops (train, metro, tram, bus) a more graphically advanced representation, in the poster's Swiss language (`map-style.ts`, stop layers; relates to WTH-019/WTH-021). Reported by the user 2026-10-04. Done 2026-10-04: each mode its own elementary form in its line's colour, no outline (train: roundel, a ring round a solid core; metro: a heavier roundel; tram: an open ring; bus: a small solid dot); the user's look on the page and the poster is pending.
 - [ ] WTH-181 Poster, left column: remove the outlook sentences ("Previsione", `narrative.ts`) and put in their place one line with place, day and time; the block with the city name and the temperature goes to the top. Reported by the user 2026-10-04; continues WTH-017 and supersedes WTH-024 (the sentences are removed, not rewritten).
 
 ## LATER

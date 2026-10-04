@@ -9,6 +9,12 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Not verified: market figures and licence terms are assumptions until WTH-166 and WTH-167.
 - Next: unchanged, the user looks at the lab and K closes.
 
+## 2026-10-04 (transit stops)
+- Worked on: WTH-180, after the user's "vai" (the next of their requests, as proposed).
+- Completed: the stops drawn as forms (roundel, heavier roundel, open ring, dot) in `map-style.ts`, with a companion core layer and a `ring` kind in `syncMap`; five tests; tsc and ESLint clean. The design was mine to choose (the user asked for "something more graphically advanced"): elementary geometry in the line's colour, hierarchy by weight, no outline.
+- Not verified: how it looks on the page and in the poster (the user's call; no screenshot, per the project rule). Marker sizes were chosen by eye from the old radii and may need a pass.
+- Next: WTH-181 (proposed as a checkpoint first), or WTH-046H.
+
 ## 2026-10-04 (poster glow)
 - Worked on: WTH-179, picked first by the user among their three requests.
 - Completed: the poster's glow (two stops, ending in transparent black, a radius half the page's) replaced by a Gaussian bloom with the page's reach, in `lib/weather/bloom.ts`; six tests; tsc and ESLint clean.
@@ -22,12 +28,4 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Reviewer pass: no critical problems; the main finding (separation not guaranteed after the weights) was real: widening the test to every light and ten mixes showed 0.011 with snow and a storm. Added a guard that eases the opacity factor; also made the 3D buildings follow the flat ones' colour. The lab's glow now matches the page's `.sky-glow` (it was harsher, without the clouds' dimming): a small change outside G, noted here.
 - Not verified: the look in the lab, the user's.
 - Next: the user's look; then H or the three new requests.
-
-## 2026-10-04 (calibration round three)
-- Worked on: round two committed (`b30b48b`); then K's remaining invariants.
-- Completed: grayscale, timeline and conflict tests. The timeline sweep found the noon jitter (14/255, non-monotone): traced through two wrong guesses (the final gamut step, then the text protection) to the stepped gamut reduction inside it; fixed in the atmosphere path with bisection, live path untouched.
-- Checked: 101 tests in six suites; tsc and ESLint; live fingerprint unchanged. Thresholds are measured values with a point of margin.
-- Reviewer pass: no critical problems; fixed the bisection's final check, the tripwire (now sky and map), the conflict contrast test, removed an empty test.
-- Not verified: the look, the user's.
-- Next: user's look; commit; close K; WTH-046G.
 
