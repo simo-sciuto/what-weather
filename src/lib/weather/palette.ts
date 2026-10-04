@@ -2,7 +2,7 @@ import type { WeatherState } from "./state";
 
 /**
  * The sky's colours, computed rather than picked from a table:
- *  1. a clear-sky palette that follows the light through the day — night,
+ *  1. a solar base that follows natural light through the day: night,
  *     blue hour, sunrise, golden hour, a soft hazy morning, a bright midday,
  *     a slightly deeper afternoon, golden hour, sunset, blue hour, night;
  *  2. the weather laid over it — clouds desaturate, rain and storms darken,
@@ -16,6 +16,14 @@ import type { WeatherState } from "./state";
 
 type RGB = [number, number, number];
 type RGBA = [number, number, number, number];
+
+/** Natural-light base before weather, UV, text protection or map generation. */
+export interface SolarPalette {
+  /** Top, middle and horizon; interpolated sRGB channels in 0..255. */
+  sky: [RGB, RGB, RGB];
+  /** Light-source colour in 0..255, followed by alpha in 0..1. */
+  glow: RGBA;
+}
 
 export interface SkyPalette {
   /** Top, middle and horizon of the sky gradient */
@@ -187,17 +195,17 @@ function legibleUnderText(c: RGB, ratio: number): RGB {
   return out;
 }
 
-/* ---------- 1. Clear sky through the day ---------- */
+/* ---------- 1. Natural solar light through the day ---------- */
 
 /**
  * Keyed on the light scale from frames.ts: −1 night … 0 sunrise … 1 sunset … 2 night.
  * Soft pastel light over deep, quiet skies: ink-blue nights with a
  * periwinkle glow, rose and apricot dawns, a clean cerulean day under a
  * butter light, dusty rose and coral sunsets. Hues move gently from one
- * stop to the next; step 3 below still darkens each one until white text
- * reads on it.
+ * stop to the next. These are the existing artistic anchors, not weather
+ * presets. skyPalette applies weather, UV and text protection afterwards.
  */
-const CLEAR: { at: number; sky: [string, string, string]; glow: RGBA }[] = [
+const SOLAR_STOPS: { at: number; sky: [string, string, string]; glow: RGBA }[] = [
   {
     at: -1,
     sky: ["#0c1026", "#171c42", "#29305f"],
@@ -251,14 +259,21 @@ const CLEAR: { at: number; sky: [string, string, string]; glow: RGBA }[] = [
   },
 ];
 
-function clearSky(light: number): { sky: [RGB, RGB, RGB]; glow: RGBA } {
+/**
+ * Existing solar progression, independent of atmospheric measurements.
+ * `light` is a finite Frame.light phase (-1 night, 0 sunrise, 1 sunset,
+ * 2 night), not AtmosphereState.daylight brightness (0..1). Out-of-range
+ * finite phases clamp to the night endpoints. Polar fallbacks live in frames.ts.
+ * Returns fresh channel arrays; consumers transform them before rendering.
+ */
+export function solarPalette(light: number): SolarPalette {
   const u = Math.min(2, Math.max(-1, light));
   const j = Math.max(
     1,
-    CLEAR.findIndex((k) => k.at >= u),
+    SOLAR_STOPS.findIndex((k) => k.at >= u),
   );
-  const a = CLEAR[j - 1];
-  const b = CLEAR[j];
+  const a = SOLAR_STOPS[j - 1];
+  const b = SOLAR_STOPS[j];
   const t = (u - a.at) / (b.at - a.at || 1);
   return {
     sky: [0, 1, 2].map((i) => mix(hex(a.sky[i]), hex(b.sky[i]), t)) as [
@@ -767,7 +782,7 @@ export function skyPalette({
   /** The UV index; without it (not every provider has one) the colours are the table's own */
   uv?: number;
 }): SkyPalette {
-  const { sky, glow: tableGlow } = clearSky(light);
+  const { sky, glow: tableGlow } = solarPalette(light);
   const glow: RGBA =
     uv == null
       ? tableGlow

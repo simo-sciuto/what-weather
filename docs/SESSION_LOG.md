@@ -2,6 +2,27 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-04 (timeline checkpoint)
+- Worked on: WTH-046C, atmospheric transport through provider adapters, hourly samples, frames and FrameLook.
+- Completed: optional atmospheric measurements/origin metadata, unit conversion and unavailable-value handling; labelled free-tier dew estimates; missing-aware interpolation and exact endpoints; synthetic daily overviews; selected-frame atmosphere derivation alongside the unchanged palette. Updated architecture, board, project state and ADR-012.
+- Checked: 92 tests passed across six relevant suites (10 new pipeline tests, provider fixtures and existing model/narrative/activity/best-window regressions); targeted ESLint passed. Code/doc diff and board parser/ID preservation reviewed. Full TypeScript check (`tsc --noEmit --incremental false`) passed.
+- Not verified: live provider accounts, browser/E2E or final visual calibration. Current-detail numeric defaults remain for compatibility, but are excluded from the atmospheric pipeline. No UI, map, poster or palette changes.
+- Next: WTH-046D, solar base palette. WTH-046M remains PARKED.
+
+## 2026-10-04 (normalization checkpoint)
+- Worked on: WTH-046B, following the completed atmosphere model.
+- Completed: WeatherVisualInput and computeAtmosphere, bounded continuous measurement curves, deterministic fallback precedence, input handling statuses, snow/liquid phase interpretation and documented limits of the current combined precipitation field. Board, project state, grammar and ADR-012 updated.
+- Checked: 30 tests passed across atmosphere.test.ts and visual-input.test.ts (20 new); targeted ESLint and full TypeScript (`tsc --noEmit --incremental false`) passed. Final code/documentation review and diff whitespace check passed.
+- Not verified: final colours, map hierarchy, UI/poster output or the full WTH-046K calibration suite. No existing provider, frame, palette or rendering code was changed.
+- Next: WTH-046C, carry atmospheric measurements through the timeline. Motion remains PARKED.
+
+## 2026-10-04
+- Worked on: user sign-off of WTH-012 (including WTH-008), start of WTH-046 at checkpoint A.
+- Completed: normalized immutable atmosphere model, derived clarity, deterministic force ranking with explicit ties and nullable absent forces; grammar in WEATHER_VISUAL_ENGINE.md, ADR-012. Updated board and project state.
+- Checked: 10 atmosphere unit tests passed; targeted ESLint and full TypeScript check (`tsc --noEmit --incremental false`) passed. Final diff reviewed; board parser round-trip and preservation of all existing task IDs verified, with only WTH-012/WTH-008 moved to DONE and WTH-046 to NOW.
+- Not verified: visual output, E2E and full scenario calibration, because the new model is not yet connected to the application. Existing palette, providers, timeline, map, poster and UI unchanged.
+- Next: WTH-046B (measurement normalization). WTH-046M remains PARKED.
+
 ## 2026-10-02 (fourth session)
 - Worked on: WTH-019 (trains, metro, tram, bus), WTH-016 (colour algorithm), WTH-015 (buildings from above: not solved, see BOARD); WTH-015..019 added to the board.
 - Completed: see CHANGELOG, ADR-011 update. Checked: tsc, ESLint, palette, map-style and map-view unit tests (26 passed), screenshots of Tokyo at night with the metro, trains, trams and buses on (the map takes over 12 s to draw at zoom 14 in the headless browser: it is slow there, not broken).
@@ -13,22 +34,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Completed: see CHANGELOG, ADR-011. Checked: tsc, ESLint, palette and map-style unit tests (new ones for the separation and the 3D layer), a screenshot of Milano with 3D on and the map tilted.
 - Not verified: the full `palette.test.ts` in one run: its first test (white text on the sky, nothing to do with the map) took about 560 s in four runs, a single call stalling for that long, while alone it takes 4.5 s and no loop guard ever fired; not explained. The 3D layer on a phone and in the poster; the colour separation in the poster's colour bar; no e2e (they run without Mapbox).
 - Next: the modal of "La mappa" (WTH-010), WTH-009, WTH-013.
-
-## 2026-10-02 (second session)
-- Worked on: WTH-012 and WTH-008 (the poster's top, the two actions), WTH-011 (random city), WTH-013 added.
-- Completed: see CHANGELOG. Checked with a screenshot after each UI change (desktop 1440x900, phone 390x844; the user asked for this), tsc, ESLint, unit tests for the new random code, and e2e for reading, places and phone (8 passed, before the last reorder of the button row).
-- Not verified: WTH-012 is not closed (the user has not signed it off); long names and the day picked in the week on the new composition; the random button and the landing have no e2e; the poster dialog and share on a real phone (WTH-013); the scrubbed-hour case of the range block was not looked at.
-- Next: the modal of "La mappa" (WTH-010), then the colours of the "tinta" menu (WTH-009).
-
-## 2026-10-02
-- Worked on: filled BOARD DONE from git history.
-- Completed: DONE rebuilt by theme (WTH-100..163) from the 13 commits' messages and file stats; CHANGELOG aligned with the same ids.
-- Not verified: first-build items (WTH-100..119) come from one commit's file list and the README, not from a line-by-line diff review; tests, lint and build not run (docs only).
-- Also: interactive board (`scripts/board/`, `npm run board`). Checked on a copy of the file: round trip byte for byte, add, move, delete, rejection of cross-origin and non-JSON writes; ESLint clean on scripts/. Not checked: the page itself in a browser.
-- Next: the user picks a task, or confirms the audit candidates WTH-001..007.
-
-## 2026-10-01
-- Worked on: bootstrap of the project memory system.
-- Completed: audit of the repo; wrote docs/ (ARCHITECTURE, PRODUCT, DECISIONS, BOARD, PROJECT_STATE, ROADMAP, CHANGELOG, INDEX), `.claude/agents/` (6), memory rules in CLAUDE.md.
-- Not verified: tests, lint and build were not run (docs only).
-- Next: the user picks a task.

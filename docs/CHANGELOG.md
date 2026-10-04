@@ -2,6 +2,13 @@
 
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
+## 2026-10-04
+- WTH-046D: the existing natural-light base is now `solarPalette(light): SolarPalette`, with phase/channel contracts documented. All solar anchors, interpolation and downstream weather/contrast/map calculations preserved; no visual redesign.
+- WTH-046C: humidity, visibility and dew point now reach the selected frame from all four adapters, with availability/origin metadata and interpolation only between available endpoints. Daily overviews marked synthetic; FrameLook derives atmosphere alongside the unchanged palette. Ten new pipeline tests, 92 passing checks across relevant suites.
+- WTH-046B: provider-agnostic WeatherVisualInput -> computeAtmosphere, with continuous curves for temperature, clouds, haze, precipitation and UV; bounded severity/snow interpretation, explicit input statuses and missing-data fallbacks. Twenty new tests; still not connected to providers, frames or rendering.
+- WTH-012 accepted by the user, including WTH-008; Weather Visual Engine (WTH-046) started.
+- WTH-046A: normalized atmosphere model with derived clarity, bounded solar energy and deterministic dominant/secondary forces; absent forces remain null. Contract documented and covered by focused tests. Not yet connected to palette, timeline, UI, maps or poster.
+
 ## 2026-10-03
 - A compass on the map and the poster, with the point the map faces; the map can be turned on a computer too; the poster's map credits under its wordmark; the page's footer set in rows on a phone (WTH-023).
 

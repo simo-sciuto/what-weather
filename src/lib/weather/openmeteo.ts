@@ -1,4 +1,5 @@
 import "server-only";
+import { atmosphericData } from "./atmospheric-data";
 import { GEOCODE_REVALIDATE_SECONDS, WEATHER_REVALIDATE_SECONDS, isWet } from "./constants";
 import { airIndexOf } from "./details";
 import { WeatherProviderError, loadFresh, lookupPlace, round } from "./openweather";
@@ -40,6 +41,9 @@ const CURRENT = [
   "uv_index",
 ] as const;
 const HOURLY = [
+  "relative_humidity_2m",
+  "dew_point_2m",
+  "visibility",
   "temperature_2m",
   "apparent_temperature",
   "precipitation_probability",
@@ -166,6 +170,7 @@ const optional = (v: number | null | undefined) => (v == null ? undefined : v);
 
 function toCurrent(raw: OMForecast["current"]): CurrentWeather {
   const { condition, intensity, description } = mapCode(num(raw.weather_code));
+  const atmosphere = atmosphericData({ humidity: raw.relative_humidity_2m, dewPoint: raw.dew_point_2m, visibility: raw.visibility == null ? undefined : raw.visibility / 1000 }, "provider");
   return {
     time: raw.time,
     temp: num(raw.temperature_2m),
@@ -177,11 +182,12 @@ function toCurrent(raw: OMForecast["current"]): CurrentWeather {
     windSpeed: num(raw.wind_speed_10m),
     windGust: optional(raw.wind_gusts_10m),
     windDeg: num(raw.wind_direction_10m),
-    humidity: num(raw.relative_humidity_2m),
+    atmosphericSources: atmosphere.atmosphericSources,
+    humidity: atmosphere.humidity ?? 0,
     pressure: num(raw.pressure_msl),
-    dewPoint: num(raw.dew_point_2m),
+    dewPoint: atmosphere.dewPoint ?? 0,
     cloudCover: num(raw.cloud_cover),
-    visibility: num(raw.visibility) / 1000,
+    visibility: atmosphere.visibility ?? 0,
     // The amount fell over the current interval (15 minutes); the model wants a rate.
     precipitation: num(raw.precipitation) * (3600 / (raw.interval || 3600)),
   };
@@ -194,6 +200,11 @@ function toHourly(raw: OMForecast["hourly"], now: number): HourlyPoint[] {
     const { condition, intensity } = mapCode(num(raw.weather_code[i]));
     return [
       {
+        ...atmosphericData({
+          humidity: raw.relative_humidity_2m?.[i],
+          dewPoint: raw.dew_point_2m?.[i],
+          visibility: raw.visibility?.[i] == null ? undefined : raw.visibility[i]! / 1000,
+        }, "provider"),
         time,
         temp: num(raw.temperature_2m[i]),
         feelsLike: num(raw.apparent_temperature[i], num(raw.temperature_2m[i])),

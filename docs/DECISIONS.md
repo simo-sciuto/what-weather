@@ -73,3 +73,26 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - At most 14 variants that stand out from the sky are tried per group (a variant that does not is dropped without lightening it). Measured: median 4 to 8 ms with the trains, metro, trams and buses on; the distance wanted (0.1 OKLab) is reached in about half to all of the cases with every layer on, always for the water against the roads.
 - Mapbox Streets' tiles have buildings from zoom 13, the metro's lines from 11, its stations from 13, the trams and the bus stops from 14. A map that starts closer when such a choice is on was built and removed on the user's decision: they show only as the page comes down.
 
+## ADR-012: Normalized atmosphere precedes visual output
+- Decision: WTH-046A introduces a pure `AtmosphereAxes` -> `AtmosphereState` boundary in `atmosphere.ts`. Clarity is derived as `1 - haze`; energy cannot exceed daylight. The constructor rejects invalid internal axes; provider missing-data fallbacks belong upstream in WTH-046B/C.
+- Decision: rank positive visual force strengths, using explicit precedence only for exact ties. Absent dominant/secondary forces are null. The signature is explanatory, never a palette selector; continuous axes will drive future colour and hierarchy transforms. No wind-driven colour in V1.
+- Reason: distinguish competing phenomena deterministically without a second palette grammar, contradictory haze/clarity controls or fabricated forces at night.
+- Consequences: readonly, frozen state; no provider, clock, city or rendering dependency. `WeatherState` and the existing palette remain unchanged until later calibrated integration. See WEATHER_VISUAL_ENGINE.md for axis meanings, scores and tie rules.
+- Status: Accepted for the model checkpoint (2026-10-04); numerical grammar remains subject to WTH-046K calibration. No changes to ADR-001/006/007/011.
+
+### ADR-012 update (2026-10-04): measurement normalization
+- `visual-input.ts` now owns `WeatherVisualInput` -> `computeAtmosphere()` -> `{ atmosphere, inputStatus }`. It keeps the existing solar phase/daylight gate and normalizes project-unit measurements through bounded curves, independent of providers and rendering.
+- Missing/invalid numeric measurements use explicit fallbacks, recorded separately from supplied zero or clamped values. Status `supplied` does not assert that an upstream value was observed. Haze retains fixed contribution weights, so missing visibility cannot amplify humidity into dense fog.
+- Combined precipitation is interpreted by the existing condition: snow feeds the snow axis, other/unknown conditions feed liquid wetness. The data cannot recover quantitative mixed-phase fractions or distinguish freezing rain already grouped under snow. This limitation is documented rather than guessed from temperature.
+- Coefficients, semantic fallbacks and neutral missing-UV energy are initial calibration choices for WTH-046K. No provider or frame contract changes in WTH-046B; those belong to WTH-046C.
+
+### ADR-012 update (2026-10-04): transport and provenance
+- `AtmosphericMeasurements` is shared by current/hourly weather, samples and frames. Humidity, visibility and dew point have optional values and per-field origin; absence is distinct from zero. Existing numeric current-detail fallbacks remain for compatibility but are labelled unavailable and stripped before visual computation.
+- Interpolate only when both atmospheric endpoints are available; exact endpoints survive independently. Origin tracks provider/estimated/mock/unknown/unavailable, while `Frame.measured` independently marks temporal interpolation. Free-tier dew-point estimates retain their estimated origin.
+- Daily overview frames are explicitly synthetic (`overview: true`, `measured: false`); new normalization excludes daily maxima and placeholder quantities, retaining only semantic conditions and representative solar phase. Existing palette behaviour is unchanged.
+- `frameLook()` now derives atmospheric state/input status alongside the existing palette. Generated state is not serialized per frame. Provider abstraction (ADR-001), temporal semantics (ADR-006) and client derivation (ADR-007) are preserved; no weather-driven colour integration until calibration.
+
+### ADR-012 update (2026-10-04): solar base contract
+- `solarPalette(light): SolarPalette` replaces the private `clearSky` name inside `palette.ts`; the shared natural-light base remains in the existing engine. `SOLAR_STOPS` retains every previous anchor and the same interpolation.
+- The finite input is solar phase (-1..2), not normalized daylight brightness. Output is raw interpolated sRGB sky triples and RGBA glow; weather, UV, accessibility protection and map generation remain downstream in `skyPalette()`.
+- No runtime calculation changes. Polar fallbacks remain in `frames.ts`; no new colour system, phase thresholds or astronomical model introduced. The bounded atmosphere transform is WTH-046E, with final visual integration after calibration.
