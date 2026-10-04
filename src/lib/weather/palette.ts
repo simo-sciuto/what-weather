@@ -39,6 +39,11 @@ export interface SkyPalette {
   cloud: string;
   /** The city drawn behind the page, one entry per map layer */
   map: Record<MapLayer, MapInk>;
+  /**
+   * The weather's say on the map (WTH-046G/H): what `map` was drawn with. Carried with the palette so every consumer
+   * that redraws the map (the viewer's tuning, the poster) draws it in the same air. `CLEAR_MAP` for the live page.
+   */
+  air: MapVisualState;
 }
 
 /**
@@ -904,6 +909,13 @@ export interface MapVisualState {
   waterDeepen: number;
 }
 
+/** The step the weather's state is taken to for the inks (WTH-046H): finer than any eye tells, coarse enough to share them */
+export const AIR_STEP = 0.02;
+const quantizedAir = (air: MapVisualState): MapVisualState =>
+  Object.fromEntries(
+    Object.entries(air).map(([k, v]) => [k, Math.round(v / AIR_STEP) * AIR_STEP]),
+  ) as unknown as MapVisualState;
+
 export const CLEAR_MAP: MapVisualState = {
   depth: 1,
   waterWeight: 1,
@@ -966,7 +978,9 @@ function opacityFactor(layer: MapLayer, air: MapVisualState): number {
  * The map's lines over a sky (a palette's `sky2`) as the viewer tuned them
  * (see MapControls): their hue, how vivid, how strong against the sky. The layers in
  * `active` (the city's own unless said otherwise) are kept apart from one another in colour.
- * `air` is the weather's (see `mapVisualState`); the live page has none yet, so clear air.
+ * `air` is the weather's (see `mapVisualState`; a palette carries it as `air`), taken to steps of `AIR_STEP`
+ * first, so that the timeline's slowly changing weather asks for the same few inks again and again, not a new
+ * set for every frame; the live page has none yet, so clear air.
  */
 export function mapInksFor(
   sky: string,
@@ -974,6 +988,7 @@ export function mapInksFor(
   active: ReadonlySet<MapLayer> = CITY_LAYERS,
   air: MapVisualState = CLEAR_MAP,
 ): Record<MapLayer, MapInk> {
+  air = quantizedAir(air);
   // Worked out once per sky, tuning and choice of layers: scrubbing the timeline asks again and again for the same few
   const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}|${[...active].sort().join(",")}|${Object.values(air).join(",")}`;
   const known = inksMemo.get(key);
@@ -1086,6 +1101,8 @@ function finishPalette(
   continuous = false,
 ): SkyPalette {
   const [sky1, sky2, sky3] = legibleSky(weathered, continuous);
+  // The air as the inks are drawn in it, and as the palette carries it (see `mapInksFor`)
+  const air = quantizedAir(map);
 
   // Glass: the thinnest veil over the brightest part of the sky that keeps muted text at AA.
   // The veil is the top of the sky, deepened, so fields and buttons stay in its hue.
@@ -1110,7 +1127,8 @@ function finishPalette(
     // The "now" markers: the glow's own colour by day, a periwinkle moonlight at night.
     sun: dark ? "#bfcbfe" : toHex([glow[0], glow[1], glow[2]]),
     cloud: rgba(cloud),
-    map: mapInks(sky2, UNTUNED, CITY_LAYERS, map),
+    map: mapInks(sky2, UNTUNED, CITY_LAYERS, air),
+    air,
   };
 }
 

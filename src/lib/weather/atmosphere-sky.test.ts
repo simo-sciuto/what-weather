@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { AtmosphereAxes } from "./atmosphere";
 import { CALIBRATION_SCENARIOS } from "./calibration";
 import {
+  AIR_STEP,
   ALL_MAP_LAYERS,
   ATMOSPHERE_LIMITS,
   atmosphereDepth,
@@ -424,7 +425,9 @@ describe("atmospheric depth (WTH-046F)", () => {
     const states = ["CLEAR_DAY", "CLEAR_NIGHT", "CLOUDY", "FOG", "RAIN", "HEAVY_RAIN", "STORM", "SNOW"] as const;
     const sample = states.flatMap((state) =>
       [-0.6, 0, 0.3, 0.5, 0.9, 1.2, 1.8].flatMap((light) => {
-        const p = skyPalette({ light, state, cloudCover: 40, uv: 4 });
+        // `air` is the field WTH-046H added, clear for the live page: the rest of the palette is what is fingerprinted
+        const { air: _air, ...p } = skyPalette({ light, state, cloudCover: 40, uv: 4 });
+        void _air;
         return [p, mapInksFor(p.sky2, { hue: 40, vivid: 90, contrast: 15 }, ALL_MAP_LAYERS)];
       }),
     );
@@ -619,5 +622,54 @@ describe("meteorological map hierarchy (WTH-046G)", () => {
         const inksAll = mapInksFor(p.sky2, PAGE, ALL_MAP_LAYERS, mapVisualState(a));
         expect(gap(p.sky2, inksAll), `${JSON.stringify(over)} at ${l}`).toBeGreaterThanOrEqual(MAP_SEPARATION * 0.3);
       }
+  });
+});
+
+describe("one palette for the whole record (WTH-046H)", () => {
+  const PAGE = { hue: 40, vivid: 70, contrast: 60 };
+  const quantized = (x: number) => Math.round(x / AIR_STEP) * AIR_STEP;
+
+  it("carries the air its map was drawn in: clear for the live page, the atmosphere's for the new one", () => {
+    for (const state of ["CLEAR_DAY", "CLEAR_NIGHT", "CLOUDY", "FOG", "RAIN", "HEAVY_RAIN", "STORM", "SNOW"] as const)
+      expect(skyPalette({ light: 0.5, state, cloudCover: 50, uv: 3 }).air).toEqual(CLEAR_MAP);
+    for (const over of [{ wetness: 1, cloudiness: 1 }, { snow: 0.7, cloudiness: 1 }, { severity: 1, wetness: 1 }, { haze: 0.9 }]) {
+      const a = at(0.5, over);
+      const want = Object.fromEntries(Object.entries(mapVisualState(a)).map(([k, v]) => [k, quantized(v)]));
+      expect(atmospherePalette(0.5, a).air).toEqual(want);
+    }
+  });
+
+  it("draws its own map from its own air: the untuned city of the palette is mapInksFor with that air", () => {
+    for (const over of [{}, { wetness: 1, cloudiness: 1 }, { snow: 0.7, cloudiness: 1 }, { haze: 0.9 }]) {
+      const p = atmospherePalette(0.5, at(0.5, over));
+      const again = mapInksFor(p.sky2, { hue: 0, vivid: 50, contrast: 50 }, new Set(["water", "waterway", "streets", "main-roads", "motorways"] as MapLayer[]), p.air);
+      expect(again).toEqual(p.map);
+    }
+  });
+
+  it("keeps the weather under the viewer's tuning: the same hue, vividness and contrast, in the rain's air", () => {
+    const [clear, wet] = [atmospherePalette(0.5, at(0.5, {})), atmospherePalette(0.5, at(0.5, { wetness: 1, cloudiness: 1 }))];
+    const [a, b] = [mapInksFor(clear.sky2, PAGE, ALL_MAP_LAYERS, clear.air), mapInksFor(wet.sky2, PAGE, ALL_MAP_LAYERS, wet.air)];
+    // Tuned, the rain still quiets the ground and firms the water
+    expect(b.relief.opacity).toBeLessThan(a.relief.opacity);
+    expect(b.water.opacity).toBeGreaterThanOrEqual(a.water.opacity);
+    // And a palette without its air would have drawn it clear
+    expect(mapInksFor(wet.sky2, PAGE, ALL_MAP_LAYERS).relief.opacity).toBeGreaterThan(b.relief.opacity);
+  });
+
+  it("takes the weather to steps, so the timeline shares its inks and nothing visible moves", () => {
+    const sky = atmospherePalette(0.5, at(0.5, {})).sky2;
+    // An air whose values sit at the middle of a step (0.88 and 1.14 are whole multiples of 0.02), by hand, so the
+    // test does not lean on the constants of `mapVisualState`: a quarter of a step either way stays in the step
+    const base = { ...CLEAR_MAP, terrainWeight: 0.88, waterWeight: 1.14, roadWeight: 1.1, saturation: 0.92 };
+    const nudged = { ...base, waterWeight: base.waterWeight + AIR_STEP / 4, terrainWeight: base.terrainWeight - AIR_STEP / 4 };
+    expect(mapInksFor(sky, PAGE, ALL_MAP_LAYERS, nudged)).toBe(mapInksFor(sky, PAGE, ALL_MAP_LAYERS, base));
+    // Two whole steps do change them
+    const far = { ...base, terrainWeight: base.terrainWeight - 3 * AIR_STEP };
+    expect(mapInksFor(sky, PAGE, ALL_MAP_LAYERS, far)).not.toBe(mapInksFor(sky, PAGE, ALL_MAP_LAYERS, base));
+    // The plain map stays plain, and a weather too faint for a step is none: both are clear air
+    expect(atmospherePalette(-0.5, at(-0.5)).air).toEqual(CLEAR_MAP);
+    const faint = { ...CLEAR_MAP, waterWeight: 1 + AIR_STEP / 3, terrainWeight: 1 - AIR_STEP / 3, depth: 1 - AIR_STEP / 3 };
+    expect(mapInksFor(sky, PAGE, ALL_MAP_LAYERS, faint)).toBe(mapInksFor(sky, PAGE, ALL_MAP_LAYERS, CLEAR_MAP));
   });
 });
