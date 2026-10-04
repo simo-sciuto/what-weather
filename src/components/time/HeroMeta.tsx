@@ -196,7 +196,7 @@ export function HeroMetaPhone({
 /**
  * The moment on a phone, over the name: the hour on show, large and in the
  * accent colour, and the day under it in small print. ("Crea poster" and the
- * map's colours are at the foot of the first screen there, see HeroReading.)
+ * map's colours are at the foot of the first screen there, see HeroActionsDock.)
  */
 export function HeroNowPhone({
   timezone,

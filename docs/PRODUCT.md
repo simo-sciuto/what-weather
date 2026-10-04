@@ -13,9 +13,9 @@ Direction chosen on 2026-10-04, not built yet: Visual Weather Records, the daily
 - The page is the sky: background colours follow the place's time of day and weather, and cross-fade while scrubbing.
 - Swiss poster reading: six-column grid, flush left, the place's name large and heavy, the temperature beside it, a few facts in small print, hairlines for structure, three text sizes.
 - The city's map sits behind the page and tilts into the streets as you scroll.
-- Progressive disclosure: first screen is one reading (place, temperature, outlook, timeline); chapters follow; detail on demand.
+- Progressive disclosure: first screen is one reading (place and temperature at the top, the place, the day and the hour at the foot, the timeline); chapters follow; detail on demand.
 - Urgent things (alerts, imminent rain, promoted details) move up right after the first screen.
-- Outlook in words: a short plain sentence about what the weather will do next.
+- Outlook in words: a short plain sentence about what the weather will do next. Not set on the poster (removed 2026-10-04, WTH-181); read out to screen readers and used for the share image.
 
 ## Not this
 
@@ -32,4 +32,4 @@ Generic dashboard, card walls, information overload, decorative UI with no funct
 
 ## Features today
 
-Poster hero, live sky, Mapbox backdrop, 24 h timeline (drag to explore, whole page follows), week with day picker, "what the weather is good for" (activities, best window), rain/cloud map animation, details (air quality, pollen, UV, wind, humidity, sun, moon, alerts), outlook sentence, places (search, saved, recent, last place remembered), "Territorio" chapter, share URL + generated preview image, downloadable poster, installable PWA, tunable map colours and layers.
+Poster hero, live sky, Mapbox backdrop, 24 h timeline (drag to explore, whole page follows), week with day picker, "what the weather is good for" (activities, best window), rain/cloud map animation, details (air quality, pollen, UV, wind, humidity, sun, moon, alerts), outlook sentence (read out and in the share image only), places (search, saved, recent, last place remembered), "Territorio" chapter, share URL + generated preview image, downloadable poster, installable PWA, tunable map colours and layers.

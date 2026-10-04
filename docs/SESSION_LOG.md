@@ -9,6 +9,13 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Not verified: market figures and licence terms are assumptions until WTH-166 and WTH-167.
 - Next: unchanged, the user looks at the lab and K closes.
 
+## 2026-10-04 (poster without sentences)
+- Worked on: WTH-181, after "proseguiamo": the outlook sentences removed from the hero, the name and temperature block to the top, the Luogo, Giorno, Ora row to the foot (on a phone the name rises, the facts stay at the foot).
+- Found late: ADR-013 (the user's product direction of the same day) pauses layout work on the live app, WTH-017 among it. I should have read DECISIONS.md before starting: flagged, change left uncommitted, WTH-182 (stop overlap) was added meanwhile.
+- Checked: tsc and ESLint clean. Not run: e2e. Not verified: the look.
+- The user confirmed WTH-181 knowingly ("ok per tutto"), with PRODUCT.md updated and WTH-024 closed. Recorded in DECISIONS as a one-off exception to ADR-013's pause.
+- Next: WTH-046H, or whatever the user picks (WTH-182 stops overlap, WTH-165 phone search).
+
 ## 2026-10-04 (transit stops)
 - Worked on: WTH-180, after the user's "vai" (the next of their requests, as proposed).
 - Completed: the stops drawn as forms (roundel, heavier roundel, open ring, dot) in `map-style.ts`, with a companion core layer and a `ring` kind in `syncMap`; five tests; tsc and ESLint clean. The design was mine to choose (the user asked for "something more graphically advanced"): elementary geometry in the line's colour, hierarchy by weight, no outline.
@@ -16,18 +23,4 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - The user found the stops too big on first look: the first radii (ring up to 7.5 and 8.5 px at zoom 17) exceeded the old dots (5). Shrunk: train ring 4.2, metro 4.8, tram 2.4, bus dot 1.6 at zoom 17, strokes 0.5 to 1.5. The relations between modes are tested, not the absolute sizes.
 - Not verified: how it looks on the page and in the poster (the user's call; no screenshot, per the project rule).
 - Next: WTH-181 (proposed as a checkpoint first), or WTH-046H.
-
-## 2026-10-04 (poster glow)
-- Worked on: WTH-179, picked first by the user among their three requests.
-- Completed: the poster's glow (two stops, ending in transparent black, a radius half the page's) replaced by a Gaussian bloom with the page's reach, in `lib/weather/bloom.ts`; six tests; tsc and ESLint clean.
-- Not verified: how an exported poster looks. No screenshot taken, per the project rule; the user looks at it.
-- Next: WTH-180 or WTH-181 (each to be proposed as a checkpoint first), or WTH-046H.
-
-## 2026-10-04 (map hierarchy)
-- Worked on: K closed and committed; WTH-046G. Mid-session the user added three requests (poster glow, transit stops, the poster's left column): on the board as WTH-179, 180, 181, not started.
-- Completed: `mapVisualState` and its use in `mapInks`. The separation under weather took four attempts: weights inside the search (reverted, it moved hues with depth), then snow lifting the buildings with the ground (met the streets), the streets and 3D volumes taken out of the weights, and a wrong first measure (`p.map` keeps only the city layers apart: the test must use all layers).
-- Checked: 107 tests in six suites; tsc and ESLint; live fingerprint unchanged. A `timeout` command does not exist on this macOS: several silent runs were that, not hangs.
-- Reviewer pass: no critical problems; the main finding (separation not guaranteed after the weights) was real: widening the test to every light and ten mixes showed 0.011 with snow and a storm. Added a guard that eases the opacity factor; also made the 3D buildings follow the flat ones' colour. The lab's glow now matches the page's `.sky-glow` (it was harsher, without the clouds' dimming): a small change outside G, noted here.
-- Not verified: the look in the lab, the user's.
-- Next: the user's look; then H or the three new requests.
 

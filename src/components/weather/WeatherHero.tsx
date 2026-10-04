@@ -14,17 +14,17 @@ import {
   HeroMetaPhone,
   HeroNowPhone,
 } from "../time/HeroMeta";
-import { HeroReading } from "../time/HeroReading";
+import { NarrativeText } from "../time/NarrativeText";
 import { HeroCondition, HeroGlyph, HeroTemp } from "../time/HeroTemp";
 
 /**
  * The reading as a Swiss typographic poster, on a six-column grid, flush left
- * and ragged right. From the top: the two actions; the head (place, day, hour,
- * with the coordinates and the day of the year as small print); then one
- * composition: the place's name heavy, the temperature
- * bold against it on one baseline, and over the name the day's low and high
- * and the sky as a glyph in one row; an empty field where the map shows the city; the
- * outlook, large, at the foot.
+ * and ragged right. From the top: the two actions; then one composition: the
+ * place's name heavy, the temperature bold against it on one baseline, and
+ * over the name the day's low and high and the sky as a glyph in one row; an
+ * empty field where the map shows the city; and at the foot one line, the
+ * place, the day and the hour, with the coordinates and the day of the year as
+ * small print. No sentences are set (WTH-181): the outlook is read out only.
  */
 export function WeatherHero({
   place,
@@ -76,14 +76,6 @@ export function WeatherHero({
       className="on-sky flex min-h-[calc(100svh-7.5rem)] flex-col lg:min-h-full"
     >
       <HeroActions />
-      <HeroMeta
-        region={placeParts(place).region}
-        country={placeParts(place).country}
-        coords={formatCoords(place.lat, place.lon)}
-        timezone={timezone}
-        renderedAt={renderedAt}
-        dataAt={current.time}
-      />
 
       {/*
         On a phone (the poster is the whole screen there, the data in a sheet): the temperature large at
@@ -91,6 +83,13 @@ export function WeatherHero({
         the middle; the hour, the place's name and its facts at the foot, over the outlook.
       */}
       <div className="rise-in pt-4 lg:hidden">
+        <div
+          style={{
+            fontSize: `min(4.25rem, ${(92 / (0.58 * longest)).toFixed(2)}vw)`,
+          }}
+        >
+          <LocationControl />
+        </div>
         <HeroTemp size="phone" />
         <div className="mt-3 flex items-center gap-3 text-[1.5rem]">
           <HeroGlyph high={range.max} low={range.min} note={range.note} />
@@ -131,25 +130,31 @@ export function WeatherHero({
       <div aria-hidden="true" className="min-h-8 flex-1" />
 
       {/* On a phone, the foot: the hour and the day on one line, a hairline, the name, the place's facts */}
-      <div className="mb-5 lg:hidden">
-        <HeroNowPhone
-          timezone={timezone}
-          renderedAt={renderedAt}
-          dataAt={current.time}
-        />
-        <div
-          className="mt-2 border-t border-white/30 pt-2"
-          style={{
-            fontSize: `min(4.25rem, ${(92 / (0.58 * longest)).toFixed(2)}vw)`,
-          }}
-        >
-          <LocationControl />
+      <div className="pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:hidden">
+        <div className="border-t border-white/30 pt-2">
+          <HeroNowPhone
+            timezone={timezone}
+            renderedAt={renderedAt}
+            dataAt={current.time}
+          />
         </div>
         <HeroMetaPhone
           region={placeParts(place).region}
           country={placeParts(place).country}
           coords={formatCoords(place.lat, place.lon)}
           className="mt-3"
+        />
+      </div>
+
+      {/* On a computer, the foot: one line, the place, the day and the hour (a phone has its own just above) */}
+      <div className="lg:pb-1">
+        <HeroMeta
+          region={placeParts(place).region}
+          country={placeParts(place).country}
+          coords={formatCoords(place.lat, place.lon)}
+          timezone={timezone}
+          renderedAt={renderedAt}
+          dataAt={current.time}
         />
       </div>
 
@@ -160,7 +165,7 @@ export function WeatherHero({
         {range.note ? ` (${range.note})` : " oggi"}.
         {sinceYesterday && ` ${sinceYesterday} a quest’ora.`}
       </p>
-      <HeroReading outlook={outlook} />
+      <NarrativeText outlook={outlook} />
     </section>
   );
 }
