@@ -6,7 +6,7 @@ Items marked (audit) were noticed while reading the code on 2026-10-01, not requ
 
 ## NOW
 
-- [ ] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. Active since 2026-10-04 after user sign-off of WTH-012. WTH-046A/B/C/D/E done (E signed off in the lab `/lab/atmosfera`); F implemented, awaiting the user's look in the lab; next checkpoint WTH-046K. V1 covers the static system; WTH-046M is PARKED. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
+- [ ] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. Active since 2026-10-04 after user sign-off of WTH-012. WTH-046A/B/C/D/E done (E signed off in the lab `/lab/atmosfera`); F committed (`d58c2ff`); K first round implemented, open on snow. V1 covers the static system; WTH-046M is PARKED. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
 
 ```text
 WTH-012 -> WTH-046A -> WTH-046B -> WTH-046C -> WTH-046D
@@ -21,8 +21,8 @@ WTH-046M: PARKED, outside V1
   - [x] WTH-046C Carry atmospheric data through the timeline: humidity, visibility and dew point with their origin from every provider to `frameLook()`. Done 2026-10-04.
   - [x] WTH-046D Solar base palette: `solarPalette(light)` exposes the existing natural-light base, values unchanged. Done 2026-10-04.
   - [x] WTH-046E OKLCH atmosphere transform: `atmosphereSky`/`atmospherePalette` in `palette.ts` section 6, bounded and in a fixed order, sharing the live finish; live `skyPalette` byte-identical. Dev-only lab `/lab/atmosfera`. Done 2026-10-04, signed off by the user in the lab.
-  - [ ] WTH-046F Atmospheric depth: haze compresses depth instead of greying; visible in grayscale. Implemented 2026-10-04: `atmosphereDepth` and map planes in `palette.ts` (far ground fades, middle softens, foreground holds), live map byte-identical; visual judgement in the lab is the user's.
-  - [ ] WTH-046K Scenario calibration suite: critical gate before G/H/L; measurement-driven scenarios and invariants, never city presets. Started with E: 16 scenarios in `calibration.ts` and the lab. Open findings: the signature ranks `cloud` over rain/snow in most wet scenarios (A); saturated-air haze and the UV curve differ from the live page (B). See the engine doc.
+  - [x] WTH-046F Atmospheric depth: haze compresses depth instead of greying; visible in grayscale. Done 2026-10-04 (committed): `atmosphereDepth` and map planes in `palette.ts` (far ground fades, middle softens, foreground holds), live map byte-identical; visual judgement in the lab is the user's.
+  - [ ] WTH-046K Scenario calibration suite: critical gate before G/H/L; measurement-driven scenarios and invariants, never city presets. Started with E: 16 scenarios in `calibration.ts` and the lab. First round done 2026-10-04 (signature by weights, visibility-led haze, scenario expectations corrected, UV kept). Open: snow is weak and double counted as haze (the three snow scenarios); G/H/L stay behind this gate. See the engine doc.
   - [ ] WTH-046G Meteorological map hierarchy: weather changes map hierarchy and depth, not just hue; separation and user tuning preserved.
   - [ ] WTH-046H Unified visual palette contract: evolve `SkyPalette` into one whole-record palette for UI, Mapbox and poster.
   - [ ] WTH-046I Temperature colour integration: decide which `temp-color.ts` uses stay absolute and which follow the engine.

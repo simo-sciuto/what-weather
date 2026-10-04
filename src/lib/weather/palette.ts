@@ -1,4 +1,4 @@
-import type { AtmosphereAxes } from "./atmosphere";
+import { HAZE_ONSET, type AtmosphereAxes } from "./atmosphere";
 import type { WeatherState } from "./state";
 
 /**
@@ -988,7 +988,7 @@ export const ATMOSPHERE_LIMITS = {
    * air alone (dew point and humidity, WTH-046B) gives 0.45 of haze: depth starts closing only once
    * visibility is lost on top of it.
    */
-  hazeOnset: 0.45,
+  hazeOnset: HAZE_ONSET,
   /**
    * The veil's lightness at most: just above where text protection caps any sky under white text
    * (about 0.5 in OKLCH), so the veil reaches that cap but rain and storm can still be seen to darken it.

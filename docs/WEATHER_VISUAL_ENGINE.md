@@ -130,8 +130,8 @@ The signature describes the two strongest positive visual forces. Its ranking is
 | sun | `daylight * (1 - cloudiness) * clarity` |
 | heat | `max(0, warmth)` |
 | cold | `max(0, -warmth)` |
-| cloud | `cloudiness` |
-| haze | `haze` |
+| cloud | `0.6 * cloudiness`: background (WTH-046K) |
+| haze | `S(0.45, 1, haze)`: only the haze that acts (WTH-046K) |
 | rain | `wetness` |
 | snow | `snow` |
 | storm | `severity` |
@@ -171,7 +171,7 @@ Each numeric input receives a status: `supplied`, `clamped`, `missing` (null/und
 | daylight | Existing solar gate: zero for phase <=0 or >=1; otherwise `clamp01(2*sin(pi*light))`, bounded 0..1. Preserve the distinction between phase and brightness. | 0; absence of solar timing cannot invent daylight. Polar handling stays upstream in frame generation. |
 | warmth | Segment-wise smoothstep through (-15,-1), (-5,-0.8), (5,-0.5), (12,-0.25), (18,0), (24,0.25), (30,0.6), (36,0.9), (42,1); saturate outside the endpoints. Monotone, continuous, zero derivative at anchors. | Neutral 0; do not substitute feels-like temperature or a city's typical climate. |
 | cloudiness | `S(0,100,cloudCover)`, bounded 0..1. Measured cover wins over semantic category. | Reuse `TYPICAL_CLOUD_COVER[condition]`; no condition means neutral influence 0. This is a labelled fallback, not an observation of clear sky. |
-| haze | `0.55*visibilityLoss + 0.30*dewProximity + 0.15*humidityFactor`, clamped 0..1. `visibilityLoss = 1-S(1.5,20,visibility)`; `dewProximity = 1-S(0,8,temp-dewPoint)`; `humidityFactor = S(0.45,0.98,humidity/100)`. Dew points above temperature saturate proximity, without extrapolation. | Missing components contribute zero, without rescaling available weights. Missing visibility with condition fog uses visibilityLoss=1; otherwise 0. Missing either temperature or dew point removes that whole contribution. Humidity alone contributes at most 0.15. |
+| haze | `0.65*visibilityLoss + 0.25*dewProximity + 0.10*humidityFactor`, clamped 0..1 (recalibrated in WTH-046K, see below). `visibilityLoss = 1-S(1,10,visibility)`; `dewProximity = 1-S(0,8,temp-dewPoint)`; `humidityFactor = S(0.45,0.98,humidity/100)`. Dew points above temperature saturate proximity, without extrapolation. | Missing components contribute zero, without rescaling available weights. Missing visibility with condition fog uses visibilityLoss=1; otherwise 0. Missing either temperature or dew point removes that whole contribution. Humidity alone contributes at most 0.10. |
 | clarity | `1-haze`, bounded 0..1, derived by WTH-046A. | Follows haze. High clarity with missing data is a neutral visual fallback, not a claim of measured visibility. |
 | wetness | Liquid-phase rate uses `clamp01(log1p(rate)/log1p(12))`, bounded 0..1. It saturates at 12 mm/h and responds more strongly to the first millimetre. | For rain/thunderstorm: rates 0.5/2/8 mm/h for light/moderate/heavy; drizzle: 0.2/0.5/1. Other conditions: 0. Missing intensity uses moderate. Measured zero wins over these defaults. |
 | snow | With snow condition, the same bounded precipitation curve is applied to the combined rate, while wetness is zero. Other conditions give zero snow. | Snow condition with unavailable precipitation uses influence 0.3/0.6/0.9 for light/moderate/heavy; missing intensity uses moderate. Measured zero still wins. |
@@ -340,3 +340,13 @@ Validation: `atmosphere-sky.test.ts`, seven new tests. Depth is 1 up to the onse
 Known limit: since saturated air already gives 0.45 of haze (WTH-046B finding), snow and rain scenarios with moderate visibility reach haze 0.9 or more and so nearly no depth. Their map is compressed as much as dense fog's. Whether that is right is part of the haze calibration in WTH-046K.
 
 Next: WTH-046K, the calibration gate, before G/H/L.
+
+## WTH-046K: first calibration round (2026-10-04)
+
+Decisions taken with the user: signature by weights per force; visibility leads the haze; the UV curve stays as WTH-046B has it.
+
+- **Signature (finding A).** The ranking now scores each force as strength times weight: cloud counts 0.6 (it is background and near 1 in any precipitation), haze counts only past `HAZE_ONSET` (0.45, exported from `atmosphere.ts` and shared with the transform) on the transform's own smoothstep, the rest count 1. A rain or snow of 0.62 or more is ahead of a full overcast; haze below the onset, which does nothing to depth, colour or glow, is no force. The signature still drives no colour. The documented example "cloudiness 0.9, severity 1, wetness 0.7" now reads storm/rain, not storm/cloud: the rain under the storm is the visible force.
+- **Haze (finding B).** Weights 0.65 visibility, 0.25 dew proximity, 0.10 humidity, and the visibility loss runs from 10 km (none) to 1 km (all), after the usual meteorological bands (fog under 1 km, mist to about 5, a good view from 10). Saturated air alone gives 0.35, below the onset: rain with a view of 9 km keeps its depth (it was flattened as much as fog, haze 0.8), 4 km of mist closes it, fog closes it fully. The transform's onset (0.45) is unchanged.
+- **UV (finding B).** Unchanged by decision: smoothstep, neutral mid value when UV is missing. Small differences from the live page on clear days in the lab come partly from here.
+- **Scenarios.** Expectations were hypotheses written before measuring and were corrected where the measurement is the better reading: heavy rain is rain/haze (4 km of view), the thunderstorm storm/rain, humid fog haze/cold (4 degrees), winter dawn cold/sun (12 km of view is no veil), subtropical night heat/cloud (9 km is no veil: the look text no longer promises one). Two tests guard this: every scenario names its expected forces but for the open snow ones, and depth stays whole in light, maritime and thunderstorm rain while heavy rain and fog close it.
+- **Open (snow).** `snow`, `snowy-dusk` and `northern-snow` still read haze/cold or cold/cloud instead of snow. The snow axis is weak for light and moderate snowfall (0.18 at 0.6 mm/h, 0.36 at 1.5 mm/h, on the log curve of `precipInfluence`), and the view lost to the snowfall itself counts as haze: precipitation is counted twice, as wetness or snow and as haze. A data decision (how much of the lost visibility belongs to the precipitation, and how strong snow should read at a light rate) before the signature feeds the fingerprint (WTH-046J) or the map hierarchy (WTH-046G) for snow.

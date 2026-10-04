@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAtmosphere, type AtmosphereAxes } from "./atmosphere";
+import { createAtmosphere, HAZE_ONSET, type AtmosphereAxes } from "./atmosphere";
 
 const clearNight: AtmosphereAxes = {
   daylight: 0, warmth: 0, cloudiness: 0, haze: 0,
@@ -16,7 +16,22 @@ describe("normalized atmosphere grammar", () => {
   it("distinguishes fog from thunderstorm at the same 90% cloud influence", () => {
     const common = { daylight: 0.5, cloudiness: 0.9 };
     expect(atmosphere({ ...common, haze: 1 }).signature).toEqual({ dominant: "haze", secondary: "cloud" });
-    expect(atmosphere({ ...common, severity: 1, wetness: 0.7 }).signature).toEqual({ dominant: "storm", secondary: "cloud" });
+    // Cloud is background (weight 0.6): the rain under the storm is ahead of the overcast
+    expect(atmosphere({ ...common, severity: 1, wetness: 0.7 }).signature).toEqual({ dominant: "storm", secondary: "rain" });
+  });
+
+  it("counts haze as a force only once it acts: below the onset it is no force, from there it grows (WTH-046K)", () => {
+    expect(atmosphere({ haze: 0.3 }).signature).toEqual({ dominant: null, secondary: null });
+    expect(atmosphere({ haze: HAZE_ONSET }).signature.dominant).toBeNull();
+    expect(atmosphere({ haze: 0.3, wetness: 0.2 }).signature).toEqual({ dominant: "rain", secondary: null });
+    expect(atmosphere({ haze: 0.8, wetness: 0.2 }).signature).toEqual({ dominant: "haze", secondary: "rain" });
+  });
+
+  it("ranks precipitation ahead of a full overcast, and clouds ahead of a faint one (WTH-046K)", () => {
+    expect(atmosphere({ cloudiness: 1, wetness: 0.8 }).signature).toEqual({ dominant: "rain", secondary: "cloud" });
+    expect(atmosphere({ cloudiness: 1, snow: 0.7 }).signature).toEqual({ dominant: "snow", secondary: "cloud" });
+    expect(atmosphere({ cloudiness: 1, wetness: 0.5 }).signature).toEqual({ dominant: "cloud", secondary: "rain" });
+    expect(atmosphere({ cloudiness: 1, wetness: 0.1 }).signature.dominant).toBe("cloud");
   });
 
   it("keeps snow and rain distinct, including mixed precipitation", () => {
@@ -29,10 +44,11 @@ describe("normalized atmosphere grammar", () => {
     expect(atmosphere({ severity: 0.2, haze: 0.9 }).signature).toEqual({ dominant: "haze", secondary: "storm" });
     expect(atmosphere({ severity: 1, snow: 1, wetness: 1, haze: 1, cloudiness: 1 }).signature)
       .toEqual({ dominant: "storm", secondary: "snow" });
-    expect(atmosphere({ wetness: 0.5, haze: 0.5, cloudiness: 0.5 }).signature)
+    expect(atmosphere({ wetness: 1, haze: 1, cloudiness: 1 }).signature)
       .toEqual({ dominant: "rain", secondary: "haze" });
-    expect(atmosphere({ haze: 0.5, cloudiness: 0.5, warmth: -0.5 }).signature)
-      .toEqual({ dominant: "haze", secondary: "cloud" });
+    // Exact ties by precedence: haze, then cold, both ahead of the weighted cloud
+    expect(atmosphere({ haze: 1, cloudiness: 1, warmth: -1 }).signature)
+      .toEqual({ dominant: "haze", secondary: "cold" });
     expect(atmosphere({ daylight: 0.5, warmth: 0.5 }).signature)
       .toEqual({ dominant: "heat", secondary: "sun" });
     expect(atmosphere({ daylight: 0.5, warmth: -0.5 }).signature)

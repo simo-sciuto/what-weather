@@ -2,6 +2,13 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-04 (calibration round one)
+- Worked on: F committed (`d58c2ff`), then WTH-046K's first round after asking the user three questions (signature, haze, UV).
+- Completed: signature by weights (cloud 0.6, haze past the onset), visibility-led haze with a 10-to-1 km loss, six scenario expectations corrected from the measurements, two gate tests. Changing the weights alone would not have kept rain with 9 km of view out of the fog depth: the visibility curve had to move too.
+- Checked: 89 tests in five suites (visual-input, atmosphere, pipeline, sky, palette); tsc and ESLint; the live fingerprint unchanged.
+- Not verified: the look of the new scenarios in the lab (the user's). Snow still open.
+- Next: the user looks; commit K; decide snow.
+
 ## 2026-10-04 (atmospheric depth)
 - Worked on: WTH-165 added to the board (phone search bar); E committed after the user's sign-off; WTH-046F.
 - Completed: depth from haze and map planes as a final opacity step. A first version that lowered contrast targets before the separation search jumped between colour variants (a layer could come back stronger or change hue): replaced.
@@ -29,11 +36,4 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Checked: 30 tests passed across atmosphere.test.ts and visual-input.test.ts (20 new); targeted ESLint and full TypeScript (`tsc --noEmit --incremental false`) passed. Final code/documentation review and diff whitespace check passed.
 - Not verified: final colours, map hierarchy, UI/poster output or the full WTH-046K calibration suite. No existing provider, frame, palette or rendering code was changed.
 - Next: WTH-046C, carry atmospheric measurements through the timeline. Motion remains PARKED.
-
-## 2026-10-04
-- Worked on: user sign-off of WTH-012 (including WTH-008), start of WTH-046 at checkpoint A.
-- Completed: normalized immutable atmosphere model, derived clarity, deterministic force ranking with explicit ties and nullable absent forces; grammar in WEATHER_VISUAL_ENGINE.md, ADR-012. Updated board and project state.
-- Checked: 10 atmosphere unit tests passed; targeted ESLint and full TypeScript check (`tsc --noEmit --incremental false`) passed. Final diff reviewed; board parser round-trip and preservation of all existing task IDs verified, with only WTH-012/WTH-008 moved to DONE and WTH-046 to NOW.
-- Not verified: visual output, E2E and full scenario calibration, because the new model is not yet connected to the application. Existing palette, providers, timeline, map, poster and UI unchanged.
-- Next: WTH-046B (measurement normalization). WTH-046M remains PARKED.
 

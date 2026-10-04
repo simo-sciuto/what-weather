@@ -42,8 +42,17 @@ describe("weather measurement normalization", () => {
     const lowVisibility = state({ humidity: 85, visibility: 2, temp: 20, dewPoint: 18 });
     expect(humidClear.haze).toBeLessThan(0.5);
     expect(lowVisibility.haze).toBeGreaterThan(0.8);
-    expect(state({ humidity: 100 }).haze).toBeCloseTo(0.15);
-    expect(state({ visibility: 0 }).haze).toBeCloseTo(0.55);
+    expect(state({ humidity: 100 }).haze).toBeCloseTo(0.1);
+    expect(state({ visibility: 0 }).haze).toBeCloseTo(0.65);
+  });
+
+  it("keeps saturated air under the transform's depth onset and a good view clear in the rain (WTH-046K)", () => {
+    const ONSET = 0.45;
+    // Saturated air alone: 0.35. Rain with 9 km of view is almost as clear; 4 km of mist closes the depth.
+    expect(state({ humidity: 100, temp: 12, dewPoint: 12, visibility: 30 }).haze).toBeLessThan(ONSET);
+    expect(state({ humidity: 98, temp: 10, dewPoint: 9.5, visibility: 9, precipitation: 3, condition: "rain" }).haze).toBeLessThan(ONSET);
+    expect(state({ humidity: 98, temp: 10, dewPoint: 9.5, visibility: 4, precipitation: 3, condition: "rain" }).haze).toBeGreaterThan(0.75);
+    expect(state({ humidity: 100, temp: 8, dewPoint: 8, visibility: 0.3 }).haze).toBeGreaterThan(0.95);
   });
 
   it("reduces depth monotonically as visibility falls and dew point approaches temperature", () => {
@@ -126,7 +135,7 @@ describe("weather measurement normalization", () => {
     expect(empty.atmosphere.clarity).toBe(1);
     expect(state({ condition: "rain", intensity: "light" }).wetness).toBeGreaterThan(0);
     expect(state({ condition: "rain", intensity: "heavy", precipitation: 0 }).wetness).toBe(0);
-    expect(state({ condition: "fog" }).haze).toBeCloseTo(0.55);
+    expect(state({ condition: "fog" }).haze).toBeCloseTo(0.65);
     expect(state({ condition: "fog", visibility: 20 }).haze).toBe(0);
     expect(state({ condition: "cloudy" }).cloudiness).toBeGreaterThan(0.9);
     expect(state({ condition: "cloudy", cloudCover: 0 }).cloudiness).toBe(0);
@@ -149,7 +158,7 @@ describe("weather measurement normalization", () => {
     }
     expect(result.atmosphere.cloudiness).toBe(1);
     expect(result.atmosphere.wetness).toBe(0);
-    expect(result.atmosphere.haze).toBeCloseTo(0.55);
+    expect(result.atmosphere.haze).toBeCloseTo(0.65);
   });
 
   it("stays deterministic and immutable without reading place, time, wind or WeatherState", () => {

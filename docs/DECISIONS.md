@@ -97,6 +97,11 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - The finite input is solar phase (-1..2), not normalized daylight brightness. Output is raw interpolated sRGB sky triples and RGBA glow; weather, UV, accessibility protection and map generation remain downstream in `skyPalette()`.
 - No runtime calculation changes. Polar fallbacks remain in `frames.ts`; no new colour system, phase thresholds or astronomical model introduced. The bounded atmosphere transform is WTH-046E, with final visual integration after calibration.
 
+### ADR-012 update (2026-10-04): calibration round one (WTH-046K)
+- The signature ranks by strength times weight: cloud 0.6, haze counted only past the transform's onset (0.45, `HAZE_ONSET`), other forces 1. It remains an explanation, driving no colour. Precipitation now outranks a full overcast.
+- Haze is led by visibility (0.65, lost between 10 and 1 km), then dew proximity (0.25) and humidity (0.10). Saturated air alone gives 0.35, below the onset. The UV curve is deliberately kept.
+- Open: snow is weak and double counted (wetness/snow and haze); to be decided before fingerprint or map hierarchy rely on it.
+
 ### ADR-012 update (2026-10-04): atmosphere transform
 - `atmosphereSky()` transforms the solar base with the normalized axes through bounded OKLCH operations in a fixed order (white balance and turns, chroma, depth veil, lightness, stop spread, floors, gamut). It shares `finishPalette()` (text protection, glass, markers, map inks) with the live `skyPalette()`, whose output is byte-identical after the split.
 - Same-property pulls combine as the strongest in full plus 25% of each other, never as a product, and floors bound the final stops. Temperature is a white-balance offset, not a hue theme. Haze acts only past the 0.45 that saturated air alone gives.

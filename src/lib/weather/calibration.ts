@@ -34,7 +34,7 @@ export const CALIBRATION_SCENARIOS: readonly CalibrationScenario[] = [
     id: "winter-dawn",
     label: "Alba d'inverno",
     input: { light: 0.03, temp: -4, cloudCover: 10, humidity: 85, visibility: 12, dewPoint: -6, precipitation: 0, uvIndex: 0.2, condition: "clear" },
-    expected: { dominant: "cold", secondary: "haze", look: "L'alba resta riconoscibile, più lilla e fredda all'orizzonte, un velo leggero." },
+    expected: { dominant: "cold", secondary: "sun", look: "L'alba resta riconoscibile, più lilla e fredda all'orizzonte, senza velo (12 km di visibilità)." },
   },
   {
     id: "dense-fog",
@@ -52,13 +52,13 @@ export const CALIBRATION_SCENARIOS: readonly CalibrationScenario[] = [
     id: "heavy-rain",
     label: "Pioggia forte",
     input: { light: 0.55, temp: 17, cloudCover: 100, humidity: 96, visibility: 4, dewPoint: 16, precipitation: 9, uvIndex: 0.5, condition: "rain", intensity: "heavy" },
-    expected: { dominant: "rain", secondary: "cloud", look: "Più scuro, denso, ardesia. Più bagnato della pioggia debole, mai più chiaro." },
+    expected: { dominant: "rain", secondary: "haze", look: "Più scuro, denso, ardesia, con la profondità che si chiude (4 km di visibilità). Più bagnato della pioggia debole, mai più chiaro." },
   },
   {
     id: "thunderstorm",
     label: "Temporale",
     input: { light: 0.7, temp: 24, cloudCover: 95, humidity: 78, visibility: 6, dewPoint: 20, precipitation: 15, uvIndex: 0.5, condition: "thunderstorm", intensity: "heavy" },
-    expected: { dominant: "storm", secondary: "cloud", look: "La scena più profonda: cima del cielo scura contro un orizzonte più chiaro, bagliore quasi spento." },
+    expected: { dominant: "storm", secondary: "rain", look: "La scena più profonda: cima del cielo scura contro un orizzonte più chiaro, bagliore quasi spento." },
   },
   {
     id: "snow",
@@ -94,7 +94,7 @@ export const CALIBRATION_SCENARIOS: readonly CalibrationScenario[] = [
     id: "humid-fog-plain",
     label: "Pianura umida e nebbiosa",
     input: { light: 0.12, temp: 4, cloudCover: 70, humidity: 98, visibility: 0.8, dewPoint: 3.7, precipitation: 0, uvIndex: 0.3, condition: "fog" },
-    expected: { dominant: "haze", secondary: "cloud", look: "Mattino lattiginoso: il sole basso si perde in un velo, profondità compressa." },
+    expected: { dominant: "haze", secondary: "cold", look: "Mattino lattiginoso: il sole basso si perde in un velo, profondità compressa." },
   },
   {
     id: "mediterranean-sun",
@@ -118,6 +118,6 @@ export const CALIBRATION_SCENARIOS: readonly CalibrationScenario[] = [
     id: "subtropical-night",
     label: "Notte subtropicale umida",
     input: { light: 2, temp: 28, cloudCover: 40, humidity: 90, visibility: 9, dewPoint: 26, precipitation: 0, uvIndex: 0, condition: "partly-cloudy" },
-    expected: { dominant: "haze", secondary: "heat", look: "Notte calda e velata: inchiostro più viola, gradiente morbido." },
+    expected: { dominant: "heat", secondary: "cloud", look: "Notte calda e umida, senza velo (9 km di visibilità): inchiostro più viola, gradiente morbido." },
   },
 ];

@@ -42,6 +42,33 @@ export interface AtmosphereState extends AtmosphereAxes {
 const FORCE_ORDER: readonly VisualForce[] = ["storm", "snow", "rain", "haze", "cloud", "cold", "heat", "sun"];
 
 /**
+ * Haze below this does nothing to depth, colour or glow (the transform's onset, WTH-046E), so it is no
+ * force either: saturated air or a little mist must not rank as a visual force the picture does not show.
+ */
+export const HAZE_ONSET = 0.45;
+
+/**
+ * How much each force counts in the ranking (not in any colour). With precipitation cloudiness is near 1,
+ * so unweighted clouds always outranked rain and snow (WTH-046K finding): cloud is background, and counts
+ * for 0.6 of its value, so a rain of 0.62 or more is ahead of a full overcast.
+ */
+const FORCE_WEIGHT: Readonly<Record<VisualForce, number>> = {
+  storm: 1,
+  snow: 1,
+  rain: 1,
+  haze: 1,
+  cloud: 0.6,
+  cold: 1,
+  heat: 1,
+  sun: 1,
+};
+
+const hazeActing = (haze: number) => {
+  const t = Math.min(1, Math.max(0, (haze - HAZE_ONSET) / (1 - HAZE_ONSET)));
+  return t * t * (3 - 2 * t);
+};
+
+/**
  * Accepts already normalized, finite axes. Rejects invalid internal input
  * rather than silently treating unavailable measurements as observed zero.
  * Provider fallbacks and raw-unit normalization belong upstream in WTH-046B/C.
@@ -74,15 +101,16 @@ export function createAtmosphere(axes: AtmosphereAxes): AtmosphereState {
     heat: Math.max(0, normalized.warmth),
     cold: Math.max(0, -normalized.warmth),
     cloud: normalized.cloudiness,
-    haze: normalized.haze,
+    // Only the haze that acts: from the onset to full haze, on the transform's own curve
+    haze: hazeActing(normalized.haze),
     rain: normalized.wetness,
     snow: normalized.snow,
     storm: normalized.severity,
   };
   const ranked = FORCE_ORDER
-    .map((force, priority) => ({ force, priority, strength: strength[force] }))
+    .map((force, priority) => ({ force, priority, strength: strength[force], score: strength[force] * FORCE_WEIGHT[force] }))
     .filter((entry) => entry.strength > 0)
-    .sort((a, b) => b.strength - a.strength || a.priority - b.priority);
+    .sort((a, b) => b.score - a.score || a.priority - b.priority);
 
   return Object.freeze({
     ...normalized,

@@ -358,6 +358,26 @@ describe("calibration scenarios", () => {
     expect(depth("dense-fog")).toBeLessThan(0.5 * depth("clear-summer-noon"));
   });
 
+  /** Open (WTH-046K): the snow axis is weak (0.18 at 0.6 mm/h) and the view lost to the snowfall counts as haze */
+  const SNOW_OPEN = ["snow", "snowy-dusk", "northern-snow"];
+
+  it("name the forces each one is expected to show, but for the snow scenarios still open", () => {
+    const wrong = CALIBRATION_SCENARIOS.filter((sc) => {
+      const got = computeAtmosphere(sc.input).atmosphere.signature;
+      return got.dominant !== sc.expected.dominant || got.secondary !== sc.expected.secondary;
+    }).map((sc) => sc.id);
+    expect(wrong.sort()).toEqual([...SNOW_OPEN].sort());
+  });
+
+  it("keep the depth in rain with a good view, and close it with mist and fog", () => {
+    const depthOf = (id: string) =>
+      atmosphereDepth(computeAtmosphere(CALIBRATION_SCENARIOS.find((x) => x.id === id)!.input).atmosphere);
+    for (const id of ["light-rain", "maritime-rain", "thunderstorm"]) expect(depthOf(id)).toBeGreaterThan(0.95);
+    expect(depthOf("heavy-rain")).toBeLessThan(0.7);
+    expect(depthOf("dense-fog")).toBeLessThan(0.1);
+    expect(depthOf("humid-fog-plain")).toBeLessThan(0.1);
+  });
+
   it("give every scenario a palette whose text stays legible", () => {
     for (const s of CALIBRATION_SCENARIOS) {
       const { atmosphere } = computeAtmosphere(s.input);

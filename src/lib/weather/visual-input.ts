@@ -102,10 +102,12 @@ export function computeAtmosphere(input: WeatherVisualInput): AtmosphereComputat
   // Only missing visibility may use the explicit fog condition as a fallback.
   const visibilityLoss = visibility == null
     ? (input.condition === "fog" ? 1 : 0)
-    : 1 - smoothstep(1.5, 20, visibility);
+    : 1 - smoothstep(1, 10, visibility);
   const dewProximity = temp == null || dewPoint == null ? 0 : 1 - smoothstep(0, 8, temp - dewPoint);
   const humidityFactor = humidity == null ? 0 : smoothstep(0.45, 0.98, humidity / 100);
-  const haze = clamp(0.55 * visibilityLoss + 0.30 * dewProximity + 0.15 * humidityFactor, 0, 1);
+  // Visibility leads (0.65): saturated air alone gives 0.35, below the transform's onset, so rain with a
+  // good view stays clear of depth; thick haze needs lost visibility on top of it (WTH-046K).
+  const haze = clamp(0.65 * visibilityLoss + 0.25 * dewProximity + 0.10 * humidityFactor, 0, 1);
 
   // The normalized project model combines rain and snow. Use the condition
   // to interpret that amount; do not double-count it as both rain and snow.
