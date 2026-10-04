@@ -162,6 +162,42 @@ function fromOklch([L, C, h]: LCH): RGB {
   }
 }
 
+/**
+ * `fromOklch` for what moves with the clock: the same lightness and hue, but a colour out of gamut gives up
+ * only as much chroma as it must (the edge, found by bisection), not a 5% step at a time. The steps make
+ * the result jump between levels, and near the sRGB edge a tiny change of light moved a channel by 10 or
+ * more (WTH-046K). The live page keeps `fromOklch` unchanged.
+ */
+function fromOklchEdge([L, C, h]: LCH): RGB {
+  const fits = (c: number) => {
+    const A = c * Math.cos(h);
+    const B = c * Math.sin(h);
+    const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3;
+    const m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3;
+    const s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+    const lin = [
+      4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+    ];
+    return { lin, ok: lin.every((v) => v >= -1e-4 && v <= 1 + 1e-4) };
+  };
+  let best = fits(C);
+  if (!best.ok) {
+    let [lo, hi] = [0, C];
+    for (let i = 0; i < 24; i++) {
+      const mid = (lo + hi) / 2;
+      const t = fits(mid);
+      if (t.ok) {
+        lo = mid;
+        best = t;
+      } else hi = mid;
+    }
+    if (!best.ok) best = fits(0);
+  }
+  return best.lin.map((v) => fromLinear(clamp01(v))) as RGB;
+}
+
 const whole = (x: RGB) => x.map(Math.round) as RGB;
 
 /** Straight distance in OKLab, where equal steps are about equally visible: 0.02 is the least that can be told apart, 0.1 is plainly another colour. */
@@ -194,6 +230,30 @@ function legibleUnderText(c: RGB, ratio: number): RGB {
   for (let l = L; l > 0 && contrast(muted(out), out) < ratio; l -= 0.01)
     out = whole(fromOklch([l, C, h]));
   return out;
+}
+
+/**
+ * `legibleUnderText` for what moves with the clock: the lightest colour of the same hue and chroma that
+ * keeps the ratio, found by bisection and drawn to the gamut's edge, instead of 0.01 steps of lightness each
+ * through the stepped gamut reduction. Those steps made the sky jump between levels as the light crept
+ * past the threshold (a channel by 10 or more in 7 minutes, WTH-046K). The live page keeps the stepped one.
+ */
+function legibleUnderTextEdge(c: RGB, ratio: number): RGB {
+  const out = whole(c);
+  if (contrast(muted(out), out) >= ratio) return out;
+  const [L, C, h] = toOklch(c);
+  const ok = (l: number) => {
+    const r = whole(fromOklchEdge([l, C, h]));
+    return contrast(muted(r), r) >= ratio;
+  };
+  let [lo, hi] = [0, L];
+  for (let i = 0; i < 20; i++) {
+    const mid = (lo + hi) / 2;
+    if (ok(mid)) lo = mid;
+    else hi = mid;
+  }
+  // Nothing met the ratio (not even the darkest): the stepped protection's own answer, rather than near black unchecked
+  return ok(lo) ? whole(fromOklchEdge([lo, C, h])) : legibleUnderText(c, ratio);
 }
 
 /* ---------- 1. Natural solar light through the day ---------- */
@@ -876,22 +936,19 @@ export function skyPalette(input: StateSkyInput): SkyPalette {
  * page scrolls over the fixed sky — chapter titles and the footer on the
  * horizon. All of it stays at AA; the glow still brightens the light source.
  */
-function legibleSky(weathered: [RGB, RGB, RGB]): [RGB, RGB, RGB] {
-  return [
-    legibleUnderText(weathered[0], 4.8),
-    legibleUnderText(weathered[1], 4.6),
-    legibleUnderText(weathered[2], 4.5),
-  ];
+function legibleSky(weathered: [RGB, RGB, RGB], continuous = false): [RGB, RGB, RGB] {
+  const protect = continuous ? legibleUnderTextEdge : legibleUnderText;
+  return [protect(weathered[0], 4.8), protect(weathered[1], 4.6), protect(weathered[2], 4.5)];
 }
 
 /** The three sky stops and the glow as the page would paint them, without glass or map: cheap enough for a whole day of strips. */
-export function skyColors({ sky, glow }: SolarPalette): {
+export function skyColors({ sky, glow }: SolarPalette, continuous = false): {
   sky1: string;
   sky2: string;
   sky3: string;
   glow: string;
 } {
-  const [sky1, sky2, sky3] = legibleSky(sky).map(toHex);
+  const [sky1, sky2, sky3] = legibleSky(sky, continuous).map(toHex);
   return { sky1, sky2, sky3, glow: rgba(glow) };
 }
 
@@ -902,8 +959,9 @@ function finishPalette(
   light: number,
   cloud: RGBA,
   depth = 1,
+  continuous = false,
 ): SkyPalette {
-  const [sky1, sky2, sky3] = legibleSky(weathered);
+  const [sky1, sky2, sky3] = legibleSky(weathered, continuous);
 
   // Glass: the thinnest veil over the brightest part of the sky that keeps muted text at AA.
   // The veil is the top of the sky, deepened, so fields and buttons stay in its hue.
@@ -1153,14 +1211,14 @@ export function atmosphereSky(light: number, a: AtmosphereAxes): SolarPalette {
   });
 
   // 7. Out to sRGB
-  const sky = stops.map(fromOklch) as [RGB, RGB, RGB];
+  const sky = stops.map(fromOklchEdge) as [RGB, RGB, RGB];
 
   // The glow: warmer in warm air; in the cold only whiter, since a cool tint would turn its butter green.
   // As strong as the sun and as the weather lets through, never below `glowFloor` of that.
   const [gL, gC, gh] = toOklch([base.glow[0], base.glow[1], base.glow[2]]);
   const [ga, gb] = a.warmth > 0 ? [wa, wb] : [0, 0];
   const [, gC1, gh1] = fromLab([gL, gC * Math.cos(gh) + ga, gC * Math.sin(gh) + gb]);
-  const glowRGB = fromOklch([gL, gC1 * (1 - X.coldGlowChroma * Math.max(0, -a.warmth)), gh1]);
+  const glowRGB = fromOklchEdge([gL, gC1 * (1 - X.coldGlowChroma * Math.max(0, -a.warmth)), gh1]);
   const glowAlpha =
     base.glow[3] *
     sun(GLOW_MIN, GLOW_MAX) *
@@ -1200,5 +1258,5 @@ export function atmospherePalette(light: number, a: AtmosphereAxes): SkyPalette 
   const rain = clamp01(1.5 * Math.max(a.wetness, a.severity));
   const dark = isDark(light);
   const cloud: RGBA = [...mix(WHITE, RAIN_CLOUD, rain), dark ? 0.06 + 0.01 * rain : 0.2];
-  return finishPalette(sky, glow, light, cloud, atmosphereDepth(a));
+  return finishPalette(sky, glow, light, cloud, atmosphereDepth(a), true);
 }

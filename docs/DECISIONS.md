@@ -102,8 +102,16 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - Haze is led by visibility (0.65, lost between 10 and 1 km), then dew proximity (0.25) and humidity (0.10). Saturated air alone gives 0.35, below the onset. The UV curve is deliberately kept.
 - User decision: rain, snow and fog are separate values. Snow has its own intensity scale (full at 2 mm/h of water, rain at 12), the view a fall takes away is the fall's and never haze (`hazeLoss = max(0, visibilityLoss - max(wetness, snow))`), and heat and cold weigh 0.8 in the signature as background. Depth now closes only with fog.
 
+### ADR-012 update (2026-10-04): continuous gamut and legibility in the atmosphere path (WTH-046K)
+- The atmosphere path uses `fromOklchEdge` and `legibleUnderTextEdge` (bisection) instead of the live page's stepped gamut reduction and 0.01-step darkening, which made a clear noon's sky jump by up to 14/255 between frames seven minutes apart. The live page is unchanged on purpose (its look is shipped); moving it is for WTH-046L.
+
 ### ADR-012 update (2026-10-04): atmosphere transform
 - `atmosphereSky()` transforms the solar base with the normalized axes through bounded OKLCH operations in a fixed order (white balance and turns, chroma, depth veil, lightness, stop spread, floors, gamut). It shares `finishPalette()` (text protection, glass, markers, map inks) with the live `skyPalette()`, whose output is byte-identical after the split.
 - Same-property pulls combine as the strongest in full plus 25% of each other, never as a product, and floors bound the final stops. Temperature is a white-balance offset, not a hue theme. Haze acts only past the 0.45 that saturated air alone gives.
 - The white-text contract caps sky lightness near OKLCH 0.5: bright atmospheres (fog, snow) can differ there only by hue, chroma, gradient and glow. The veil stops just above the cap so rain and storm still darken visibly.
 - Not on the live page. Calibrated first in the dev-only `/lab/atmosfera` over the shared scenarios in `calibration.ts` (WTH-046K), then integrated (WTH-046L). Constants are calibration values, not final.
+
+## ADR-013: Direction, Visual Weather Records (2026-10-04)
+- Decided by the user after a product and positioning review: the weather is the engine, the record is the product. The daily app stays free and is the shop window; records of a place at a meaningful moment, past dates included, are what is sold (digital file and print).
+- Why: as a weather app the product enters a saturated, free market; as a poster maker of "now" it has no reason to be bought. Together, a record of a moment that matters, they fit the personalised-poster gift market with an edge no competitor has: real weather in a deterministic visual language.
+- Consequences: WTH-046 continues unchanged; the Records track follows it (WTH-166 to WTH-173); layout work on the live app (WTH-017, WTH-018, WTH-022, WTH-009, WTH-015) is paused. Historical weather enters as a provider behind ADR-001 and is shown as reanalysis, not measurement. ADR-010 (Italian UI) is to be revisited for the records flow only (WTH-173). No payment before licences are checked (WTH-166) and demand is validated (WTH-167).

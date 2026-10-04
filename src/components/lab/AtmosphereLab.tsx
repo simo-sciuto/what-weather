@@ -196,7 +196,7 @@ const ScenarioCard = memo(function ScenarioCard({
     const dayAtmosphere = DAY.map((l) => computeAtmosphere({ ...scenario.input, light: l }).atmosphere);
     return {
       live: DAY.map((l) => skyColors(stateSky(liveState(scenario, l)))),
-      next: DAY.map((l, i) => skyColors(atmosphereSky(l, dayAtmosphere[i]))),
+      next: DAY.map((l, i) => skyColors(atmosphereSky(l, dayAtmosphere[i]), true)),
     };
   }, [scenario]);
 

@@ -18,11 +18,11 @@ Conceptual pipeline: `WeatherData -> WeatherVisualInput -> normalization -> Atmo
 WTH-012 -> WTH-046A -> WTH-046B -> WTH-046C -> WTH-046D
         -> WTH-046E -> WTH-046F -> WTH-046K -> WTH-046G
         -> WTH-046H -> WTH-046I -> WTH-046J -> WTH-046L
-        -> WTH-017 -> WTH-018 -> WTH-022
+        -> Records track (ROADMAP.md, ADR-013)
 WTH-046M: PARKED, outside V1
 ```
 
-WTH-012 (including WTH-008) was signed off by the user on 2026-10-04. The sequence governs this track, including the remaining work on WTH-022. Calibration deliberately precedes final map/system integration. WTH-010, already DONE, is not reopened by this sequence.
+WTH-012 (including WTH-008) was signed off by the user on 2026-10-04. The sequence governs this track. Since 2026-10-04 (ADR-013) the Records track follows WTH-046L; WTH-017, WTH-018 and WTH-022 are paused. Calibration deliberately precedes final map/system integration. WTH-010, already DONE, is not reopened by this sequence.
 
 ### Foundations and relationships
 
@@ -34,7 +34,7 @@ Planning baseline verified on 2026-10-04, updated where WTH-046C/D changed it:
 - `src/components/weather/map-style.ts` consumes map inks. `MapContext.tsx` shares place, timezone, Mapbox loading/token and cloud-grid data; it does not own palette generation. `src/components/time/TimeContext.tsx` derives the frame look. `src/components/poster/render-poster.ts` already consumes `SkyPalette` and shares the map style. Preserve this reuse.
 - `src/lib/weather/temp-color.ts` supplies the absolute temperature scale (`tempColor`, `tempGradient`), deliberately comparable across places and weeks.
 
-Relationships, without merging, deleting or reopening existing IDs: WTH-009 (tinta options) and completed WTH-010/WTH-150 (map tuning) must remain compatible; WTH-014/WTH-016 (map separation), WTH-019/WTH-021 (transit/road hierarchy), WTH-111/WTH-130/WTH-131/WTH-134 (sky, palette, map and UV) and WTH-142/WTH-154 (poster reuse) are foundations to evolve. WTH-002/WTH-003 concern measured/interpolated and partial-day semantics relevant to WTH-046C. WTH-004/WTH-005/WTH-006 remain separate accessibility, performance and map-coverage audits supporting calibration/integration. WTH-013 concerns phone poster delivery; WTH-017/WTH-018/WTH-022 follow the engine on this track. WTH-015's missing building tiles are a source/zoom issue, not something palette or hierarchy changes can solve.
+Relationships, without merging, deleting or reopening existing IDs: WTH-009 (tinta options) and completed WTH-010/WTH-150 (map tuning) must remain compatible; WTH-014/WTH-016 (map separation), WTH-019/WTH-021 (transit/road hierarchy), WTH-111/WTH-130/WTH-131/WTH-134 (sky, palette, map and UV) and WTH-142/WTH-154 (poster reuse) are foundations to evolve. WTH-002/WTH-003 concern measured/interpolated and partial-day semantics relevant to WTH-046C. WTH-004/WTH-005/WTH-006 remain separate accessibility, performance and map-coverage audits supporting calibration/integration. WTH-013 concerns phone poster delivery; WTH-017/WTH-018/WTH-022 are paused (ADR-013). WTH-015's missing building tiles are a source/zoom issue, not something palette or hierarchy changes can solve.
 
 ### Subtasks
 
@@ -355,3 +355,15 @@ Decisions taken with the user: signature by weights per force; visibility leads 
   - Heat and cold join cloud as background (weight 0.8): freezing air no longer outranks the snow that falls in it.
   - With these the three snow scenarios read snow/cloud, snow/cloud and cold/snow, and heavy rain rain/cloud and humid fog haze/cloud: the expectations written before measuring, restored. Every scenario now names its expected forces (gate test with no exceptions), and depth stays whole in every fall.
   - Consequence to watch in the lab: a snowfall or a downpour with poor visibility no longer flattens the sky or the map; their weight is carried by the wetness and snow axes (darkening, cooling, brightening), not by depth.
+
+### WTH-046K, round three: grayscale, timeline, conflicts
+
+`calibration-invariants.test.ts` (11 tests) holds the invariants that need a scenario, a timeline or two forces at once. Thresholds come from measurements, with a point of margin.
+
+- **Timeline jitter found and fixed (atmosphere path only).** Sweeping the light 0.01 at a time (about seven minutes) showed the middle sky stop of a clear noon wandering by up to 14/255 in the red channel, non-monotonically (`#0669a7`, `#076bab`, `#026baa`, `#0e6aa7`...). Two stepped procedures caused it: `fromOklch` gives up chroma 5% at a time at the sRGB edge, and `legibleUnderText` darkens 0.01 of lightness at a time through that stepped reduction; near a threshold the result jumps between levels. The atmosphere path now uses `fromOklchEdge` (bisection to the gamut's edge) and `legibleUnderTextEdge` (bisection to the lightest colour that keeps the ratio), selected by a `continuous` flag on `finishPalette`/`legibleSky`/`skyColors`, which `atmospherePalette` sets. The live page keeps the stepped versions untouched (the live fingerprint test still passes), and so keeps its own jitter (8/255 on a clear day at light 0.20): a candidate for WTH-046L when the live page moves to the atmosphere path, not changed now.
+- **Timeline bounds:** by day (light 0.2 to 0.8) no channel moves more than 9/255 in 0.01 of light in any scenario; over the whole day, 12 (dense fog at dawn, where the veil takes the horizon's hue and the solar base turns that hue fast); the glow's alpha, 0.02. A morph of the measurements from a clear day to a thick fog, light fixed, steps at most 8/255 per 1%. A change of `condition` alone between rain and snow does jump, by design: phase is categorical (wetness against snow), not interpolated.
+- **Grayscale (sky).** The white-text cap leaves every bright day (clear, light and maritime rain, snow, northern snow) with the same sky lightness, within 0.06 in OKLab L over the three stops. The sky tells the dark atmospheres (heavy rain, thunderstorm, overcast night) from the bright, and a storm from heavy rain. A tripwire test pins the limit on the whole picture, the sky's three stops plus the lightness of eight map layers over the sky: the bright days stay within 0.047 of one another (0.016 by sky alone), while fog is 0.185 from a clear day (its far ground is under half of the others'). Map hierarchy (WTH-046G) must separate clear, rain and snow in grayscale; the tripwire then fires and is to be replaced by an assertion that they differ.
+- **Conflicts.** A storm in fog is darker than the fog and no more open than the storm; 90% cloud with fog differs from 90% cloud with a thunderstorm by more than 0.1 OKLab; mixed rain and snow sits between the two; warm fog is warmer than cold fog; every pile-up stays valid hex and the full pile-up has no depth. Known limit: in a full storm with rain the lightness floors (45% of the base) already pin every stop, so haze has no sky left to compress (spread 0.121 against 0.124): the map's depth carries fog there.
+- **Review (reviewer pass):** no critical problems. Fixed from it: the continuous text protection falls back to the stepped one if even the darkest colour fails the ratio, instead of returning near black unchecked; the tripwire measures sky and map, not the sky alone; the conflict test checks the contrast of every stop against 4.8, 4.6 and 4.5; a near-empty test was removed.
+- **Not covered, deliberately:** wind (parked, WTH-046M); the live-page jitter above; the look of any of this, which is the user's call in the lab.
+

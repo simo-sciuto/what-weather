@@ -174,7 +174,7 @@ describe("atmosphereSky", () => {
       for (const company of COMPANY)
         for (const level of [0, 0.5, 1]) {
           const a = at(light, { ...company, wetness: level, severity: level / 2 });
-          const { sky1, sky2, sky3 } = skyColors(atmosphereSky(light, a));
+          const { sky1, sky2, sky3 } = skyColors(atmosphereSky(light, a), true);
           [sky1, sky2, sky3].forEach((hex, i) => {
             const bg = rgb(hex);
             expect(contrast(muted(bg), bg)).toBeGreaterThanOrEqual([4.8, 4.6, 4.5][i]);
@@ -318,7 +318,7 @@ describe("calibration scenarios", () => {
   const look = (id: string) => {
     const s = CALIBRATION_SCENARIOS.find((x) => x.id === id)!;
     const { atmosphere } = computeAtmosphere(s.input);
-    const colors = skyColors(atmosphereSky(s.input.light, atmosphere));
+    const colors = skyColors(atmosphereSky(s.input.light, atmosphere), true);
     const stops = [colors.sky1, colors.sky2, colors.sky3].map(rgb);
     return { stops, mean: stops.reduce((sum, c) => sum + lightness(c), 0) / 3 };
   };

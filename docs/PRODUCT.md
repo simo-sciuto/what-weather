@@ -6,6 +6,8 @@ Source: README, code and commit history. Not an invented vision: if a principle 
 
 what-weather ("whatever"): "Weather, calmly: the right information at the right moment." A weather web app that reads like a Swiss typographic poster. Italian interface. Live at what-weather-theta.vercel.app.
 
+Direction chosen on 2026-10-04, not built yet: Visual Weather Records, the daily app as a free shop window and records of meaningful moments as the paid product. See ROADMAP.md and ADR-013. This file still describes only what the app does today.
+
 ## Identity (preserve)
 
 - The page is the sky: background colours follow the place's time of day and weather, and cross-fade while scrubbing.
