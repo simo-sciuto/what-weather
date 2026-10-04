@@ -1,7 +1,8 @@
 import { atmosphericData } from "./atmospheric-data";
 import { computeAtmosphere, type AtmosphereComputation } from "./visual-input";
 import type { Frame } from "./frames";
-import { skyPalette, type SkyPalette } from "./palette";
+import { atmospherePalette, skyPalette, type SkyPalette } from "./palette";
+import type { PaletteEngine } from "./engine";
 import { skyAt, type SkyPosition } from "./state";
 
 /**
@@ -16,7 +17,7 @@ export interface FrameLook {
   atmosphereInputStatus: AtmosphereComputation["inputStatus"];
 }
 
-export function frameLook(f: Frame): FrameLook {
+export function frameLook(f: Frame, engine: PaletteEngine = "live"): FrameLook {
   // Daily max, peak UV and placeholder cloud/rain are not same-hour readings.
   const visual = computeAtmosphere({
     light: f.light,
@@ -33,7 +34,11 @@ export function frameLook(f: Frame): FrameLook {
   return {
     atmosphere: visual.atmosphere,
     atmosphereInputStatus: visual.inputStatus,
-    palette: skyPalette({ light: f.light, state: f.state, cloudCover: f.cloudCover, uv: f.uv }),
+    // The page's own palette, or (WTH-046L, behind `?motore=atmosfera`) the one worked out from the atmosphere
+    palette:
+      engine === "atmosphere"
+        ? atmospherePalette(f.light, visual.atmosphere)
+        : skyPalette({ light: f.light, state: f.state, cloudCover: f.cloudCover, uv: f.uv }),
     sky: skyAt(f.light, f.phase),
   };
 }

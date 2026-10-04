@@ -1,3 +1,4 @@
+import { withEngine, type PaletteEngine } from "@/lib/weather/engine";
 import { formatTime } from "@/lib/weather/formatters";
 import { Wordmark } from "../Wordmark";
 import { MOCK_SCENARIOS } from "@/lib/weather/mock";
@@ -87,6 +88,7 @@ export function SiteFooter({
   timezone,
   scenario,
   at,
+  engine = "live",
 }: {
   provider: WeatherProvider["name"];
   openWeatherKey: boolean;
@@ -95,6 +97,8 @@ export function SiteFooter({
   timezone: string;
   scenario?: string;
   at?: string;
+  /** The palette in use, kept in the links between the sample scenarios (see `engine.ts`) */
+  engine?: PaletteEngine;
 }) {
   const list = credits(provider, openWeatherKey, maps);
   const openMeteo = list.some((c) => c.sources.includes(OPEN_METEO));
@@ -118,7 +122,7 @@ export function SiteFooter({
             {MOCK_SCENARIOS.map((s) => (
               <a
                 key={s}
-                href={`/?mock=${s}${at ? `&at=${at}` : ""}`}
+                href={withEngine(`/?mock=${s}${at ? `&at=${at}` : ""}`, engine)}
                 aria-current={s === scenario ? "page" : undefined}
                 className="label underline-offset-4 hover:text-ink aria-[current=page]:text-ink aria-[current=page]:underline"
               >

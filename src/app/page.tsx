@@ -27,6 +27,7 @@ import { PromotedDetails } from "@/components/weather/WeatherDetails";
 import { WeatherHero } from "@/components/weather/WeatherHero";
 import { placeHref } from "@/lib/place";
 import { loadWeatherPage, type SearchParams } from "@/lib/weather-page";
+import { ENGINE_PARAM, engineFromParam, withEngine } from "@/lib/weather/engine";
 import {
   activityOutlook,
   dailyActivityOutlooks,
@@ -100,6 +101,8 @@ export default async function Home({
     landed,
     renderedAt,
   } = await loadWeatherPage(searchParams);
+  // The palette in use: the page's own unless the address asks for the atmosphere's (see lib/weather/engine.ts)
+  const engine = engineFromParam((await searchParams)[ENGINE_PARAM]);
 
   const range = tempRange(data);
   const precip = precipOutlook(data);
@@ -119,13 +122,14 @@ export default async function Home({
       key={placeKey}
       timeline={timeline}
       moon={{ phase: moon.phase, southern: moon.southern }}
+      engine={engine}
     >
       <PlaceProvider place={data.place}>
         {/* The maps (the backdrop and the chapter) share Mapbox, the place and its cloud grid */}
         <MapProvider timezone={data.timezone}>
           <PhoneNavProvider>
             <AutoRefresh
-              landedAt={landed ? placeHref(data.place) : undefined}
+              landedAt={landed ? withEngine(placeHref(data.place), engine) : undefined}
             />
             <AtmosphereMain className="atmosphere min-h-dvh overflow-x-clip">
               <Sky />
@@ -163,7 +167,7 @@ export default async function Home({
                   {/* The name, then the search: on one line from a tablet up, the name above on a phone */}
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
                     <Link
-                      href="/"
+                      href={withEngine("/", engine)}
                       className="on-sky shrink-0 self-start rounded-sm sm:self-auto focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                     >
                       <Wordmark className="text-[1.375rem]" />
@@ -219,6 +223,7 @@ export default async function Home({
                         lon={data.place.lon}
                         name={data.place.name}
                         country={placeParts(data.place).country}
+                        engine={engine}
                       />
                     </Suspense>
 
@@ -278,6 +283,7 @@ export default async function Home({
                       timezone={data.timezone}
                       scenario={scenario}
                       at={at}
+                      engine={engine}
                     />
                   </div>
                 </Sheet>

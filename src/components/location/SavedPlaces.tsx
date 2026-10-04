@@ -3,11 +3,13 @@
 import type { PlaceSummary } from "@/app/api/summary/route";
 import { placeHref, samePlace, type PlaceRef } from "@/lib/place";
 import type { SavedPlace } from "@/lib/saved-places";
+import { withEngine } from "@/lib/weather/engine";
 import { formatTemp } from "@/lib/weather/formatters";
 import type { Condition } from "@/lib/weather/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { useEngine } from "../time/TimeContext";
 import { useHydrated } from "../useHydrated";
 import { WeatherIcon } from "../weather/WeatherIcon";
 import { usePlace } from "./PlaceContext";
@@ -55,6 +57,8 @@ export function SavedPlaces() {
     Record<string, PlaceSummary | null>
   >({});
   const router = useRouter();
+  // The switch of palettes goes with the viewer to the next place (see lib/weather/engine.ts)
+  const engine = useEngine();
   const [drawing, startDrawing] = useTransition();
 
   useEffect(() => {
@@ -101,7 +105,7 @@ export function SavedPlaces() {
           onClick={() =>
             startDrawing(async () => {
               const city = await drawCity();
-              if (city) router.push(placeHref(city));
+              if (city) router.push(withEngine(placeHref(city), engine));
             })
           }
           className={`${pill} border-white/15 text-ink-muted transition-colors hover:border-white/50 hover:text-ink focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60`}
@@ -121,7 +125,7 @@ export function SavedPlaces() {
             className="shrink-0 snap-start max-lg:hidden"
           >
             <Link
-              href={placeHref(p)}
+              href={withEngine(placeHref(p), engine)}
               aria-current={current ? "location" : undefined}
               className={`${pill} transition-colors hover:border-white/50 focus-visible:outline-2 focus-visible:outline-accent ${
                 current ? "border-accent/80" : "border-white/15"
