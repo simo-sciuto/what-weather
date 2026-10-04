@@ -128,8 +128,8 @@ The signature describes the two strongest positive visual forces. Its ranking is
 | Force | Strength |
 | --- | --- |
 | sun | `daylight * (1 - cloudiness) * clarity` |
-| heat | `max(0, warmth)` |
-| cold | `max(0, -warmth)` |
+| heat | `0.8 * max(0, warmth)`: a background tint (WTH-046K) |
+| cold | `0.8 * max(0, -warmth)`: a background tint (WTH-046K) |
 | cloud | `0.6 * cloudiness`: background (WTH-046K) |
 | haze | `S(0.45, 1, haze)`: only the haze that acts (WTH-046K) |
 | rain | `wetness` |
@@ -343,10 +343,15 @@ Next: WTH-046K, the calibration gate, before G/H/L.
 
 ## WTH-046K: first calibration round (2026-10-04)
 
-Decisions taken with the user: signature by weights per force; visibility leads the haze; the UV curve stays as WTH-046B has it.
+Decisions taken with the user: signature by weights per force; visibility leads the haze; the UV curve stays as WTH-046B has it; rain, snow and fog are separate values (snow own scale, no precipitation counted as haze).
 
 - **Signature (finding A).** The ranking now scores each force as strength times weight: cloud counts 0.6 (it is background and near 1 in any precipitation), haze counts only past `HAZE_ONSET` (0.45, exported from `atmosphere.ts` and shared with the transform) on the transform's own smoothstep, the rest count 1. A rain or snow of 0.62 or more is ahead of a full overcast; haze below the onset, which does nothing to depth, colour or glow, is no force. The signature still drives no colour. The documented example "cloudiness 0.9, severity 1, wetness 0.7" now reads storm/rain, not storm/cloud: the rain under the storm is the visible force.
-- **Haze (finding B).** Weights 0.65 visibility, 0.25 dew proximity, 0.10 humidity, and the visibility loss runs from 10 km (none) to 1 km (all), after the usual meteorological bands (fog under 1 km, mist to about 5, a good view from 10). Saturated air alone gives 0.35, below the onset: rain with a view of 9 km keeps its depth (it was flattened as much as fog, haze 0.8), 4 km of mist closes it, fog closes it fully. The transform's onset (0.45) is unchanged.
+- **Haze (finding B).** Weights 0.65 visibility, 0.25 dew proximity, 0.10 humidity, and the visibility loss runs from 10 km (none) to 1 km (all), after the usual meteorological bands (fog under 1 km, mist to about 5, a good view from 10). Saturated air alone gives 0.35, below the onset: rain with a view of 9 km keeps its depth (it was flattened as much as fog, haze 0.8); fog closes it fully (a view lost to a fall is no haze, see below). The transform's onset (0.45) is unchanged.
 - **UV (finding B).** Unchanged by decision: smoothstep, neutral mid value when UV is missing. Small differences from the live page on clear days in the lab come partly from here.
-- **Scenarios.** Expectations were hypotheses written before measuring and were corrected where the measurement is the better reading: heavy rain is rain/haze (4 km of view), the thunderstorm storm/rain, humid fog haze/cold (4 degrees), winter dawn cold/sun (12 km of view is no veil), subtropical night heat/cloud (9 km is no veil: the look text no longer promises one). Two tests guard this: every scenario names its expected forces but for the open snow ones, and depth stays whole in light, maritime and thunderstorm rain while heavy rain and fog close it.
-- **Open (snow).** `snow`, `snowy-dusk` and `northern-snow` still read haze/cold or cold/cloud instead of snow. The snow axis is weak for light and moderate snowfall (0.18 at 0.6 mm/h, 0.36 at 1.5 mm/h, on the log curve of `precipInfluence`), and the view lost to the snowfall itself counts as haze: precipitation is counted twice, as wetness or snow and as haze. A data decision (how much of the lost visibility belongs to the precipitation, and how strong snow should read at a light rate) before the signature feeds the fingerprint (WTH-046J) or the map hierarchy (WTH-046G) for snow.
+- **Scenarios.** Expectations were hypotheses written before measuring and were corrected where the measurement is the better reading: the thunderstorm storm/rain, winter dawn cold/sun (12 km of view is no veil), subtropical night heat/cloud (9 km is no veil: the look text no longer promises one). Two tests guard this: every scenario names its expected forces but for the open snow ones, and depth stays whole in light, maritime and thunderstorm rain while heavy rain and fog close it.
+- **Snow, second round (user decision: rain is rain, snow is snow, fog is fog).** Each is its own value, none a variant of another.
+  - Snow has its own scale: `snowInfluence = log1p(rate)/log1p(2)` on the water-equivalent rate, so 2 mm/h (already heavy snow) is full, 1.5 mm/h reads 0.83, 1 mm/h 0.63, 0.6 mm/h 0.43 (it was 0.36, 0.24 and 0.18 on the rain scale, 12 mm/h for full). Rain keeps its scale.
+  - Precipitation is never counted as haze. The view a fall takes away belongs to the fall, up to the fall's own strength: `hazeLoss = max(0, visibilityLoss - max(wetness, snow))`. Only the view the fall does not explain is haze, so fog with a drizzle stays fog, and heavy rain or snow with 2.5 km of view is rain or snow, not fog, and keeps the map's depth. Depth closes only with fog, as the planes of F intend.
+  - Heat and cold join cloud as background (weight 0.8): freezing air no longer outranks the snow that falls in it.
+  - With these the three snow scenarios read snow/cloud, snow/cloud and cold/snow, and heavy rain rain/cloud and humid fog haze/cloud: the expectations written before measuring, restored. Every scenario now names its expected forces (gate test with no exceptions), and depth stays whole in every fall.
+  - Consequence to watch in the lab: a snowfall or a downpour with poor visibility no longer flattens the sky or the map; their weight is carried by the wetness and snow axes (darkening, cooling, brightening), not by depth.

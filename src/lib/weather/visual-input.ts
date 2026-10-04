@@ -60,6 +60,8 @@ const DRIZZLE_FALLBACK: Record<Intensity, number> = { light: 0.2, moderate: 0.5,
 const SNOW_FALLBACK: Record<Intensity, number> = { light: 0.3, moderate: 0.6, heavy: 0.9 };
 const STORM_SEVERITY: Record<Intensity, number> = { light: 0.75, moderate: 0.9, heavy: 1 };
 const precipInfluence = (rate: number) => clamp(Math.log1p(rate) / Math.log1p(12), 0, 1);
+// Water equivalent: 2 mm/h is already heavy snow, so snow reaches its full value much sooner than rain does
+const snowInfluence = (rate: number) => clamp(Math.log1p(rate) / Math.log1p(2), 0, 1);
 
 /**
  * Deterministic measurement -> atmosphere boundary (WTH-046B).
@@ -98,6 +100,18 @@ export function computeAtmosphere(input: WeatherVisualInput): AtmosphereComputat
     ? 0 : clamp(2 * Math.sin(Math.PI * light), 0, 1);
   const clouds = cloudCover ?? (input.condition ? TYPICAL_CLOUD_COVER[input.condition] : 0);
 
+  // The normalized project model combines rain and snow. Use the condition
+  // to interpret that amount; do not double-count it as both rain and snow.
+  // Unknown/non-snow phase uses liquid interpretation, a documented limitation.
+  const isSnow = input.condition === "snow";
+  const rainFallback = input.condition === "drizzle" ? DRIZZLE_FALLBACK[intensity]
+    : input.condition === "rain" || input.condition === "thunderstorm" ? RAIN_FALLBACK[intensity] : 0;
+  const liquidRate = isSnow ? 0 : precipitation ?? rainFallback;
+  const snow = !isSnow ? 0 : precipitation == null ? SNOW_FALLBACK[intensity] : snowInfluence(precipitation);
+  const wetness = precipInfluence(liquidRate);
+  const rainSeverity = 0.6 * smoothstep(2, 12, liquidRate);
+  const severity = Math.max(rainSeverity, input.condition === "thunderstorm" ? STORM_SEVERITY[intensity] : 0);
+
   // Keep absent contributions at zero rather than amplify remaining signals.
   // Only missing visibility may use the explicit fog condition as a fallback.
   const visibilityLoss = visibility == null
@@ -107,18 +121,11 @@ export function computeAtmosphere(input: WeatherVisualInput): AtmosphereComputat
   const humidityFactor = humidity == null ? 0 : smoothstep(0.45, 0.98, humidity / 100);
   // Visibility leads (0.65): saturated air alone gives 0.35, below the transform's onset, so rain with a
   // good view stays clear of depth; thick haze needs lost visibility on top of it (WTH-046K).
-  const haze = clamp(0.65 * visibilityLoss + 0.25 * dewProximity + 0.10 * humidityFactor, 0, 1);
-
-  // The normalized project model combines rain and snow. Use the condition
-  // to interpret that amount; do not double-count it as both rain and snow.
-  // Unknown/non-snow phase uses liquid interpretation, a documented limitation.
-  const isSnow = input.condition === "snow";
-  const rainFallback = input.condition === "drizzle" ? DRIZZLE_FALLBACK[intensity]
-    : input.condition === "rain" || input.condition === "thunderstorm" ? RAIN_FALLBACK[intensity] : 0;
-  const liquidRate = isSnow ? 0 : precipitation ?? rainFallback;
-  const snow = !isSnow ? 0 : precipitation == null ? SNOW_FALLBACK[intensity] : precipInfluence(precipitation);
-  const rainSeverity = 0.6 * smoothstep(2, 12, liquidRate);
-  const severity = Math.max(rainSeverity, input.condition === "thunderstorm" ? STORM_SEVERITY[intensity] : 0);
+  // Rain is rain, snow is snow, fog is fog: the view a fall takes away is the fall's (its own axis), up to its
+  // own strength; only the rest is haze, so precipitation is never counted twice (WTH-046K).
+  const precipitationLoss = Math.max(wetness, snow);
+  const hazeLoss = Math.max(0, visibilityLoss - precipitationLoss);
+  const haze = clamp(0.65 * hazeLoss + 0.25 * dewProximity + 0.10 * humidityFactor, 0, 1);
 
   return Object.freeze({
     atmosphere: createAtmosphere({
@@ -126,7 +133,7 @@ export function computeAtmosphere(input: WeatherVisualInput): AtmosphereComputat
       warmth: temp == null ? 0 : warmthAt(temp),
       cloudiness: smoothstep(0, 100, clouds),
       haze,
-      wetness: precipInfluence(liquidRate),
+      wetness,
       severity,
       snow,
       // Absent UV uses a neutral mid-curve reference, not a measured zero.

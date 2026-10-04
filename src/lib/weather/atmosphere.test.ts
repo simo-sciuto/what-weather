@@ -49,10 +49,13 @@ describe("normalized atmosphere grammar", () => {
     // Exact ties by precedence: haze, then cold, both ahead of the weighted cloud
     expect(atmosphere({ haze: 1, cloudiness: 1, warmth: -1 }).signature)
       .toEqual({ dominant: "haze", secondary: "cold" });
-    expect(atmosphere({ daylight: 0.5, warmth: 0.5 }).signature)
+    // Heat and cold are background tints (weight 0.8): a tie with the sun is at daylight 0.8 and full warmth
+    expect(atmosphere({ daylight: 0.8, warmth: 1 }).signature)
       .toEqual({ dominant: "heat", secondary: "sun" });
-    expect(atmosphere({ daylight: 0.5, warmth: -0.5 }).signature)
+    expect(atmosphere({ daylight: 0.8, warmth: -1 }).signature)
       .toEqual({ dominant: "cold", secondary: "sun" });
+    expect(atmosphere({ daylight: 0.5, warmth: 0.5 }).signature)
+      .toEqual({ dominant: "sun", secondary: "heat" });
   });
 
   it("suppresses sun under overcast or opaque haze without erasing available light", () => {

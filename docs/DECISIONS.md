@@ -100,7 +100,7 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 ### ADR-012 update (2026-10-04): calibration round one (WTH-046K)
 - The signature ranks by strength times weight: cloud 0.6, haze counted only past the transform's onset (0.45, `HAZE_ONSET`), other forces 1. It remains an explanation, driving no colour. Precipitation now outranks a full overcast.
 - Haze is led by visibility (0.65, lost between 10 and 1 km), then dew proximity (0.25) and humidity (0.10). Saturated air alone gives 0.35, below the onset. The UV curve is deliberately kept.
-- Open: snow is weak and double counted (wetness/snow and haze); to be decided before fingerprint or map hierarchy rely on it.
+- User decision: rain, snow and fog are separate values. Snow has its own intensity scale (full at 2 mm/h of water, rain at 12), the view a fall takes away is the fall's and never haze (`hazeLoss = max(0, visibilityLoss - max(wetness, snow))`), and heat and cold weigh 0.8 in the signature as background. Depth now closes only with fog.
 
 ### ADR-012 update (2026-10-04): atmosphere transform
 - `atmosphereSky()` transforms the solar base with the normalized axes through bounded OKLCH operations in a fixed order (white balance and turns, chroma, depth veil, lightness, stop spread, floors, gamut). It shares `finishPalette()` (text protection, glass, markers, map inks) with the live `skyPalette()`, whose output is byte-identical after the split.

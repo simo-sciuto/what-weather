@@ -2,6 +2,13 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-04 (calibration round two)
+- Worked on: round one committed (`45bfcfb`); then the snow decision. The user said rain, snow and fog are separate values, which settled both open points: no precipitation counted as haze, and snow with its own strength.
+- Completed: `snowInfluence`, `hazeLoss` as the residual after the fall's own strength, heat and cold at 0.8. The three snow scenarios, heavy rain and humid fog came back to the expectations written before measuring.
+- Checked: 90 tests in five suites; tsc and ESLint; live palette unchanged.
+- Not verified: the look in the lab, the user's. Downpours and snowfalls with bad visibility no longer flatten the map: to be judged there.
+- Next: the user looks; commit; K's remaining invariants (grayscale, timeline, conflicts).
+
 ## 2026-10-04 (calibration round one)
 - Worked on: F committed (`d58c2ff`), then WTH-046K's first round after asking the user three questions (signature, haze, UV).
 - Completed: signature by weights (cloud 0.6, haze past the onset), visibility-led haze with a 10-to-1 km loss, six scenario expectations corrected from the measurements, two gate tests. Changing the weights alone would not have kept rain with 9 km of view out of the fog depth: the visibility curve had to move too.
@@ -29,11 +36,4 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Checked: 92 tests passed across six relevant suites (10 new pipeline tests, provider fixtures and existing model/narrative/activity/best-window regressions); targeted ESLint passed. Code/doc diff and board parser/ID preservation reviewed. Full TypeScript check (`tsc --noEmit --incremental false`) passed.
 - Not verified: live provider accounts, browser/E2E or final visual calibration. Current-detail numeric defaults remain for compatibility, but are excluded from the atmospheric pipeline. No UI, map, poster or palette changes.
 - Next: WTH-046D, solar base palette. WTH-046M remains PARKED.
-
-## 2026-10-04 (normalization checkpoint)
-- Worked on: WTH-046B, following the completed atmosphere model.
-- Completed: WeatherVisualInput and computeAtmosphere, bounded continuous measurement curves, deterministic fallback precedence, input handling statuses, snow/liquid phase interpretation and documented limits of the current combined precipitation field. Board, project state, grammar and ADR-012 updated.
-- Checked: 30 tests passed across atmosphere.test.ts and visual-input.test.ts (20 new); targeted ESLint and full TypeScript (`tsc --noEmit --incremental false`) passed. Final code/documentation review and diff whitespace check passed.
-- Not verified: final colours, map hierarchy, UI/poster output or the full WTH-046K calibration suite. No existing provider, frame, palette or rendering code was changed.
-- Next: WTH-046C, carry atmospheric measurements through the timeline. Motion remains PARKED.
 

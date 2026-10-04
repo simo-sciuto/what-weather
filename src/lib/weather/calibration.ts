@@ -52,7 +52,7 @@ export const CALIBRATION_SCENARIOS: readonly CalibrationScenario[] = [
     id: "heavy-rain",
     label: "Pioggia forte",
     input: { light: 0.55, temp: 17, cloudCover: 100, humidity: 96, visibility: 4, dewPoint: 16, precipitation: 9, uvIndex: 0.5, condition: "rain", intensity: "heavy" },
-    expected: { dominant: "rain", secondary: "haze", look: "Più scuro, denso, ardesia, con la profondità che si chiude (4 km di visibilità). Più bagnato della pioggia debole, mai più chiaro." },
+    expected: { dominant: "rain", secondary: "cloud", look: "Più scuro, denso, ardesia. Più bagnato della pioggia debole, mai più chiaro." },
   },
   {
     id: "thunderstorm",
@@ -94,7 +94,7 @@ export const CALIBRATION_SCENARIOS: readonly CalibrationScenario[] = [
     id: "humid-fog-plain",
     label: "Pianura umida e nebbiosa",
     input: { light: 0.12, temp: 4, cloudCover: 70, humidity: 98, visibility: 0.8, dewPoint: 3.7, precipitation: 0, uvIndex: 0.3, condition: "fog" },
-    expected: { dominant: "haze", secondary: "cold", look: "Mattino lattiginoso: il sole basso si perde in un velo, profondità compressa." },
+    expected: { dominant: "haze", secondary: "cloud", look: "Mattino lattiginoso: il sole basso si perde in un velo, profondità compressa." },
   },
   {
     id: "mediterranean-sun",

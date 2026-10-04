@@ -51,8 +51,21 @@ describe("weather measurement normalization", () => {
     // Saturated air alone: 0.35. Rain with 9 km of view is almost as clear; 4 km of mist closes the depth.
     expect(state({ humidity: 100, temp: 12, dewPoint: 12, visibility: 30 }).haze).toBeLessThan(ONSET);
     expect(state({ humidity: 98, temp: 10, dewPoint: 9.5, visibility: 9, precipitation: 3, condition: "rain" }).haze).toBeLessThan(ONSET);
-    expect(state({ humidity: 98, temp: 10, dewPoint: 9.5, visibility: 4, precipitation: 3, condition: "rain" }).haze).toBeGreaterThan(0.75);
     expect(state({ humidity: 100, temp: 8, dewPoint: 8, visibility: 0.3 }).haze).toBeGreaterThan(0.95);
+  });
+
+  it("does not count as haze the view a fall takes away: rain is rain, snow is snow, fog is fog (WTH-046K)", () => {
+    const ONSET = 0.45;
+    const view = { humidity: 97, temp: 3, dewPoint: 2.5, visibility: 2.5 };
+    // The same lost view: with heavy rain or snow it is the fall's; without one it is haze
+    expect(state({ ...view, precipitation: 9, condition: "rain" }).haze).toBeLessThan(ONSET);
+    expect(state({ ...view, precipitation: 1.5, condition: "snow" }).haze).toBeLessThan(ONSET);
+    expect(state({ ...view, precipitation: 0 }).haze).toBeGreaterThan(0.8);
+    // Fog with only a drizzle keeps the view the drizzle does not explain
+    expect(state({ humidity: 100, temp: 8, dewPoint: 8, visibility: 0.3, precipitation: 0.2, condition: "drizzle" }).haze).toBeGreaterThan(0.8);
+    // A fall never lowers haze below what the air alone gives
+    const air = state({ humidity: 97, temp: 3, dewPoint: 2.5, visibility: 30 }).haze;
+    expect(state({ ...view, precipitation: 12, condition: "rain" }).haze).toBeGreaterThanOrEqual(air);
   });
 
   it("reduces depth monotonically as visibility falls and dew point approaches temperature", () => {
@@ -97,7 +110,9 @@ describe("weather measurement normalization", () => {
     expect(snow.wetness).toBe(0);
     expect(snow.snow).toBeGreaterThan(0);
     expect(rain.snow).toBe(0);
-    expect(rain.wetness).toBe(snow.snow);
+    // Snow has its own scale (2 mm/h of water is heavy snow): the same amount reads stronger as snow than as rain
+    expect(snow.snow).toBeGreaterThan(rain.wetness);
+    expect(state({ condition: "snow", precipitation: 2 }).snow).toBe(1);
     expect(snow.severity).toBe(0);
     expect(state({ condition: "snow", intensity: "heavy", precipitation: 0 }).snow).toBe(0);
     expect(state({ condition: "snow", intensity: "heavy" }).snow).toBe(0.9);

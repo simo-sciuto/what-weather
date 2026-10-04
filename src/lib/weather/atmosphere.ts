@@ -58,8 +58,8 @@ const FORCE_WEIGHT: Readonly<Record<VisualForce, number>> = {
   rain: 1,
   haze: 1,
   cloud: 0.6,
-  cold: 1,
-  heat: 1,
+  cold: 0.8,
+  heat: 0.8,
   sun: 1,
 };
 
