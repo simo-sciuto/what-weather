@@ -2,8 +2,8 @@ import type { FontRef } from "./types";
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Inter Tight's real axes: weight only, so every width the engine asks for is set at its one width */
-export const DISPLAY_AXES = { wght: [100, 900], wdth: [100, 100] } as const;
+/** Archivo's real axes (the variable font in public/fonts/record): nothing outside them is ever asked for */
+export const DISPLAY_AXES = { wght: [100, 900], wdth: [62, 125] } as const;
 /** IBM Plex Mono, the two static weights the poster loads */
 export const MONO_WEIGHTS = [400, 500] as const;
 

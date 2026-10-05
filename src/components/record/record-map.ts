@@ -18,7 +18,7 @@ type Mapbox = typeof import("mapbox-gl").default;
  */
 
 /** The map's own layers whose lines cut the type, when the viewer shows them */
-const CUT_LAYERS = ["motorways", "train", "waterway"] as const;
+const CUT_LAYERS = ["motorways", "main-roads", "train", "metro", "waterway"] as const;
 /** The water's edge, added to the record's own copy of the map for the cut */
 const SHORE = "record-shore";
 

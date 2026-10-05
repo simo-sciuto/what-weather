@@ -143,7 +143,7 @@ describe("font axes", () => {
   it("clamps every axis to the font's real range", () => {
     const f = clampAxes({ family: "display", wght: 1200, wdth: 40, size: 0.1, tracking: 0 });
     expect(f.wght).toBe(900);
-    expect(f.wdth).toBe(100); // Inter Tight has one width
+    expect(f.wdth).toBe(62);
     expect(clampAxes({ family: "mono", wght: 700, wdth: 80, size: 0.1, tracking: 0 })).toMatchObject({ wght: 500, wdth: 100 });
   });
 
