@@ -280,10 +280,13 @@ function field(c: Ctx, city: Point, preferred: boolean): Plan {
     const letters = [...name];
     // The column centred on the sheet's height: from the first cap's top to the last baseline
     const first = c.bottom / 2 - ((n - 1) * step - CAP * size) / 2;
+    // Every letter centred on one axis, the widest one's middle: a narrow I sits in the column, not on its edge
+    const widest = Math.max(...letters.map((ch) => width(c, ch, f)));
+    const axis = M - 4 + widest / 2;
     letters.forEach((ch, i) =>
-      texts.push({ id: i ? `place-${i}` : "place", lines: [{ text: ch, x: M - 4, y: first + i * step }], font: f, ink: "ink-1", opacity: c.tv.tone, z: "type-back" }),
+      texts.push({ id: i ? `place-${i}` : "place", lines: [{ text: ch, x: axis - width(c, ch, f) / 2, y: first + i * step }], font: f, ink: "ink-1", opacity: c.tv.tone, z: "type-back" }),
     );
-    right = M - 4 + Math.max(...letters.map((ch) => width(c, ch, f)));
+    right = M - 4 + widest;
     placeFit = `stacked, ${n} letters`;
     fitScore = step / 122;
   } else {
