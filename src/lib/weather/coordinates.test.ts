@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COORD_PRECISION } from "./constants";
+import { COORD_PRECISION } from "@/constants/cache";
 import { roundCoord } from "./coordinates";
 
 describe("the coordinate rounding the cache key rests on (ADR-003)", () => {

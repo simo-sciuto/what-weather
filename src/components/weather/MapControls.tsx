@@ -1,4 +1,5 @@
 "use client";
+import { ACTION_LABELS, PAGE_LABELS } from "@/constants/labels";
 
 import {
   MAP_TUNING,
@@ -174,7 +175,7 @@ export function MapSheet() {
   return (
     <Sheet
       name="map"
-      title="Mappa"
+      title={PAGE_LABELS.map}
       actions={
         custom && (
           <button type="button" onClick={reset} className={RESET_LINK}>
@@ -213,7 +214,7 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
             onClick={onClose}
             className="text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
-            Chiudi
+            {ACTION_LABELS.close}
           </button>
         </div>
       </div>

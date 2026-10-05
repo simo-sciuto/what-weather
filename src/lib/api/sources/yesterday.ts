@@ -1,5 +1,6 @@
 import "server-only";
-import { WEATHER_REVALIDATE_SECONDS } from "@/lib/weather/constants";
+import { OPTIONAL_FETCH_TIMEOUT_MS } from "@/constants/network";
+import { WEATHER_REVALIDATE_SECONDS } from "@/constants/cache";
 import { changeSinceYesterday, type Series } from "@/lib/weather/yesterday";
 
 /**
@@ -8,8 +9,6 @@ import { changeSinceYesterday, type Series } from "@/lib/weather/yesterday";
  */
 
 const FORECAST = "https://api.open-meteo.com/v1/forecast";
-/** The comparison is a detail: a slow answer is dropped rather than waited for. */
-const TIMEOUT_MS = 4000;
 
 /** Null when Open-Meteo can't be reached in time; the page does without. */
 export async function sinceYesterday(lat: number, lon: number): Promise<number | null> {
@@ -24,7 +23,7 @@ export async function sinceYesterday(lat: number, lon: number): Promise<number |
     });
     const res = await fetch(`${FORECAST}?${q}`, {
       next: { revalidate: WEATHER_REVALIDATE_SECONDS },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(OPTIONAL_FETCH_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     const { hourly } = (await res.json()) as { hourly?: Series };

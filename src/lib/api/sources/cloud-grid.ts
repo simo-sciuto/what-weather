@@ -1,4 +1,5 @@
 import "server-only";
+import { CLOUD_GRID_REVALIDATE_SECONDS, CLOUD_GRID_EXPIRE_SECONDS } from "@/constants/cache";
 import { cacheLife } from "next/cache";
 import { WeatherProviderError } from "@/lib/api/providers/openweather";
 import type { CloudGrid } from "@/types/map";
@@ -34,7 +35,7 @@ export async function cloudGrid(lat: number, lon: number): Promise<CloudGrid> {
 async function loadGrid(cLat: number, cLon: number): Promise<CloudGrid> {
   "use cache";
   // Open-Meteo runs its models hourly; each request counts as one call per point, so keep it for the hour.
-  cacheLife({ revalidate: 60 * 60, expire: 2 * 60 * 60 });
+  cacheLife({ revalidate: CLOUD_GRID_REVALIDATE_SECONDS, expire: CLOUD_GRID_EXPIRE_SECONDS });
 
   const lats = Array.from({ length: ROWS }, (_, r) => fixed(Math.min(89, Math.max(-89, cLat + (Math.floor(ROWS / 2) - r) * LAT_STEP))));
   const lons = Array.from({ length: COLS }, (_, c) => fixed(cLon + (c - Math.floor(COLS / 2)) * LON_STEP));

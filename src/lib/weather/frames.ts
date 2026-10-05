@@ -1,7 +1,9 @@
+import { HOUR_SECONDS, DAY_SECONDS } from "@/constants/time";
+import { TIME_LABELS } from "@/constants/labels";
 import type { DayLabel, DayTimeline, Frame, Timeline } from "@/types/timeline";
 import { atmosphericData, interpolateAtmosphericData } from "./atmospheric-data";
 import { bestWindow, windowLabel } from "./best-window";
-import { TYPICAL_CLOUD_COVER } from "./constants";
+import { TYPICAL_CLOUD_COVER } from "@/constants/weather";
 import { visibleDays } from "./days";
 import { formatDate, formatTime, localDay, localHour } from "./formatters";
 import { capitalize } from "@/utils/string";
@@ -87,8 +89,8 @@ export function hourlySamples(d: WeatherData): Sample[] {
   ];
 
   const samples: Sample[] = [known[0]];
-  const firstHour = Math.ceil((now + 60) / 3600) * 3600;
-  for (let t = firstHour; ; t += 3600) {
+  const firstHour = Math.ceil((now + 60) / HOUR_SECONDS) * HOUR_SECONDS;
+  for (let t = firstHour; ; t += HOUR_SECONDS) {
     const j = known.findIndex((k) => k.time >= t);
     if (j <= 0) break; // beyond the forecast
     const a = known[j - 1];
@@ -117,8 +119,8 @@ export function hourlySamples(d: WeatherData): Sample[] {
 
 function relativeDay(d: WeatherData, dayKey: string): string | null {
   const today = localDay(d.current.time, d.timezone);
-  if (dayKey === today) return "Oggi";
-  if (dayKey === localDay(d.current.time + 86400, d.timezone)) return "Domani";
+  if (dayKey === today) return TIME_LABELS.today;
+  if (dayKey === localDay(d.current.time + DAY_SECONDS, d.timezone)) return TIME_LABELS.tomorrow;
   return null;
 }
 
@@ -135,7 +137,7 @@ function toFrame(d: WeatherData, s: Sample, isNow: boolean, summary: string, tim
     time: s.time,
     isNow,
     measured: s.measured,
-    timeLabel: timeLabel ?? (isNow ? "Adesso" : formatTime(s.time, tz)),
+    timeLabel: timeLabel ?? (isNow ? TIME_LABELS.now : formatTime(s.time, tz)),
     hour: Math.floor(localHour(s.time, tz)),
     dayKey,
     // Two digits, as the provider gives them: one would round twice (25.46 → 25.5 → 26°) against the raw 25° elsewhere.

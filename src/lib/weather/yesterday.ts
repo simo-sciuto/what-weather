@@ -1,3 +1,4 @@
+import { DAY_SECONDS } from "@/constants/time";
 import { formatTemp } from "./formatters";
 
 /**
@@ -25,7 +26,7 @@ function tempAt(s: Series, t: number): number | null {
 /** Degrees gained (or lost) since the same time yesterday; null when the series doesn't cover both. */
 export function changeSinceYesterday(s: Series, now: number): number | null {
   const today = tempAt(s, now);
-  const yesterday = tempAt(s, now - 86400);
+  const yesterday = tempAt(s, now - DAY_SECONDS);
   return today == null || yesterday == null ? null : today - yesterday;
 }
 

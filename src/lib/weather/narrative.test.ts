@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { DEFAULT_PLACE } from "./constants";
+import { DEFAULT_PLACE } from "@/constants/weather";
 import { buildTimeline } from "./frames";
 import { MOCK_SCENARIOS, createMockProvider, type MockScenario } from "@/lib/api/providers/mock";
 import { buildNarrative } from "./narrative";

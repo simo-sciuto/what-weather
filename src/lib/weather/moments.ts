@@ -1,4 +1,6 @@
-import { isWet } from "./constants";
+import { HOUR_SECONDS } from "@/constants/time";
+import { CONDITION_NAMES } from "@/constants/labels";
+import { isWet } from "@/lib/weather/conditions";
 import { conditionLabel, formatTemp, spokenTime } from "./formatters";
 import { capitalize } from "@/utils/string";
 import type { SunEvent } from "@/types/sky";
@@ -51,7 +53,7 @@ function skyWords(s: MomentSample): string {
     case "partly-cloudy":
       return "Qualche nuvola";
     case "cloudy":
-      return s.cloudCover >= 90 ? "Cielo coperto" : "Nuvoloso";
+      return s.cloudCover >= 90 ? "Cielo coperto" : CONDITION_NAMES.cloudy;
     default:
       return conditionLabel(s);
   }
@@ -89,7 +91,7 @@ function extras(s: MomentSample): string[] {
 
 /** Sunrise or sunset within the hour around the moment. */
 function sunWords(s: MomentSample, ctx: MomentContext): string {
-  const e = ctx.events.find((x) => Math.abs(x.time - s.time) <= 3600);
+  const e = ctx.events.find((x) => Math.abs(x.time - s.time) <= HOUR_SECONDS);
   if (!e) return "";
   return `${e.type === "sunset" ? "Tramonto" : "Alba"} ${spokenTime(e.time, ctx.timezone, "alle")}`;
 }
@@ -130,12 +132,12 @@ export function daySummary(p: DailyPoint, hours: MomentSample[], timezone: strin
 
   const wet = hours.filter((h) => isWet(h.condition) && h.precipProbability >= 0.4);
   if (wet.length) {
-    const noun = wet.some((h) => h.condition === "snow") ? "Neve" : wet.some((h) => h.condition === "thunderstorm") ? "Temporali" : "Pioggia";
+    const noun = wet.some((h) => h.condition === "snow") ? CONDITION_NAMES.snow : wet.some((h) => h.condition === "thunderstorm") ? "Temporali" : CONDITION_NAMES.rain;
     const pop = atPercent(Math.max(...wet.map((h) => h.precipProbability)));
     const [a, b] = [wet[0].time, wet.at(-1)!.time];
     const when = a === b ? spokenTime(a, timezone, "verso le") : `${spokenTime(a, timezone, "dalle")} ${spokenTime(b, timezone, "alle")}`;
     return `${first} ${noun} ${when}, ${pop}.`;
   }
-  if (p.precipProbability >= 0.3) return `${first} Pioggia ${atPercent(p.precipProbability)}.`;
+  if (p.precipProbability >= 0.3) return `${first} ${CONDITION_NAMES.rain} ${atPercent(p.precipProbability)}.`;
   return first;
 }

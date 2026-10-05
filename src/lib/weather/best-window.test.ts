@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { bestWindow, outdoorScore, windowLabel, type OutdoorHour } from "./best-window";
-import { DEFAULT_PLACE } from "./constants";
+import { DEFAULT_PLACE } from "@/constants/weather";
 import { buildTimeline } from "./frames";
 import { createMockProvider, type MockScenario } from "@/lib/api/providers/mock";
 

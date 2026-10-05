@@ -1,4 +1,4 @@
-import { COORD_PRECISION } from "./constants";
+import { COORD_PRECISION } from "@/constants/cache";
 
 /**
  * A coordinate rounded to the cache's precision (~1 km): the page's cache key and every provider's request round

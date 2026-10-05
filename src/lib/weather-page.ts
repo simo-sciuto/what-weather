@@ -6,11 +6,8 @@ import type { PlaceRef } from "@/types/place";
 import { getProvider } from "./api/providers/get-provider";
 import { lookupPollen } from "./api/sources/pollen";
 import { sinceYesterday } from "./api/sources/yesterday";
-import {
-  DEFAULT_PLACE,
-  MAX_DATA_AGE_SECONDS,
-  WEATHER_REVALIDATE_SECONDS,
-} from "./weather/constants";
+import { DEFAULT_PLACE } from "@/constants/weather";
+import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS, WEATHER_STALE_SECONDS } from "@/constants/cache";
 import { roundCoord } from "./weather/coordinates";
 import { buildTimeline } from "./weather/frames";
 import { randomPlace } from "./weather/random-places";
@@ -50,7 +47,7 @@ async function load(
       revalidate: WEATHER_REVALIDATE_SECONDS,
       // After an idle hour the next visitor waits for a fresh forecast rather than an old one.
       expire: MAX_DATA_AGE_SECONDS,
-      stale: 5 * 60,
+      stale: WEATHER_STALE_SECONDS,
     });
   }
 

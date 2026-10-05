@@ -1,4 +1,5 @@
 "use client";
+import { CONDITION_NAMES, TIME_LABELS } from "@/constants/labels";
 
 import { areaCorners, canvasSize, drawClouds, gridArea } from "@/lib/weather/cloud-render";
 import { formatDate, formatTime, localHour } from "@/lib/weather/formatters";
@@ -94,7 +95,7 @@ export function MapView() {
   // The hour on show, in words: only when the whole hour changes (the animation moves many times an hour).
   // Named by the nearest whole hour, so the day and the time always agree.
   const moment = useMemo(() => {
-    if (!grid || hour === 0) return { short: "Adesso", spoken: "Adesso" };
+    if (!grid || hour === 0) return { short: TIME_LABELS.now, spoken: TIME_LABELS.now };
     const ts = grid.times[hour];
     const time = formatTime(ts, timezone);
     return {
@@ -168,7 +169,7 @@ export function MapView() {
         </span>
         <span aria-hidden="true" className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-full bg-[rgb(64_224_255)]" />
-          Pioggia
+          {CONDITION_NAMES.rain}
         </span>
       </figcaption>
     </figure>

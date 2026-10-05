@@ -1,3 +1,4 @@
+import { HIGH_UV_LABEL } from "@/constants/labels";
 import {
   GENERAL,
   bestWindow,
@@ -118,7 +119,7 @@ function reason(h: OutdoorHour, a: Activity, air: number, aq: AirQuality | null)
     [f.comfort, h.feelsLike < a.profile.ideal ? "fa freddo" : "fa caldo"],
     [f.wind, "vento"],
     [f.sky, h.condition === "fog" ? "nebbia" : "cielo incerto"],
-    [f.uv, "UV alto"],
+    [f.uv, HIGH_UV_LABEL],
     [air, aq && aq.index >= 4 ? "aria inquinata" : "aria scarsa"],
   ];
   // The first of the worst: in a tie, the order above decides.

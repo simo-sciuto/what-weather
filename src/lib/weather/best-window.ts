@@ -1,5 +1,6 @@
 import { clamp01 } from "@/utils/math";
-import { THRESHOLDS, isWet } from "./constants";
+import { THRESHOLDS } from "@/constants/weather";
+import { isWet } from "@/lib/weather/conditions";
 import { localDay, spokenTime } from "./formatters";
 import type { Condition } from "@/types/weather";
 

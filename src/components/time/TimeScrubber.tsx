@@ -1,4 +1,5 @@
 "use client";
+import { CONDITION_NAMES, WIND_LABELS } from "@/constants/labels";
 
 import { monotonePath } from "@/lib/weather/curve";
 import { formatTemp } from "@/lib/weather/formatters";
@@ -23,13 +24,13 @@ const MAX_MARKS = 9;
 const METRICS = {
   temp: { name: "Temperatura", unit: "", value: (f: Frame) => f.temp, label: formatTemp, top: null },
   rain: {
-    name: "Pioggia",
+    name: CONDITION_NAMES.rain,
     unit: "probabilità",
     value: (f: Frame) => f.precipProbability * 100,
     label: (v: number) => `${Math.round(v)}%`,
     top: 100,
   },
-  wind: { name: "Vento", unit: "km/h", value: (f: Frame) => f.windSpeed, label: (v: number) => String(Math.round(v)), top: 40 },
+  wind: { name: WIND_LABELS.wind, unit: "km/h", value: (f: Frame) => f.windSpeed, label: (v: number) => String(Math.round(v)), top: 40 },
   uv: { name: "UV", unit: "indice", value: (f: Frame) => f.uv ?? 0, label: (v: number) => String(Math.round(v)), top: 8 },
 } as const;
 type Metric = keyof typeof METRICS;

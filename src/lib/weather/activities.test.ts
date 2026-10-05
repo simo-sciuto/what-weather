@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { activityOutlook, dailyActivityOutlooks } from "./activities";
 import { localDay } from "./formatters";
-import { DEFAULT_PLACE } from "./constants";
+import { DEFAULT_PLACE } from "@/constants/weather";
 import { MOCK_SCENARIOS, createMockProvider, type MockScenario } from "@/lib/api/providers/mock";
 
 /**

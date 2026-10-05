@@ -1,3 +1,4 @@
+import { CONDITION_NAMES } from "@/constants/labels";
 import { regionName } from "./regions";
 import type { CurrentWeather, Place } from "@/types/weather";
 
@@ -101,21 +102,21 @@ export function conditionLabel(
     c.intensity === "light" ? `${noun} debole` : c.intensity === "heavy" ? `${noun} forte` : noun;
   switch (c.condition) {
     case "clear":
-      return "Sereno";
+      return CONDITION_NAMES.clear;
     case "partly-cloudy":
-      return "Poco nuvoloso";
+      return CONDITION_NAMES["partly-cloudy"];
     case "cloudy":
-      return c.cloudCover != null && c.cloudCover >= 90 ? "Coperto" : "Nuvoloso";
+      return c.cloudCover != null && c.cloudCover >= 90 ? "Coperto" : CONDITION_NAMES.cloudy;
     case "fog":
-      return "Nebbia";
+      return CONDITION_NAMES.fog;
     case "drizzle":
-      return scale("Pioviggine");
+      return scale(CONDITION_NAMES.drizzle);
     case "rain":
-      return scale("Pioggia");
+      return scale(CONDITION_NAMES.rain);
     case "snow":
-      return scale("Neve");
+      return scale(CONDITION_NAMES.snow);
     case "thunderstorm":
-      return c.intensity === "heavy" ? "Temporale forte" : "Temporale";
+      return c.intensity === "heavy" ? `${CONDITION_NAMES.thunderstorm} forte` : CONDITION_NAMES.thunderstorm;
   }
 }
 

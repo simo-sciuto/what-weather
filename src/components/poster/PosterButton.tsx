@@ -1,4 +1,5 @@
 "use client";
+import { ACTION_LABELS } from "@/constants/labels";
 import { slug } from "@/utils/string";
 
 import { placeHref } from "@/lib/place";
@@ -180,7 +181,7 @@ export function PosterButton({
           <button
             type="button"
             onClick={close}
-            aria-label="Chiudi"
+            aria-label={ACTION_LABELS.close}
             className="-mr-2 -mt-1 rounded-full px-2 text-2xl leading-none text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-accent"
           >
             ×
@@ -263,7 +264,7 @@ export function PosterButton({
               onClick={() => snapshot && draw(format, snapshot)}
               className={`${action} bg-accent text-[#0c0f25] hover:bg-accent/85`}
             >
-              Riprova
+              {ACTION_LABELS.retry}
             </button>
           ) : (
             <span

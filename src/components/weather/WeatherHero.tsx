@@ -1,3 +1,4 @@
+import { TIME_LABELS } from "@/constants/labels";
 import {
   conditionLabel,
   formatCoords,
@@ -159,7 +160,7 @@ export function WeatherHero({
       </div>
 
       <p className="sr-only">
-        Adesso {formatTemp(current.temp)}, {label.toLowerCase()}, percepita{" "}
+        {TIME_LABELS.now} {formatTemp(current.temp)}, {label.toLowerCase()}, percepita{" "}
         {formatTemp(current.feelsLike)}. Massima {formatTemp(range.max)}, minima{" "}
         {formatTemp(range.min)}
         {range.note ? ` (${range.note})` : " oggi"}.

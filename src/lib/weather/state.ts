@@ -1,6 +1,6 @@
 import type { DayPhase, WeatherState } from "@/types/sky";
 import { hasSunTimes } from "./sun";
-import { THRESHOLDS } from "./constants";
+import { THRESHOLDS } from "@/constants/weather";
 import type { CurrentWeather } from "@/types/weather";
 
 export function dayPhase(now: number, sunrise: number, sunset: number, darkFallback = false): DayPhase {

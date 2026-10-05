@@ -1,3 +1,4 @@
+import { WIND_LABELS } from "@/constants/labels";
 import {
   airInfo,
   comfort,
@@ -49,7 +50,7 @@ export function detailContent(key: DetailKey, d: WeatherData): DetailContent | n
       const w = windInfo(d);
       const gust = w.gust != null && w.gust > w.speed + 3 ? ` · raffiche ${Math.round(w.gust)} km/h` : "";
       return {
-        name: "Vento",
+        name: WIND_LABELS.wind,
         value: (
           <>
             {Math.round(w.speed)}

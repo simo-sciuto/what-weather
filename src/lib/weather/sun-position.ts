@@ -1,3 +1,4 @@
+import { DAY_SECONDS } from "@/constants/time";
 import { toDegrees, toRadians } from "@/utils/math";
 /**
  * Where the sun is in the sky, from the time and the place alone: the
@@ -16,7 +17,7 @@ export type SunPosition = {
 /** `time` is Unix seconds, as everywhere in the forecast. */
 export function sunPosition(time: number, lat: number, lon: number): SunPosition {
   // Days since the year 2000's noon
-  const n = time / 86400 + 2440587.5 - 2451545;
+  const n = time / DAY_SECONDS + 2440587.5 - 2451545;
   const anomaly = toRadians(357.529 + 0.98560028 * n);
   const longitude = toRadians(280.459 + 0.98564736 * n + 1.915 * Math.sin(anomaly) + 0.02 * Math.sin(2 * anomaly));
   const tilt = toRadians(23.439 - 0.00000036 * n);

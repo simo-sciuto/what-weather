@@ -1,8 +1,9 @@
 import "server-only";
+import { HOUR_SECONDS } from "@/constants/time";
 import { atmosphericData, estimatedDewPoint } from "@/lib/weather/atmospheric-data";
 import { localDay } from "@/lib/weather/formatters";
 import { regionName } from "@/lib/weather/regions";
-import { isWet } from "@/lib/weather/constants";
+import { isWet } from "@/lib/weather/conditions";
 import type {
   AirQuality,
   Condition,
@@ -274,14 +275,14 @@ export type OW25Forecast = {
  */
 export function offsetToZone(seconds: number): string {
   if (seconds === 0) return "UTC";
-  if (seconds % 3600 === 0) {
-    const hours = seconds / 3600;
+  if (seconds % HOUR_SECONDS === 0) {
+    const hours = seconds / HOUR_SECONDS;
     return `Etc/GMT${hours > 0 ? "-" : "+"}${Math.abs(hours)}`;
   }
   const sign = seconds < 0 ? "-" : "+";
   const abs = Math.abs(seconds);
-  const hh = String(Math.floor(abs / 3600)).padStart(2, "0");
-  const mm = String(Math.floor((abs % 3600) / 60)).padStart(2, "0");
+  const hh = String(Math.floor(abs / HOUR_SECONDS)).padStart(2, "0");
+  const mm = String(Math.floor((abs % HOUR_SECONDS) / 60)).padStart(2, "0");
   return `${sign}${hh}:${mm}`;
 }
 

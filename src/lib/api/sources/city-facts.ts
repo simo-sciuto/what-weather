@@ -1,4 +1,6 @@
 import "server-only";
+import { MAP_API_TIMEOUT_MS, WIKIDATA_TIMEOUT_MS } from "@/constants/network";
+import { CITY_FACTS_REVALIDATE_SECONDS, CITY_FACTS_EXPIRE_SECONDS } from "@/constants/cache";
 import { toRadians } from "@/utils/math";
 import { cacheLife } from "next/cache";
 
@@ -59,10 +61,6 @@ const WIKIMEDIA = {
   Accept: "application/json",
 };
 
-/** Places don't move: a month between checks, a year before a fact is dropped. */
-const REVALIDATE = 60 * 60 * 24 * 30;
-const EXPIRE = 60 * 60 * 24 * 365;
-
 /**
  * How far around to look, in km: a lake's point on Wikidata is its middle,
  * so a big one's lies far out from the towns on its shores (Lake Como's is
@@ -111,12 +109,12 @@ async function cachedJson(
   headers: Record<string, string>,
 ): Promise<unknown> {
   "use cache";
-  cacheLife({ revalidate: REVALIDATE, expire: EXPIRE });
+  cacheLife({ revalidate: CITY_FACTS_REVALIDATE_SECONDS, expire: CITY_FACTS_EXPIRE_SECONDS });
   // Wikidata's queries over an area take a while; a map API answers at once.
   const res = await fetch(url, {
     headers,
     signal: AbortSignal.timeout(
-      url.includes("query.wikidata.org") ? 15_000 : 8_000,
+      url.includes("query.wikidata.org") ? WIKIDATA_TIMEOUT_MS : MAP_API_TIMEOUT_MS,
     ),
   });
   if (!res.ok) throw new Error(`${res.status}`);

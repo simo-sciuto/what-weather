@@ -3,7 +3,7 @@
 import { memo, useDeferredValue, useMemo, useState } from "react";
 import type { AtmosphereAxes, VisualForce } from "@/lib/weather/atmosphere";
 import { CALIBRATION_SCENARIOS, type CalibrationScenario } from "@/lib/weather/calibration";
-import { THRESHOLDS } from "@/lib/weather/constants";
+import { THRESHOLDS } from "@/constants/weather";
 import { TWILIGHT } from "@/lib/weather/frames";
 import {
   atmosphereDepth,

@@ -1,4 +1,5 @@
 "use client";
+import { ACTION_LABELS } from "@/constants/labels";
 
 import {
   createContext,
@@ -282,7 +283,7 @@ export function Sheet({
             onClick={() => setState("closed")}
             className="text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
-            Chiudi
+            {ACTION_LABELS.close}
           </button>
         </div>
       </div>

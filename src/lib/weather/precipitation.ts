@@ -1,4 +1,7 @@
-import { THRESHOLDS, isWet } from "./constants";
+import { HOUR_SECONDS } from "@/constants/time";
+import { TIME_LABELS } from "@/constants/labels";
+import { THRESHOLDS } from "@/constants/weather";
+import { isWet, precipNoun, PrecipNoun } from "@/lib/weather/conditions";
 import { formatTime } from "./formatters";
 import type { Condition, WeatherData } from "@/types/weather";
 
@@ -19,7 +22,7 @@ export type PrecipBar = {
 };
 
 export type PrecipOutlook = {
-  noun: "Pioggia" | "Neve";
+  noun: PrecipNoun;
   headline: string;
   /** What the bar height encodes */
   measure: "intensity" | "probability";
@@ -50,7 +53,7 @@ type Step = {
   precipitation: number;
 };
 
-const URGENT_WITHIN = 2 * 3600;
+const URGENT_WITHIN = 2 * HOUR_SECONDS;
 
 const likely = (s: Step) =>
   s.precipProbability >= THRESHOLDS.precipProbability &&
@@ -64,9 +67,7 @@ function intensityWord(mmh: number): string {
 }
 
 function nounFor(d: WeatherData, steps: Step[]): PrecipOutlook["noun"] {
-  return d.current.condition === "snow" || steps.some((s) => likely(s) && s.condition === "snow")
-    ? "Neve"
-    : "Pioggia";
+  return precipNoun(d.current.condition === "snow" || steps.some((s) => likely(s) && s.condition === "snow"));
 }
 
 function fromMinutes(d: WeatherData): PrecipOutlook | null {
@@ -74,7 +75,7 @@ function fromMinutes(d: WeatherData): PrecipOutlook | null {
   const wet = (p: number) => p >= THRESHOLDS.minutePrecip;
   if (!minutes?.length || !minutes.some((m) => wet(m.precipitation))) return null;
 
-  const noun = d.current.condition === "snow" ? "Neve" : "Pioggia";
+  const noun = precipNoun(d.current.condition === "snow");
   const tz = d.timezone;
   const at = (i: number) => formatTime(minutes[i].time, tz);
   const word = (i: number) => intensityWord(minutes[i].precipitation);
@@ -111,7 +112,7 @@ function fromMinutes(d: WeatherData): PrecipOutlook | null {
         ? `${formatTime(m.time, d.timezone)}: ${noun.toLowerCase()} ${intensityWord(m.precipitation)}`
         : `${formatTime(m.time, d.timezone)}: asciutto`,
     })),
-    ticks: [0, 15, 30, 45, 60].map((m) => ({ at: m / 60, label: m === 0 ? "Adesso" : `${m} min` })),
+    ticks: [0, 15, 30, 45, 60].map((m) => ({ at: m / 60, label: m === 0 ? TIME_LABELS.now : `${m} min` })),
     urgent: true,
     guides: INTENSITY_GUIDES,
   };
@@ -119,7 +120,7 @@ function fromMinutes(d: WeatherData): PrecipOutlook | null {
 
 function fromSteps(d: WeatherData, all: Step[], horizonHours: number): PrecipOutlook | null {
   const now = d.current.time;
-  const steps = all.filter((s) => s.time >= now - 900 && s.time <= now + horizonHours * 3600);
+  const steps = all.filter((s) => s.time >= now - 900 && s.time <= now + horizonHours * HOUR_SECONDS);
   const start = steps.findIndex(likely);
   if (start === -1) return null;
 
@@ -127,7 +128,7 @@ function fromSteps(d: WeatherData, all: Step[], horizonHours: number): PrecipOut
   const noun = nounFor(d, steps);
   const end = steps.findIndex((s, i) => i > start && !likely(s));
   const from = formatTime(steps[start].time, tz);
-  const wetNow = isWet(d.current.condition) && steps[start].time - now < 3600;
+  const wetNow = isWet(d.current.condition) && steps[start].time - now < HOUR_SECONDS;
 
   let headline: string;
   if (wetNow) {
@@ -163,7 +164,7 @@ function fromSteps(d: WeatherData, all: Step[], horizonHours: number): PrecipOut
 
   const spell = steps.slice(start, end === -1 ? undefined : end);
   // Rates times the step's length (15 minutes, 1 or 3 hours: steps are evenly spaced)
-  const stepHours = steps.length > 1 ? (steps[1].time - steps[0].time) / 3600 : 1;
+  const stepHours = steps.length > 1 ? (steps[1].time - steps[0].time) / HOUR_SECONDS : 1;
   const total = steps.reduce((sum, s) => sum + s.precipitation * stepHours, 0);
   const peak = spell.reduce((a, b) => (b.precipitation > a.precipitation ? b : a), spell[0]);
   const first = spell.find((s) => s.precipitation >= THRESHOLDS.minutePrecip) ?? spell[0];

@@ -1,4 +1,7 @@
-import { THRESHOLDS, isWet } from "./constants";
+import { HOUR_SECONDS, DAY_SECONDS } from "@/constants/time";
+import { CONDITION_NAMES } from "@/constants/labels";
+import { THRESHOLDS } from "@/constants/weather";
+import { isWet, precipNoun } from "@/lib/weather/conditions";
 import { formatTemp, localDay, localHour, spokenTime } from "./formatters";
 import { darkWithoutSunTimes, hasSunTimes } from "./sun";
 import type { Condition, HourlyPoint, WeatherData } from "@/types/weather";
@@ -38,9 +41,9 @@ function isNightNow(d: WeatherData): boolean {
 
 /** The first sunrise after now; separates "tonight" from "tomorrow morning". */
 function nextSunrise(d: WeatherData): number {
-  if (!hasSunTimes(d)) return d.current.time + 86400;
+  if (!hasSunTimes(d)) return d.current.time + DAY_SECONDS;
   if (d.current.time < d.sunrise) return d.sunrise;
-  return d.daily.find((day) => day.sunrise && day.sunrise > d.current.time)?.sunrise ?? d.sunrise + 86400;
+  return d.daily.find((day) => day.sunrise && day.sunrise > d.current.time)?.sunrise ?? d.sunrise + DAY_SECONDS;
 }
 
 type Part = "morning" | "afternoon" | "evening" | "night";
@@ -59,7 +62,7 @@ function period(d: WeatherData, ts: number): Period {
   const h = localHour(ts, tz);
   const part: Part = h < 5 ? "night" : h < 12 ? "morning" : h < 17 ? "afternoon" : h < 22 ? "evening" : "night";
   const tomorrow = localDay(ts, tz) !== localDay(d.current.time, tz);
-  return { part, tomorrow: tomorrow && !(part === "night" && h < 5 && ts < nextSunrise(d) + 3600) };
+  return { part, tomorrow: tomorrow && !(part === "night" && h < 5 && ts < nextSunrise(d) + HOUR_SECONDS) };
 }
 
 const TODAY: Record<Part, string> = { morning: "stamattina", afternoon: "oggi pomeriggio", evening: "stasera", night: "stanotte" };
@@ -92,20 +95,20 @@ type PrecipWords = {
 };
 
 function precipWords(hours: Pick<HourlyPoint, "condition" | "intensity">[]): PrecipWords {
-  if (hours.some((h) => h.condition === "snow")) return { now: "Nevica", verb: "nevicare", noun: "Neve", umbrella: false };
+  if (hours.some((h) => h.condition === "snow")) return { now: "Nevica", verb: "nevicare", noun: CONDITION_NAMES.snow, umbrella: false };
   if (hours.every((h) => h.condition === "drizzle"))
-    return { now: "Pioviggina", verb: "piovigginare", noun: "Pioviggine", umbrella: true };
+    return { now: "Pioviggina", verb: "piovigginare", noun: CONDITION_NAMES.drizzle, umbrella: true };
   if (hours.some((h) => h.intensity === "heavy"))
-    return { now: "Piove forte", verb: "piovere forte", noun: "Pioggia forte", umbrella: true };
-  return { now: "Piove", verb: "piovere", noun: "Pioggia", umbrella: true };
+    return { now: "Piove forte", verb: "piovere forte", noun: `${CONDITION_NAMES.rain} forte`, umbrella: true };
+  return { now: "Piove", verb: "piovere", noun: CONDITION_NAMES.rain, umbrella: true };
 }
 
 /** The sky when a wet or foggy hour dominates but no precipitation rule spoke (e.g. a low chance). */
 const SKY_WORDS: Record<Condition, string> = {
-  clear: "Sereno",
-  "partly-cloudy": "Poco nuvoloso",
-  cloudy: "Nuvoloso",
-  fog: "Nebbia",
+  clear: CONDITION_NAMES.clear,
+  "partly-cloudy": CONDITION_NAMES["partly-cloudy"],
+  cloudy: CONDITION_NAMES.cloudy,
+  fog: CONDITION_NAMES.fog,
   drizzle: "Qualche goccia",
   rain: "Tempo incerto",
   thunderstorm: "Tempo instabile",
@@ -128,7 +131,7 @@ function inMinutes(min: number): string {
  * not in points, because providers step hourly or 3-hourly.
  */
 function upTo(d: WeatherData, hours: HourlyPoint[], h: number): HourlyPoint[] {
-  return hours.filter((p) => p.time <= d.current.time + h * 3600);
+  return hours.filter((p) => p.time <= d.current.time + h * HOUR_SECONDS);
 }
 
 /* ---------- Rules ---------- */
@@ -164,7 +167,7 @@ function minuteRule(d: WeatherData, hours: HourlyPoint[]): Candidate | null {
   const spell = hours.findIndex(precipLikely);
   const end = spell === -1 ? -1 : hours.findIndex((h, i) => i > spell && !precipLikely(h));
   const until = end === -1 ? "" : `, ${spokenTime(hours[end].time, d.timezone, "fino alle")}`;
-  return { topic: "precip", priority: 90, text: `${snow ? "Neve" : "Pioggia"} ${inMinutes(inMin)}${until}` };
+  return { topic: "precip", priority: 90, text: `${precipNoun(snow)} ${inMinutes(inMin)}${until}` };
 }
 
 function hourlyPrecipRule(d: WeatherData, hours: HourlyPoint[]): Candidate | null {
@@ -184,7 +187,7 @@ function hourlyPrecipRule(d: WeatherData, hours: HourlyPoint[]): Candidate | nul
   const len = rest.findIndex((h) => !precipLikely(h));
   const spell = len === -1 ? rest : rest.slice(0, len);
   const w = precipWords(spell);
-  const soon = hours[start].time - d.current.time < 6 * 3600;
+  const soon = hours[start].time - d.current.time < 6 * HOUR_SECONDS;
   const range =
     len === -1
       ? spokenTime(hours[start].time, tz, "dalle")
@@ -291,7 +294,7 @@ function skyRule(d: WeatherData, hours: HourlyPoint[]): Candidate {
   // The part of the day ahead ("per tutto il pomeriggio", looking a couple of hours on so
   // late morning isn't "per tutta la mattina"), or up to sunset when that comes first.
   const pastSunset = hasSunTimes(d) && end >= d.sunset;
-  const span = pastSunset ? "fino al tramonto" : through(period(d, d.current.time + 2 * 3600));
+  const span = pastSunset ? "fino al tramonto" : through(period(d, d.current.time + 2 * HOUR_SECONDS));
 
   const [bare, text] = ((): [string | undefined, string] => {
     switch (dominant) {

@@ -1,3 +1,4 @@
+import { CLOUD_CLIENT_MEMO_MS } from "@/constants/cache";
 import type { CloudGrid } from "@/types/map";
 
 /** One request per place, for every map that shows its clouds; forgotten after the grid's own hour. */
@@ -13,7 +14,7 @@ export function fetchClouds(lat: number, lon: number): Promise<CloudGrid | null>
       .then((g) => (g?.times?.length ? g : null))
       .catch(() => null);
     requests.set(url, request);
-    setTimeout(() => requests.delete(url), 60 * 60 * 1000);
+    setTimeout(() => requests.delete(url), CLOUD_CLIENT_MEMO_MS);
   }
   return request;
 }

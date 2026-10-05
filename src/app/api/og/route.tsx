@@ -1,6 +1,7 @@
+import { CACHE_CONTROL } from "@/constants/cache";
 import { parsePlaceRef } from "@/lib/place";
 import { weatherFor } from "@/lib/weather-page";
-import { DEFAULT_PLACE } from "@/lib/weather/constants";
+import { DEFAULT_PLACE } from "@/constants/weather";
 import { conditionLabel, placeSubtitle, tempDigits } from "@/lib/weather/formatters";
 import { frameLook } from "@/lib/weather/look";
 import { buildNarrative } from "@/lib/weather/narrative";
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
       {
         ...SIZE,
         // The forecast refreshes every 10 minutes; so can the picture.
-        headers: { "Cache-Control": "public, max-age=600, stale-while-revalidate=3600" },
+        headers: { "Cache-Control": CACHE_CONTROL.og },
       },
     );
   } catch {

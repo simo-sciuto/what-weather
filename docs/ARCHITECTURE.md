@@ -75,7 +75,18 @@ The palette has two ways of weathering that base, sharing one finish (`finishPal
 - `load()` in `weather-page.ts` is the single cached unit per place: `"use cache"`, coordinates rounded to 2 decimals (~1 km, `COORD_PRECISION`, through `roundCoord` in `lib/weather/coordinates.ts`), `cacheLife` revalidate 600 s, expire 3600 s, stale 300 s. Mock uses `cacheLife("seconds")`.
 - The page, `generateMetadata`, `/api/og`, `/api/summary` all go through `weatherFor()` so they share one entry.
 - Other cached units: place search (`/api/places`, 1 day revalidate), cloud grid (1 h), nearby towns, city facts.
-- Constants live in `src/lib/weather/constants.ts`.
+- The cache's numbers, the `Cache-Control` of each route and the fetch timeouts are in `src/constants/` (see Constants).
+
+## Constants (`src/constants/`)
+
+Operational numbers and the words the interface says more than once, grouped by meaning (ADR-014):
+- `time.ts`: `MINUTE_SECONDS`, `HOUR_SECONDS`, `DAY_SECONDS`, the units the code counts timestamps in.
+- `cache.ts`: how long things are cached (`WEATHER_REVALIDATE_SECONDS`, `MAX_DATA_AGE_SECONDS`, `WEATHER_STALE_SECONDS`, the geocode, places, cloud grid and city facts lifetimes), `COORD_PRECISION`, the browser's cloud memo (`CLOUD_CLIENT_MEMO_MS`, the grid's own hour) and `CACHE_CONTROL`, the header of each route.
+- `network.ts`: the fetch timeouts (`OPTIONAL_FETCH_TIMEOUT_MS`, `NEARBY_FETCH_TIMEOUT_MS`, `MAP_API_TIMEOUT_MS`, `WIKIDATA_TIMEOUT_MS`).
+- `weather.ts`: `TYPICAL_CLOUD_COVER`, `DEFAULT_PLACE`, `THRESHOLDS` (the narrative's).
+- `labels.ts`: `CONDITION_NAMES` (the name of each sky: `conditionLabel` adds intensity to it, the narrative, the moments and the metrics take the bare noun), `TIME_LABELS`, `ACTION_LABELS`, `PAGE_LABELS`, `WIND_LABELS`, `MOON_LABELS`, `HIGH_UV_LABEL`, `LEVEL_LABELS` (the scale the UV and the pollen share), `API_ERRORS`.
+
+A word is a label here when two places say it; a choice made twice is one function (`precipNoun`, with `isWet`, in `lib/weather/conditions.ts`). A word used once, a sentence, the lab's strings and the poster's English readout stay where they are. The calibration constants (`palette.ts`, `map-style.ts`, `fingerprint.ts`: `ATMOSPHERE_LIMITS`, `MAP_WEATHER_LIMITS`, `AIR_STEP`...) stay beside their algorithm (ADR-011, ADR-012). The end-to-end specs read some labels as they stand ("Pioggia", "Sereno", "Adesso", "Meteo"): change one only on purpose.
 
 ## Routes
 

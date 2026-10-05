@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { DEFAULT_PLACE } from "./constants";
+import { DEFAULT_PLACE } from "@/constants/weather";
 import { createMockProvider } from "@/lib/api/providers/mock";
 import { precipOutlook } from "./precipitation";
 import type { QuarterPoint, WeatherData } from "@/types/weather";

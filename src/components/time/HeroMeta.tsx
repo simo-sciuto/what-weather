@@ -1,4 +1,5 @@
 "use client";
+import { PAGE_LABELS } from "@/constants/labels";
 
 import { dayOfYear } from "@/lib/weather/formatters";
 import { tempAccent } from "@/lib/weather/temp-color";
@@ -54,7 +55,7 @@ export function PhoneBar() {
         className="absolute bottom-1.5 left-0 top-1.5 rounded-full bg-white/10 shadow-[inset_0_0.5px_0_rgb(255_255_255/0.35),inset_0_0_0_0.5px_rgb(255_255_255/0.12)]"
       />
       <BarTab
-        label="Meteo"
+        label={PAGE_LABELS.weather}
         current={page === "data"}
         onClick={() => go("data")}
         tabRef={(el) => void (tabs.current[0] = el)}

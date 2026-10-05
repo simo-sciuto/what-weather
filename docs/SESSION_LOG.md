@@ -2,11 +2,17 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-05 (code conventions, WTH-186)
+- Worked on: the conventions the user asked for (types not interfaces, shared types in one place, constants and labels in a file, utils, api folder), as ADR-014, after the architect's check; four checkpoints on `claude/code-conventions`, each reviewed.
+- Found: the `rgba(` to `hexToRgba(` rename also hit a CSS string in the poster's glow, which no test, golden run or e2e draws (the poster needs the Mapbox token); the reviewer saw it. Fixed with `bloomColor` and a test, and from then on the poster is checked by a real render through a harness with a fake map, pixel by pixel.
+- Not verified: the poster on screen with the map. Optional leftovers in WTH-189; WTH-188 (providers and sources depend on each other).
+- Next: the user decides the merge of `claude/code-conventions` into `main`.
+
 ## 2026-10-05 (poster readout)
 - Worked on: WTH-183, the poster's foot as a readout of the Weather Fingerprint, on the user's proposal; the user chose English labels, the compass kept, no figures, the block small on the right.
 - Reviewed: no critical problems; stand-in zeros made visible (dashed track), the whole day's stamp without an hour, the stand-in mapping made exact, the time zone taken into the snapshot. WTH-184 and WTH-185 added from the review.
-- Open with the user: whether interpolated hours and estimated sources count as stand-ins on the poster; a `usePosterSnapshot()` hook instead of the asked-for context provider (proposed, waiting).
-- Not verified: the poster on screen (no screenshots, project rule). Committed on `claude/poster-readout`, pushed.
+- Decided by the user: stand-in marking stays as it is; `usePosterSnapshot()` instead of a context provider (a provider would rerender on every scrub). Merged into `main`.
+- Not verified: the poster with the map on screen (no Mapbox token in the cloud container; a render with a fake map was shown).
 
 ## 2026-10-04 (product direction)
 - Worked on: a startup-style review of the product (CEO, product, design, marketing, CTO, data, legal, finance).

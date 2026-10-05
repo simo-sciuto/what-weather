@@ -1,9 +1,5 @@
 import "server-only";
-import {
-  GEOCODE_REVALIDATE_SECONDS,
-  MAX_DATA_AGE_SECONDS,
-  WEATHER_REVALIDATE_SECONDS,
-} from "@/lib/weather/constants";
+import { GEOCODE_REVALIDATE_SECONDS, MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS } from "@/constants/cache";
 import { roundCoord } from "@/lib/weather/coordinates";
 import type { WeatherProvider } from "./provider";
 import {

@@ -1,4 +1,5 @@
 import "server-only";
+import { OPTIONAL_FETCH_TIMEOUT_MS } from "@/constants/network";
 import type { PlaceRef } from "@/types/place";
 import { pickCity, type GeoPlace } from "@/lib/weather/random-city";
 
@@ -21,7 +22,7 @@ const ENDPOINT = "https://geocoding-api.open-meteo.com/v1/get";
 async function lookup(id: number): Promise<GeoPlace | null> {
   try {
     const res = await fetch(`${ENDPOINT}?id=${id}&language=it`, {
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(OPTIONAL_FETCH_TIMEOUT_MS),
       cache: "no-store",
     });
     return res.ok ? ((await res.json()) as GeoPlace) : null;

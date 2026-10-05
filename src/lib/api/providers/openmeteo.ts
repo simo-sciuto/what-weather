@@ -1,6 +1,8 @@
 import "server-only";
+import { HOUR_SECONDS, DAY_SECONDS } from "@/constants/time";
 import { atmosphericData } from "@/lib/weather/atmospheric-data";
-import { GEOCODE_REVALIDATE_SECONDS, WEATHER_REVALIDATE_SECONDS, isWet } from "@/lib/weather/constants";
+import { GEOCODE_REVALIDATE_SECONDS, WEATHER_REVALIDATE_SECONDS } from "@/constants/cache";
+import { isWet } from "@/lib/weather/conditions";
 import { airIndexOf } from "@/lib/weather/details";
 import { roundCoord } from "@/lib/weather/coordinates";
 import { WeatherProviderError, loadFresh, lookupPlace } from "./openweather";
@@ -190,7 +192,7 @@ function toCurrent(raw: OMForecast["current"]): CurrentWeather {
     cloudCover: num(raw.cloud_cover),
     visibility: atmosphere.visibility ?? 0,
     // The amount fell over the current interval (15 minutes); the model wants a rate.
-    precipitation: num(raw.precipitation) * (3600 / (raw.interval || 3600)),
+    precipitation: num(raw.precipitation) * (HOUR_SECONDS / (raw.interval || HOUR_SECONDS)),
   };
 }
 
@@ -247,7 +249,7 @@ function daySky(hourly: OMForecast["hourly"], from: number, to: number, fallback
 /** Whole calendar days in the place's time zone, today included in full. */
 function toDaily(raw: OMForecast["daily"], hourly: OMForecast["hourly"]): DailyPoint[] {
   return raw.time.map((time, i) => {
-    const { condition, intensity } = daySky(hourly, time, raw.time[i + 1] ?? time + 86400, num(raw.weather_code[i]));
+    const { condition, intensity } = daySky(hourly, time, raw.time[i + 1] ?? time + DAY_SECONDS, num(raw.weather_code[i]));
     return {
       time,
       min: num(raw.temperature_2m_min[i]),
@@ -267,7 +269,7 @@ function toDaily(raw: OMForecast["daily"], hourly: OMForecast["hourly"]): DailyP
 /** 15-minute steps from now; amounts per step become rates, the chance comes from the hour. */
 function toQuarters(raw: OMForecast["minutely_15"], hourly: HourlyPoint[], now: number): QuarterPoint[] | null {
   if (!raw?.time.length) return null;
-  const chance = (t: number) => hourly.find((h) => h.time <= t && t < h.time + 3600)?.precipProbability ?? 0;
+  const chance = (t: number) => hourly.find((h) => h.time <= t && t < h.time + HOUR_SECONDS)?.precipProbability ?? 0;
   const points = raw.time.flatMap((time, i) =>
     time < now - 900
       ? []

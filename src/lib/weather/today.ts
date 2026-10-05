@@ -1,3 +1,4 @@
+import { DAY_SECONDS } from "@/constants/time";
 import { localDay, localHour, spokenTime } from "./formatters";
 import type { WeatherData } from "@/types/weather";
 
@@ -20,7 +21,7 @@ export function tempRange(data: WeatherData): TempRange {
   const today = data.daily.find((d) => localDay(d.time, data.timezone) === todayKey);
   if (today && !today.partial) return { min: today.min, max: today.max, span: "today" };
 
-  const next = data.hourly.filter((h) => h.time <= data.current.time + 86400);
+  const next = data.hourly.filter((h) => h.time <= data.current.time + DAY_SECONDS);
   const points = [{ time: data.current.time, temp: data.current.temp }, ...next];
   const low = points.reduce((a, b) => (b.temp < a.temp ? b : a));
   const high = points.reduce((a, b) => (b.temp > a.temp ? b : a));

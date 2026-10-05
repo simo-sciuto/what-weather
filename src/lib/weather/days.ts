@@ -1,3 +1,4 @@
+import { TIME_LABELS } from "@/constants/labels";
 import { formatDate, localDay } from "./formatters";
 import { capitalize } from "@/utils/string";
 import { darkWithoutSunTimes, hasSunTimes } from "./sun";
@@ -41,7 +42,7 @@ export function visibleDays(d: WeatherData): DayInfo[] {
     .map((point) => {
       const key = localDay(point.time, tz);
       const isToday = key === todayKey;
-      const name = isToday ? (afterSunset ? "Stasera" : "Oggi") : capitalize(formatDate(point.time, tz, { weekday: "long" }));
+      const name = isToday ? (afterSunset ? TIME_LABELS.tonight : TIME_LABELS.today) : capitalize(formatDate(point.time, tz, { weekday: "long" }));
       return {
         key,
         point,
