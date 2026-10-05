@@ -4,6 +4,7 @@ import { placeHref } from "@/lib/place";
 import { placeParts } from "@/lib/weather/formatters";
 import type { MapOption } from "@/lib/map-options";
 import type { SkyPalette } from "@/lib/weather/palette";
+import { fingerprintOf } from "@/lib/weather/fingerprint";
 import { sunPosition, type SunPosition } from "@/lib/weather/sun-position";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePlace } from "../location/PlaceContext";
@@ -19,10 +20,11 @@ import {
   type PosterInput,
 } from "./render-poster";
 
-/** The sky, the day, the map's extra layers, the sun and how close and how tipped the map is, as the poster is drawn: taken when the dialog opens. */
+/** The sky, the moment and its fingerprint, the map's extra layers, the sun and how close and how tipped the map is, as the poster is drawn: taken when the dialog opens. */
 type Snapshot = {
   palette: SkyPalette;
-  dayKey: PosterInput["dayKey"];
+  time: PosterInput["time"];
+  fingerprint: PosterInput["fingerprint"];
   options: MapOption[];
   sun: SunPosition;
   view: { zoom: number; pitch: number; bearing: number };
@@ -57,7 +59,7 @@ function fileName(place: string, format: PosterFormat) {
 /**
  * "Crea poster", under the reading: a dialog that draws the place as a Swiss
  * poster (the map in the colours of the moment on show; its name, region and
- * country; its coordinates; the colours) in three formats, with a preview, a download and, where the
+ * country; its coordinates; the moment's weather as a readout) in three formats, with a preview, a download and, where the
  * device can, a share. The colours are those of the moment when it opens, so
  * the clock ticking on doesn't redraw it. Without Mapbox there is no map, and
  * so no poster.
@@ -72,8 +74,8 @@ export function PosterButton({
 }) {
   const nav = usePhoneNav();
   const { place } = usePlace();
-  const { token, loadMapbox } = useMap();
-  const { frame } = useMoment();
+  const { token, loadMapbox, timezone } = useMap();
+  const { frame, look } = useMoment();
   // The map's lines as the viewer turned them: the poster is drawn as the page is
   const palette = useMapPalette();
   const options = useMapOptions();
@@ -97,7 +99,7 @@ export function PosterButton({
   /** Draws one format in the sky and day given; each is drawn once per opening, when first shown. */
   function draw(
     f: PosterFormat,
-    { palette, dayKey, options, sun, view, temp }: Snapshot,
+    { palette, time, fingerprint, options, sun, view, temp }: Snapshot,
   ) {
     if (!token) return;
     setDrawn((d) => ({ ...d, [f]: { status: "drawing" } }));
@@ -110,7 +112,9 @@ export function PosterButton({
     renderPoster({
       format: f,
       place: where,
-      dayKey,
+      time,
+      timeZone: timezone,
+      fingerprint,
       palette,
       options,
       sun,
@@ -131,7 +135,11 @@ export function PosterButton({
   function open() {
     const taken: Snapshot = {
       palette,
-      dayKey: frame.dayKey,
+      time: frame.time,
+      fingerprint: fingerprintOf(
+        { atmosphere: look.atmosphere, inputStatus: look.atmosphereInputStatus },
+        frame.light,
+      ),
       options,
       sun: sunPosition(frame.time, place.lat, place.lon),
       view: currentView(),

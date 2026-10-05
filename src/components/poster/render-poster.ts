@@ -1,12 +1,13 @@
 import { tempColor } from "@/lib/weather/temp-color";
-import { dayOfYear, formatCoords } from "@/lib/weather/formatters";
+import { formatCoords } from "@/lib/weather/formatters";
 import type { MapOption } from "@/lib/map-options";
-import { optionColor } from "@/lib/weather/map-swatch";
 import type { SkyPalette } from "@/lib/weather/palette";
+import type { WeatherFingerprint } from "@/lib/weather/fingerprint";
 import { bloomRadius, bloomStops, parseGlow } from "@/lib/weather/bloom";
 import type { SunPosition } from "@/lib/weather/sun-position";
 import { STYLE, syncMap } from "../weather/map-style";
 import { BASE_ZOOM } from "../weather/map-view";
+import { readoutRows, readoutStamp, type ReadoutRow } from "./readout";
 
 type Mapbox = typeof import("mapbox-gl").default;
 
@@ -47,8 +48,11 @@ export interface PosterInput {
     lat: number;
     lon: number;
   };
-  /** The local day ("2026-09-30") whose sky the poster is drawn in, for its number in the year */
-  dayKey: string;
+  /** The moment on show (Unix seconds) and the place's time zone, for the stamp over the readout */
+  time: number;
+  timeZone: string;
+  /** The record's visual DNA at that moment (WTH-046J): the readout at the foot draws it */
+  fingerprint: WeatherFingerprint;
   palette: SkyPalette;
   /** The extra map layers the viewer chose, and the sun at the moment on show for the shadows and lights */
   options: readonly MapOption[];
@@ -65,14 +69,16 @@ export interface PosterInput {
  * The poster, drawn in the browser: the sky of the moment, the city's lines
  * in the colours opposite it (the same drawing as behind the page, with no
  * veil and no fade), and, set on a Swiss grid, the place's name, large, black
- * and tight, its region and country, its coordinates, and the colours it was
- * drawn in. The map is the subject; the
+ * and tight, its region and country, its coordinates and compass, and the
+ * moment's weather as a readout of bars. The map is the subject; the
  * type holds the edges. Returns a PNG.
  */
 export async function renderPoster({
   format,
   place,
-  dayKey,
+  time,
+  timeZone,
+  fingerprint,
   palette,
   options,
   sun,
@@ -100,12 +106,12 @@ export async function renderPoster({
     W,
     H,
     place,
-    dayKey,
+    readoutStamp(time, timeZone),
     palette,
     fonts,
     tempColor(temp),
     view.bearing ?? 0,
-    legendFor(palette, options, sun, mapZoom(W, H, place.lat, view.zoom)),
+    readoutRows(fingerprint),
   );
 
   return new Promise((resolve, reject) =>
@@ -141,7 +147,7 @@ async function drawMap({
   view,
   token,
   loadMapbox,
-}: Omit<PosterInput, "format" | "dayKey" | "temp"> & {
+}: Omit<PosterInput, "format" | "time" | "timeZone" | "fingerprint" | "temp"> & {
   W: number;
   H: number;
 }): Promise<HTMLCanvasElement> {
@@ -331,14 +337,15 @@ function paintType(
   W: number,
   H: number,
   place: PosterInput["place"],
-  dayKey: PosterInput["dayKey"],
+  /** "03.10.2026 · 18:42 CEST", over the readout */
+  stamp: string,
   p: SkyPalette,
   fonts: Fonts,
   /** The colour of the temperature on show, for the name and the country */
   accent: string,
   /** How far the map is turned, in degrees: the compass at the foot shows it */
   bearing: number,
-  legend: Swatch[],
+  readout: ReadoutRow[],
 ) {
   const short = Math.min(W, H);
   const m = Math.round(short * 0.065);
@@ -389,32 +396,36 @@ function paintType(
   ctx.fillRect(m, headRule, W - 2 * m, rule);
   ctx.globalAlpha = 1;
 
-  // Foot, laid from the bottom up. Centred at the very foot, the day of the year and under it the
-  // wordmark, like a print's number and signature. Over them, under a hairline, a grid of small print:
-  // on the left where (two columns, latitude and longitude, each a label over its figure), on the right
-  // the colours this poster was drawn in, on an even grid of their own. The map's credits sit under
-  // the wordmark, in the margin. Over the hairline, the name.
+  // Foot, under a hairline, on two columns, its last line on the bottom margin. On the left where: latitude
+  // and longitude (each a small label over its figure) and the compass, with the wordmark at the foot like a
+  // print's signature and the map's credits under it, in the margin. On the right, small, the readout: the
+  // moment's stamp over the record's fingerprint as bars. Over the hairline, the name.
   const bottom = H - m;
   const mark = small * 1.9;
-  const dayBase = bottom - mark * 1.3;
   const right = W - m;
-  const barLeft = m + (W - 2 * m) * 0.42;
-  const bar = layoutSwatches(ctx, legend, right - barLeft, small, fonts.sans);
-  const barHeight = bar.rows.length * bar.rowHeight;
-  const swatchesTop = dayBase - small * 3.4 - barHeight;
-  const ruleY = swatchesTop - small * 1.1;
+  const readoutLeft = m + (W - 2 * m) * 0.56;
+  const stampSize = small * 0.62;
+  const readoutLabel = small * 0.5;
+  const rowH = small * 0.8;
+  const estimated = readout.some((r) => r.estimated);
+  // Baselines from the bottom up: the note on outlines (only when a row is one), the rows, the stamp
+  const lastRowBase = bottom - (estimated ? rowH : 0);
+  const firstRowBase = lastRowBase - (readout.length - 1) * rowH;
+  const stampBase = firstRowBase - readoutLabel - small * 0.9;
+  const footTop = stampBase - stampSize;
+  const ruleY = footTop - small * 1.1;
 
   ctx.globalAlpha = 0.45;
   ctx.fillRect(m, ruleY, W - 2 * m, rule);
   ctx.globalAlpha = 1;
 
-  // Latitude and longitude, side by side, each a small label over its figure, lined up with the colours'
-  // first row, and a third column: the compass, with the point the map faces beside it
+  // Latitude and longitude, side by side, each a small label over its figure, and a third column: the
+  // compass, with the point the map faces beside it
   const [lat, lon] = formatCoords(place.lat, place.lon);
   const coordLabel = small * 0.5;
   const coordFigure = small * 1.25;
-  const coordTop = swatchesTop;
-  const coordGap = (barLeft - m) / 3;
+  const coordTop = footTop;
+  const coordGap = (readoutLeft - small * 1.5 - m) / 3;
   (
     [
       ["Latitudine", lat],
@@ -439,32 +450,22 @@ function paintType(
     fonts.sans,
   );
 
-  // Last, centred at the foot: the day of the year, like the number pencilled under a limited edition print.
-  setType(ctx, `300 SIZE ${fonts.poster}`, small * 1.1, 0.04);
-  ctx.textAlign = "center";
-  ctx.globalAlpha = 0.9;
-  ctx.fillText(dayOfYear(dayKey), W / 2, dayBase);
-  ctx.globalAlpha = 1;
-  ctx.textAlign = "left";
+  // The signature: the wordmark at the foot of the left column, on the readout's last line
+  paintWordmark(ctx, m, bottom, mark, fonts.poster);
 
-  paintSwatches(ctx, barLeft, swatchesTop, bar, fonts.sans);
-
-  // The signature: the wordmark, centred under the number, large enough to read across a room.
-  paintWordmark(
-    ctx,
-    (W - wordmarkWidth(ctx, mark, fonts.poster)) / 2,
-    bottom,
-    mark,
-    fonts.poster,
-  );
-
-  // The map's credits, centred under the wordmark
+  // The map's credits, under the wordmark
   setType(ctx, `500 SIZE ${fonts.sans}`, small * 0.7, 0.02);
-  ctx.textAlign = "center";
   ctx.globalAlpha = 0.6;
-  ctx.fillText("© Mapbox  © OpenStreetMap", W / 2, bottom + small * 1.7);
+  ctx.fillText("© Mapbox  © OpenStreetMap", m, bottom + small * 1.7);
   ctx.globalAlpha = 1;
-  ctx.textAlign = "left";
+
+  // The readout's head: the moment, at the place and on its clock
+  setType(ctx, `600 SIZE ${fonts.sans}`, stampSize, 0.06);
+  ctx.globalAlpha = 0.9;
+  ctx.fillText(stamp, readoutLeft, stampBase);
+  ctx.globalAlpha = 1;
+
+  paintReadout(ctx, readoutLeft, right, firstRowBase, rowH, readoutLabel, readout, accent, rule, fonts.sans);
 
   const { size, lines } = setName(
     ctx,
@@ -546,157 +547,78 @@ function paintCompass(
   ctx.restore();
 }
 
-/** The map's buildings are in Mapbox's tiles from this zoom; before it there are none to show. */
-const BUILDING_ZOOM = 13;
-
-/** One chip of the poster's colour bar: a colour, and what it stands for on the map. */
-interface Swatch {
-  hex: string;
-  label: string;
-  /** Starts a new group: a wider step before it than between chips of a group */
-  groupStart?: boolean;
-}
-
-/**
- * What the poster's colour bar shows: the sky, then the colours the map is really
- * drawn with that the viewer has not taken away (not the shadows and the relief, which are shading, not a colour of their own), each as it shows over the middle of the sky (so the chips follow
- * everything the viewer tuned: the hue, the intensity and, through the lines'
- * opacity, the contrast). Only what is on this poster: the layers the viewer
- * chose, and of those only the ones that can be seen at this zoom and hour.
- */
-function legendFor(
-  p: SkyPalette,
-  options: readonly MapOption[],
-  sun: SunPosition,
-  zoom: number,
-): Swatch[] {
-  const chosen = new Set(options);
-  const close = zoom >= BUILDING_ZOOM;
-  // What each choice is called here, short, in the order the poster lists them
-  const named: [MapOption, string, boolean][] = [
-    ["water", "Acqua", true],
-    ["motorways", "Autostrade", true],
-    ["main-roads", "Principali", true],
-    ["streets", "Strade", true],
-    ["green", "Verde", true],
-    ["contours", "Curve", true],
-    ["train", "Treni", true],
-    ["metro", "Metro", true],
-    ["tram", "Tram", zoom >= 14],
-    ["bus", "Autobus", zoom >= 14],
-    ["buildings", "Edifici", close],
-    ["traffic", "Traffico", true],
-    ["lights", "Luci", sun.altitude <= 0],
-  ];
-  const entries = named.filter(
-    ([option, , seen]) => seen && chosen.has(option),
-  );
-  return [
-    { hex: p.sky1, label: "Cielo alto" },
-    { hex: p.sky2, label: "Cielo" },
-    { hex: p.sky3, label: "Orizzonte" },
-    ...entries.map(([option, label], i): Swatch => ({
-      hex: optionColor(p, option),
-      label,
-      groupStart: i === 0,
-    })),
-  ];
-}
-
-interface SwatchBar {
-  rows: Swatch[][];
-  chipW: number;
-  chipH: number;
-  gap: number;
-  groupGap: number;
-  label: number;
-  /** From one row's top to the next */
-  rowHeight: number;
-}
-
 /** What a name is set as: capitals, small and widely spaced, as a printer's colour bar names its inks */
 const LABEL_TRACKING = 0.1;
 
 /**
- * Sets the chips on an even grid as wide as `width`: as many columns as fit, every chip the same width and
- * every gap the same, so the columns line up from row to row. The sky's colours take the first row, the
- * map's start the next.
+ * The readout's rows, from `left` to `right`, the first label's baseline on `firstBase`: each axis's name in
+ * small capitals, then its bar on a hairline track as long as the column allows. Warmth starts from a tick in
+ * the middle, cold to the left and hot to the right, in the colour of the temperature; the rest fill from the
+ * left in white. An estimated axis is drawn in outline, and a note under the rows says so.
  */
-function layoutSwatches(
-  ctx: CanvasRenderingContext2D,
-  swatches: Swatch[],
-  width: number,
-  small: number,
-  family: string,
-): SwatchBar {
-  const label = small * 0.5;
-  setType(ctx, `600 SIZE ${family}`, label, LABEL_TRACKING);
-  const widest = Math.max(
-    ...swatches.map((s) => ctx.measureText(s.label.toUpperCase()).width),
-  );
-  const gap = small * 0.7;
-  const columns = Math.max(1, Math.floor((width + gap) / (widest + gap)));
-  const chipW = (width - gap * (columns - 1)) / columns;
-  const chipH = small * 0.22;
-  const rows: Swatch[][] = [];
-  let row: Swatch[] = [];
-  for (const s of swatches) {
-    if (row.length === columns || (s.groupStart && row.length > 0)) {
-      rows.push(row);
-      row = [];
-    }
-    row.push(s);
-  }
-  if (row.length) rows.push(row);
-  return {
-    rows,
-    chipW,
-    chipH,
-    gap,
-    groupGap: gap,
-    label,
-    rowHeight: chipH + label * 1.7 + small * 0.85,
-  };
-}
-
-/**
- * The poster's colours as a printer's colour bar, on an even grid from `left`: a fine bar of each colour
- * over the name of what it stands for (sky, water, a kind of road, a building…) in small capitals.
- */
-function paintSwatches(
+function paintReadout(
   ctx: CanvasRenderingContext2D,
   left: number,
-  top: number,
-  bar: SwatchBar,
+  right: number,
+  firstBase: number,
+  rowH: number,
+  label: number,
+  rows: ReadoutRow[],
+  accent: string,
+  rule: number,
   family: string,
 ) {
-  const { rows, chipW, chipH, gap, label } = bar;
   setType(ctx, `600 SIZE ${family}`, label, LABEL_TRACKING);
   ctx.textAlign = "left";
-  rows.forEach((row, r) => {
-    const y = top + r * bar.rowHeight;
-    row.forEach((s, i) => {
-      const x = left + i * (chipW + gap);
-      ctx.fillStyle = s.hex;
-      ctx.fillRect(x, y, chipW, chipH);
-      ctx.fillStyle = "#ffffff";
-      ctx.globalAlpha = 0.75;
-      ctx.fillText(s.label.toUpperCase(), x, y + chipH + label * 1.7);
-      ctx.globalAlpha = 1;
-    });
-  });
-}
+  const names = Math.max(...rows.map((r) => ctx.measureText(r.label.toUpperCase()).width));
+  const trackLeft = left + names + label * 1.6;
+  const trackW = right - trackLeft;
+  const barH = Math.max(rule * 2, label * 0.56);
+  const line = Math.max(1, rule * 0.75);
+  /** A bar, solid or in outline, over [x0, x1], centred on the x-height of a label set on `base` */
+  const bar = (x0: number, x1: number, base: number, color: string, outline: boolean) => {
+    const y = base - label * 0.36 - barH / 2;
+    const w = x1 - x0;
+    if (w <= 0) return;
+    if (outline) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = line;
+      ctx.strokeRect(x0 + line / 2, y + line / 2, Math.max(0, w - line), barH - line);
+    } else {
+      ctx.fillStyle = color;
+      ctx.fillRect(x0, y, w, barH);
+    }
+  };
 
-/** The wordmark's width at a size, to centre it. */
-function wordmarkWidth(
-  ctx: CanvasRenderingContext2D,
-  size: number,
-  family: string,
-) {
-  setType(ctx, `300 SIZE ${family}`, size, -0.02);
-  const what = ctx.measureText("what").width;
-  setType(ctx, `800 SIZE ${family}`, size, -0.05);
-  return what + size * (0.08 + 0.34 + 0.08) + ctx.measureText("weather").width;
+  rows.forEach((r, i) => {
+    const base = firstBase + i * rowH;
+    ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = 0.75;
+    ctx.fillText(r.label.toUpperCase(), left, base);
+    // The track: a hairline across the column, on the bar's middle
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect(trackLeft, base - label * 0.36 - line / 2, trackW, line);
+    ctx.globalAlpha = 1;
+    if (r.centred) {
+      const mid = trackLeft + trackW / 2;
+      ctx.globalAlpha = 0.6;
+      ctx.fillRect(mid - line / 2, base - label * 0.36 - barH, line, barH * 2);
+      ctx.globalAlpha = 1;
+      const end = mid + (Math.max(-1, Math.min(1, r.value)) * trackW) / 2;
+      bar(Math.min(mid, end), Math.max(mid, end), base, accent, r.estimated);
+    } else {
+      bar(trackLeft, trackLeft + Math.max(0, Math.min(1, r.value)) * trackW, base, "#ffffff", r.estimated);
+    }
+  });
+
+  if (rows.some((r) => r.estimated)) {
+    const base = firstBase + rows.length * rowH;
+    ctx.globalAlpha = 0.6;
+    bar(left, left + label * 2.2, base, "#ffffff", true);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("ESTIMATED, NOT MEASURED", left + label * 3, base);
+    ctx.globalAlpha = 1;
+  }
 }
 
 /** what (light), a butter bar low like a horizon, weather (black): the page's wordmark, on the canvas. */
