@@ -1,5 +1,5 @@
 import type { DetailModule } from "@/lib/weather/details";
-import type { WeatherData } from "@/lib/weather/types";
+import type { WeatherData } from "@/types/weather";
 import { detailContent } from "./detailContent";
 import { Section } from "./Section";
 

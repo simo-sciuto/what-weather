@@ -1,4 +1,4 @@
-import type { Pollutants } from "./types";
+import type { Pollutants } from "@/types/weather";
 
 /**
  * What each pollutant is and why it matters, for the explanations behind the

@@ -1,4 +1,4 @@
-import type { Place, WeatherData } from "@/lib/weather/types";
+import type { Place, WeatherData } from "@/types/weather";
 
 /**
  * Every weather API (OpenWeather, Open-Meteo, ...) gets its own adapter that

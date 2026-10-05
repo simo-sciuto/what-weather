@@ -1,4 +1,4 @@
-import type { AtmosphericField, AtmosphericMeasurements, AtmosphericSource } from "./types";
+import type { AtmosphericField, AtmosphericMeasurements, AtmosphericSource } from "@/types/weather";
 
 const FIELDS: readonly AtmosphericField[] = ["humidity", "visibility", "dewPoint"];
 type Input = { [K in AtmosphericField]?: number | null } & Pick<AtmosphericMeasurements, "atmosphericSources">;

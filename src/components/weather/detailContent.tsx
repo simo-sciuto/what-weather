@@ -11,7 +11,7 @@ import {
   type DetailKey,
 } from "@/lib/weather/details";
 import { formatDuration, formatSigned, formatTemp, formatTime } from "@/lib/weather/formatters";
-import type { WeatherData } from "@/lib/weather/types";
+import type { WeatherData } from "@/types/weather";
 import type { ReactNode } from "react";
 import { Disclosure } from "./Disclosure";
 import { BAND_COLORS, Compass, PollutantRow, Scale, Sparkline, SunArc } from "./figures";

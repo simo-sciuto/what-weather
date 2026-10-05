@@ -1,5 +1,5 @@
 import "server-only";
-import type { PlaceRef } from "@/lib/place";
+import type { PlaceRef } from "@/types/place";
 import { pickCity, type GeoPlace } from "@/lib/weather/random-city";
 
 /**

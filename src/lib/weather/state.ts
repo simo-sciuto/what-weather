@@ -1,20 +1,7 @@
+import type { DayPhase, WeatherState } from "@/types/sky";
 import { hasSunTimes } from "./sun";
 import { THRESHOLDS } from "./constants";
-import type { CurrentWeather } from "./types";
-
-/** The visual mood of the page. Drives palette, background and accents. */
-export type WeatherState =
-  | "CLEAR_DAY"
-  | "CLEAR_NIGHT"
-  | "PARTLY_CLOUDY"
-  | "CLOUDY"
-  | "FOG"
-  | "RAIN"
-  | "HEAVY_RAIN"
-  | "STORM"
-  | "SNOW";
-
-export type DayPhase = "dawn" | "day" | "dusk" | "night";
+import type { CurrentWeather } from "@/types/weather";
 
 export function dayPhase(now: number, sunrise: number, sunset: number, darkFallback = false): DayPhase {
   if (!hasSunTimes({ sunrise, sunset })) return darkFallback ? "night" : "day";

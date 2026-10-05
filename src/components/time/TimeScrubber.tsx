@@ -2,8 +2,7 @@
 
 import { monotonePath } from "@/lib/weather/curve";
 import { formatTemp } from "@/lib/weather/formatters";
-import type { BestWindow } from "@/lib/weather/best-window";
-import type { Frame, Timeline } from "@/lib/weather/frames";
+import type { BestWindow, Frame, Timeline } from "@/types/timeline";
 import { useCallback, useMemo, useRef, useState, type PointerEvent } from "react";
 import { WeatherIcon } from "../weather/WeatherIcon";
 import { useMoment, useTimeline, useView } from "./TimeContext";

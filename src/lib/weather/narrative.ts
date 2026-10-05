@@ -1,7 +1,7 @@
 import { THRESHOLDS, isWet } from "./constants";
 import { formatTemp, localDay, localHour, spokenTime } from "./formatters";
 import { darkWithoutSunTimes, hasSunTimes } from "./sun";
-import type { Condition, HourlyPoint, WeatherData } from "./types";
+import type { Condition, HourlyPoint, WeatherData } from "@/types/weather";
 
 /**
  * Rules-based weather summary. Each rule may produce a candidate phrase with a

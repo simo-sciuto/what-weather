@@ -3,7 +3,7 @@
 import { samePlace } from "@/lib/place";
 import { noteRecent, recentSnapshot, subscribeRecent } from "@/lib/recent-places";
 import { addSaved, parseSaved, removeSaved, savedSnapshot, subscribeSaved, type SavedPlace } from "@/lib/saved-places";
-import type { Place } from "@/lib/weather/types";
+import type { Place } from "@/types/weather";
 import {
   createContext,
   useCallback,

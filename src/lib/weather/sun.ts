@@ -1,5 +1,6 @@
+import type { SunEvent } from "@/types/sky";
 import { localDay } from "./formatters";
-import type { WeatherData } from "./types";
+import type { WeatherData } from "@/types/weather";
 
 /**
  * Near the poles there may be no sunrise or sunset today (midnight sun, polar
@@ -13,11 +14,6 @@ export function hasSunTimes(d: Pick<WeatherData, "sunrise" | "sunset">): boolean
 export function darkWithoutSunTimes(d: WeatherData): boolean {
   return d.hourly[0]?.isNight ?? false;
 }
-
-export type SunEvent = {
-  type: "sunrise" | "sunset";
-  time: number;
-};
 
 /**
  * Sunrises and sunsets around now. Uses the provider's per-day times when it

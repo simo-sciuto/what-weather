@@ -1,6 +1,6 @@
 import { createAtmosphere, type AtmosphereState } from "./atmosphere";
 import { TYPICAL_CLOUD_COVER } from "./constants";
-import type { Condition, Intensity } from "./types";
+import type { Condition, Intensity } from "@/types/weather";
 
 /** Project units, never provider payloads. Missing measurements stay missing. */
 export type WeatherVisualInput = {

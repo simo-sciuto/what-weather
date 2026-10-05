@@ -1,7 +1,7 @@
 import { visibleDays } from "@/lib/weather/days";
 import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
 import { tempGradient } from "@/lib/weather/temp-color";
-import type { WeatherData } from "@/lib/weather/types";
+import type { WeatherData } from "@/types/weather";
 import type { CSSProperties } from "react";
 import { DaySelect } from "../time/DaySelect";
 import { Disclosure } from "./Disclosure";

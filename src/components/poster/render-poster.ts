@@ -1,15 +1,15 @@
 import { tempColor } from "@/lib/weather/temp-color";
 import { formatCoords } from "@/lib/weather/formatters";
 import type { MapOption } from "@/lib/map-options";
-import type { SkyPalette } from "@/lib/weather/palette";
+import type { SkyPalette } from "@/types/palette";
 import type { WeatherFingerprint } from "@/lib/weather/fingerprint";
 import { bloomRadius, bloomStops, parseGlow } from "@/lib/weather/bloom";
 import type { SunPosition } from "@/lib/weather/sun-position";
 import { STYLE, syncMap } from "../weather/map-style";
 import { BASE_ZOOM } from "../weather/map-view";
+import type { Mapbox } from "@/types/map";
 import { readoutRows, readoutStamp, type ReadoutRow } from "./readout";
 
-type Mapbox = typeof import("mapbox-gl").default;
 
 export type PosterFormat = "print" | "story" | "square";
 

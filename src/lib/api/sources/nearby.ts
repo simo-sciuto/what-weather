@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife } from "next/cache";
 import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS } from "@/lib/weather/constants";
 import { mapCode } from "@/lib/api/providers/openmeteo";
-import type { Condition } from "@/lib/weather/types";
+import type { Condition } from "@/types/weather";
 
 /**
  * The weather right now in a handful of places at once, for the towns around

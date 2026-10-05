@@ -1,6 +1,6 @@
 "use client";
 
-import type { DayLabel, DayTimeline, Frame, Timeline } from "@/lib/weather/frames";
+import type { DayLabel, DayTimeline, Frame, Timeline } from "@/types/timeline";
 import { frameLook, type FrameLook } from "@/lib/weather/look";
 import {
   createContext,

@@ -14,7 +14,7 @@ export const GEOCODE_REVALIDATE_SECONDS = 60 * 60 * 24 * 7;
 /** Coordinates are rounded to ~1 km so nearby requests share one cache entry. */
 export const COORD_PRECISION = 2;
 
-import type { Condition } from "./types";
+import type { Condition } from "@/types/weather";
 
 /** Skies that bring precipitation. */
 export function isWet(condition: Condition): boolean {

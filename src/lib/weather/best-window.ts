@@ -1,6 +1,6 @@
 import { THRESHOLDS, isWet } from "./constants";
 import { localDay, spokenTime } from "./formatters";
-import type { Condition } from "./types";
+import type { Condition } from "@/types/weather";
 
 /**
  * The best stretch of hours to be outside: each hour gets a score from how it
@@ -22,13 +22,6 @@ export type OutdoorHour = {
   night: boolean;
   /** Absent when the provider has no UV data */
   uvIndex?: number;
-};
-
-export type BestWindow = {
-  from: number;
-  to: number;
-  /** "dalle 14 alle 18", "adesso, fino alle 18", "domani dalle 10 alle 16" */
-  label: string;
 };
 
 /** What an hour is scored for: being outside in general, or one activity (see activities.ts). */

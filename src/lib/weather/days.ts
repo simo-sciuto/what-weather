@@ -1,6 +1,6 @@
 import { capitalize, formatDate, localDay } from "./formatters";
 import { darkWithoutSunTimes, hasSunTimes } from "./sun";
-import type { DailyPoint, WeatherData } from "./types";
+import type { DailyPoint, WeatherData } from "@/types/weather";
 
 /**
  * The days worth showing, shared by the week card and the day timeline.

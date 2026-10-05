@@ -2,7 +2,7 @@ import { THRESHOLDS } from "./constants";
 import { localDay } from "./formatters";
 import { illumination, moonPhaseAt, phaseName, secondsUntilPhase } from "./moon";
 import { hasSunTimes } from "./sun";
-import type { AirQuality, Pollen, Pollutants, WeatherData } from "./types";
+import type { AirQuality, Pollen, Pollutants, WeatherData } from "@/types/weather";
 
 /**
  * Derived readings for the detail modules, plus the rules deciding which

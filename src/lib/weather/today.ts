@@ -1,5 +1,5 @@
 import { localDay, localHour, spokenTime } from "./formatters";
-import type { WeatherData } from "./types";
+import type { WeatherData } from "@/types/weather";
 
 export type TempRange = {
   min: number;

@@ -11,3 +11,6 @@ export type CloudGrid = {
   /** Per frame, precipitation (mm/h) of every point, row by row */
   precip: number[][];
 };
+
+/** Mapbox GL JS as the page loads it (once, on demand): the type of the library, not an import of it */
+export type Mapbox = typeof import("mapbox-gl").default;

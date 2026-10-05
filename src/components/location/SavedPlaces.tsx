@@ -6,7 +6,7 @@ import { placeHref, samePlace } from "@/lib/place";
 import type { SavedPlace } from "@/lib/saved-places";
 import type { PlaceSummary } from "@/types/place";
 import { formatTemp } from "@/lib/weather/formatters";
-import type { Condition } from "@/lib/weather/types";
+import type { Condition } from "@/types/weather";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";

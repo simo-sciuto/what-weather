@@ -1,5 +1,5 @@
 import { regionName } from "./regions";
-import type { CurrentWeather, Place } from "./types";
+import type { CurrentWeather, Place } from "@/types/weather";
 
 /** Rounds away -0 so we never render "-0°". */
 function roundTemp(t: number): number {

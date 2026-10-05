@@ -14,7 +14,7 @@ import type {
   Place,
   QuarterPoint,
   WeatherAlert,
-} from "@/lib/weather/types";
+} from "@/types/weather";
 
 /* ---------- Raw OpenWeather One Call 4.0 / Geocoding shapes ---------- */
 

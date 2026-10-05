@@ -1,7 +1,7 @@
 import { isWet } from "./constants";
 import { capitalize, conditionLabel, formatTemp, spokenTime } from "./formatters";
-import type { SunEvent } from "./sun";
-import type { Condition, DailyPoint, Intensity } from "./types";
+import type { SunEvent } from "@/types/sky";
+import type { Condition, DailyPoint, Intensity } from "@/types/weather";
 
 /**
  * The sentences under the temperature when the timeline is away from now:

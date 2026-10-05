@@ -1,4 +1,4 @@
-import type { PlaceRef } from "@/lib/place";
+import type { PlaceRef } from "@/types/place";
 
 /**
  * Picking one city out of the places GeoNames numbers return: only the populated places that exist today.

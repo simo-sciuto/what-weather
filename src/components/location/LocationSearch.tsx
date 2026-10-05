@@ -1,11 +1,12 @@
 "use client";
 
 import { fetchPlaces } from "@/lib/api/places";
-import { placeHref, samePlace, type PlaceRef } from "@/lib/place";
+import { placeHref, samePlace } from "@/lib/place";
+import type { PlaceRef } from "@/types/place";
 import { clearRecent } from "@/lib/recent-places";
 import { removeSaved } from "@/lib/saved-places";
 import { placeSubtitle } from "@/lib/weather/formatters";
-import type { Place } from "@/lib/weather/types";
+import type { Place } from "@/types/weather";
 import { useRouter } from "next/navigation";
 import {
   useEffect,

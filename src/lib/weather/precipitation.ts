@@ -1,6 +1,6 @@
 import { THRESHOLDS, isWet } from "./constants";
 import { formatTime } from "./formatters";
-import type { Condition, WeatherData } from "./types";
+import type { Condition, WeatherData } from "@/types/weather";
 
 /**
  * Near-term precipitation, summarized for the timeline module. Uses the finest

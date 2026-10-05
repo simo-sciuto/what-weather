@@ -6,7 +6,7 @@ import {
 } from "@/lib/weather/formatters";
 import type { TempRange } from "@/lib/weather/today";
 import { yesterdayWords } from "@/lib/weather/yesterday";
-import type { CurrentWeather, Place } from "@/lib/weather/types";
+import type { CurrentWeather, Place } from "@/types/weather";
 import { LocationControl } from "../location/LocationControl";
 import {
   HeroActions,

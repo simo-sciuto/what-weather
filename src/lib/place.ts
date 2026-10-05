@@ -1,4 +1,5 @@
-import type { Place } from "./weather/types";
+import type { PlaceRef } from "@/types/place";
+import type { Place } from "@/types/weather";
 
 /**
  * How a place travels between the browser and the server: in the URL
@@ -13,15 +14,6 @@ const text = (v: unknown, max = 80) => (typeof v === "string" && v.trim() ? v.tr
 const coord = (v: unknown, limit: number) => {
   const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
   return Number.isFinite(n) && Math.abs(n) <= limit ? n : undefined;
-};
-
-/** Coordinates plus any names we trust for display; the provider fills the rest. */
-export type PlaceRef = {
-  lat: number;
-  lon: number;
-  name?: string;
-  region?: string;
-  country?: string;
 };
 
 export function parsePlaceRef(raw: Raw): PlaceRef | null {

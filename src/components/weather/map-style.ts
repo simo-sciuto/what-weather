@@ -1,5 +1,5 @@
 import type { MapOption } from "@/lib/map-options";
-import type { MapInk, MapLayer } from "@/lib/weather/palette";
+import type { MapInk, MapLayer } from "@/types/palette";
 import type { SunPosition } from "@/lib/weather/sun-position";
 import type {
   ExpressionSpecification,

@@ -1,4 +1,4 @@
-import type { PlaceRef } from "@/lib/place";
+import type { PlaceRef } from "@/types/place";
 
 /** A city of the world drawn at random, from /api/random-place; null if none could be drawn. */
 export async function fetchRandomPlace(): Promise<PlaceRef | null> {

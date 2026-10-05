@@ -5,8 +5,8 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 ## ADR-001: Providers are normalized before reaching the UI
 - Decision: every provider implements `WeatherProvider` and returns `WeatherData`. Components never see raw payloads.
 - Reason: swap or add sources (OpenWeather, Open-Meteo, mock) without touching the UI.
-- Consequences: new data needs a field in `types.ts` plus a mapping in every adapter (null/optional when a provider lacks it).
-- Status: Accepted. Evidence: `provider.ts`, `types.ts` header.
+- Consequences: new data needs a field in `types/weather.ts` plus a mapping in every adapter (null/optional when a provider lacks it).
+- Status: Accepted. Evidence: `lib/api/providers/provider.ts`, the header of `types/weather.ts`.
 
 ## ADR-002: Provider keys never reach the client
 - Decision: provider calls are server-only (`import "server-only"`); search goes through `/api/places`.

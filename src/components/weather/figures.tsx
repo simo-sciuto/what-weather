@@ -1,6 +1,6 @@
 import { AQI_LABELS, POLLUTANT_NAMES } from "@/lib/weather/details";
 import { POLLUTANT_INFO, POLLUTANT_SOURCES } from "@/lib/weather/pollutants";
-import type { Pollutants } from "@/lib/weather/types";
+import type { Pollutants } from "@/types/weather";
 
 /**
  * Small data figures shared by the almanac rows and the promoted cards.

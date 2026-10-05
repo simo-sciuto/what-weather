@@ -1,7 +1,7 @@
 "use client";
 
 import { fetchClouds } from "@/lib/api/clouds";
-import type { CloudGrid } from "@/types/map";
+import type { CloudGrid, Mapbox } from "@/types/map";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePlace } from "../location/PlaceContext";
 
@@ -13,7 +13,6 @@ import { usePlace } from "../location/PlaceContext";
  * from here.
  */
 
-type Mapbox = typeof import("mapbox-gl").default;
 
 type MapState = {
   /** The place the maps centre on */

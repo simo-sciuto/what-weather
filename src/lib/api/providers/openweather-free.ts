@@ -18,7 +18,7 @@ import {
   type OW25Forecast,
 } from "./openweather-transformers";
 import { localDay } from "@/lib/weather/formatters";
-import type { CurrentWeather, DailyPoint, WeatherData } from "@/lib/weather/types";
+import type { CurrentWeather, DailyPoint, WeatherData } from "@/types/weather";
 
 /** The forecast starts at the next 3-hour slot; fold the current reading into today. */
 function includeNow(days: DailyPoint[], now: CurrentWeather, timeZone: string): DailyPoint[] {

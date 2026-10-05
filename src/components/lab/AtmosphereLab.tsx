@@ -5,18 +5,10 @@ import type { AtmosphereAxes, VisualForce } from "@/lib/weather/atmosphere";
 import { CALIBRATION_SCENARIOS, type CalibrationScenario } from "@/lib/weather/calibration";
 import { THRESHOLDS } from "@/lib/weather/constants";
 import { TWILIGHT } from "@/lib/weather/frames";
-import {
-  atmosphereDepth,
-  atmospherePalette,
-  atmosphereSky,
-  colorDistance,
-  inkOverSky,
-  skyColors,
-  skyPalette,
-  stateSky,
-  type SkyPalette,
-} from "@/lib/weather/palette";
-import { skyAt, weatherState, type DayPhase } from "@/lib/weather/state";
+import { atmosphereDepth, atmospherePalette, atmosphereSky, colorDistance, inkOverSky, skyColors, skyPalette, stateSky } from "@/lib/weather/palette";
+import type { SkyPalette } from "@/types/palette";
+import { skyAt, weatherState } from "@/lib/weather/state";
+import type { DayPhase } from "@/types/sky";
 import { computeAtmosphere } from "@/lib/weather/visual-input";
 
 /**

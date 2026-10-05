@@ -10,7 +10,7 @@ import {
 import { visibleDays } from "./days";
 import { localDay } from "./formatters";
 import { FULL_DAY, WINDOW, hourlySamples } from "./frames";
-import type { AirQuality, WeatherData } from "./types";
+import type { AirQuality, WeatherData } from "@/types/weather";
 
 /**
  * What the next 24 hours, or a day of the week, are like for a few things

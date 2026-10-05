@@ -15,7 +15,7 @@ URL (?lat&lon&name..), else a random city (src/lib/weather/random-places.ts); sa
   -> src/lib/weather-page.ts  loadWeatherPage()  -> weatherFor() -> load()   ["use cache", tag weather:lat,lon]
        -> getProvider()  (src/lib/api/providers/get-provider.ts)
             openweather | openweather-free | open-meteo | mock     (each implements WeatherProvider)
-       -> provider.getByCoords()  ->  WeatherData  (src/lib/weather/types.ts)
+       -> provider.getByCoords()  ->  WeatherData  (src/types/weather.ts)
        + sinceYesterday()  (src/lib/api/sources/yesterday.ts: Open-Meteo, any provider)
        + lookupPollen()    (src/lib/api/sources/pollen.ts: Open-Meteo air-quality, any provider, Europe only)
        -> buildTimeline(data)  (frames.ts)  ->  Timeline / Frame[]
@@ -24,7 +24,7 @@ URL (?lat&lon&name..), else a random city (src/lib/weather/random-places.ts); sa
 
 Rules that hold today:
 - Raw provider payloads never leave their adapter. Components read `WeatherData` or `Frame`.
-- Units are fixed in `types.ts`: degC, km/h, hPa, km, mm/h, probabilities 0..1, times in Unix seconds UTC.
+- Units are fixed in `src/types/weather.ts`: degC, km/h, hPa, km, mm/h, probabilities 0..1, times in Unix seconds UTC.
 - Provider keys are server-only (`import "server-only"`, on every module under `src/lib/api/providers/` and `src/lib/api/sources/` that does I/O; `provider.ts` is types only). The only public env var is `NEXT_PUBLIC_MAPBOX_TOKEN`.
 
 ## Providers (`src/lib/api/providers/`)
@@ -45,13 +45,21 @@ Three kinds of external call, kept apart (ADR-014):
 - `sources/`: upstreams used regardless of provider, not behind `WeatherProvider` (server only, `import "server-only"`): Open-Meteo for yesterday's comparison (`yesterday.ts`), pollen (`pollen.ts`), nearby towns (`nearby.ts`), the map's cloud grid (`cloud-grid.ts`) and the random city (`random-city.ts`); Mapbox + Wikidata for the "Territorio" chapter (`city-facts.ts`). `yesterday.ts` and `random-city.ts` hold only the request: the pure logic (`changeSinceYesterday`, `yesterdayWords`, `pickCity`) stays in `src/lib/weather/` with its tests, without `server-only`, so the browser can import it (`WeatherHero` takes `yesterdayWords`).
 - `places.ts`, `summary.ts`, `random-place.ts`, `clouds.ts` (directly in `src/lib/api/`): the browser's calls to our own `/api/*` routes, with the per-visit memo of the summary and cloud requests. No server code here: a client component must never import from `providers/` or `sources/` (the build fails on `server-only` if it does). No barrel files.
 
-Types that cross the browser and server boundary live in `src/types/` (`map.ts`: `CloudGrid`; `place.ts`: `PlaceSummary`).
+## Shared types (`src/types/`)
+
+Types are declared with `type`, never `interface` (ESLint, ADR-014). A type lives in `src/types/` when two or more areas use it as a data model, one file per area, no values and no imports from logic modules:
+- `weather.ts`: `WeatherData` and its parts (`Place`, `CurrentWeather`, `HourlyPoint`, `DailyPoint`, `AirQuality`, `Pollen`, `Condition`, ...). The units are in its header.
+- `timeline.ts`: `Frame`, `Timeline`, `DayTimeline`, `DayLabel`, `BestWindow`.
+- `sky.ts`: `WeatherState`, `DayPhase`, `SunEvent`.
+- `palette.ts`: `SkyPalette`, `MapInk`, `MapLayer`, `MapVisualState`.
+- `place.ts`: `PlaceRef`, `PlaceSummary`. `map.ts`: `CloudGrid`, `Mapbox`.
+Stay beside their module: the result or contract of a single module that one other area reads (`FrameLook`, `ActivityOutlook`, `TempRange`, `WeatherProvider`), the atmosphere engine's contracts (`AtmosphereAxes`, `WeatherFingerprint`: they change with the calibration, ADR-012), types derived from a value (`MapOption`, `MockScenario`) and the raw OpenWeather payloads (private to the adapter, ADR-001). Component props stay in their component.
 
 ## WeatherData and the timeline
 
 - `WeatherData`: place, timezone (IANA or fixed offset), current, minutely (nullable), quarterHourly (nullable), hourly, daily, airQuality (nullable), alerts, pollen.
 - Current/hourly data now carry optional atmospheric humidity, visibility and dew point, with per-field origin metadata. Samples/frames preserve missingness and interpolate only between available atmospheric endpoints; current-detail legacy defaults are excluded. `Frame.overview` marks synthetic daily representatives with `measured: false` (WTH-046C, 2026-10-04).
-- `frames.ts` turns it into a `Timeline` of 100+ `Frame`s sent to the browser. A frame has `measured: boolean`: true for a provider point, false for an hour interpolated between two. Atmosphere (`visual-input.ts`), palettes, sun position and condition labels are derived client-side (`look.ts`, `palette.ts`, `state.ts`) to keep the payload small.
+- `frames.ts` (`buildTimeline`) turns it into a `Timeline` of 100+ `Frame`s sent to the browser. A frame has `measured: boolean`: true for a provider point, false for an hour interpolated between two. Atmosphere (`visual-input.ts`), palettes, sun position and condition labels are derived client-side (`look.ts`, `palette.ts`, `state.ts`) to keep the payload small.
 - Pure logic with tests: `narrative.ts` (the outlook sentence), `activities.ts`, `best-window.ts`, `palette.ts`, `precipitation.ts`, `details.ts` (pollen levels), `sun-position.ts`, `formatters.ts`, `yesterday.ts`, `random-city.ts`, `map-style.ts`, `map-view.ts`, `map-options.ts`.
 
 The palette now exposes `solarPalette(light): SolarPalette` (WTH-046D): the unchanged natural-light anchors/interpolation, before weather, UV, contrast protection and map inks. Its -1..2 phase input is distinct from 0..1 atmospheric daylight.

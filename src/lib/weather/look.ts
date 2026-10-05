@@ -1,7 +1,8 @@
 import { atmosphericData } from "./atmospheric-data";
 import { computeAtmosphere, type AtmosphereComputation } from "./visual-input";
-import type { Frame } from "./frames";
-import { atmospherePalette, type SkyPalette } from "./palette";
+import type { Frame } from "@/types/timeline";
+import { atmospherePalette } from "./palette";
+import type { SkyPalette } from "@/types/palette";
 import { skyAt, type SkyPosition } from "./state";
 
 /**

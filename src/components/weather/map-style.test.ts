@@ -1,5 +1,6 @@
 import { MAP_OPTIONS } from "@/lib/map-options";
-import { skyPalette, type MapLayer } from "@/lib/weather/palette";
+import { skyPalette } from "@/lib/weather/palette";
+import type { MapLayer } from "@/types/palette";
 import { sunPosition } from "@/lib/weather/sun-position";
 import { describe, expect, it } from "vitest";
 import { STYLE, syncMap } from "./map-style";

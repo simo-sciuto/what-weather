@@ -2,26 +2,8 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { AtmosphereAxes } from "./atmosphere";
 import { CALIBRATION_SCENARIOS } from "./calibration";
-import {
-  AIR_STEP,
-  ALL_MAP_LAYERS,
-  ATMOSPHERE_LIMITS,
-  atmosphereDepth,
-  atmospherePalette,
-  atmosphereSky,
-  CLEAR_MAP,
-  colorDistance,
-  inkOverSky,
-  MAP_SEPARATION,
-  mapInksFor,
-  MAP_WEATHER_LIMITS,
-  mapVisualState,
-  type MapInk,
-  type MapLayer,
-  skyColors,
-  skyPalette,
-  solarPalette,
-} from "./palette";
+import { AIR_STEP, ALL_MAP_LAYERS, ATMOSPHERE_LIMITS, atmosphereDepth, atmospherePalette, atmosphereSky, CLEAR_MAP, colorDistance, inkOverSky, MAP_SEPARATION, mapInksFor, MAP_WEATHER_LIMITS, mapVisualState, skyColors, skyPalette, solarPalette } from "./palette";
+import type { MapInk, MapLayer } from "@/types/palette";
 import { computeAtmosphere } from "./visual-input";
 
 type RGB = number[];

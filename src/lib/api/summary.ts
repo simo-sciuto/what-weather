@@ -1,5 +1,5 @@
-import { placeHref, type PlaceRef } from "@/lib/place";
-import type { PlaceSummary } from "@/types/place";
+import { placeHref } from "@/lib/place";
+import type { PlaceRef, PlaceSummary } from "@/types/place";
 
 /** One request per place per visit, shared by every render and remount. */
 const requests = new Map<string, Promise<PlaceSummary | null>>();

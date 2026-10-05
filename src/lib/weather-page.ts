@@ -1,7 +1,8 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
-import { parsePlaceRef, type PlaceRef } from "./place";
+import { parsePlaceRef } from "./place";
+import type { PlaceRef } from "@/types/place";
 import { getProvider } from "./api/providers/get-provider";
 import { lookupPollen } from "./api/sources/pollen";
 import { sinceYesterday } from "./api/sources/yesterday";

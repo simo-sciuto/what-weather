@@ -1,4 +1,4 @@
-import type { Place } from "@/lib/weather/types";
+import type { Place } from "@/types/weather";
 
 /**
  * The places that match a search, from /api/places. Rejects on a failed request or an abort: the caller

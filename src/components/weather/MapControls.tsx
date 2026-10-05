@@ -22,12 +22,8 @@ import {
   type MapOption,
 } from "@/lib/map-options";
 import { optionColor } from "@/lib/weather/map-swatch";
-import {
-  mapInksFor,
-  mapTone,
-  motorwayHue,
-  type SkyPalette,
-} from "@/lib/weather/palette";
+import { mapInksFor, mapTone, motorwayHue } from "@/lib/weather/palette";
+import type { SkyPalette } from "@/types/palette";
 import {
   useEffect,
   useId,

@@ -11,7 +11,7 @@ import type {
   Intensity,
   MinutePoint,
   WeatherData,
-} from "@/lib/weather/types";
+} from "@/types/weather";
 
 /**
  * Deterministic fake data for development without an API key. Each scenario
