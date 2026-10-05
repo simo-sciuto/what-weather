@@ -1,14 +1,14 @@
 import { localDay, localHour, spokenTime } from "./formatters";
 import type { WeatherData } from "./types";
 
-export interface TempRange {
+export type TempRange = {
   min: number;
   max: number;
   /** "today" = the full calendar day; "24h" = the next 24 hours from now */
   span: "today" | "24h";
   /** For "24h": when the extremes fall, "minima stanotte verso le 5", so they don't read as today's */
   note?: string;
-}
+};
 
 /**
  * Today's high and low. When the provider only covers part of today (the free

@@ -274,14 +274,14 @@ export function moonInfo(d: WeatherData) {
 
 export type DetailKey = "wind" | "humidity" | "uv" | "air" | "pollen" | "sun" | "moon" | "pressure" | "visibility";
 
-export interface DetailModule {
+export type DetailModule = {
   key: DetailKey;
   /** Promoted modules move to the front and take more room */
   promoted: boolean;
   /** The weather made it urgent: an accent outline and a note saying why */
   alert: boolean;
   note?: string;
-}
+};
 
 /**
  * Calm weather: a quiet, fixed order (secondary before tertiary). Notable

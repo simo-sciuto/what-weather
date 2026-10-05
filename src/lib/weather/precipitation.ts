@@ -8,7 +8,7 @@ import type { Condition, WeatherData } from "./types";
  * (or 3-hourly) forecast — and returns null when nothing meaningful is coming.
  */
 
-export interface PrecipBar {
+export type PrecipBar = {
   time: number;
   /** Bar height, 0..1 */
   value: number;
@@ -16,9 +16,9 @@ export interface PrecipBar {
   chance?: number;
   /** Plain-language description for tooltips and screen readers */
   label: string;
-}
+};
 
-export interface PrecipOutlook {
+export type PrecipOutlook = {
   noun: "Pioggia" | "Neve";
   headline: string;
   /** What the bar height encodes */
@@ -32,7 +32,7 @@ export interface PrecipOutlook {
   facts?: { label: string; value: string }[];
   /** Where the intensity bands begin on the bar scale (0..1), for guide lines */
   guides?: { at: number; label: string }[];
-}
+};
 
 /** Bar height for a rate: the square root keeps light rain visible next to a heavy burst; 8 mm/h fills the scale. */
 const rateHeight = (mmh: number) => Math.min(1, Math.sqrt(mmh / 8));
@@ -43,12 +43,12 @@ const INTENSITY_GUIDES = [
 ];
 const mm = (v: number) => `${v < 10 ? v.toFixed(1).replace(".", ",") : Math.round(v)} mm`;
 
-interface Step {
+type Step = {
   time: number;
   condition: Condition;
   precipProbability: number;
   precipitation: number;
-}
+};
 
 const URGENT_WITHIN = 2 * 3600;
 

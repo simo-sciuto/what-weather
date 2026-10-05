@@ -31,7 +31,7 @@ export const MOCK_SCENARIOS = [
 ] as const;
 export type MockScenario = (typeof MOCK_SCENARIOS)[number];
 
-interface Profile {
+type Profile = {
   mean: number;
   amplitude: number;
   /** Sky for each of the hours ahead */
@@ -51,7 +51,7 @@ interface Profile {
   pollen?: [number, number, number];
   /** A sample official alert, to exercise the alert component */
   alert?: { event: string; hours: number; description: string };
-}
+};
 
 const dry = (condition: Condition, pop = 0.05) => () => ({
   condition,

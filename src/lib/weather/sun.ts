@@ -14,10 +14,10 @@ export function darkWithoutSunTimes(d: WeatherData): boolean {
   return d.hourly[0]?.isNight ?? false;
 }
 
-export interface SunEvent {
+export type SunEvent = {
   type: "sunrise" | "sunset";
   time: number;
-}
+};
 
 /**
  * Sunrises and sunsets around now. Uses the provider's per-day times when it

@@ -11,7 +11,7 @@ import type { Condition, DailyPoint, Intensity } from "./types";
  * (feels-like, rain, wind), and the sun if it rises or sets around then.
  */
 
-export interface MomentSample {
+export type MomentSample = {
   time: number;
   temp: number;
   feelsLike: number;
@@ -21,9 +21,9 @@ export interface MomentSample {
   precipProbability: number;
   windSpeed: number;
   night: boolean;
-}
+};
 
-export interface MomentContext {
+export type MomentContext = {
   timezone: string;
   /** Temperature now */
   nowTemp: number;
@@ -32,7 +32,7 @@ export interface MomentContext {
   /** The day's own extremes, for moments further out */
   day?: { high: number; low: number };
   events: SunEvent[];
-}
+};
 
 const round = (t: number) => Math.round(t) || 0;
 const percent = (p: number) => `${Math.round(p * 100)}%`;

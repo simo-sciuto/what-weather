@@ -5,7 +5,7 @@ import { dateFormat, formatTime } from "@/lib/weather/formatters";
  * The poster's readout (WTH-183): the record's Weather Fingerprint as a column of bars, the same rows in the
  * same order on every poster so two records compare at a glance. No figures: the bars are the reading.
  */
-export interface ReadoutRow {
+export type ReadoutRow = {
   label: string;
   /** 0..1, or -1..1 when `centred` */
   value: number;
@@ -17,7 +17,7 @@ export interface ReadoutRow {
    * so a stand-in zero is never mistaken for a figure. Not the same as interpolated: see `Frame.measured`.
    */
   estimated: boolean;
-}
+};
 
 /** The normalized daylight (0..1) of a solar phase in hundredths, as the engine derives it (`computeAtmosphere`) */
 export function daylightOf(phase: number): number {

@@ -16,7 +16,7 @@ import type { AtmosphericMeasurements, Condition, Intensity, WeatherData } from 
  * `Timeline.dayLabels`. There are over a hundred frames, so every field
  * counts.
  */
-export interface Frame extends AtmosphericMeasurements {
+export type Frame = {
   /** Synthetic daily representative, not an hourly measurement. */
   overview?: true;
   time: number;
@@ -48,10 +48,10 @@ export interface Frame extends AtmosphericMeasurements {
   uv?: number;
   /** A sentence for this moment, used when scrubbed away from now */
   summary: string;
-}
+} & AtmosphericMeasurements;
 
 /** A day on the week timeline: its hours, or — beyond hourly data — one summary frame. */
-export interface DayTimeline {
+export type DayTimeline = {
   key: string;
   name: string;
   dateLabel: string;
@@ -66,19 +66,19 @@ export interface DayTimeline {
   hours: number[];
   /** Stand-in when there are no hours: the day's overall sky at midday */
   overview: Frame;
-}
+};
 
 /** A calendar day's name and date, shared by all its frames. */
-export interface DayLabel {
+export type DayLabel = {
   /** "Mercoledì" */
   weekday: string;
   /** "30 settembre" */
   date: string;
   /** "Oggi" / "Domani" when it applies */
   relative: string | null;
-}
+};
 
-export interface Timeline {
+export type Timeline = {
   frames: Frame[];
   days: DayTimeline[];
   /** The best hours to be outside in the next 24; null when there are none */
@@ -87,12 +87,12 @@ export interface Timeline {
   dayLabels: Record<string, DayLabel>;
   /** Sunrises, sunsets and nights across all the frames, for the timeline's shading */
   sun: { events: (SunEvent & { label: string })[]; nights: [number, number][] };
-}
+};
 
 /** How long twilight lasts on the light scale, before sunrise and after sunset */
 export const TWILIGHT = 90 * 60;
 
-interface Sample extends AtmosphericMeasurements {
+type Sample = {
   time: number;
   temp: number;
   feelsLike: number;
@@ -105,7 +105,7 @@ interface Sample extends AtmosphericMeasurements {
   uvIndex?: number;
   night: boolean;
   measured: boolean;
-}
+} & AtmosphericMeasurements;
 
 /**
  * Daylight as one number: 0 at sunrise, 1 at sunset, running below 0 through

@@ -13,7 +13,7 @@ import type { Condition } from "./types";
  * one hour from another (the outlook already speaks for it).
  */
 
-export interface OutdoorHour {
+export type OutdoorHour = {
   time: number;
   feelsLike: number;
   condition: Condition;
@@ -22,17 +22,17 @@ export interface OutdoorHour {
   night: boolean;
   /** Absent when the provider has no UV data */
   uvIndex?: number;
-}
+};
 
-export interface BestWindow {
+export type BestWindow = {
   from: number;
   to: number;
   /** "dalle 14 alle 18", "adesso, fino alle 18", "domani dalle 10 alle 16" */
   label: string;
-}
+};
 
 /** What an hour is scored for: being outside in general, or one activity (see activities.ts). */
-export interface OutdoorProfile {
+export type OutdoorProfile = {
   /** The feels-like (°C) that scores highest */
   ideal: number;
   /** How many degrees below and above it an hour loses everything */
@@ -46,7 +46,7 @@ export interface OutdoorProfile {
   wind: { from: number; span: number; cost: number };
   /** How much a very high UV costs */
   uv: number;
-}
+};
 
 /**
  * Being outside, whatever for. Cold and heat are relative to the place
@@ -70,7 +70,7 @@ const TOLERANCE = 0.1;
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 
 /** What an hour's score is made of, each 0..1; the score is their product. */
-export interface OutdoorFactors {
+export type OutdoorFactors = {
   /** 0 after dark */
   light: number;
   /** How the temperature feels */
@@ -81,7 +81,7 @@ export interface OutdoorFactors {
   sky: number;
   wind: number;
   uv: number;
-}
+};
 
 export function outdoorFactors(h: OutdoorHour, p: OutdoorProfile = GENERAL): OutdoorFactors {
   const wet = isWet(h.condition);

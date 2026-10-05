@@ -38,7 +38,7 @@ const SPAN_METRES = 30_000;
 const MAP_TIMEOUT_MS = 25_000;
 const ACCENT = "#f9e8a7";
 
-export interface PosterInput {
+export type PosterInput = {
   format: PosterFormat;
   /** The place, with its region and country in Italian (either may be empty) */
   place: {
@@ -65,7 +65,7 @@ export interface PosterInput {
   temp: number;
   token: string;
   loadMapbox: () => Promise<Mapbox>;
-}
+};
 
 /**
  * The poster, drawn in the browser: the sky of the moment, the city's lines
@@ -279,10 +279,10 @@ function paintSky(
 
 /* ---------- The type ---------- */
 
-interface Fonts {
+type Fonts = {
   poster: string;
   sans: string;
-}
+};
 
 /** The page's own two families (named by next/font), loaded in the weights the poster sets. */
 async function loadFonts(): Promise<Fonts> {

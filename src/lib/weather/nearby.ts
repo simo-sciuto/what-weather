@@ -13,11 +13,11 @@ import type { Condition } from "./types";
 
 const FORECAST = "https://api.open-meteo.com/v1/forecast";
 
-export interface NearbyReading {
+export type NearbyReading = {
   temp: number;
   condition: Condition;
   night: boolean;
-}
+};
 
 type Current = { temperature_2m: number | null; weather_code: number | null; is_day: number | null };
 

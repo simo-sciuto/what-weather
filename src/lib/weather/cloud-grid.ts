@@ -9,7 +9,7 @@ import { WeatherProviderError } from "./openweather";
  * degrees), so nearby places share one grid, and one cache entry, per hour.
  */
 
-export interface CloudGrid {
+export type CloudGrid = {
   /** Latitudes of the rows, north to south */
   lats: number[];
   /** Longitudes of the columns, west to east */
@@ -20,7 +20,7 @@ export interface CloudGrid {
   cloud: number[][];
   /** Per frame, precipitation (mm/h) of every point, row by row */
   precip: number[][];
-}
+};
 
 const ROWS = 7;
 const COLS = 7;
@@ -33,9 +33,9 @@ export const CLOUD_HOURS = 12;
 const snap = (v: number, step: number) => Math.round(v / step) * step;
 const fixed = (v: number) => Number(v.toFixed(3));
 
-interface OMPoint {
+type OMPoint = {
   hourly: { time: number[]; cloud_cover: (number | null)[]; precipitation: (number | null)[] };
-}
+};
 
 export async function cloudGrid(lat: number, lon: number): Promise<CloudGrid> {
   const cLat = snap(lat, LAT_STEP);

@@ -17,7 +17,7 @@ const ROUNDS = 3;
 const ENDPOINT = "https://geocoding-api.open-meteo.com/v1/get";
 
 /** A GeoNames place as Open-Meteo returns it (only what is used) */
-export interface GeoPlace {
+export type GeoPlace = {
   name?: string;
   latitude?: number;
   longitude?: number;
@@ -25,7 +25,7 @@ export interface GeoPlace {
   country_code?: string;
   admin1?: string;
   population?: number;
-}
+};
 
 /** Populated places that exist today: not historical, abandoned, destroyed, or a part of one */
 const POPULATED = /^PPL(A\d?|C|G)?$/;

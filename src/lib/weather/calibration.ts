@@ -9,7 +9,7 @@ import type { WeatherVisualInput } from "./visual-input";
  * reads that name. `expected` is what the scenario should look like and which
  * forces should lead it; the lab shows where the engine disagrees.
  */
-export interface CalibrationScenario {
+export type CalibrationScenario = {
   readonly id: string;
   /** Italian, as the lab shows it */
   readonly label: string;
@@ -21,7 +21,7 @@ export interface CalibrationScenario {
     /** The visual behaviour wanted, in Italian, as the lab shows it */
     readonly look: string;
   };
-}
+};
 
 export const CALIBRATION_SCENARIOS: readonly CalibrationScenario[] = [
   {

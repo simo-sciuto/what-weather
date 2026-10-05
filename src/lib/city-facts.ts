@@ -17,13 +17,13 @@ import { cacheLife } from "next/cache";
  * Every fact is optional: whatever can't be had is simply left out.
  */
 /** A place known by its name and point */
-export interface Town {
+export type Town = {
   name: string;
   lat: number;
   lon: number;
-}
+};
 
-export interface CityFacts {
+export type CityFacts = {
   /** "Capoluogo di provincia", "Capitale", "Città", "Paese"… */
   rank?: string;
   /** Metres above sea level: the municipality's official figure, else the terrain's 10-metre contours */
@@ -38,7 +38,7 @@ export interface CityFacts {
   nearby?: { name: string; lat: number; lon: number }[];
   /** The capital of the place's country, and of its region (its first-level division) where it has one, each with its point */
   capitals?: { country?: Town; region?: Town; regionName?: string };
-}
+};
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 /**
@@ -269,7 +269,7 @@ async function entities(
     WIKIMEDIA,
   );
   return res?.entities ?? {};
-}
+};
 
 const current = <V>(claims: Claim<V>[] = []) => {
   const live = claims.filter(

@@ -101,7 +101,7 @@ function restingStop(h: number, velocity: number): SheetState {
   );
 }
 
-interface Gesture {
+type Gesture = {
   x: number;
   y: number;
   /** The sheet's height when the finger came down */
@@ -111,7 +111,7 @@ interface Gesture {
   velocity: number;
   /** Following the finger: a vertical drag went past DRAG_START */
   active: boolean;
-}
+};
 
 /**
  * A sheet of glass on a phone, rising from the foot of the screen. It follows the finger: dragged up it

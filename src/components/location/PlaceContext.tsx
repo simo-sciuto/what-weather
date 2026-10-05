@@ -23,7 +23,7 @@ import {
  * parsed once for all of them, and the name hands focus to the field through
  * the shared ref rather than by looking it up in the document.
  */
-interface PlaceState {
+type PlaceState = {
   place: Place;
   /** Attached to the search field */
   searchRef: RefObject<HTMLInputElement | null>;
@@ -35,7 +35,7 @@ interface PlaceState {
   toggleSaved: () => void;
   /** Seen lately in this browser, newest first, without the place on show or the saved ones; empty on the server */
   recent: SavedPlace[];
-}
+};
 
 const PlaceContext = createContext<PlaceState | null>(null);
 

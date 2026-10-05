@@ -37,7 +37,7 @@ export const FINGERPRINT_VERSION = 1;
 export const BASIS = ["temp", "cloudCover", "humidity", "visibility", "dewPoint", "precipitation", "uvIndex"] as const;
 const BASIS_LETTERS = "tchvdpu";
 
-export interface WeatherFingerprint {
+export type WeatherFingerprint = {
   readonly version: typeof FINGERPRINT_VERSION;
   /** Solar phase, in hundredths: -100..200 (see above: not the daylight) */
   readonly phase: number;
@@ -51,7 +51,7 @@ export interface WeatherFingerprint {
   readonly energy: number;
   /** The letters of the measurements the axes rest on, in the order of `BASIS` (none: ""): provenance, not DNA */
   readonly basis: string;
-}
+};
 
 const step = (x: number) => Math.floor(x * STEPS + 0.5 + 1e-9);
 const clampInt = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));

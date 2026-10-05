@@ -19,14 +19,14 @@ type RGB = [number, number, number];
 type RGBA = [number, number, number, number];
 
 /** Natural-light base before weather, UV, text protection or map generation. */
-export interface SolarPalette {
+export type SolarPalette = {
   /** Top, middle and horizon; interpolated sRGB channels in 0..255. */
   sky: [RGB, RGB, RGB];
   /** Light-source colour in 0..255, followed by alpha in 0..1. */
   glow: RGBA;
-}
+};
 
-export interface SkyPalette {
+export type SkyPalette = {
   /** Top, middle and horizon of the sky gradient */
   sky1: string;
   sky2: string;
@@ -44,7 +44,7 @@ export interface SkyPalette {
    * that redraws the map (the viewer's tuning, the poster) draws it in the same air. `CLEAR_MAP` for the live page.
    */
   air: MapVisualState;
-}
+};
 
 /**
  * The first five are the city as it always is; the rest are the layers the
@@ -73,12 +73,12 @@ export type MapLayer =
   | "traffic-heavy"
   | "traffic-jam"
   | "lights";
-export interface MapInk {
+export type MapInk = {
   color: string;
   opacity: number;
   /** Layers that colour by value also carry a set of colours: the elevation's ramp (low to high), the traffic's one per rank of road (streets, main roads, motorways) */
   ramp?: string[];
-}
+};
 
 /** How many colours the contours' ramp has, and how far round the colour wheel it turns from lowland to peak */
 export const ELEVATION_STEPS = 7;
@@ -526,11 +526,11 @@ function skyHue(sky: RGB): number {
 }
 
 /** How the viewer may tune the lines, each 0..100 but the hue (degrees); see map-tuning.ts. 50 is the page's own. */
-export interface MapTune {
+export type MapTune = {
   hue: number;
   vivid: number;
   contrast: number;
-}
+};
 const UNTUNED: MapTune = { hue: 0, vivid: 50, contrast: 50 };
 
 /** The most the chroma is multiplied by, and how much lightness a line gives up to carry it (a pale colour can't be vivid). */
@@ -904,7 +904,7 @@ const SEPARATION_IN_WEATHER = 0.33;
  * planes (1 leaves a plane as it is), the chroma of every line, how far the land and the water move in
  * lightness, and the air's depth (WTH-046F). All of it is 1, or 0, in clear air.
  */
-export interface MapVisualState {
+export type MapVisualState = {
   /** 1 clear air, 0 the thickest haze: see `atmosphereDepth` */
   depth: number;
   /** Opacity weights of the planes */
@@ -917,7 +917,7 @@ export interface MapVisualState {
   /** Lightness the ground gains, as snow brightens it; and the water loses, as rain deepens it */
   landLift: number;
   waterDeepen: number;
-}
+};
 
 /** The step the weather's state is taken to for the inks (WTH-046H): finer than any eye tells, coarse enough to share them */
 export const AIR_STEP = 0.02;
@@ -1029,13 +1029,13 @@ export function motorwayHue(sky: string): number {
 /* ---------- 5. Palette ---------- */
 
 /** The live page's sky inputs: the categorical weather state over the light. */
-export interface StateSkyInput {
+export type StateSkyInput = {
   light: number;
   state: WeatherState;
   cloudCover: number;
   /** The UV index; without it (not every provider has one) the colours are the table's own */
   uv?: number;
-}
+};
 
 /**
  * Steps 2 and 3 as the live page applies them: the state's grey and dim, then the UV's vividness.

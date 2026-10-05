@@ -684,7 +684,7 @@ function reliefStrength(altitude: number): number {
   return 0.9 - (Math.min(altitude, 60) / 60) * 0.5;
 }
 
-export interface MapScene {
+export type MapScene = {
   /** The colours of every layer, opposite the sky of the moment on show */
   inks: Record<MapLayer, MapInk>;
   /** The extra layers the viewer chose */
@@ -695,7 +695,7 @@ export interface MapScene {
   lat: number;
   /** How much larger than on the page the roads' shadows are drawn (the poster is a large picture: 1 on the page) */
   roadShadowScale?: number;
-}
+};
 
 /**
  * Sets the map to a scene: every layer in its colour, the chosen extras

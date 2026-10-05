@@ -28,17 +28,17 @@ import {
 
 type View = { kind: "now" } | { kind: "day"; key: string };
 
-interface Moon {
+type Moon = {
   phase: number;
   southern: boolean;
-}
+};
 
-interface TimelineState {
+type TimelineState = {
   timeline: Timeline;
   moon: Moon;
-}
+};
 
-interface ViewState {
+type ViewState = {
   view: View;
   /** The selected day, in day view */
   day: DayTimeline | null;
@@ -46,9 +46,9 @@ interface ViewState {
   frames: Frame[];
   selectDay: (key: string) => void;
   backToNow: () => void;
-}
+};
 
-interface MomentState {
+type MomentState = {
   index: number;
   frame: Frame;
   /** The frame's sky colours and sun position, worked out here rather than sent per frame */
@@ -58,7 +58,7 @@ interface MomentState {
   /** Now, with nothing scrubbed */
   isLive: boolean;
   setIndex: (i: number) => void;
-}
+};
 
 const NEXT_HOURS = 24;
 /** Opening a day lands on its middle */

@@ -6,7 +6,7 @@ import { tempRange } from "@/lib/weather/today";
 import type { NextRequest } from "next/server";
 
 /** What a saved place's card shows. */
-export interface PlaceSummary {
+export type PlaceSummary = {
   temp: number;
   high: number;
   low: number;
@@ -14,7 +14,7 @@ export interface PlaceSummary {
   condition: string;
   night: boolean;
   sky: [string, string, string];
-}
+};
 
 /**
  * A place in a few numbers, for the saved-places cards: its temperature, its

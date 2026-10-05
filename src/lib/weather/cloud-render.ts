@@ -12,12 +12,12 @@ import type { CloudGrid } from "./cloud-grid";
 export const CLOUD_CELL_PX = 28;
 
 /** How clouds and rain look: their colours and their strongest opacity (0..1). */
-export interface CloudPalette {
+export type CloudPalette = {
   cloud: readonly [number, number, number];
   rain: readonly [number, number, number];
   cloudAlpha: number;
   rainAlpha: number;
-}
+};
 
 /**
  * Ice-white clouds (a cool white: a warm one turns to mud grey on a dark map) and a soft sky-blue rain:
@@ -114,12 +114,12 @@ function grainAt(g: Float32Array, x: number, y: number): number {
 }
 
 /** A stretch of the map in degrees; the canvas covers exactly this. */
-export interface CloudArea {
+export type CloudArea = {
   west: number;
   east: number;
   north: number;
   south: number;
-}
+};
 
 /** The whole grid. */
 export function gridArea(grid: CloudGrid): CloudArea {

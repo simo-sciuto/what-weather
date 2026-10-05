@@ -14,7 +14,7 @@ import { usePlace } from "../location/PlaceContext";
 
 type Mapbox = typeof import("mapbox-gl").default;
 
-interface MapState {
+type MapState = {
   /** The place the maps centre on */
   center: { lat: number; lon: number; name: string };
   timezone: string;
@@ -24,7 +24,7 @@ interface MapState {
   loadMapbox: () => Promise<Mapbox>;
   /** Clouds and rain around the place, hour by hour; null until they arrive (or when they can't) */
   clouds: CloudGrid | null;
-}
+};
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 

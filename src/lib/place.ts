@@ -16,13 +16,13 @@ const coord = (v: unknown, limit: number) => {
 };
 
 /** Coordinates plus any names we trust for display; the provider fills the rest. */
-export interface PlaceRef {
+export type PlaceRef = {
   lat: number;
   lon: number;
   name?: string;
   region?: string;
   country?: string;
-}
+};
 
 export function parsePlaceRef(raw: Raw): PlaceRef | null {
   const lat = coord(raw.lat, 90);

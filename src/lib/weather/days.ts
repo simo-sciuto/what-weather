@@ -11,7 +11,7 @@ import type { DailyPoint, WeatherData } from "./types";
 
 const MAX_DAYS = 8;
 
-export interface DayInfo {
+export type DayInfo = {
   /** Local calendar day, "YYYY-MM-DD" */
   key: string;
   point: DailyPoint;
@@ -24,7 +24,7 @@ export interface DayInfo {
   dateLabel: string;
   /** "30 set" */
   shortDate: string;
-}
+};
 
 export function visibleDays(d: WeatherData): DayInfo[] {
   const tz = d.timezone;

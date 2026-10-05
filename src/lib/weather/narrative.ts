@@ -12,7 +12,7 @@ import type { Condition, HourlyPoint, WeatherData } from "./types";
 
 type Topic = "sky" | "precip" | "temp" | "wind" | "uv" | "air";
 
-interface Candidate {
+type Candidate = {
   topic: Topic;
   priority: number;
   /** A short sentence (or two) without the final full stop, starting with a capital letter */
@@ -21,7 +21,7 @@ interface Candidate {
   bare?: string;
   /** This temperature clause names its own time, so the sky before it drops its span */
   timed?: boolean;
-}
+};
 
 const HORIZON_HOURS = 12;
 const precipLikely = (h: HourlyPoint) =>
@@ -44,10 +44,10 @@ function nextSunrise(d: WeatherData): number {
 }
 
 type Part = "morning" | "afternoon" | "evening" | "night";
-interface Period {
+type Period = {
   part: Part;
   tomorrow: boolean;
-}
+};
 
 /**
  * Tonight, this afternoon, tomorrow morning… relative to now at the place,
@@ -80,7 +80,7 @@ const through = (p: Period) => (p.tomorrow ? `fino a domani ${PART_NAMES[p.part]
  * How a spell of precipitation is said: the verb for sentences ("Piove",
  * "inizia a piovere") and the noun for forecasts ("probabile pioggia").
  */
-interface PrecipWords {
+type PrecipWords = {
   /** "Piove", "Nevica" */
   now: string;
   /** "piovere", "nevicare" (after "inizia a", "smette di") */
@@ -89,7 +89,7 @@ interface PrecipWords {
   noun: string;
   /** Whether an umbrella is the useful advice */
   umbrella: boolean;
-}
+};
 
 function precipWords(hours: Pick<HourlyPoint, "condition" | "intensity">[]): PrecipWords {
   if (hours.some((h) => h.condition === "snow")) return { now: "Nevica", verb: "nevicare", noun: "Neve", umbrella: false };

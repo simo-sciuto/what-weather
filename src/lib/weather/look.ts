@@ -9,12 +9,12 @@ import { skyAt, type SkyPosition } from "./state";
  * Pure and cheap, so the browser works it out for the frame on show instead
  * of receiving it for every frame.
  */
-export interface FrameLook {
+export type FrameLook = {
   palette: SkyPalette;
   sky: SkyPosition;
   atmosphere: AtmosphereComputation["atmosphere"];
   atmosphereInputStatus: AtmosphereComputation["inputStatus"];
-}
+};
 
 export function frameLook(f: Frame): FrameLook {
   // Daily max, peak UV and placeholder cloud/rain are not same-hour readings.

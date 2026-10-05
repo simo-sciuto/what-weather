@@ -72,25 +72,25 @@ const POLLUTANTS = ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sul
 
 type Series<K extends string> = { time: number[] } & Record<K, (number | null)[]>;
 
-interface OMForecast {
+type OMForecast = {
   timezone: string;
   current: { time: number; interval: number } & Record<(typeof CURRENT)[number], number | null>;
   minutely_15?: Series<"precipitation" | "weather_code">;
   hourly: Series<(typeof HOURLY)[number]>;
   daily: Series<(typeof DAILY)[number]>;
-}
+};
 
-interface OMAir {
+type OMAir = {
   current?: { time: number } & Record<(typeof POLLUTANTS)[number], number | null>;
-}
+};
 
-interface OMGeoResult {
+type OMGeoResult = {
   name: string;
   latitude: number;
   longitude: number;
   country_code?: string;
   admin1?: string;
-}
+};
 
 async function get<T>(url: string, params: Record<string, string | number>, revalidate: number): Promise<T> {
   const res = await fetch(

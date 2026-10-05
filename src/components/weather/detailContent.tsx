@@ -25,14 +25,14 @@ import { MoonGlyph } from "./MoonGlyph";
 
 export type FigureSize = "sm" | "lg";
 
-export interface DetailContent {
+export type DetailContent = {
   name: string;
   value: ReactNode;
   note: string;
   figure?: (size: FigureSize) => ReactNode;
   /** Extra detail behind a disclosure */
   more?: ReactNode;
-}
+};
 
 const Unit = ({ children }: { children: ReactNode }) => (
   <span className="ml-1 text-[0.45em] font-normal tracking-normal text-ink-muted">{children}</span>

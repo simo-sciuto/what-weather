@@ -17,26 +17,26 @@ import type {
 
 /* ---------- Raw OpenWeather One Call 4.0 / Geocoding shapes ---------- */
 
-interface OWCondition {
+type OWCondition = {
   id: number;
   main: string;
   description: string;
   icon: string;
-}
+};
 
-interface OWPrecip {
+type OWPrecip = {
   "1h"?: number;
-}
+};
 
-export interface OWEnvelope<T> {
+export type OWEnvelope<T> = {
   lat: number;
   lon: number;
   timezone: string;
   timezone_offset: number;
   data: T[];
-}
+};
 
-export interface OWCurrent {
+export type OWCurrent = {
   dt: number;
   sunrise: number;
   sunset: number;
@@ -55,18 +55,18 @@ export interface OWCurrent {
   snow?: OWPrecip;
   weather: OWCondition[];
   alerts?: string[];
-}
+};
 
-export interface OWMinute {
+export type OWMinute = {
   dt: number;
   precipitation: number;
-}
+};
 
-export interface OWHour extends Omit<OWCurrent, "sunrise" | "sunset"> {
+export type OWHour = {
   pop: number;
-}
+} & Omit<OWCurrent, "sunrise" | "sunset">;
 
-export interface OWDay {
+export type OWDay = {
   dt: number;
   sunrise?: number;
   sunset?: number;
@@ -78,16 +78,16 @@ export interface OWDay {
   wind_gust?: number;
   pop: number;
   weather: OWCondition[];
-}
+};
 
-export interface OWGeoPlace {
+export type OWGeoPlace = {
   name: string;
   local_names?: Record<string, string>;
   state?: string;
   country: string;
   lat: number;
   lon: number;
-}
+};
 
 /* ---------- Mapping ---------- */
 
@@ -217,7 +217,7 @@ export function toPlace(raw: OWGeoPlace): Place {
 
 /* ---------- Free APIs: Current Weather + 5 day / 3 hour Forecast (2.5) ---------- */
 
-interface OW25Main {
+type OW25Main = {
   temp: number;
   feels_like: number;
   temp_min: number;
@@ -225,15 +225,15 @@ interface OW25Main {
   pressure: number;
   humidity: number;
   dew_point?: number;
-}
+};
 
-interface OW25Wind {
+type OW25Wind = {
   speed: number;
   deg: number;
   gust?: number;
-}
+};
 
-export interface OW25Current {
+export type OW25Current = {
   dt: number;
   name: string;
   timezone: number;
@@ -245,9 +245,9 @@ export interface OW25Current {
   rain?: OWPrecip;
   snow?: OWPrecip;
   sys: { country?: string; sunrise: number; sunset: number };
-}
+};
 
-export interface OW25ForecastItem {
+export type OW25ForecastItem = {
   dt: number;
   main: OW25Main;
   weather: OWCondition[];
@@ -258,12 +258,12 @@ export interface OW25ForecastItem {
   rain?: { "3h"?: number };
   snow?: { "3h"?: number };
   sys: { pod: "d" | "n" };
-}
+};
 
-export interface OW25Forecast {
+export type OW25Forecast = {
   list: OW25ForecastItem[];
   city: { timezone: number };
-}
+};
 
 /**
  * A fixed UTC offset as an Intl time zone. Whole hours become IANA names
@@ -378,22 +378,22 @@ export function toDailyFromForecast(raw: OW25ForecastItem[], timeZone: string): 
 
 /* ---------- Air Pollution API + One Call alerts ---------- */
 
-export interface OWAirPollution {
+export type OWAirPollution = {
   list: {
     dt: number;
     main: { aqi: number };
     components: { co: number; no2: number; o3: number; so2: number; pm2_5: number; pm10: number };
   }[];
-}
+};
 
-export interface OWAlert {
+export type OWAlert = {
   id: string;
   sender_name: string;
   event: string;
   start: number;
   end: number;
   description?: { language: string; description: string }[];
-}
+};
 
 export function toAirQuality(raw: OWAirPollution): AirQuality | null {
   const entry = raw.list?.[0];

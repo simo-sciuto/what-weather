@@ -54,7 +54,7 @@ export function skyAt(light: number, phase: DayPhase): SkyPosition {
   };
 }
 
-export interface SkyPosition {
+export type SkyPosition = {
   body: "sun" | "moon";
   /**
    * Height above the horizon: 1 at solar noon, 0 at sunrise/sunset, slightly
@@ -63,4 +63,4 @@ export interface SkyPosition {
   elevation: number;
   /** How far through the day, 0 at sunrise to 1 at sunset (clamped) */
   progress: number;
-}
+};

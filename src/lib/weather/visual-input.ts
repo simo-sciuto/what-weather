@@ -3,7 +3,7 @@ import { TYPICAL_CLOUD_COVER } from "./constants";
 import type { Condition, Intensity } from "./types";
 
 /** Project units, never provider payloads. Missing measurements stay missing. */
-export interface WeatherVisualInput {
+export type WeatherVisualInput = {
   /** Existing Frame.light coordinate: -1..2, sunrise 0, sunset 1. */
   readonly light?: number | null;
   /** Degrees C, NOT feels-like temperature. */
@@ -20,16 +20,16 @@ export interface WeatherVisualInput {
   readonly uvIndex?: number | null;
   readonly condition?: Condition | null;
   readonly intensity?: Intensity | null;
-}
+};
 
 /** "supplied" does not imply observed: an upstream value may be estimated. */
 export type VisualInputStatus = "supplied" | "clamped" | "missing" | "invalid";
 type Measurement = Exclude<keyof WeatherVisualInput, "condition" | "intensity">;
-export interface AtmosphereComputation {
+export type AtmosphereComputation = {
   readonly atmosphere: AtmosphereState;
   /** Local input handling only; upstream measurement provenance stays upstream. */
   readonly inputStatus: Readonly<Record<Measurement, VisualInputStatus>>;
-}
+};
 
 const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
 const smoothstep = (low: number, high: number, value: number) => {

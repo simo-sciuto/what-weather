@@ -13,10 +13,10 @@ const FORECAST = "https://api.open-meteo.com/v1/forecast";
 /** The comparison is a detail: a slow answer is dropped rather than waited for. */
 const TIMEOUT_MS = 4000;
 
-interface Series {
+type Series = {
   time: number[];
   temperature_2m: (number | null)[];
-}
+};
 
 /** The temperature at `t`, between the two hours around it; null outside the series or where it has gaps. */
 function tempAt(s: Series, t: number): number | null {

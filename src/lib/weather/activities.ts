@@ -26,13 +26,13 @@ import type { AirQuality, WeatherData } from "./types";
  * says nothing of the days after.
  */
 
-interface Activity {
+type Activity = {
   key: string;
   name: string;
   profile: OutdoorProfile;
   /** How much poor air costs it, 0..1 */
   air: number;
-}
+};
 
 const ACTIVITIES: Activity[] = [
   {
@@ -88,7 +88,7 @@ const LEVELS = [0.4, 0.6, 0.8];
 /** A factor has to cost at least this much to be named as the reason. */
 const NOTABLE = 0.9;
 
-export interface ActivityOutlook {
+export type ActivityOutlook = {
   key: string;
   name: string;
   /** 1 (poor) to 4 (excellent) */
@@ -98,7 +98,7 @@ export interface ActivityOutlook {
   window: string | null;
   /** What holds it back: "fa caldo", "vento", "aria scarsa"; null when nothing does */
   reason: string | null;
-}
+};
 
 /** The factor costing an hour the most, in words; null when none costs enough to say. */
 function reason(h: OutdoorHour, a: Activity, air: number, aq: AirQuality | null): string | null {

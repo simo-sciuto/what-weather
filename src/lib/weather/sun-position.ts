@@ -4,12 +4,12 @@
  * degree, which is far more than a drawn shadow needs.
  */
 
-export interface SunPosition {
+export type SunPosition = {
   /** Degrees clockwise from north (90 is east, 180 south) */
   azimuth: number;
   /** Degrees above the horizon; negative once it has set */
   altitude: number;
-}
+};
 
 const rad = (d: number) => (d * Math.PI) / 180;
 const deg = (r: number) => (r * 180) / Math.PI;
