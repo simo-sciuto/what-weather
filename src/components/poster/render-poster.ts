@@ -10,7 +10,6 @@ import { BASE_ZOOM } from "../weather/map-view";
 import type { Mapbox } from "@/types/map";
 import { readoutRows, readoutStamp, type ReadoutRow } from "./readout";
 
-
 export type PosterFormat = "print" | "story" | "square";
 
 /**

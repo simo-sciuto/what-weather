@@ -11,6 +11,30 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/consistent-type-definitions": ["error", "type"],
     },
   },
+  // src/types holds types only and imports nothing but other types (ADR-014)
+  {
+    files: ["src/types/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/**", "@/components/**", "@/app/**", "./*", "../*"],
+              message: "src/types holds types only: import from @/types/* and nothing else.",
+            },
+          ],
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ExportNamedDeclaration > :matches(VariableDeclaration, FunctionDeclaration, ClassDeclaration)",
+          message: "src/types holds types only: no values.",
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

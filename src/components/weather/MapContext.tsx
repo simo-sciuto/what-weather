@@ -13,7 +13,6 @@ import { usePlace } from "../location/PlaceContext";
  * from here.
  */
 
-
 type MapState = {
   /** The place the maps centre on */
   center: { lat: number; lon: number; name: string };

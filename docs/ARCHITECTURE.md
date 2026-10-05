@@ -47,7 +47,7 @@ Three kinds of external call, kept apart (ADR-014):
 
 ## Shared types (`src/types/`)
 
-Types are declared with `type`, never `interface` (ESLint, ADR-014). A type lives in `src/types/` when two or more areas use it as a data model, one file per area, no values and no imports from logic modules:
+Types are declared with `type`, never `interface` (ESLint, ADR-014). A type lives in `src/types/` when two or more areas use it as a data model, one file per area, no values and no imports from logic modules (an ESLint rule enforces both):
 - `weather.ts`: `WeatherData` and its parts (`Place`, `CurrentWeather`, `HourlyPoint`, `DailyPoint`, `AirQuality`, `Pollen`, `Condition`, ...). The units are in its header.
 - `timeline.ts`: `Frame`, `Timeline`, `DayTimeline`, `DayLabel`, `BestWindow`.
 - `sky.ts`: `WeatherState`, `DayPhase`, `SunEvent`.
