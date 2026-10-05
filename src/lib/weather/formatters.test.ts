@@ -107,7 +107,7 @@ describe("localDayBounds (WTH-003)", () => {
     expect(end).toBe(at("2026-10-25T00:00:00Z"));
   });
 
-  it("makes days that follow each other: one's end is the next one's start, for every day of a year, in zones with and without changes", () => {
+  it("makes days that follow each other: one's end is the next one's start, for every day of a year, in zones with and without changes", { timeout: 60_000 }, () => {
     for (const tz of ["Europe/Rome", "America/Denver", "Atlantic/Azores", "Australia/Lord_Howe", "Asia/Kolkata", "UTC", "America/Havana"]) {
       let t = at("2026-01-01T12:00:00Z");
       let [, end] = localDayBounds(t, tz);

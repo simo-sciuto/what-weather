@@ -40,7 +40,7 @@ Verdict: **records cannot be sold yet.** Two things stand in the way, and the se
 ## ERA5 (the historical weather, WTH-168)
 
 - Open-Meteo's historical API: ERA5 (0.25 degrees, about 25 km, 1940 to now, 5 days' delay), ERA5-Land (0.1 degrees, about 11 km, 1950 to now), ECMWF IFS (9 km, 2017 to now), CERRA (5 km, Europe, 1985 to June 2021). Hourly variables listed: temperature, humidity, dew point, precipitation, cloud cover, wind; **visibility was not in the list as read**, so haze for a past record would rest on humidity and dew point alone (the engine copes with missing visibility: it adds none, WTH-046B), which is to be said in the record (rule 7).
-- Attribution to carry: "Generated using Copernicus Climate Change Service information" (and the Open-Meteo credit). Reanalysis is a model's reconstruction, not a measurement, and "fills in gaps by using mathematical models": a record's provenance must say reanalysis, and the older the date the less sure (ADR-013).
+- Attribution to carry: "Generated using Copernicus Climate Change Service information" for ERA5 (and the Open-Meteo credit). From 2017 the data is ECMWF's IFS as Open-Meteo assembles it "using simulation runs daily at 0z, 6z, 12z and 18z": archived operational forecast runs, not a reanalysis, and the page gives for it no credit of ECMWF's, only Open-Meteo's: to confirm with Open-Meteo (and ECMWF's open-data terms) before any record from 2017 on is sold. Reanalysis is a model's reconstruction, not a measurement, and "fills in gaps by using mathematical models": a record's provenance must say reanalysis, and the older the date the less sure (ADR-013).
 
 ## What this decides, and what it needs from the user
 
