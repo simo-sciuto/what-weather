@@ -1,10 +1,10 @@
-import { DAY_SECONDS } from "@/constants/time";
-import { MOON_LABELS } from "@/constants/labels";
 /**
  * Moon phase from astronomy rather than weather data, for providers that
  * don't report it. Mean synodic month from a reference new moon; accurate to
  * within a few hours, which is plenty for a phase name and illumination.
  */
+import { MOON_LABELS } from "@/constants/labels";
+import { DAY_SECONDS } from "@/constants/time";
 
 const SYNODIC_MONTH_DAYS = 29.530588853;
 /** New moon of 2000-01-06 18:14 UTC */

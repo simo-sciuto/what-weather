@@ -1,7 +1,7 @@
 import { HOUR_SECONDS } from "@/constants/time";
 import { TIME_LABELS } from "@/constants/labels";
 import { THRESHOLDS } from "@/constants/weather";
-import { isWet, precipNoun, PrecipNoun } from "@/lib/weather/conditions";
+import { isWet, precipNoun, type PrecipNoun } from "@/lib/weather/conditions";
 import { formatTime } from "./formatters";
 import type { Condition, WeatherData } from "@/types/weather";
 
