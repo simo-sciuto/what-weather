@@ -120,8 +120,8 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 ### ADR-013 update (2026-10-04): one layout change confirmed
 - WTH-181 (the poster's left column without outlook sentences: name and temperature at the top, the Luogo, Giorno, Ora row at the foot) goes ahead although ADR-013 pauses layout work on the live app: the user confirmed it knowingly. The rest of the pause stands (WTH-017, 018, 022, 009, 015). The outlook stays as screen-reader text and in the share image; WTH-024 is closed.
 
-### ADR-010 update (2026-10-05): the poster's readout in English (WTH-183)
-- The labels of the readout at the poster's foot (LIGHT, WARMTH, CLOUD, HAZE, WET, SNOW, STORM, ENERGY) and its note (ESTIMATED, NOT MEASURED) are English, by the user's choice: the readout is the record's technical lettering and points toward the international records flow (WTH-173). The stamp is numeric (`03.10.2026 · 18:42 CEST`). The rest of the poster (Latitudine, Longitudine, compass points) and the whole app stay Italian.
+### ADR-010 (Italian UI, English code) update (2026-10-05): the poster's readout in English (WTH-183)
+- The labels of the readout at the poster's foot (LIGHT, WARMTH, CLOUD, HAZE, WET, SNOW, STORM, ENERGY) and its note (NO DATA, STAND-IN VALUE) are English, by the user's choice: the readout is the record's technical lettering and points toward the international records flow (WTH-173). The stamp is numeric (`03.10.2026 · 18:42 CEST`). The rest of the poster (Latitudine, Longitudine, compass points) and the whole app stay Italian.
 
 ### ADR-012 update (2026-10-04): map hierarchy (WTH-046G)
 - `MapVisualState` (depth, plane weights, saturation, ground lift, water deepening) is computed from the atmosphere by `mapVisualState` and replaces the bare depth argument of `mapInks`/`mapInksFor`/`finishPalette`. Colour effects enter before the separation search; opacity weights and depth act last. Streets, 3D buildings, traffic and lights stay outside the weights. Default `CLEAR_MAP` leaves the live page unchanged. Connecting it to the page (and `MapControls`) is WTH-046L.

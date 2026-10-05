@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-04 (Weather Visual Engine map hierarchy)
+Last updated: 2026-10-05 (poster readout, WTH-183)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -12,9 +12,10 @@ Set by the user 2026-10-04 (ROADMAP.md, ADR-013): Visual Weather Records. Free d
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-None open on the engine: WTH-046 V1 is complete (A to L, 2026-10-04) and merged into `main` (`a4eacf0`, a merge commit, with WTH-165, 179, 180 and 181 in it). `main` is 21 commits ahead of `origin/main`: not pushed. `feature/visual-engine` is merged and can be deleted. The production build passed (`next build`, exit 0). WTH-046M (motion) is PARKED. Waiting for the user's next pick; candidates on the board: WTH-182 (stops that overlap), WTH-165 (phone search bar), WTH-001 to WTH-003 (data audits), and the Records track WTH-166 to WTH-173 (ADR-013), which will call the fingerprint.
+WTH-183, the poster's readout, done and reviewed on branch `claude/poster-readout` (pushed; based on the local `main`, which carries its 21 unpushed commits). Waiting for the user: (1) whether interpolated hours (`Frame.measured`) and estimated sources (`atmosphericSources`) should also be marked on the readout; (2) approval of a `usePosterSnapshot()` hook in place of the PosterContext provider they asked about (a provider would rerender on every scrub, ADR-008); (3) their look at an exported poster. Earlier: WTH-046 V1 complete and merged into `main`; WTH-046M PARKED.
 
 ## Last checkpoint
+WTH-183 (committed on `claude/poster-readout`, reviewed: no critical problems; I1 stand-in zeros invisible, I3 a whole day's false minute, M1 to M4 and M6 fixed; I2 is the user's call): the poster's foot drops the colour grid and the day of the year for a readout of the Weather Fingerprint (`src/components/poster/readout.ts`, `paintReadout` in `render-poster.ts`): a numeric stamp on the place's clock over eight fixed bars, no figures, dashed tracks for stand-ins. `PosterInput` gains `time`, `timeZone`, `allDay`, `fingerprint` and loses `dayKey`. Twelve tests. Before it, WTH-165.
 WTH-165 (committed, reviewed: no critical problems; two points applied; merged into main): the phone search is CSS-first (`PHONE_FOLDED`, `PHONE_HIDDEN` in `LocationSearch.tsx`), a `lg:hidden` round button and an unseen but laid-out field in the server's HTML; the open field's box is the folded one's; the typed text has `text-ink`; `.pop-in-desktop` replaces `pop-in` on the open field. Six tests on the server's HTML. The iPhone text bug is a hypothesis, to be confirmed on an iPhone. Next: merge `feature/visual-engine` into `main`, as the user asked. Before it, WTH-046L (`af40067`).
 WTH-046L closed (committed, reviewed: no critical or important problems; the outdated pipeline test and one doc sentence fixed): the atmosphere is the page's palette; `frameLook(frame)` paints from `atmospherePalette`, the switch removed (`engine.ts` and its plumbing deleted), five look tests. The share image and `/api/summary` follow. `skyPalette` kept as the lab's reference. Before it, the switch (`9763f0d`).
 WTH-046L, first step (committed, reviewed: no critical problems; the footer's sample links and the wordmark now keep the switch): the switch. `?motore=atmosfera` makes the page, its tuned map and the poster use `atmospherePalette`; the server's page reads it, `TimeProvider` and `useEngine` carry it, the links between places keep it; off by default, nothing changes without it. Share image and `/api/summary` untouched. Seven tests in `engine.test.ts`. Waiting for the user's comparison on a phone: then decide the default, remove the switch, move the share image. Before it, WTH-046J (`e52571e`).

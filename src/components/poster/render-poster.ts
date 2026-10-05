@@ -51,6 +51,8 @@ export interface PosterInput {
   /** The moment on show (Unix seconds) and the place's time zone, for the stamp over the readout */
   time: number;
   timeZone: string;
+  /** The moment is a day's stand-in frame (`Frame.overview`): the stamp gives the date alone */
+  allDay: boolean;
   /** The record's visual DNA at that moment (WTH-046J): the readout at the foot draws it */
   fingerprint: WeatherFingerprint;
   palette: SkyPalette;
@@ -78,6 +80,7 @@ export async function renderPoster({
   place,
   time,
   timeZone,
+  allDay,
   fingerprint,
   palette,
   options,
@@ -106,12 +109,12 @@ export async function renderPoster({
     W,
     H,
     place,
-    readoutStamp(time, timeZone),
+    readoutStamp(time, timeZone, { allDay }),
     palette,
     fonts,
     tempColor(temp),
     view.bearing ?? 0,
-    readoutRows(fingerprint),
+    readoutRows(fingerprint, { allDay }),
   );
 
   return new Promise((resolve, reject) =>
@@ -147,7 +150,7 @@ async function drawMap({
   view,
   token,
   loadMapbox,
-}: Omit<PosterInput, "format" | "time" | "timeZone" | "fingerprint" | "temp"> & {
+}: Omit<PosterInput, "format" | "time" | "timeZone" | "allDay" | "fingerprint" | "temp"> & {
   W: number;
   H: number;
 }): Promise<HTMLCanvasElement> {
@@ -408,7 +411,7 @@ function paintType(
   const readoutLabel = small * 0.5;
   const rowH = small * 0.8;
   const estimated = readout.some((r) => r.estimated);
-  // Baselines from the bottom up: the note on outlines (only when a row is one), the rows, the stamp
+  // Baselines from the bottom up: the note on stand-ins (only when a row is one), the rows, the stamp
   const lastRowBase = bottom - (estimated ? rowH : 0);
   const firstRowBase = lastRowBase - (readout.length - 1) * rowH;
   const stampBase = firstRowBase - readoutLabel - small * 0.9;
@@ -547,14 +550,15 @@ function paintCompass(
   ctx.restore();
 }
 
-/** What a name is set as: capitals, small and widely spaced, as a printer's colour bar names its inks */
+/** What a label is set as: capitals, small and widely spaced, as a printer names its inks */
 const LABEL_TRACKING = 0.1;
 
 /**
  * The readout's rows, from `left` to `right`, the first label's baseline on `firstBase`: each axis's name in
  * small capitals, then its bar on a hairline track as long as the column allows. Warmth starts from a tick in
  * the middle, cold to the left and hot to the right, in the colour of the temperature; the rest fill from the
- * left in white. An estimated axis is drawn in outline, and a note under the rows says so.
+ * left in white. An axis that rests on a stand-in has a dashed track and its bar in outline, so it shows even
+ * at zero, and a note under the rows says what the dashes mean.
  */
 function paintReadout(
   ctx: CanvasRenderingContext2D,
@@ -590,15 +594,28 @@ function paintReadout(
     }
   };
 
+  /** A hairline from x0 to x1 on a label's x-height, solid or dashed */
+  const track = (x0: number, x1: number, base: number, dashed: boolean, alpha: number) => {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = line;
+    ctx.setLineDash(dashed ? [label * 0.3, label * 0.25] : []);
+    const y = base - label * 0.36;
+    ctx.beginPath();
+    ctx.moveTo(x0, y);
+    ctx.lineTo(x1, y);
+    ctx.stroke();
+    ctx.restore();
+  };
+
   rows.forEach((r, i) => {
     const base = firstBase + i * rowH;
     ctx.fillStyle = "#ffffff";
     ctx.globalAlpha = 0.75;
     ctx.fillText(r.label.toUpperCase(), left, base);
-    // The track: a hairline across the column, on the bar's middle
-    ctx.globalAlpha = 0.3;
-    ctx.fillRect(trackLeft, base - label * 0.36 - line / 2, trackW, line);
-    ctx.globalAlpha = 1;
+    // The track: a hairline across the column, on the bar's middle; dashed for a stand-in
+    track(trackLeft, trackLeft + trackW, base, r.estimated, 0.3);
     if (r.centred) {
       const mid = trackLeft + trackW / 2;
       ctx.globalAlpha = 0.6;
@@ -613,10 +630,10 @@ function paintReadout(
 
   if (rows.some((r) => r.estimated)) {
     const base = firstBase + rows.length * rowH;
-    ctx.globalAlpha = 0.6;
-    bar(left, left + label * 2.2, base, "#ffffff", true);
+    track(left, left + label * 3, base, true, 0.6);
     ctx.fillStyle = "#ffffff";
-    ctx.fillText("ESTIMATED, NOT MEASURED", left + label * 3, base);
+    ctx.globalAlpha = 0.6;
+    ctx.fillText("NO DATA, STAND-IN VALUE", left + label * 4, base);
     ctx.globalAlpha = 1;
   }
 }

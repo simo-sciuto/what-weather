@@ -34,13 +34,29 @@ describe("the poster's readout (WTH-183)", () => {
     expect(daylightOf(5)).toBeGreaterThan(0);
   });
 
-  it("marks as estimated every axis whose measurement is missing, and only those", () => {
-    const full = readoutRows(fp("wf1/p50/w30/c80/h20/r40/s0/v10/e60~tchvdpu"));
-    expect(full.some((r) => r.estimated)).toBe(false);
-    const bare = Object.fromEntries(readoutRows(fp("wf1/p50/w0/c80/h0/r40/s0/v10/e60~")).map((r) => [r.label, r.estimated]));
-    expect(bare).toEqual({ Light: false, Warmth: true, Cloud: true, Haze: true, Wet: true, Snow: true, Storm: true, Energy: true });
-    // Humidity and dew point alone do not make haze measured: visibility leads it
-    expect(readoutRows(fp("wf1/p50/w30/c80/h20/r40/s0/v10/e60~tchdpu")).find((r) => r.label === "Haze")!.estimated).toBe(true);
+  const estimated = (key: string, opts?: { allDay?: boolean }) =>
+    Object.fromEntries(readoutRows(fp(key), opts).map((r) => [r.label, r.estimated]));
+
+  it("marks as resting on a stand-in every axis whose measurement is missing", () => {
+    expect(Object.values(estimated("wf1/p50/w30/c80/h20/r40/s0/v10/e60~tchvdpu")).some(Boolean)).toBe(false);
+    expect(estimated("wf1/p50/w0/c80/h0/r40/s0/v10/e60~")).toEqual({
+      Light: false, Warmth: true, Cloud: true, Haze: true, Wet: true, Snow: false, Storm: true, Energy: true,
+    });
+  });
+
+  it("marks haze unless visibility, humidity, dew point and temperature are all there", () => {
+    for (const basis of ["tchdpu", "tcvdpu", "tchvpu", "chvdpu"])
+      expect(estimated(`wf1/p50/w30/c80/h20/r0/s0/v0/e60~${basis}`).Haze, basis).toBe(true);
+    expect(estimated("wf1/p50/w30/c80/h20/r0/s0/v0/e60~tchvdpu").Haze).toBe(false);
+  });
+
+  it("does not call a dry condition's zero rain, snow or storm a stand-in, even without a rate", () => {
+    expect(estimated("wf1/p50/w30/c20/h10/r0/s0/v0/e60~tchvdu")).toMatchObject({ Wet: false, Snow: false, Storm: false, Haze: false });
+    expect(estimated("wf1/p50/w-60/c90/h10/r0/s45/v0/e10~tchvdu")).toMatchObject({ Wet: false, Snow: true, Haze: true });
+  });
+
+  it("gives a stand-in light to a whole day, whose phase is a nominal instant", () => {
+    expect(estimated("wf1/p50/w30/c80/h20/r40/s0/v10/e60~tchvdpu", { allDay: true }).Light).toBe(true);
   });
 
   it("never calls night's zero energy an estimate, UV or no UV", () => {
@@ -48,6 +64,9 @@ describe("the poster's readout (WTH-183)", () => {
     expect(night.find((r) => r.label === "Energy")).toMatchObject({ value: 0, estimated: false });
     const day = readoutRows(fp("wf1/p50/w10/c20/h0/r0/s0/v0/e50~tchvdp"));
     expect(day.find((r) => r.label === "Energy")!.estimated).toBe(true);
+    // At the very edge of dawn the rounded phase gives no daylight, the energy is still a stand-in's
+    const edge = readoutRows(fp("wf1/p0/w10/c20/h0/r0/s0/v0/e1~tchvdp"));
+    expect(edge.find((r) => r.label === "Energy")!.estimated).toBe(true);
   });
 
   it("reads a fingerprint made from measurements end to end", () => {
@@ -68,6 +87,11 @@ describe("the readout's stamp", () => {
   });
 
   it("turns the date over with the place's clock, not the viewer's", () => {
-    expect(readoutStamp(ts, "Asia/Tokyo")).toBe("04.10.2026 · 01:42 GMT+9");
+    // The zone's short name comes from the engine's time zone data, so only its date and hour are pinned
+    expect(readoutStamp(ts, "Asia/Tokyo")).toMatch(/^04\.10\.2026 · 01:42 \S+$/);
+  });
+
+  it("gives a whole day its date alone", () => {
+    expect(readoutStamp(ts, "Europe/Rome", { allDay: true })).toBe("03.10.2026");
   });
 });

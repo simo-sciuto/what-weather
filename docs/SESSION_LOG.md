@@ -2,6 +2,12 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-05 (poster readout)
+- Worked on: WTH-183, the poster's foot as a readout of the Weather Fingerprint, on the user's proposal; the user chose English labels, the compass kept, no figures, the block small on the right.
+- Reviewed: no critical problems; stand-in zeros made visible (dashed track), the whole day's stamp without an hour, the stand-in mapping made exact, the time zone taken into the snapshot. WTH-184 and WTH-185 added from the review.
+- Open with the user: whether interpolated hours and estimated sources count as stand-ins on the poster; a `usePosterSnapshot()` hook instead of the asked-for context provider (proposed, waiting).
+- Not verified: the poster on screen (no screenshots, project rule). Committed on `claude/poster-readout`, pushed.
+
 ## 2026-10-04 (product direction)
 - Worked on: a startup-style review of the product (CEO, product, design, marketing, CTO, data, legal, finance).
 - Decided by the user: direction Visual Weather Records (ROADMAP.md, ADR-013).
@@ -24,4 +30,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Chosen by me: `skyPalette` stays (the lab's "Oggi" and the tests need it) rather than being deleted as I had said I would: I told the user so.
 - The test run caught an old pipeline test that asserted the palette equals `skyPalette` (WTH-046C's contract, now intentionally changed): rewritten to the new contract (the palette is the atmosphere's, fog and a clear hour paint different skies). Reviewer: no critical or important problems; one doc sentence corrected.
 - Next: the user's next pick.
-

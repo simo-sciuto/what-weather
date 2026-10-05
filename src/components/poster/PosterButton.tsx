@@ -24,6 +24,8 @@ import {
 type Snapshot = {
   palette: SkyPalette;
   time: PosterInput["time"];
+  timeZone: PosterInput["timeZone"];
+  allDay: PosterInput["allDay"];
   fingerprint: PosterInput["fingerprint"];
   options: MapOption[];
   sun: SunPosition;
@@ -96,10 +98,10 @@ export function PosterButton({
 
   if (!token) return null;
 
-  /** Draws one format in the sky and day given; each is drawn once per opening, when first shown. */
+  /** Draws one format from the snapshot given; each is drawn once per opening, when first shown. */
   function draw(
     f: PosterFormat,
-    { palette, time, fingerprint, options, sun, view, temp }: Snapshot,
+    { palette, time, timeZone, allDay, fingerprint, options, sun, view, temp }: Snapshot,
   ) {
     if (!token) return;
     setDrawn((d) => ({ ...d, [f]: { status: "drawing" } }));
@@ -113,7 +115,8 @@ export function PosterButton({
       format: f,
       place: where,
       time,
-      timeZone: timezone,
+      timeZone,
+      allDay,
       fingerprint,
       palette,
       options,
@@ -136,6 +139,8 @@ export function PosterButton({
     const taken: Snapshot = {
       palette,
       time: frame.time,
+      timeZone: timezone,
+      allDay: frame.overview === true,
       fingerprint: fingerprintOf(
         { atmosphere: look.atmosphere, inputStatus: look.atmosphereInputStatus },
         frame.light,

@@ -12,8 +12,9 @@ export interface ReadoutRow {
   /** Drawn from the middle of its track: warmth, cold to the left, hot to the right */
   centred: boolean;
   /**
-   * The axis had no measurement of its own and rests on a stand-in (the condition's typical value, a neutral
-   * reference): drawn in outline, not solid, so the poster never claims a reading it does not have.
+   * The axis's value rests, at least in part, on a stand-in instead of the provider's figure (the condition's
+   * typical value, a neutral reference, a missing term taken as zero): its track is dashed whatever the value,
+   * so a stand-in zero is never mistaken for a figure. Not the same as interpolated: see `Frame.measured`.
    */
   estimated: boolean;
 }
@@ -24,9 +25,16 @@ export function daylightOf(phase: number): number {
   return p <= 0 || p >= 1 ? 0 : Math.min(1, 2 * Math.sin(Math.PI * p));
 }
 
-export function readoutRows(fp: WeatherFingerprint): ReadoutRow[] {
+/**
+ * `allDay`: the moment is a day's stand-in frame (`Frame.overview`), not an hour: its phase is a nominal instant,
+ * so its light is not a reading of that day either.
+ */
+export function readoutRows(fp: WeatherFingerprint, { allDay = false }: { allDay?: boolean } = {}): ReadoutRow[] {
   // The basis letters: temperature, cloud, humidity, visibility, dew point, precipitation, UV (fingerprint.ts)
   const has = (letter: string) => fp.basis.includes(letter);
+  // Without a rate, the condition and its intensity stand in, but only for a condition that falls: a dry
+  // condition's zero is the condition's, not a stand-in (computeAtmosphere)
+  const fallStandIn = (hundredths: number) => !has("p") && hundredths > 0;
   const daylight = daylightOf(fp.phase);
   const row = (label: string, hundredths: number, estimated: boolean, centred = false): ReadoutRow => ({
     label,
@@ -35,27 +43,28 @@ export function readoutRows(fp: WeatherFingerprint): ReadoutRow[] {
     estimated,
   });
   return [
-    // The sun's phase is worked out, never measured
-    { label: "Light", value: daylight, centred: false, estimated: false },
+    // The sun's phase is worked out for the hour, never measured; a whole day has no hour
+    { label: "Light", value: daylight, centred: false, estimated: allDay },
     row("Warmth", fp.warmth, !has("t"), true),
     // Without a cover, the condition's typical one
     row("Cloud", fp.cloud, !has("c")),
-    // Visibility leads haze; without it only the fog condition stands in
-    row("Haze", fp.haze, !has("v")),
-    // Without a rate, the condition and its intensity stand in for rain, snow and storm alike
-    row("Wet", fp.wet, !has("p")),
-    row("Snow", fp.snow, !has("p")),
-    row("Storm", fp.severity, !has("p")),
+    // Haze is visibility (without it only the fog condition stands in), the dew point's distance from the
+    // temperature and the humidity (each zero when missing), less what a fall takes from the view
+    row("Haze", fp.haze, !has("v") || !has("h") || !has("t") || !has("d") || fallStandIn(fp.wet + fp.snow)),
+    row("Wet", fp.wet, fallStandIn(fp.wet)),
+    row("Snow", fp.snow, fallStandIn(fp.snow)),
+    row("Storm", fp.severity, fallStandIn(fp.severity)),
     // At night there is no solar energy whatever the UV; by day, without UV, a neutral reference
-    row("Energy", fp.energy, daylight > 0 && !has("u")),
+    row("Energy", fp.energy, fp.energy > 0 && !has("u")),
   ];
 }
 
 /**
  * "03.10.2026 · 18:42 CEST": the moment of the record at the place, in its own time zone and with the zone's
  * name, so a record read anywhere says which clock it is on. Numbers only, read the same in any language.
+ * A whole day (`allDay`) is its date alone: its frame's time is a nominal instant, not the moment shown.
  */
-export function readoutStamp(ts: number, timeZone: string): string {
+export function readoutStamp(ts: number, timeZone: string, { allDay = false }: { allDay?: boolean } = {}): string {
   const at = new Date(ts * 1000);
   const parts = dateFormat("en-GB", {
     timeZone,
@@ -66,5 +75,6 @@ export function readoutStamp(ts: number, timeZone: string): string {
   }).formatToParts(at);
   const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
   const zone = get("timeZoneName");
+  if (allDay) return `${get("day")}.${get("month")}.${get("year")}`;
   return [`${get("day")}.${get("month")}.${get("year")}`, `${formatTime(ts, timeZone)}${zone ? ` ${zone}` : ""}`].join(" · ");
 }
