@@ -32,7 +32,6 @@ export type AtmosphereComputation = {
   readonly inputStatus: Readonly<Record<Measurement, VisualInputStatus>>;
 };
 
-
 const WARMTH: readonly (readonly [number, number])[] = [
   [-15, -1], [-5, -0.8], [5, -0.5], [12, -0.25], [18, 0],
   [24, 0.25], [30, 0.6], [36, 0.9], [42, 1],

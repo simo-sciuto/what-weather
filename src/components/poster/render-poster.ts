@@ -4,7 +4,7 @@ import { formatCoords } from "@/lib/weather/formatters";
 import type { MapOption } from "@/lib/map-options";
 import type { SkyPalette } from "@/types/palette";
 import type { WeatherFingerprint } from "@/lib/weather/fingerprint";
-import { bloomRadius, bloomStops, parseGlow } from "@/lib/weather/bloom";
+import { bloomColor, bloomRadius, bloomStops, parseGlow } from "@/lib/weather/bloom";
 import type { SunPosition } from "@/lib/weather/sun-position";
 import { STYLE, syncMap } from "../weather/map-style";
 import { BASE_ZOOM } from "../weather/map-view";
@@ -264,10 +264,9 @@ function paintSky(
   const [x, y] = [W * 0.78, H * 0.14];
   const channels = parseGlow(p.glow);
   if (!channels) return;
-  const [gr, gg, gb, ga] = channels;
   const glow = ctx.createRadialGradient(x, y, 0, x, y, bloomRadius(W, H, x, y));
   for (const { offset, share } of bloomStops())
-    glow.addColorStop(offset, `hexToRgba(${gr}, ${gg}, ${gb}, ${(ga * share).toFixed(4)})`);
+    glow.addColorStop(offset, bloomColor(channels, share));
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 }

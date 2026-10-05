@@ -33,6 +33,11 @@ export function bloomRadius(W: number, H: number, x: number, y: number): number 
   return far * 0.42;
 }
 
+/** One stop's CSS colour: the glow's own channels, its alpha scaled by the stop's share. */
+export function bloomColor([r, g, b, a]: [number, number, number, number], share: number): string {
+  return `rgba(${r}, ${g}, ${b}, ${(a * share).toFixed(4)})`;
+}
+
 /** The channels of a palette's glow, `rgb(r g b / a)`; null if it is some other form. */
 export function parseGlow(css: string): [number, number, number, number] | null {
   const m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*(?:[/,]\s*([\d.]+))?\s*\)$/.exec(css.trim());
