@@ -13,6 +13,8 @@ export type SvgOptions = {
   fontCss?: string;
   /** Prefix for the SVG's ids, so several records can share a page */
   idPrefix?: string;
+  /** Pictures for the scene's image layers, by key (data or object URLs) */
+  images?: Record<string, string>;
   /** Pixel size; the scene's own canvas when absent */
   width?: number;
   height?: number;
@@ -40,13 +42,17 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
   const transformOf = (l: SceneLayer) =>
     l.transform ? ` transform="rotate(${l.transform.rotate} ${n(l.transform.origin[0] * W)} ${n(l.transform.origin[1] * H)})"` : "";
 
-  const textOf = (l: SceneLayer, fill: string) => {
+  const textOf = (l: SceneLayer, fill: string, withHalo = true) => {
     if (l.payload.kind !== "text") return "";
     const p = l.payload;
+    const halo =
+      withHalo && p.halo
+        ? ` stroke="${scene.inks[p.halo]}" stroke-width="${n(p.font.size * W * 0.32)}" stroke-linejoin="round" paint-order="stroke"`
+        : "";
     return p.lines
       .map(
         (line) =>
-          `<text x="${n(line.x * W)}" y="${n(line.y * H)}" ${fontAttrs(p.font)} text-anchor="${p.anchor}" fill="${fill}"${transformOf(l)}>${esc(line.text)}</text>`,
+          `<text x="${n(line.x * W)}" y="${n(line.y * H)}" ${fontAttrs(p.font)} text-anchor="${p.anchor}" fill="${fill}"${halo}${transformOf(l)}>${esc(line.text)}</text>`,
       )
       .join("");
   };
@@ -59,6 +65,12 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
     if (p.kind === "rect")
       inner = `<rect x="${n(p.x * W)}" y="${n(p.y * H)}" width="${n(p.width * W)}" height="${n(p.height * H)}" fill="${ink(l)}"/>`;
     else if (p.kind === "text") inner = textOf(l, ink(l));
+    else if (p.kind === "image") {
+      const href = o.images?.[p.key];
+      inner = href
+        ? `<image href="${esc(href)}" x="${n(p.x * W)}" y="${n(p.y * H)}" width="${n(p.width * W)}" height="${n(p.height * H)}" preserveAspectRatio="none"/>`
+        : "";
+    }
     else if (p.kind === "paths") {
       const d = p.paths.map((pts) => `M${pts.map(px).join("L")}${p.closed ? "Z" : ""}`).join("");
       inner = p.stroke
@@ -85,10 +97,10 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
 
     // Clipping: a rectangle, and the letters of another layer, nested so both cut
     if (l.clip?.glyphsOf) {
-      const target = byId.get(l.clip.glyphsOf);
+      const targets = l.clip.glyphsOf.map((g) => byId.get(g)).filter((t): t is SceneLayer => !!t);
       const cid = id(`glyphs-${l.id}`);
-      if (target) {
-        defs.push(`<clipPath id="${cid}">${textOf(target, "#000")}</clipPath>`);
+      if (targets.length) {
+        defs.push(`<clipPath id="${cid}">${targets.map((t) => textOf(t, "#000", false)).join("")}</clipPath>`);
         inner = `<g clip-path="url(#${cid})">${inner}</g>`;
       }
     }

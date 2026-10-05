@@ -1,4 +1,5 @@
 import type { AtmosphereAxes } from "@/lib/weather/atmosphere";
+import { atmospherePalette } from "@/lib/weather/palette";
 import { HAZE_ONSET } from "@/lib/weather/atmosphere";
 import type { InkRole } from "./types";
 
@@ -36,4 +37,17 @@ export function recordInks(a: AtmosphereAxes): Record<InkRole, string> {
     "ink-2": mix(WATER.dry, WATER.wet, smoothstep(0.2, 0.8, a.wetness)),
     accent: RECORD_ACCENT,
   };
+}
+
+/** The type's ink over the site's own map: the warm white the page sets its type in */
+export const MAP_TYPE_INK = "#f3efe6";
+
+/**
+ * The inks over the poster's own map (the site's style, its colours from the sky of the moment): the paper is that
+ * sky, flattened to one tone, the type is white as on the page, the city's mark keeps the one accent. Water and
+ * lines are the map's own, so there is no second ink.
+ */
+export function mapInks(light: number, a: AtmosphereAxes): Record<InkRole, string> {
+  const sky = atmospherePalette(light, a).sky2;
+  return { paper: sky, "ink-1": MAP_TYPE_INK, "ink-2": sky, accent: RECORD_ACCENT };
 }

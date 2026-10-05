@@ -3,7 +3,7 @@ import { typeVisualState, type TypeSetting, type TypeVisualState } from "@/lib/w
 import { conditionFamily } from "./condition-family";
 import { fitPlace, type Fitted } from "./fit";
 import { centerFor, crossings, featureLength, placeGeography, type FeatureKind, type Placed, type Rect } from "./geography";
-import { recordInks } from "./inks";
+import { mapInks, recordInks } from "./inks";
 import {
   CONDITION_WORD,
   degrees,
@@ -400,11 +400,20 @@ export function getRecordComposition(
   geography: Geography | null,
   measure: Measure,
   canvas: { width: number; height: number } = PRINT,
+  /**
+   * "vector": the geography given is drawn by the engine (the research's line maps). "raster": the poster's own map
+   * is drawn elsewhere (Mapbox, the site's style) and handed to the renderer as two pictures, "map" (the whole map)
+   * and "map-cut" (its strongest lines alone, in the paper's colour): the scene says where they go.
+   */
+  map: "vector" | "raster" = "vector",
 ): RecordScene {
   if (!r.place.name.trim()) throw new Error("A record needs a place name");
+  const raster = map === "raster";
+  if (raster) geography = null;
   const aspect = canvas.height / canvas.width;
   const ref = refUnits(aspect);
-  const bottom = (aspect / (REF_H / REF_W)) * REF_H;
+  // The foot in reference units: `ref.y` already stretches the 840 of the research's sheet to this sheet's height
+  const bottom = REF_H;
   const { atmosphere } = computeAtmosphere({
     light: r.light ?? 0.5,
     temp: r.temp,
@@ -462,6 +471,8 @@ export function getRecordComposition(
         lines: t.lines.map((l) => ({ ...l, x: ref.x(l.x), y: ref.y(l.y) / aspect })),
         font: { ...t.font, size: ref.s(t.font.size) },
         anchor: t.anchor ?? "start",
+        // Over a real map the small type keeps a thin halo of the paper, as a map's own labels do
+        halo: raster && t.font.family === "mono" ? "paper" : undefined,
       },
     });
   const lines = (id: string, role: SceneLayer["role"], ink: InkRole, opacity: number, paths: Point[][], strokeRef: number, extra: Partial<PathsPayload> = {}) => {
@@ -470,6 +481,9 @@ export function getRecordComposition(
 
   add({ id: "paper", role: "paper", inkRole: "paper", opacity: 1, payload: { kind: "rect", x: 0, y: 0, width: 1, height: aspect } });
   const water = placed ? placed.water.flat() : [];
+  // The poster's own map: from under the head to the foot rule (atlas) or the foot, left and right to the edges
+  const band = { kind: "rect" as const, x: 0, y: ref.y(64) / aspect, width: 1, height: (ref.y(mode === "open-atlas" ? 752 : bottom) - ref.y(64)) / aspect };
+  if (raster) add({ id: "map", role: "terrain", inkRole: "ink-1", opacity: 1, clip: { rect: band }, payload: { kind: "image", key: "map", x: 0, y: 0, width: 1, height: 1 } });
 
   if (mode !== "open-atlas" && placed) {
     // Cobalt water under everything, rivers faint under the type
@@ -483,7 +497,19 @@ export function getRecordComposition(
   if (mode === "field-record") plan.rules.forEach((r, i) => rule(i, r, "terrain"));
 
   // The dominant type, set behind the map
-  for (const t of plan.texts.filter((t) => t.z === "type-back")) text(t);
+  const back = plan.texts.filter((t) => t.z === "type-back");
+  for (const t of back) text(t);
+
+  if (raster)
+    // THROUGH on the real map: its strongest lines (motorways, main roads, railways, rivers, shores) cut the type
+    add({
+      id: "map-cut",
+      role: "linework",
+      inkRole: "paper",
+      opacity: 1,
+      clip: { rect: band, glyphsOf: back.map((t) => t.id) },
+      payload: { kind: "image", key: "map-cut", x: 0, y: 0, width: 1, height: 1 },
+    });
 
   if (placed) {
     if (mode === "open-atlas") {
@@ -531,18 +557,20 @@ export function getRecordComposition(
 
   return {
     canvas: { width: canvas.width, height: canvas.height },
-    inks: recordInks(atmosphere),
+    inks: raster ? mapInks(r.light ?? 0.5, atmosphere) : recordInks(atmosphere),
     layers: layers.sort((a, b) => a.z - b.z),
     metadata: {
       mode,
       family,
       dominant: tv.dominant,
-      interplay: !placed ? "none" : mode === "open-atlas" ? "interleave" : "through",
+      interplay: raster ? "through" : !placed ? "none" : mode === "open-atlas" ? "interleave" : "through",
       seed,
       visualThesis: thesis(mode, tv.dominant, r, placed),
       recordId: id,
       placeFit: plan.placeFit,
       nodes: ["city"],
+      cityAt: P(plan.city),
+      spanKm: spanKm / sheet.w,
       type: tv,
     },
   };

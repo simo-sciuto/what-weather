@@ -81,7 +81,12 @@ export type TextPayload = {
   lines: TextLine[];
   font: FontRef;
   anchor: "start" | "end";
+  /** A thin outline in this ink under the letters, so small type reads over a busy map (cartography's halo) */
+  halo?: InkRole;
 };
+
+/** A picture the renderer is handed by key (a map drawn elsewhere), stretched over a rectangle */
+export type ImagePayload = { kind: "image"; key: string; x: number; y: number; width: number; height: number };
 
 export type PathsPayload = {
   kind: "paths";
@@ -111,8 +116,8 @@ export type LayerRole = "paper" | "terrain" | "type-back" | "linework" | "type-f
 /** Where a layer is cut: a rectangle, and optionally the glyphs of a text layer (the letters' own shape) */
 export type Clip = {
   rect?: RectPayload;
-  /** The id of a text layer whose glyphs the layer is drawn inside */
-  glyphsOf?: string;
+  /** The ids of text layers whose glyphs the layer is drawn inside */
+  glyphsOf?: string[];
 };
 
 export type Transform = { rotate: number; origin: Point };
@@ -125,7 +130,7 @@ export type SceneLayer = {
   opacity: number;
   transform?: Transform;
   clip?: Clip;
-  payload: TextPayload | PathsPayload | RectPayload | NodePayload;
+  payload: TextPayload | PathsPayload | RectPayload | NodePayload | ImagePayload;
 };
 
 export type RecordScene = {
@@ -144,6 +149,10 @@ export type RecordScene = {
     placeFit: string;
     /** Geographic anchors used by the nodes */
     nodes: string[];
+    /** Where the city sits on the sheet (normalized): a map drawn elsewhere is centred so the place lands here */
+    cityAt: Point;
+    /** The kilometres the sheet's width spans, for a map drawn elsewhere at the same scale */
+    spanKm: number;
     /** The type engine's settings (`typeVisualState`) */
     type: import("@/lib/weather/typography").TypeVisualState;
   };

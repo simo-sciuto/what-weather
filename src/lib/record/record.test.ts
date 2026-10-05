@@ -219,6 +219,56 @@ describe("the city and the inks", () => {
   });
 });
 
+describe("over the site's own map (raster)", () => {
+  const raster = (k: string) => {
+    const r = byKey(k);
+    return getRecordComposition(r.input, r.geography, measure, undefined, "raster");
+  };
+
+  it("hands the map and its cut to the renderer, the cut inside the large type only", () => {
+    for (const k of ["milan", "tshuru", "tokyo"]) {
+      const s = raster(k);
+      const map = s.layers.find((l) => l.id === "map")!;
+      const cut = s.layers.find((l) => l.id === "map-cut")!;
+      expect(map.payload).toMatchObject({ kind: "image", key: "map" });
+      expect(cut.payload).toMatchObject({ kind: "image", key: "map-cut" });
+      expect(cut.inkRole).toBe("paper");
+      const back = s.layers.filter((l) => l.role === "type-back").map((l) => l.id);
+      expect(cut.clip?.glyphsOf).toEqual(back);
+      expect(map.z).toBeLessThan(Math.min(...s.layers.filter((l) => l.role === "type-back").map((l) => l.z)));
+      expect(cut.z).toBeGreaterThan(Math.max(...s.layers.filter((l) => l.role === "type-back").map((l) => l.z)));
+      // The engine's own line geography is not drawn over a real map
+      expect(s.layers.some((l) => l.payload.kind === "paths" && ["water", "coast", "river", "border"].includes(l.id))).toBe(false);
+    }
+  });
+
+  it("keeps the map out of the head band and, in an atlas, under the foot rule", () => {
+    const band = raster("milan").layers.find((l) => l.id === "map")!.clip!.rect!;
+    expect(band.y).toBeCloseTo(64 / 840, 3);
+    expect(band.y + band.height).toBeCloseTo(752 / 840, 3);
+    const open = raster("tshuru").layers.find((l) => l.id === "map")!.clip!.rect!;
+    expect(open.y + open.height).toBeCloseTo(1, 3);
+  });
+
+  it("sets the small type with a halo of the paper, white type and the one accent", () => {
+    const s = raster("tokyo");
+    const micro = s.layers.filter((l) => l.payload.kind === "text" && l.payload.font.family === "mono");
+    expect(micro.length).toBeGreaterThan(0);
+    for (const l of micro) expect(l.payload).toMatchObject({ halo: "paper" });
+    expect(s.inks.accent).toBe(RECORD_ACCENT);
+    expect(s.inks["ink-1"]).toBe("#f3efe6");
+    expect(s.metadata.cityAt[0]).toBeGreaterThan(0);
+    expect(s.metadata.cityAt[1]).toBeGreaterThan(0);
+  });
+
+  it("puts the pictures it is given into the SVG", () => {
+    const svg = renderSvg(raster("oslo"), "swiss-flat", { width: 620, height: 877, images: { map: "data:image/png;base64,AA==", "map-cut": "data:image/png;base64,BB==" } });
+    expect(svg).toContain('href="data:image/png;base64,AA=="');
+    expect(svg).toContain('href="data:image/png;base64,BB=="');
+    expect(svg).toContain('paint-order="stroke"');
+  });
+});
+
 describe("geography", () => {
   const box = { x: 0, y: 0, w: 1, h: 1 };
   it("cuts lines and rings at the slot and finds crossings", () => {
