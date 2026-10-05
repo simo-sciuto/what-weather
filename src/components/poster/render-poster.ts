@@ -68,9 +68,9 @@ export async function renderPoster({ format, record, palette, options, sun, view
   const measure = await recordMeasure();
   const composed = getRecordComposition(record, null, measure, { width, height }, "raster");
   // The paper is the sky the viewer's map was drawn against
-  const scene = { ...composed, inks: { ...composed.inks, paper: palette.sky2, "ink-2": palette.sky2 } };
+  const scene = { ...composed, inks: { ...composed.inks, paper: palette.sky2 } };
   const [images, fontCss] = await Promise.all([
-    drawRecordMap({ width, height, place: record.place, palette, options, sun, view, cityAt: scene.metadata.cityAt, paper: scene.inks.paper, token, loadMapbox }),
+    drawRecordMap({ width, height, place: record.place, palette, options, sun, view, cityAt: scene.metadata.cityAt, token, loadMapbox }),
     embeddedFontCss(),
   ]);
   return svgToPng(renderSvg(scene, "swiss-flat", { fontCss, images, title: scene.metadata.recordId }), width, height);

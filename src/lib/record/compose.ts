@@ -275,10 +275,13 @@ function field(c: Ctx, city: Point, preferred: boolean): Plan {
     // One letter under another: the reference's 150 on a 122 step, closer for a longer name
     const n = name.length;
     const step = n > 1 ? Math.min(122, (684 - 196) / (n - 1)) : 122;
-    const f = display(c.tv.display, (150 * step) / 122, 0);
+    const size = (150 * step) / 122;
+    const f = display(c.tv.display, size, 0);
     const letters = [...name];
+    // The column centred on the sheet's height: from the first cap's top to the last baseline
+    const first = c.bottom / 2 - ((n - 1) * step - CAP * size) / 2;
     letters.forEach((ch, i) =>
-      texts.push({ id: i ? `place-${i}` : "place", lines: [{ text: ch, x: M - 4, y: 196 + i * step }], font: f, ink: "ink-1", opacity: c.tv.tone, z: "type-back" }),
+      texts.push({ id: i ? `place-${i}` : "place", lines: [{ text: ch, x: M - 4, y: first + i * step }], font: f, ink: "ink-1", opacity: c.tv.tone, z: "type-back" }),
     );
     right = M - 4 + Math.max(...letters.map((ch) => width(c, ch, f)));
     placeFit = `stacked, ${n} letters`;
@@ -288,8 +291,10 @@ function field(c: Ctx, city: Point, preferred: boolean): Plan {
     const fitted = fitName(c, 110, c.bottom - 80 - 120, 2, 0);
     const s = fitted.font.size;
     const originX = M + CAP * s;
+    // Centred on the sheet's height: the turned line runs up from half its length below the middle
+    const startY = c.bottom / 2 + fitted.width / 2;
     fitted.lines.forEach((text, i) => {
-      const l = { text, x: originX + i * s * 0.92, y: c.bottom - 80 };
+      const l = { text, x: originX + i * s * 0.92, y: startY };
       texts.push({ id: i ? `place-${i}` : "place", lines: [l], font: fitted.font, ink: "ink-1", opacity: c.tv.tone, z: "type-back", rotate: { deg: -90, origin: [l.x, l.y] } });
     });
     right = originX + (fitted.lines.length - 1) * s * 0.92;
@@ -403,7 +408,7 @@ export function getRecordComposition(
   /**
    * "vector": the geography given is drawn by the engine (the research's line maps). "raster": the poster's own map
    * is drawn elsewhere (Mapbox, the site's style) and handed to the renderer as two pictures, "map" (the whole map)
-   * and "map-cut" (its strongest lines alone, in the paper's colour): the scene says where they go.
+   * and "map-cut" (its strongest lines alone, in their colours over a shadow): the scene says where they go.
    */
   map: "vector" | "raster" = "vector",
 ): RecordScene {
@@ -463,7 +468,8 @@ export function getRecordComposition(
     add({
       id: t.id,
       role: t.z,
-      inkRole: t.ink,
+      // Over the site's map the place's name is set in the temperature's colour (ink-2 there)
+      inkRole: raster && /^place(-\d+)?$/.test(t.id) ? "ink-2" : t.ink,
       opacity: t.opacity,
       transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
       payload: {
@@ -560,7 +566,7 @@ export function getRecordComposition(
 
   return {
     canvas: { width: canvas.width, height: canvas.height },
-    inks: raster ? mapInks(r.light ?? 0.5, atmosphere) : recordInks(atmosphere),
+    inks: raster ? mapInks(r.light ?? 0.5, atmosphere, r.temp) : recordInks(atmosphere),
     layers: layers.sort((a, b) => a.z - b.z),
     metadata: {
       mode,

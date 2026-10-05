@@ -56,7 +56,6 @@ export async function recordOnMap(
     sun: sunPosition(recordTime(r), r.place.lat, r.place.lon),
     view: map.view ?? { zoom: BASE_ZOOM, pitch: 0 },
     cityAt: scene.metadata.cityAt,
-    paper: scene.inks.paper,
     token: map.token,
     loadMapbox: map.loadMapbox,
   });

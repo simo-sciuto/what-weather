@@ -6,6 +6,7 @@ import { getRecordComposition } from "./compose";
 import { fitPlace } from "./fit";
 import { clipLine, clipRing, crossings } from "./geography";
 import { recordInks, PAPER, RECORD_ACCENT } from "./inks";
+import { tempColor } from "@/lib/weather/temp-color";
 import { formatCoord, metricsFor, recordId, temperatureWords } from "./metrics";
 import { hash32, mulberry32, placeSlug, recordSeed } from "./seed";
 import { clampAxes, DISPLAY_AXES } from "./type-system";
@@ -142,7 +143,7 @@ describe("font axes", () => {
   it("clamps every axis to the font's real range", () => {
     const f = clampAxes({ family: "display", wght: 1200, wdth: 40, size: 0.1, tracking: 0 });
     expect(f.wght).toBe(900);
-    expect(f.wdth).toBe(62);
+    expect(f.wdth).toBe(100); // Inter Tight has one width
     expect(clampAxes({ family: "mono", wght: 700, wdth: 80, size: 0.1, tracking: 0 })).toMatchObject({ wght: 500, wdth: 100 });
   });
 
@@ -248,6 +249,19 @@ describe("over the site's own map (raster)", () => {
     expect(band.y + band.height).toBeCloseTo(752 / 840, 3);
     const open = raster("tshuru").layers.find((l) => l.id === "map")!.clip!.rect!;
     expect(open.y + open.height).toBeCloseTo(1, 3);
+  });
+
+  it("sets the place's name in the temperature's colour and centres a column of letters", () => {
+    const s = raster("tokyo");
+    expect(s.inks["ink-2"]).toBe(tempColor(18));
+    const letters = s.layers.filter((l) => /^place(-\d+)?$/.test(l.id));
+    expect(letters.length).toBe(5);
+    for (const l of letters) expect(l.inkRole).toBe("ink-2");
+    const ys = letters.map((l) => (l.payload.kind === "text" ? l.payload.lines[0].y : 0));
+    const size = letters[0].payload.kind === "text" ? letters[0].payload.font.size : 0;
+    // From the first cap's top (y in height units: size is in width units) to the last baseline, around the middle
+    const top = ys[0] - (0.72 * size * 2480) / 3508;
+    expect((top + ys[ys.length - 1]) / 2).toBeCloseTo(0.5, 2);
   });
 
   it("sets the small type with a halo of the paper, white type and the one accent", () => {

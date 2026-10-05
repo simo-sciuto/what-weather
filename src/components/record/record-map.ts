@@ -12,9 +12,9 @@ type Mapbox = typeof import("mapbox-gl").default;
  * changed), drawn off screen for the poster only, in two pictures:
  *
  * - "map": the whole map, as the page shows it, with the city on the spot the composition chose for it;
- * - "map-cut": the map's strongest lines alone (motorways, main roads, railways, rivers, the water's edge), thickened
- *   a little and flattened to the paper's colour, which the composition lays over its large type, inside the
- *   letters only: the city's roads run through the numbers, as the shores do in the research's posters.
+ * - "map-cut": the map's strongest lines alone (motorways, main roads, railways, rivers, the water's edge), in their
+ *   own colours over a soft shadow, which the composition lays over its large type, inside the letters only: the
+ *   city's roads pass over the numbers and the name.
  */
 
 /** The map's own layers whose lines cut the type, when the viewer shows them */
@@ -27,8 +27,9 @@ const PIXEL_RATIO = 2;
 /** The width of city the sheet spans at the page's top, as on the poster */
 const SPAN_METRES = 30_000;
 const MAP_TIMEOUT_MS = 25_000;
-/** How much the cut lines are thickened, in print pixels, so they read through a heavy numeral */
-const CUT_SPREAD = 3;
+/** The shadow under the lines laid over the type, in print pixels */
+const SHADOW_BLUR = 10;
+const SHADOW_OFFSET = 4;
 
 export type RecordMapInput = {
   width: number;
@@ -41,8 +42,6 @@ export type RecordMapInput = {
   view: { zoom: number; pitch: number; bearing?: number };
   /** Where the city must land, normalized (the scene's `metadata.cityAt`) */
   cityAt: readonly [number, number];
-  /** The paper's colour, for the cut */
-  paper: string;
   token: string;
   loadMapbox: () => Promise<Mapbox>;
 };
@@ -70,20 +69,20 @@ function copy(map: MapboxMap, W: number, H: number): HTMLCanvasElement {
   return c;
 }
 
-/** The lines alone, thickened by drawing them a few times around a small circle, in one flat colour */
-function flatten(lines: HTMLCanvasElement, colour: string): HTMLCanvasElement {
+/**
+ * The lines alone, in their own colours, over a soft shadow cast down and to the right: laid inside the large type,
+ * they read as passing over the letters rather than cut into them.
+ */
+function overShadow(lines: HTMLCanvasElement): HTMLCanvasElement {
   const c = document.createElement("canvas");
   [c.width, c.height] = [lines.width, lines.height];
   const ctx = c.getContext("2d");
   if (!ctx) return c;
-  for (let i = 0; i < 8; i++) {
-    const a = (i * Math.PI) / 4;
-    ctx.drawImage(lines, Math.cos(a) * CUT_SPREAD, Math.sin(a) * CUT_SPREAD);
-  }
+  ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+  ctx.shadowBlur = SHADOW_BLUR;
+  ctx.shadowOffsetX = SHADOW_OFFSET;
+  ctx.shadowOffsetY = SHADOW_OFFSET * 1.5;
   ctx.drawImage(lines, 0, 0);
-  ctx.globalCompositeOperation = "source-in";
-  ctx.fillStyle = colour;
-  ctx.fillRect(0, 0, c.width, c.height);
   return c;
 }
 
@@ -149,12 +148,13 @@ export async function drawRecordMap(o: RecordMapInput): Promise<{ map: string; "
     const keep = new Set<string>(CUT_LAYERS.filter((id) => showing.has(id)));
     for (const id of showing) if (!keep.has(id)) m.setLayoutProperty(id, "visibility", "none");
     if (showing.has("water")) {
-      m.addLayer({ id: SHORE, type: "line", source: "streets", "source-layer": "water", paint: { "line-color": "#000", "line-width": 1.6 } });
+      const water = o.palette.map.water.color;
+      m.addLayer({ id: SHORE, type: "line", source: "streets", "source-layer": "water", paint: { "line-color": water, "line-width": 1.6 } });
       keep.add(SHORE);
     }
     for (const id of keep) if (id !== SHORE) m.setPaintProperty(id, "line-opacity", 1);
     await idle(m);
-    const cut = flatten(copy(m, W, H), o.paper);
+    const cut = overShadow(copy(m, W, H));
 
     return { map: whole.toDataURL("image/png"), "map-cut": cut.toDataURL("image/png") };
   } finally {

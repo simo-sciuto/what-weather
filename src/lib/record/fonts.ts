@@ -1,6 +1,7 @@
 /**
- * The record's two faces, self-hosted in public/fonts/record (SIL Open Font License 1.1): Archivo, variable on
- * weight (100-900) and width (62-125%), for the display type; IBM Plex Mono for the micro type. Each in the
+ * The record's two faces, self-hosted in public/fonts/record (SIL Open Font License 1.1): Inter Tight, the site's
+ * own face, variable on weight (100-900) only, for the display type (the user's choice over Archivo, 2026-10-05);
+ * IBM Plex Mono for the micro type. Each in the
  * Latin and Latin Extended subsets Google Fonts cuts them into.
  */
 export const DISPLAY_FAMILY = "WW Record Display";
@@ -15,8 +16,8 @@ const LATIN_EXT =
 export type FontFaceSpec = { family: string; file: string; weight: string; stretch: string; unicodeRange: string };
 
 export const RECORD_FONT_FACES: readonly FontFaceSpec[] = [
-  { family: DISPLAY_FAMILY, file: "archivo-100-900-latin.woff2", weight: "100 900", stretch: "62% 125%", unicodeRange: LATIN },
-  { family: DISPLAY_FAMILY, file: "archivo-100-900-latin-ext.woff2", weight: "100 900", stretch: "62% 125%", unicodeRange: LATIN_EXT },
+  { family: DISPLAY_FAMILY, file: "inter-tight-100-900-latin.woff2", weight: "100 900", stretch: "100%", unicodeRange: LATIN },
+  { family: DISPLAY_FAMILY, file: "inter-tight-100-900-latin-ext.woff2", weight: "100 900", stretch: "100%", unicodeRange: LATIN_EXT },
   { family: MONO_FAMILY, file: "ibm-plex-mono-400-latin.woff2", weight: "400", stretch: "100%", unicodeRange: LATIN },
   { family: MONO_FAMILY, file: "ibm-plex-mono-400-latin-ext.woff2", weight: "400", stretch: "100%", unicodeRange: LATIN_EXT },
   { family: MONO_FAMILY, file: "ibm-plex-mono-500-latin.woff2", weight: "500", stretch: "100%", unicodeRange: LATIN },
