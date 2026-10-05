@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import { WeatherProviderError } from "./openweather";
+import { WeatherProviderError } from "@/lib/api/providers/openweather";
+import type { CloudGrid } from "@/types/map";
 
 /**
  * Cloud cover and precipitation, hour by hour, on a grid of points around a
@@ -8,19 +9,6 @@ import { WeatherProviderError } from "./openweather";
  * at once. The grid sits on a fixed lattice (steps of LAT_STEP × LON_STEP
  * degrees), so nearby places share one grid, and one cache entry, per hour.
  */
-
-export type CloudGrid = {
-  /** Latitudes of the rows, north to south */
-  lats: number[];
-  /** Longitudes of the columns, west to east */
-  lons: number[];
-  /** Unix seconds of each hourly frame, from the current hour on */
-  times: number[];
-  /** Per frame, cloud cover (%) of every point, row by row */
-  cloud: number[][];
-  /** Per frame, precipitation (mm/h) of every point, row by row */
-  precip: number[][];
-};
 
 const ROWS = 7;
 const COLS = 7;

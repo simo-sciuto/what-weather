@@ -1,5 +1,6 @@
 "use client";
 
+import { fetchPlaces } from "@/lib/api/places";
 import { placeHref, samePlace, type PlaceRef } from "@/lib/place";
 import { clearRecent } from "@/lib/recent-places";
 import { removeSaved } from "@/lib/saved-places";
@@ -178,12 +179,8 @@ export function LocationSearch() {
     const timer = setTimeout(async () => {
       setResults({ status: "loading" });
       try {
-        const res = await fetch(`/api/places?q=${encodeURIComponent(q)}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error(String(res.status));
-        const body = (await res.json()) as { places: Place[] };
-        setResults({ status: "done", places: dedupe(body.places) });
+        const places = await fetchPlaces(q, controller.signal);
+        setResults({ status: "done", places: dedupe(places) });
         setActive(-1);
       } catch {
         if (!controller.signal.aborted) setResults({ status: "error" });

@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-05 (WTH-186 checkpoint 1)
+Last updated: 2026-10-05 (WTH-186 checkpoint 2)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -12,7 +12,7 @@ Set by the user 2026-10-04 (ROADMAP.md, ADR-013): Visual Weather Records. Free d
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-WTH-183 done and merged into `main` (fast-forward, pushed 2026-10-05; `claude/poster-readout` can be deleted), with the `usePosterSnapshot()` hook (the user agreed a context provider made no sense). The user keeps the stand-in marking as it is and saw a render without the map (no Mapbox token in the cloud container); their look at a poster with the map is pending. WTH-186, the code conventions (ADR-014): architect check done, checkpoint 1 (`type` instead of `interface`, ESLint rule) committed and reviewed on `claude/code-conventions` (pushed, not merged). Next: checkpoint 2, the api folder (`src/lib/api/`, `providers/`, `sources/`, `server-only` on server modules), verified with `next build`. Earlier: WTH-046 V1 complete and merged into `main`; WTH-046M PARKED.
+WTH-183 done and merged into `main` (fast-forward, pushed 2026-10-05; `claude/poster-readout` can be deleted), with the `usePosterSnapshot()` hook (the user agreed a context provider made no sense). The user keeps the stand-in marking as it is and saw a render without the map (no Mapbox token in the cloud container); their look at a poster with the map is pending. WTH-186, the code conventions (ADR-014): architect check done, checkpoint 1 (`type` instead of `interface`, ESLint rule) committed and reviewed on `claude/code-conventions` (pushed, not merged). Checkpoint 2 (the api folder) is done and committed on the same branch, awaiting review: `src/lib/api/providers/` (`get-provider.ts` replaces `lib/weather/index.ts`, `openweather-transformers.ts` replaces `transformers.ts`), `src/lib/api/sources/` (yesterday and random-city split: the pure logic stays in `lib/weather`), the browser's four calls in `src/lib/api/{places,summary,random-place,clouds}.ts`, `src/types/{map,place}.ts`, `server-only` added to `city-facts`, `random-city` and the transformers. Verified: tsc, eslint, 275 unit tests, `next build`, all 20 e2e specs (desktop and phone, with the container's Chromium and a scratch config). Next: checkpoint 3 (types and utils), then 4 (constants and labels). Earlier: WTH-046 V1 complete and merged into `main`; WTH-046M PARKED.
 
 ## Last checkpoint
 WTH-183 (committed on `claude/poster-readout`, reviewed: no critical problems; I1 stand-in zeros invisible, I3 a whole day's false minute, M1 to M4 and M6 fixed; I2 is the user's call): the poster's foot drops the colour grid and the day of the year for a readout of the Weather Fingerprint (`src/components/poster/readout.ts`, `paintReadout` in `render-poster.ts`): a numeric stamp on the place's clock over eight fixed bars, no figures, dashed tracks for stand-ins. `PosterInput` gains `time`, `timeZone`, `allDay`, `fingerprint` and loses `dayKey`. Twelve tests. Before it, WTH-165.
@@ -39,7 +39,7 @@ Candidates only, from the audit (BOARD WTH-001..003): AQI index is computed diff
 - Italian copy, English code.
 
 ## Relevant files
-`src/lib/weather/{atmosphere,atmospheric-data,visual-input,types,transformers,openmeteo,mock,frames,look,palette,state}.ts`, `src/lib/weather/{atmosphere,visual-input,atmospheric-pipeline,atmosphere-sky}.test.ts`, `src/lib/weather/calibration.ts`, `src/components/lab/AtmosphereLab.tsx`, `src/app/lab/atmosfera/page.tsx`, `docs/WEATHER_VISUAL_ENGINE.md`.
+`src/lib/weather/{atmosphere,atmospheric-data,visual-input,types,frames,look,palette,state}.ts`, `src/lib/api/providers/{openweather-transformers,openmeteo,mock}.ts`, `src/lib/weather/{atmosphere,visual-input,atmospheric-pipeline,atmosphere-sky}.test.ts`, `src/lib/weather/calibration.ts`, `src/components/lab/AtmosphereLab.tsx`, `src/app/lab/atmosfera/page.tsx`, `docs/WEATHER_VISUAL_ENGINE.md`.
 
 ## Next checkpoint
 The user's look at G in the lab; then WTH-046H (unified palette contract), or the user's other requests of 2026-10-04: the poster's left column (WTH-181). WTH-179 (poster glow) and WTH-180 (transit stops) are done and wait for the user's look. Motion remains PARKED. After WTH-046L, the Records track (BOARD NEXT, ADR-013); WTH-166 (licences) can start in parallel.

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildTimeline } from "./frames";
 import { frameLook } from "./look";
-import { createMockProvider, type MockScenario } from "./mock";
+import { createMockProvider, type MockScenario } from "@/lib/api/providers/mock";
 import { atmospherePalette, CLEAR_MAP, skyPalette } from "./palette";
 
 const NOW = Date.parse("2026-10-04T10:00:00Z") / 1000;

@@ -4,7 +4,7 @@ import {
   GEOCODE_REVALIDATE_SECONDS,
   MAX_DATA_AGE_SECONDS,
   WEATHER_REVALIDATE_SECONDS,
-} from "./constants";
+} from "@/lib/weather/constants";
 import type { WeatherProvider } from "./provider";
 import {
   toCurrent,
@@ -23,8 +23,8 @@ import {
   type OWGeoPlace,
   type OWHour,
   type OWMinute,
-} from "./transformers";
-import type { AirQuality, Place, WeatherAlert, WeatherData } from "./types";
+} from "./openweather-transformers";
+import type { AirQuality, Place, WeatherAlert, WeatherData } from "@/lib/weather/types";
 
 const ONECALL = "https://api.openweathermap.org/data/4.0/onecall";
 const GEO = "https://api.openweathermap.org/geo/1.0";

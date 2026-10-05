@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { conditionLabel, placeSubtitle, spokenTime, tempDigits, type Preposition } from "./formatters";
 import { regionName } from "./regions";
-import { offsetToZone } from "./transformers";
+import { offsetToZone } from "@/lib/api/providers/openweather-transformers";
 
 const TZ = "Europe/Rome";
 /** A moment on 28 September 2026 in Rome (UTC+2 in summer time). */

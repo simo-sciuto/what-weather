@@ -1,6 +1,6 @@
 # ARCHITECTURE
 
-Factual, from the code as of 2026-10-01. If code and this file disagree, the code wins: fix this file.
+Factual, from the code as of 2026-10-05. If code and this file disagree, the code wins: fix this file.
 
 ## Stack
 
@@ -13,11 +13,11 @@ Next.js here has breaking changes: read `node_modules/next/dist/docs/` before wr
 ```
 URL (?lat&lon&name..), else a random city (src/lib/weather/random-places.ts); sample data: DEFAULT_PLACE (Milano)
   -> src/lib/weather-page.ts  loadWeatherPage()  -> weatherFor() -> load()   ["use cache", tag weather:lat,lon]
-       -> getProvider()  (src/lib/weather/index.ts)
+       -> getProvider()  (src/lib/api/providers/get-provider.ts)
             openweather | openweather-free | open-meteo | mock     (each implements WeatherProvider)
        -> provider.getByCoords()  ->  WeatherData  (src/lib/weather/types.ts)
-       + sinceYesterday()  (Open-Meteo, any provider)
-       + lookupPollen()    (Open-Meteo air-quality, any provider, Europe only)
+       + sinceYesterday()  (src/lib/api/sources/yesterday.ts: Open-Meteo, any provider)
+       + lookupPollen()    (src/lib/api/sources/pollen.ts: Open-Meteo air-quality, any provider, Europe only)
        -> buildTimeline(data)  (frames.ts)  ->  Timeline / Frame[]
   -> src/app/page.tsx (server component) -> client providers -> UI
 ```
@@ -25,9 +25,9 @@ URL (?lat&lon&name..), else a random city (src/lib/weather/random-places.ts); sa
 Rules that hold today:
 - Raw provider payloads never leave their adapter. Components read `WeatherData` or `Frame`.
 - Units are fixed in `types.ts`: degC, km/h, hPa, km, mm/h, probabilities 0..1, times in Unix seconds UTC.
-- Provider keys are server-only (`import "server-only"`). The only public env var is `NEXT_PUBLIC_MAPBOX_TOKEN`.
+- Provider keys are server-only (`import "server-only"`, on every module under `src/lib/api/providers/` and `src/lib/api/sources/`). The only public env var is `NEXT_PUBLIC_MAPBOX_TOKEN`.
 
-## Providers (`src/lib/weather/`)
+## Providers (`src/lib/api/providers/`)
 
 | File | Source | Notes |
 | --- | --- | --- |
@@ -36,16 +36,23 @@ Rules that hold today:
 | `openmeteo.ts` | Open-Meteo forecast + air-quality | hourly, 8 days, UV, 15-minute precipitation; AQ index is computed here |
 | `mock.ts` | deterministic scenarios | default with no key; `?mock=<scenario>&at=HH:MM`; also forced in dev when a valid scenario is in the URL |
 
-`WEATHER_PROVIDER` picks explicitly. `transformers.ts` holds the OpenWeather raw -> normalized mapping.
+`get-provider.ts` is the factory: `WEATHER_PROVIDER` picks explicitly. `provider.ts` is the `WeatherProvider` contract, `openweather-transformers.ts` holds the OpenWeather raw -> normalized mapping (private to the adapters, ADR-001). `openmeteo.ts` and `openweather-free.ts` reuse helpers of `openweather.ts` (`loadFresh`, `round`, `WeatherProviderError`) and `openmeteo.ts` its reverse geocoding (`lookupPlace`): see WTH-188.
 
-Sources used regardless of provider: Open-Meteo for yesterday's comparison (`yesterday.ts`), pollen (`pollen.ts`), nearby towns (`nearby.ts`), the map's cloud grid (`cloud-grid.ts`). Mapbox + Wikidata for the "Territorio" chapter (`src/lib/city-facts.ts`).
+## Sources and calls (`src/lib/api/`)
+
+Three kinds of external call, kept apart (ADR-014):
+- `providers/`: the `WeatherProvider` implementations above (server only).
+- `sources/`: upstreams used regardless of provider, not behind `WeatherProvider` (server only, `import "server-only"`): Open-Meteo for yesterday's comparison (`yesterday.ts`), pollen (`pollen.ts`), nearby towns (`nearby.ts`), the map's cloud grid (`cloud-grid.ts`) and the random city (`random-city.ts`); Mapbox + Wikidata for the "Territorio" chapter (`city-facts.ts`). `yesterday.ts` and `random-city.ts` hold only the request: the pure logic (`changeSinceYesterday`, `yesterdayWords`, `pickCity`) stays in `src/lib/weather/` with its tests.
+- `places.ts`, `summary.ts`, `random-place.ts`, `clouds.ts` (directly in `src/lib/api/`): the browser's calls to our own `/api/*` routes, with the per-visit memo of the summary and cloud requests. No server code here: a client component must never import from `providers/` or `sources/` (the build fails on `server-only` if it does). No barrel files.
+
+Types that cross the browser and server boundary live in `src/types/` (`map.ts`: `CloudGrid`; `place.ts`: `PlaceSummary`).
 
 ## WeatherData and the timeline
 
 - `WeatherData`: place, timezone (IANA or fixed offset), current, minutely (nullable), quarterHourly (nullable), hourly, daily, airQuality (nullable), alerts, pollen.
 - Current/hourly data now carry optional atmospheric humidity, visibility and dew point, with per-field origin metadata. Samples/frames preserve missingness and interpolate only between available atmospheric endpoints; current-detail legacy defaults are excluded. `Frame.overview` marks synthetic daily representatives with `measured: false` (WTH-046C, 2026-10-04).
 - `frames.ts` turns it into a `Timeline` of 100+ `Frame`s sent to the browser. A frame has `measured: boolean`: true for a provider point, false for an hour interpolated between two. Atmosphere (`visual-input.ts`), palettes, sun position and condition labels are derived client-side (`look.ts`, `palette.ts`, `state.ts`) to keep the payload small.
-- Pure logic with tests: `narrative.ts` (the outlook sentence), `activities.ts`, `best-window.ts`, `palette.ts`, `precipitation.ts`, `pollen.ts`, `sun-position.ts`, `formatters.ts`, `yesterday.ts`, `map-style.ts`, `map-view.ts`, `map-options.ts`.
+- Pure logic with tests: `narrative.ts` (the outlook sentence), `activities.ts`, `best-window.ts`, `palette.ts`, `precipitation.ts`, `details.ts` (pollen levels), `sun-position.ts`, `formatters.ts`, `yesterday.ts`, `random-city.ts`, `map-style.ts`, `map-view.ts`, `map-options.ts`.
 
 The palette now exposes `solarPalette(light): SolarPalette` (WTH-046D): the unchanged natural-light anchors/interpolation, before weather, UV, contrast protection and map inks. Its -1..2 phase input is distinct from 0..1 atmospheric daylight.
 
@@ -67,6 +74,7 @@ The palette has two ways of weathering that base, sharing one finish (`finishPal
 | `/api/places` | place search, runs server-side so keys stay hidden |
 | `/api/summary` | small summary for a saved place's card |
 | `/api/clouds` | cloud and precipitation grid for the map animation |
+| `/api/random-place` | a city drawn at random from the whole world, never cached |
 | `/api/og` | share image (ImageResponse) for a place |
 | `manifest.ts`, `error.tsx`, `loading.tsx` | PWA manifest, error and loading states |
 

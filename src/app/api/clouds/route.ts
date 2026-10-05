@@ -1,4 +1,4 @@
-import { cloudGrid } from "@/lib/weather/cloud-grid";
+import { cloudGrid } from "@/lib/api/sources/cloud-grid";
 import type { NextRequest } from "next/server";
 
 /** The cloud and precipitation grid the map animates, for the place at ?lat&lon. */

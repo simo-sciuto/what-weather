@@ -1,7 +1,8 @@
-import { atmosphericData, estimatedDewPoint } from "./atmospheric-data";
-import { localDay } from "./formatters";
-import { regionName } from "./regions";
-import { isWet } from "./constants";
+import "server-only";
+import { atmosphericData, estimatedDewPoint } from "@/lib/weather/atmospheric-data";
+import { localDay } from "@/lib/weather/formatters";
+import { regionName } from "@/lib/weather/regions";
+import { isWet } from "@/lib/weather/constants";
 import type {
   AirQuality,
   Condition,
@@ -13,7 +14,7 @@ import type {
   Place,
   QuarterPoint,
   WeatherAlert,
-} from "./types";
+} from "@/lib/weather/types";
 
 /* ---------- Raw OpenWeather One Call 4.0 / Geocoding shapes ---------- */
 

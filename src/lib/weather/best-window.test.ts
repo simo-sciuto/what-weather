@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { bestWindow, outdoorScore, windowLabel, type OutdoorHour } from "./best-window";
 import { DEFAULT_PLACE } from "./constants";
 import { buildTimeline } from "./frames";
-import { createMockProvider, type MockScenario } from "./mock";
+import { createMockProvider, type MockScenario } from "@/lib/api/providers/mock";
 
 /**
  * The best hours to be outside: which hours the score prefers, where the

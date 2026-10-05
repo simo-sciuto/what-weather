@@ -1,8 +1,10 @@
 "use client";
 
-import type { PlaceSummary } from "@/app/api/summary/route";
-import { placeHref, samePlace, type PlaceRef } from "@/lib/place";
+import { fetchRandomPlace } from "@/lib/api/random-place";
+import { fetchSummary } from "@/lib/api/summary";
+import { placeHref, samePlace } from "@/lib/place";
 import type { SavedPlace } from "@/lib/saved-places";
+import type { PlaceSummary } from "@/types/place";
 import { formatTemp } from "@/lib/weather/formatters";
 import type { Condition } from "@/lib/weather/types";
 import Link from "next/link";
@@ -13,32 +15,6 @@ import { WeatherIcon } from "../weather/WeatherIcon";
 import { usePlace } from "./PlaceContext";
 
 const keyOf = (p: SavedPlace) => `${p.lat.toFixed(2)},${p.lon.toFixed(2)}`;
-
-/** One request per place per visit, shared by every render and remount. */
-const requests = new Map<string, Promise<PlaceSummary | null>>();
-function summaryOf(p: SavedPlace): Promise<PlaceSummary | null> {
-  const key = keyOf(p);
-  let req = requests.get(key);
-  if (!req) {
-    const href = placeHref(p).replace("/?", "/api/summary?");
-    req = fetch(href)
-      .then((res) => (res.ok ? (res.json() as Promise<PlaceSummary>) : null))
-      .catch(() => null);
-    requests.set(key, req);
-  }
-  return req;
-}
-
-/** A city of the world drawn at random, from /api/random-place; null if none could be drawn. */
-async function drawCity(): Promise<PlaceRef | null> {
-  try {
-    const res = await fetch("/api/random-place", { cache: "no-store" });
-    if (!res.ok) return null;
-    return ((await res.json()) as { place: PlaceRef }).place;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * The places saved in this browser, as a compact row of pills under the
@@ -60,7 +36,7 @@ export function SavedPlaces() {
   useEffect(() => {
     let alive = true;
     for (const p of saved) {
-      summaryOf(p).then((s) => {
+      fetchSummary(p).then((s) => {
         if (alive)
           setSummaries((prev) =>
             prev[keyOf(p)] === s ? prev : { ...prev, [keyOf(p)]: s },
@@ -100,7 +76,7 @@ export function SavedPlaces() {
           disabled={drawing}
           onClick={() =>
             startDrawing(async () => {
-              const city = await drawCity();
+              const city = await fetchRandomPlace();
               if (city) router.push(placeHref(city));
             })
           }

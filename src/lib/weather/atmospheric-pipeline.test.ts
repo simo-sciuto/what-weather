@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { atmosphericData, estimatedDewPoint, interpolateAtmosphericData } from "./atmospheric-data";
 import { buildTimeline, hourlySamples } from "./frames";
 import { frameLook } from "./look";
-import { createMockProvider } from "./mock";
-import { openMeteoProvider } from "./openmeteo";
+import { createMockProvider } from "@/lib/api/providers/mock";
+import { openMeteoProvider } from "@/lib/api/providers/openmeteo";
 import { atmospherePalette } from "./palette";
-import { toCurrent, toCurrent25, toForecastPoints, toHourly, type OWCurrent, type OW25Current, type OW25ForecastItem } from "./transformers";
+import { toCurrent, toCurrent25, toForecastPoints, toHourly, type OWCurrent, type OW25Current, type OW25ForecastItem } from "@/lib/api/providers/openweather-transformers";
 
 const NOW = Date.parse("2026-10-04T10:00:00Z") / 1000;
 beforeEach(() => {

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { activityOutlook, dailyActivityOutlooks } from "./activities";
 import { localDay } from "./formatters";
 import { DEFAULT_PLACE } from "./constants";
-import { MOCK_SCENARIOS, createMockProvider, type MockScenario } from "./mock";
+import { MOCK_SCENARIOS, createMockProvider, type MockScenario } from "@/lib/api/providers/mock";
 
 /**
  * The activities' verdicts: each one judged by its own profile, with its best

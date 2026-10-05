@@ -1,4 +1,4 @@
-import type { CloudGrid } from "./cloud-grid";
+import type { CloudGrid } from "@/types/map";
 
 /**
  * Paints a cloud grid at a moment (`t`, fractional hours from the first

@@ -1,7 +1,7 @@
-import { atmosphericData } from "./atmospheric-data";
+import { atmosphericData } from "@/lib/weather/atmospheric-data";
 import "server-only";
-import { DEFAULT_PLACE, TYPICAL_CLOUD_COVER, isWet } from "./constants";
-import { localHour } from "./formatters";
+import { DEFAULT_PLACE, TYPICAL_CLOUD_COVER, isWet } from "@/lib/weather/constants";
+import { localHour } from "@/lib/weather/formatters";
 import type { WeatherProvider } from "./provider";
 import type {
   AirQuality,
@@ -11,7 +11,7 @@ import type {
   Intensity,
   MinutePoint,
   WeatherData,
-} from "./types";
+} from "@/lib/weather/types";
 
 /**
  * Deterministic fake data for development without an API key. Each scenario

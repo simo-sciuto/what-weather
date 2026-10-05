@@ -1,6 +1,6 @@
 import { parsePlaceRef } from "@/lib/place";
 import { weatherFor } from "@/lib/weather-page";
-import { DEFAULT_PLACE } from "@/lib/weather";
+import { DEFAULT_PLACE } from "@/lib/weather/constants";
 import { conditionLabel, placeSubtitle, tempDigits } from "@/lib/weather/formatters";
 import { frameLook } from "@/lib/weather/look";
 import { buildNarrative } from "@/lib/weather/narrative";

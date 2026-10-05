@@ -3,18 +3,8 @@ import { weatherFor } from "@/lib/weather-page";
 import { conditionLabel } from "@/lib/weather/formatters";
 import { frameLook } from "@/lib/weather/look";
 import { tempRange } from "@/lib/weather/today";
+import type { PlaceSummary } from "@/types/place";
 import type { NextRequest } from "next/server";
-
-/** What a saved place's card shows. */
-export type PlaceSummary = {
-  temp: number;
-  high: number;
-  low: number;
-  label: string;
-  condition: string;
-  night: boolean;
-  sky: [string, string, string];
-};
 
 /**
  * A place in a few numbers, for the saved-places cards: its temperature, its

@@ -1,11 +1,11 @@
 import "server-only";
-import { atmosphericData } from "./atmospheric-data";
-import { GEOCODE_REVALIDATE_SECONDS, WEATHER_REVALIDATE_SECONDS, isWet } from "./constants";
-import { airIndexOf } from "./details";
+import { atmosphericData } from "@/lib/weather/atmospheric-data";
+import { GEOCODE_REVALIDATE_SECONDS, WEATHER_REVALIDATE_SECONDS, isWet } from "@/lib/weather/constants";
+import { airIndexOf } from "@/lib/weather/details";
 import { WeatherProviderError, loadFresh, lookupPlace, round } from "./openweather";
 import type { WeatherProvider } from "./provider";
-import { regionName } from "./regions";
-import type { AirQuality, Condition, CurrentWeather, DailyPoint, HourlyPoint, Intensity, Place, QuarterPoint, WeatherData } from "./types";
+import { regionName } from "@/lib/weather/regions";
+import type { AirQuality, Condition, CurrentWeather, DailyPoint, HourlyPoint, Intensity, Place, QuarterPoint, WeatherData } from "@/lib/weather/types";
 
 /**
  * Open-Meteo (https://open-meteo.com), free for non-commercial use, no key.

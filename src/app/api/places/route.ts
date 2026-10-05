@@ -1,4 +1,4 @@
-import { getProvider } from "@/lib/weather";
+import { getProvider } from "@/lib/api/providers/get-provider";
 import { GEOCODE_REVALIDATE_SECONDS } from "@/lib/weather/constants";
 import { cacheLife } from "next/cache";
 import type { NextRequest } from "next/server";

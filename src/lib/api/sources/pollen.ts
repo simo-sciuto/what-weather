@@ -1,6 +1,6 @@
 import "server-only";
-import { WEATHER_REVALIDATE_SECONDS } from "./constants";
-import type { Pollen } from "./types";
+import { WEATHER_REVALIDATE_SECONDS } from "@/lib/weather/constants";
+import type { Pollen } from "@/lib/weather/types";
 
 /**
  * The pollen in the air right now, from Open-Meteo's air-quality service

@@ -1,7 +1,7 @@
-import { drawRandomCity } from "@/lib/weather/random-city";
+import { drawRandomCity } from "@/lib/api/sources/random-city";
 
 /**
- * A city drawn at random from the world (see lib/weather/random-city): the
+ * A city drawn at random from the world (see lib/api/sources/random-city): the
  * answer is different each time, so it is never cached.
  */
 export async function GET() {

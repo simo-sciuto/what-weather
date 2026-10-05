@@ -1,7 +1,7 @@
 import { formatTime } from "@/lib/weather/formatters";
 import { Wordmark } from "../Wordmark";
-import { MOCK_SCENARIOS } from "@/lib/weather/mock";
-import type { WeatherProvider } from "@/lib/weather/provider";
+import { MOCK_SCENARIOS } from "@/lib/api/providers/mock";
+import type { WeatherProvider } from "@/lib/api/providers/provider";
 
 type Source = { name: string; href: string };
 

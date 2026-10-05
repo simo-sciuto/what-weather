@@ -1,5 +1,3 @@
-import "server-only";
-import { WEATHER_REVALIDATE_SECONDS } from "./constants";
 import { formatTemp } from "./formatters";
 
 /**
@@ -7,13 +5,10 @@ import { formatTemp } from "./formatters";
  * from one source (Open-Meteo's hourly series, which reaches a day back),
  * whatever provider the page runs on: a reading from one service against
  * another's would show their bias as a change in the weather.
+ * (The request itself is `sinceYesterday`, in lib/api/sources/yesterday.ts.)
  */
 
-const FORECAST = "https://api.open-meteo.com/v1/forecast";
-/** The comparison is a detail: a slow answer is dropped rather than waited for. */
-const TIMEOUT_MS = 4000;
-
-type Series = {
+export type Series = {
   time: number[];
   temperature_2m: (number | null)[];
 };
@@ -32,29 +27,6 @@ export function changeSinceYesterday(s: Series, now: number): number | null {
   const today = tempAt(s, now);
   const yesterday = tempAt(s, now - 86400);
   return today == null || yesterday == null ? null : today - yesterday;
-}
-
-/** Null when Open-Meteo can't be reached in time; the page does without. */
-export async function sinceYesterday(lat: number, lon: number): Promise<number | null> {
-  try {
-    const q = new URLSearchParams({
-      latitude: String(lat),
-      longitude: String(lon),
-      hourly: "temperature_2m",
-      past_days: "1",
-      forecast_days: "2",
-      timeformat: "unixtime",
-    });
-    const res = await fetch(`${FORECAST}?${q}`, {
-      next: { revalidate: WEATHER_REVALIDATE_SECONDS },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    if (!res.ok) return null;
-    const { hourly } = (await res.json()) as { hourly?: Series };
-    return hourly ? changeSinceYesterday(hourly, Date.now() / 1000) : null;
-  } catch {
-    return null;
-  }
 }
 
 /** "2° in più di ieri", "3° in meno di ieri", "Come ieri": the change as the reading says it. */
