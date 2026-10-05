@@ -1,38 +1,12 @@
 "use client";
 
 import { placeHref } from "@/lib/place";
-import { placeParts } from "@/lib/weather/formatters";
-import type { MapOption } from "@/lib/map-options";
-import type { SkyPalette } from "@/lib/weather/palette";
-import { fingerprintOf } from "@/lib/weather/fingerprint";
-import { sunPosition, type SunPosition } from "@/lib/weather/sun-position";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePlace } from "../location/PlaceContext";
-import { useMoment } from "../time/TimeContext";
-import { useMapOptions, useMapPalette } from "../weather/MapControls";
 import { useMap } from "../weather/MapContext";
 import { BarTab, GLASS, ICONS, usePhoneNav } from "../layout/PhoneNav";
-import { currentView } from "../weather/map-view";
-import {
-  POSTER_FORMATS,
-  renderPoster,
-  type PosterFormat,
-  type PosterInput,
-} from "./render-poster";
-
-/** The sky, the moment and its fingerprint, the map's extra layers, the sun and how close and how tipped the map is, as the poster is drawn: taken when the dialog opens. */
-type Snapshot = {
-  palette: SkyPalette;
-  time: PosterInput["time"];
-  timeZone: PosterInput["timeZone"];
-  allDay: PosterInput["allDay"];
-  fingerprint: PosterInput["fingerprint"];
-  options: MapOption[];
-  sun: SunPosition;
-  view: { zoom: number; pitch: number; bearing: number };
-  /** The temperature on show, whose colour the name and the country take */
-  temp: number;
-};
+import { POSTER_FORMATS, renderPoster, type PosterFormat } from "./render-poster";
+import { usePosterSnapshot, type PosterSnapshot } from "./usePosterSnapshot";
 
 type Drawn =
   | { status: "drawing" }
@@ -76,14 +50,12 @@ export function PosterButton({
 }) {
   const nav = usePhoneNav();
   const { place } = usePlace();
-  const { token, loadMapbox, timezone } = useMap();
-  const { frame, look } = useMoment();
-  // The map's lines as the viewer turned them: the poster is drawn as the page is
-  const palette = useMapPalette();
-  const options = useMapOptions();
+  const { token, loadMapbox } = useMap();
+  // Everything the poster is drawn from, frozen when the dialog opens
+  const takeSnapshot = usePosterSnapshot();
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<PosterSnapshot | null>(null);
   const [format, setFormat] = useState<PosterFormat>("print");
   const [drawn, setDrawn] = useState<Partial<Record<PosterFormat, Drawn>>>({});
   const [canShare, setCanShare] = useState(false);
@@ -99,33 +71,10 @@ export function PosterButton({
   if (!token) return null;
 
   /** Draws one format from the snapshot given; each is drawn once per opening, when first shown. */
-  function draw(
-    f: PosterFormat,
-    { palette, time, timeZone, allDay, fingerprint, options, sun, view, temp }: Snapshot,
-  ) {
+  function draw(f: PosterFormat, taken: PosterSnapshot) {
     if (!token) return;
     setDrawn((d) => ({ ...d, [f]: { status: "drawing" } }));
-    const where = {
-      name: place.name,
-      ...placeParts(place),
-      lat: place.lat,
-      lon: place.lon,
-    };
-    renderPoster({
-      format: f,
-      place: where,
-      time,
-      timeZone,
-      allDay,
-      fingerprint,
-      palette,
-      options,
-      sun,
-      view,
-      temp,
-      token,
-      loadMapbox,
-    })
+    renderPoster({ ...taken, format: f, token, loadMapbox })
       .then((blob) =>
         setDrawn((d) => ({
           ...d,
@@ -136,20 +85,7 @@ export function PosterButton({
   }
 
   function open() {
-    const taken: Snapshot = {
-      palette,
-      time: frame.time,
-      timeZone: timezone,
-      allDay: frame.overview === true,
-      fingerprint: fingerprintOf(
-        { atmosphere: look.atmosphere, inputStatus: look.atmosphereInputStatus },
-        frame.light,
-      ),
-      options,
-      sun: sunPosition(frame.time, place.lat, place.lon),
-      view: currentView(),
-      temp: frame.temp,
-    };
+    const taken = takeSnapshot();
     setSnapshot(taken);
     setDrawn({});
     setCanShare(typeof navigator.canShare === "function");
