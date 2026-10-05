@@ -36,7 +36,17 @@ Board tooling limitation: `scripts/board/board-md.mjs` recognizes numeric IDs on
 
 - [ ] WTH-166 Licences for selling records: check that the data and the map may be sold as digital files and prints. Open-Meteo's free API is non-commercial (a paid plan or another source is needed); Mapbox's terms for print and resale of map imagery (attribution, volumes, plan); OpenWeather's plan. Blocks any payment (WTH-172). Can run in parallel with WTH-046.
 
+- [ ] WTH-187 Visual Record System V3.1 (the poster's own graphic engine, brief of 2026-10-05). Phases 1-2 reported, approved by the user ("procediamo"). Phase 3 spike done 2026-10-05, uncommitted, awaiting the user's look: pure engine in `src/lib/record/` (condition family, seed, temperature pressure, place fitting, metrics, geography, composition to a renderer-independent `RecordScene`, Swiss Flat SVG renderer), 18 tests; Archivo variable + IBM Plex Mono self-hosted in `public/fonts/record/`; Natural Earth fixtures for the eight test records; dev route `/lab/record`; `scripts/record/export-sheet.mjs` exports the PNGs and contact sheets. Phase 4 (wiring into the real poster) waits for approval.
+
 ## NEXT
+
+- [ ] WTH-188 Record engine: DENSE STORM MODE, a fourth composition mode for violent storms (the spike sends storms to Collision).
+- [ ] WTH-189 Record engine: TRUE GLYPH OUTLINE HANDLES. Nodes anchor on glyph boxes measured by the browser; judge whether real outlines (opentype or similar) improve the nodes enough to justify a dependency.
+- [ ] WTH-190 Record engine: COAST SPLIT, the type treated differently over land and sea; possible with the vector water polygons the spike already has.
+- [ ] WTH-191 Record engine: SCREENPRINT render style, a second `renderScene` style over the same scene.
+- [ ] WTH-192 Record engine: PRINT-RESOLUTION EXPORT (A3/A2 at 300 dpi, beyond the 4096 px canvas limit: tiled drawing or a server render of the SVG).
+- [ ] WTH-193 Record engine: OPTIONAL REGION-SPECIFIC TYPOGRAPHY (non-Latin place names: the Archivo subsets cover Latin only).
+- [ ] WTH-194 Record engine, geography source for Phase 4: Natural Earth (public domain, server-side, regional scale, used by the spike) or Mapbox vector tiles queried from the offscreen map; decide before integration. Wind direction is missing from `Frame` and `HourlyPoint` (only `CurrentWeather.windDeg`): a data contract change if records of past hours should lean with the wind.
 
 Records track, in order. WTH-167 is the gate: WTH-169 onwards are built only if validation says people want records.
 
