@@ -540,6 +540,9 @@ export function getRecordComposition(
   const id = recordId(r.place.name, r.date);
   text({ id: "record-id", lines: [{ text: id, x: M, y: 44 }], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" });
   text({ id: "signature", lines: [{ text: "WHAT WEATHER", x: R, y: 44 }], font: mono(400), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
+  // The map's credits, required wherever its tiles are shown: in the head band, under the signature
+  if (raster)
+    text({ id: "map-credits", lines: [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: 56 }], font: mono(400, MICRO * 0.8), ink: "ink-1", opacity: 0.5, anchor: "end", z: "micro" });
   if (mode === "field-record") {
     // ROTATED MICROTYPE: the moment up the right margin, in the paper's colour where it crosses the water
     const at: Point = [R + 14, bottom - 80];

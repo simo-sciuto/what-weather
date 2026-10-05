@@ -9,10 +9,11 @@ import { fingerprintOf } from "@/lib/weather/fingerprint";
 import { placeParts } from "@/lib/weather/formatters";
 import { sunPosition } from "@/lib/weather/sun-position";
 import { usePlace } from "../location/PlaceContext";
-import { useMoment } from "../time/TimeContext";
+import { useMoment, useTimeline } from "../time/TimeContext";
 import { useMapOptions, useMapPalette } from "../weather/MapControls";
 import { useMap } from "../weather/MapContext";
 import { currentView } from "../weather/map-view";
+import type { RecordInput } from "@/lib/record/types";
 import type { PosterInput } from "./render-poster";
 
 /**
@@ -32,11 +33,51 @@ export type PosterSources = {
   palette: SkyPalette;
   options: readonly MapOption[];
   view: PosterInput["view"];
+  /** The day's range, when the frame's day is known */
+  day?: { high: number; low: number };
 };
 
-/** The snapshot from its sources: pure, so what goes on a poster can be checked without a page */
-export function posterSnapshot({ place, frame, look, timeZone, palette, options, view }: PosterSources): PosterSnapshot {
+/** "2026-10-05", "12:00", "GMT+2" for a moment on the place's clock; the zone as a fixed offset when Intl lacks it */
+export function recordClock(ts: number, timeZone: string): { time: string; zone: string } {
+  const at = new Date(ts * 1000);
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZoneName: "shortOffset" }).formatToParts(at);
+    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+    return { time: `${get("hour")}:${get("minute")}`, zone: get("timeZoneName") || "GMT" };
+  } catch {
+    return { time: at.toISOString().slice(11, 16), zone: "GMT" };
+  }
+}
+
+/**
+ * The record's facts from the moment on show (WTH-187): the frame's readings, the day's range, the place's clock.
+ * Absent readings stay absent, so the poster never prints a reading the provider did not give.
+ */
+export function recordInputOf({ place, frame, timeZone, day }: Pick<PosterSources, "place" | "frame" | "timeZone" | "day">): RecordInput {
   return {
+    place: { name: place.name, lat: place.lat, lon: place.lon },
+    date: frame.dayKey,
+    ...recordClock(frame.time, timeZone),
+    condition: frame.condition,
+    intensity: frame.intensity,
+    temp: frame.temp,
+    feelsLike: frame.feelsLike,
+    high: day?.high,
+    low: day?.low,
+    windSpeed: frame.windSpeed,
+    humidity: frame.humidity,
+    visibility: frame.visibility,
+    cloudCover: frame.cloudCover,
+    uv: frame.uv,
+    precipitation: frame.precipitation,
+    light: frame.light,
+  };
+}
+
+/** The snapshot from its sources: pure, so what goes on a poster can be checked without a page */
+export function posterSnapshot({ place, frame, look, timeZone, palette, options, view, day }: PosterSources): PosterSnapshot {
+  return {
+    record: recordInputOf({ place, frame, timeZone, day }),
     place: { name: place.name, ...placeParts(place), lat: place.lat, lon: place.lon },
     time: frame.time,
     timeZone,
@@ -61,5 +102,8 @@ export function usePosterSnapshot(): () => PosterSnapshot {
   const { frame, look } = useMoment();
   const palette = useMapPalette();
   const options = useMapOptions();
-  return () => posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: currentView() });
+  const { timeline } = useTimeline();
+  const day = timeline.days.find((d) => d.key === frame.dayKey);
+  return () =>
+    posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: currentView(), day: day && { high: day.high, low: day.low } });
 }
