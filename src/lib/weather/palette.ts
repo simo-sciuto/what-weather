@@ -1,3 +1,5 @@
+import { hexToRgb } from "@/utils/color";
+import { clamp01, mod, smoothstep, toRadians } from "@/utils/math";
 import type { MapInk, MapLayer, MapVisualState, SkyPalette } from "@/types/palette";
 import { HAZE_ONSET, type AtmosphereAxes } from "./atmosphere";
 import type { WeatherState } from "@/types/sky";
@@ -33,8 +35,6 @@ const ELEVATION_SWEEP = 180;
 
 /* ---------- Colour helpers ---------- */
 
-const hex = (h: string): RGB =>
-  [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) as RGB;
 const toHex = (c: RGB) =>
   "#" +
   c
@@ -49,7 +49,6 @@ const rgba = ([r, g, b, a]: RGBA) =>
 const mix = <T extends number[]>(a: T, b: T, t: number) =>
   a.map((v, i) => v + (b[i] - v) * t) as T;
 const scale = (c: RGB, k: number) => c.map((v) => v * k) as RGB;
-const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 
 function luminance([r, g, b]: RGB): number {
   const f = (v: number) => {
@@ -175,7 +174,7 @@ function oklabDistance(a: RGB, b: RGB): number {
 
 /** How far apart two colours (#rrggbb) look, in OKLab; see `oklabDistance`. */
 export function colorDistance(a: string, b: string): number {
-  return oklabDistance(hex(a), hex(b));
+  return oklabDistance(hexToRgb(a), hexToRgb(b));
 }
 
 /**
@@ -299,7 +298,7 @@ export function solarPalette(light: number): SolarPalette {
   const b = SOLAR_STOPS[j];
   const t = (u - a.at) / (b.at - a.at || 1);
   return {
-    sky: [0, 1, 2].map((i) => mix(hex(a.sky[i]), hex(b.sky[i]), t)) as [
+    sky: [0, 1, 2].map((i) => mix(hexToRgb(a.sky[i]), hexToRgb(b.sky[i]), t)) as [
       RGB,
       RGB,
       RGB,
@@ -460,12 +459,11 @@ const MAP_FADE = 0.5;
 export const MAP_SEPARATION = 0.1;
 /** Below this chroma the sky reads as grey; it counts as a cool grey, so its lines turn warm. */
 const GREY_SKY = 0.035;
-const deg = (d: number) => (d * Math.PI) / 180;
-const COOL_HUE = deg(255);
+const COOL_HUE = toRadians(255);
 /** Butter, the accent: the main roads lean from the complementary hue towards it */
-const BUTTER_HUE = deg(95);
+const BUTTER_HUE = toRadians(95);
 /** Water where the sky is too deep for a shadow of it to read */
-const AQUA: LCH = [0.86, 0.075, deg(220)];
+const AQUA: LCH = [0.86, 0.075, toRadians(220)];
 
 function skyHue(sky: RGB): number {
   const [, C, h] = toOklch(sky);
@@ -558,7 +556,7 @@ function mapInks(
   const [L, C] = toOklch(sky);
   const hue = skyHue(sky);
   const opposite = hue + Math.PI;
-  const turn = deg(tune.hue);
+  const turn = toRadians(tune.hue);
   const v = vividness(tune.vivid);
   const k =
     tune.contrast <= 50
@@ -567,7 +565,7 @@ function mapInks(
   // When the opposite already is butter (a violet night), the neighbour goes warm, to apricot.
   const lean = Math.sin(BUTTER_HUE - opposite);
   const towardButter =
-    Math.abs(lean) < Math.sin(deg(25)) ? -1 : Math.sign(lean);
+    Math.abs(lean) < Math.sin(toRadians(25)) ? -1 : Math.sign(lean);
   const shadow: LCH = [L * 0.62, Math.min(C, 0.08) * v.chroma, hue + turn];
   const water: LCH =
     contrast(
@@ -586,26 +584,26 @@ function mapInks(
     h + turn,
   ];
   /** The hues of the three ranks of road: streets, main roads, motorways */
-  const roadHues = [hue, opposite + towardButter * deg(35), opposite];
+  const roadHues = [hue, opposite + towardButter * toRadians(35), opposite];
   const colors: Record<MapLayer, LCH> = {
     water,
     waterway: water,
     streets: road(0.92, 0.045, hue),
-    "main-roads": road(0.87, 0.1, opposite + towardButter * deg(35)),
+    "main-roads": road(0.87, 0.1, opposite + towardButter * toRadians(35)),
     motorways: road(0.94, 0.1, opposite),
     // Meadows on the far side of the wheel from the main roads, so green never fights them
-    green: road(0.82, 0.07, opposite - towardButter * deg(70)),
+    green: road(0.82, 0.07, opposite - towardButter * toRadians(70)),
     relief: road(0.9, 0.03, hue),
     // The contours are coloured by height: the ramp's first colour, the rest worked out from it below
-    contours: road(0.8, 0.09, opposite - deg(60)),
+    contours: road(0.8, 0.09, opposite - toRadians(60)),
     // Each way of getting about its own hue round the wheel, a stop in the colour of its line
-    train: road(0.9, 0.06, opposite - towardButter * deg(35)),
-    "train-stops": road(0.9, 0.06, opposite - towardButter * deg(35)),
-    metro: road(0.84, 0.1, opposite + towardButter * deg(100)),
-    "metro-stops": road(0.84, 0.1, opposite + towardButter * deg(100)),
-    tram: road(0.88, 0.1, opposite - towardButter * deg(110)),
-    "tram-stops": road(0.88, 0.1, opposite - towardButter * deg(110)),
-    "bus-stops": road(0.8, 0.09, opposite + towardButter * deg(160)),
+    train: road(0.9, 0.06, opposite - towardButter * toRadians(35)),
+    "train-stops": road(0.9, 0.06, opposite - towardButter * toRadians(35)),
+    metro: road(0.84, 0.1, opposite + towardButter * toRadians(100)),
+    "metro-stops": road(0.84, 0.1, opposite + towardButter * toRadians(100)),
+    tram: road(0.88, 0.1, opposite - towardButter * toRadians(110)),
+    "tram-stops": road(0.88, 0.1, opposite - towardButter * toRadians(110)),
+    "bus-stops": road(0.8, 0.09, opposite + towardButter * toRadians(160)),
     buildings: road(0.9, 0.03, hue),
     "buildings-3d": road(0.9, 0.03, hue),
     // A shadow is the sky darker, like the water
@@ -616,17 +614,17 @@ function mapInks(
     "traffic-slow": road(
       0.74,
       0.17,
-      opposite + towardButter * deg(35) + Math.PI,
+      opposite + towardButter * toRadians(35) + Math.PI,
     ),
     "traffic-heavy": road(
       0.66,
       0.2,
-      opposite + towardButter * deg(35) + Math.PI,
+      opposite + towardButter * toRadians(35) + Math.PI,
     ),
     "traffic-jam": road(
       0.58,
       0.23,
-      opposite + towardButter * deg(35) + Math.PI,
+      opposite + towardButter * toRadians(35) + Math.PI,
     ),
     lights: road(0.95, 0.09, BUTTER_HUE),
   };
@@ -694,7 +692,7 @@ function mapInks(
             fromOklch([
               Math.min(LIGHTEST, l + t * 0.12),
               c * (1 - 0.5 * t),
-              h + deg(ELEVATION_SWEEP * t),
+              h + toRadians(ELEVATION_SWEEP * t),
             ]),
           ),
         );
@@ -726,7 +724,7 @@ function mapInks(
   ) as Record<MapLayer, MapInk>;
 
   // The colour a layer shows over the sky, which is what the eye compares
-  const shown = (ink: MapInk) => mix(sky, hex(ink.color), ink.opacity);
+  const shown = (ink: MapInk) => mix(sky, hexToRgb(ink.color), ink.opacity);
   const gapFrom = (ink: MapInk, others: readonly MapLayer[]) =>
     Math.min(...others.map((o) => oklabDistance(shown(ink), shown(inks[o]))));
 
@@ -772,7 +770,7 @@ function mapInks(
           const l = l0 + dl;
           if (l < 0.3 || l > LIGHTEST) continue;
           variants.push({
-            from: [l, c0 * 1.6, h0 + deg(turnBy)],
+            from: [l, c0 * 1.6, h0 + toRadians(turnBy)],
             firmer,
             cost:
               Math.abs(turnBy) / 180 + Math.abs(dl) * 2.5 + (firmer - 1) * 0.3,
@@ -809,7 +807,7 @@ function mapInks(
     const kinds = SEPARATED_KINDS.filter((layer) => active.has(layer));
     const factor = new Map(kinds.map((layer) => [layer, opacityFactor(layer, air)]));
     const shownAt = (layer: MapLayer, t: number) =>
-      mix(sky, hex(inks[layer].color), clamp01(inks[layer].opacity * (1 + t * ((factor.get(layer) ?? 1) - 1))));
+      mix(sky, hexToRgb(inks[layer].color), clamp01(inks[layer].opacity * (1 + t * ((factor.get(layer) ?? 1) - 1))));
     const gapAt = (t: number) => {
       let least = Infinity;
       for (let i = 0; i < kinds.length; i++)
@@ -930,7 +928,7 @@ export function mapInksFor(
   const key = `${sky}|${tune.hue}|${tune.vivid}|${tune.contrast}|${[...active].sort().join(",")}|${Object.values(air).join(",")}`;
   const known = inksMemo.get(key);
   if (known) return known;
-  const inks = mapInks(hex(sky), tune, active, air);
+  const inks = mapInks(hexToRgb(sky), tune, active, air);
   if (inksMemo.size >= INKS_MEMO)
     inksMemo.delete(inksMemo.keys().next().value as string);
   inksMemo.set(key, inks);
@@ -945,12 +943,12 @@ const inksMemo = new Map<string, Record<MapLayer, MapInk>>();
  * strongly a line stands out is set by its opacity alone.
  */
 export function inkOverSky(sky: string, ink: MapInk): string {
-  return toHex(mix(hex(sky), hex(ink.color), ink.opacity));
+  return toHex(mix(hexToRgb(sky), hexToRgb(ink.color), ink.opacity));
 }
 
 /** The hue, in degrees, of the map's main lines over a sky before any turn: where the viewer's hue slider starts from. */
 export function motorwayHue(sky: string): number {
-  return ((skyHue(hex(sky)) + Math.PI) * 180) / Math.PI;
+  return ((skyHue(hexToRgb(sky)) + Math.PI) * 180) / Math.PI;
 }
 
 /* ---------- 5. Palette ---------- */
@@ -1080,15 +1078,15 @@ function finishPalette(
  */
 
 /** Temperature sets the white balance: warm air leans every colour towards amber, cool air towards cyan by day and a deeper blue by night. */
-const WARM_POLE = deg(50);
-const COOL_POLE_DAY = deg(200);
-const COOL_POLE_NIGHT = deg(255);
+const WARM_POLE = toRadians(50);
+const COOL_POLE_DAY = toRadians(200);
+const COOL_POLE_NIGHT = toRadians(255);
 /** Rain turns the sky towards slate, snow towards a cold blue, a storm towards indigo. */
-const WET_POLE = deg(240);
-const SNOW_POLE = deg(225);
-const STORM_POLE = deg(270);
+const WET_POLE = toRadians(240);
+const SNOW_POLE = toRadians(225);
+const STORM_POLE = toRadians(270);
 /** No rotation of a sky hue passes through green: it goes the other way round the wheel. */
-const GREEN = deg(140);
+const GREEN = toRadians(140);
 
 /** Each axis's most influence, reached only at the axis's full value. */
 export const ATMOSPHERE_LIMITS = {
@@ -1149,7 +1147,6 @@ export const ATMOSPHERE_LIMITS = {
   rest: 0.25,
 } as const;
 
-const mod = (x: number, m: number) => ((x % m) + m) % m;
 const TAU = 2 * Math.PI;
 
 /** Turn hue `h` towards `pole` by at most `most` radians, the way round that does not cross green. */
@@ -1178,11 +1175,6 @@ function combined(...pulls: number[]): number {
   const all = pulls.reduce((sum, p) => sum + Math.max(0, p), 0);
   return Math.min(1, strongest + ATMOSPHERE_LIMITS.rest * (all - strongest));
 }
-
-const smooth = (low: number, high: number, x: number) => {
-  const t = clamp01((x - low) / (high - low));
-  return t * t * (3 - 2 * t);
-};
 
 /** The white balance's shift in OKLab for an atmosphere: towards amber when warm, cyan (day) or deep blue (night) when cold. */
 function whiteBalance(a: AtmosphereAxes): [number, number] {
@@ -1222,7 +1214,7 @@ export function atmosphereSky(light: number, a: AtmosphereAxes): SolarPalette {
   const sun = (min: number, max: number) => 1 + (min - 1) * a.daylight + (max - min) * a.energy;
   // Haze has a say only past what saturated air alone gives, the same onset for depth, colour and glow:
   // a clear, humid noon with perfect visibility stays a clear noon.
-  const haze = smooth(X.hazeOnset, 1, a.haze);
+  const haze = smoothstep(X.hazeOnset, 1, a.haze);
   const chroma =
     (1 -
       combined(
@@ -1242,11 +1234,11 @@ export function atmosphereSky(light: number, a: AtmosphereAxes): SolarPalette {
     const [L0, C0, h0] = toOklch(c);
     const [, C1, h1] = fromLab([L0, C0 * Math.cos(h0) + wa, C0 * Math.sin(h0) + wb]);
     let h = h1;
-    h = turnToward(h, WET_POLE, deg(X.wetTurn) * a.wetness);
-    h = turnToward(h, SNOW_POLE, deg(X.snowTurn) * a.snow);
-    h = turnToward(h, STORM_POLE, deg(X.stormTurn) * a.severity);
+    h = turnToward(h, WET_POLE, toRadians(X.wetTurn) * a.wetness);
+    h = turnToward(h, SNOW_POLE, toRadians(X.snowTurn) * a.snow);
+    h = turnToward(h, STORM_POLE, toRadians(X.stormTurn) * a.severity);
     const turned = hueDelta(h, h1);
-    if (Math.abs(turned) > deg(X.totalTurn)) h = h1 + Math.sign(turned) * deg(X.totalTurn);
+    if (Math.abs(turned) > toRadians(X.totalTurn)) h = h1 + Math.sign(turned) * toRadians(X.totalTurn);
     return [L0, C1 * chroma, h];
   });
 
@@ -1323,7 +1315,7 @@ export function atmosphereSky(light: number, a: AtmosphereAxes): SolarPalette {
  * `mapInks`), so a foggy city reads close and flat, in grayscale too.
  */
 export function atmosphereDepth(a: AtmosphereAxes): number {
-  return 1 - smooth(ATMOSPHERE_LIMITS.hazeOnset, 1, a.haze);
+  return 1 - smoothstep(ATMOSPHERE_LIMITS.hazeOnset, 1, a.haze);
 }
 
 /** The most the weather moves the map's hierarchy, each at the axis's full value (WTH-046G) */

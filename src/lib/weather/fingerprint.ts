@@ -1,3 +1,4 @@
+import { clamp } from "@/utils/math";
 import type { AtmosphereComputation } from "./visual-input";
 
 /**
@@ -54,7 +55,6 @@ export type WeatherFingerprint = {
 };
 
 const step = (x: number) => Math.floor(x * STEPS + 0.5 + 1e-9);
-const clampInt = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 /**
  * The fingerprint of a moment: its atmosphere (and which measurements it rests on, from `computeAtmosphere`) and
@@ -72,14 +72,14 @@ export function fingerprintOf(
   const basis = BASIS.map((key, i) => (inputStatus[key] === "supplied" || inputStatus[key] === "clamped" ? BASIS_LETTERS[i] : "")).join("");
   return Object.freeze({
     version: FINGERPRINT_VERSION,
-    phase: clampInt(step(phase), -STEPS, 2 * STEPS),
-    warmth: clampInt(step(a.warmth), -STEPS, STEPS),
-    cloud: clampInt(step(a.cloudiness), 0, STEPS),
-    haze: clampInt(step(a.haze), 0, STEPS),
-    wet: clampInt(step(a.wetness), 0, STEPS),
-    snow: clampInt(step(a.snow), 0, STEPS),
-    severity: clampInt(step(a.severity), 0, STEPS),
-    energy: clampInt(step(a.energy), 0, STEPS),
+    phase: clamp(step(phase), -STEPS, 2 * STEPS),
+    warmth: clamp(step(a.warmth), -STEPS, STEPS),
+    cloud: clamp(step(a.cloudiness), 0, STEPS),
+    haze: clamp(step(a.haze), 0, STEPS),
+    wet: clamp(step(a.wetness), 0, STEPS),
+    snow: clamp(step(a.snow), 0, STEPS),
+    severity: clamp(step(a.severity), 0, STEPS),
+    energy: clamp(step(a.energy), 0, STEPS),
     basis,
   });
 }

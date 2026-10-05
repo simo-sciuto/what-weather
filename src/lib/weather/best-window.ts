@@ -1,3 +1,4 @@
+import { clamp01 } from "@/utils/math";
 import { THRESHOLDS, isWet } from "./constants";
 import { localDay, spokenTime } from "./formatters";
 import type { Condition } from "@/types/weather";
@@ -60,7 +61,6 @@ const FLOOR = 0.35;
 /** Hours within this much of the best one belong to the window. */
 const TOLERANCE = 0.1;
 
-const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 
 /** What an hour's score is made of, each 0..1; the score is their product. */
 export type OutdoorFactors = {

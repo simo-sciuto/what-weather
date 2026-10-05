@@ -3,7 +3,8 @@ import { atmosphericData, interpolateAtmosphericData } from "./atmospheric-data"
 import { bestWindow, windowLabel } from "./best-window";
 import { TYPICAL_CLOUD_COVER } from "./constants";
 import { visibleDays } from "./days";
-import { capitalize, formatDate, formatTime, localDay, localHour } from "./formatters";
+import { formatDate, formatTime, localDay, localHour } from "./formatters";
+import { capitalize } from "@/utils/string";
 import { daySummary, momentSummary } from "./moments";
 import { dayPhase, weatherState } from "./state";
 import { nightSpans, sunEvents, sunTimesOn } from "./sun";

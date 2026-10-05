@@ -2,7 +2,8 @@ import "server-only";
 import { atmosphericData } from "@/lib/weather/atmospheric-data";
 import { GEOCODE_REVALIDATE_SECONDS, WEATHER_REVALIDATE_SECONDS, isWet } from "@/lib/weather/constants";
 import { airIndexOf } from "@/lib/weather/details";
-import { WeatherProviderError, loadFresh, lookupPlace, round } from "./openweather";
+import { roundCoord } from "@/lib/weather/coordinates";
+import { WeatherProviderError, loadFresh, lookupPlace } from "./openweather";
 import type { WeatherProvider } from "./provider";
 import { regionName } from "@/lib/weather/regions";
 import type { AirQuality, Condition, CurrentWeather, DailyPoint, HourlyPoint, Intensity, Place, QuarterPoint, WeatherData } from "@/types/weather";
@@ -327,8 +328,8 @@ export const openMeteoProvider: WeatherProvider = {
   name: "open-meteo",
 
   async getByCoords(rawLat, rawLon) {
-    const lat = round(rawLat);
-    const lon = round(rawLon);
+    const lat = roundCoord(rawLat);
+    const lon = roundCoord(rawLon);
 
     const weather = (revalidate: number) =>
       get<OMForecast>(

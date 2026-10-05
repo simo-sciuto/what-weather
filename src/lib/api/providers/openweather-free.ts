@@ -5,9 +5,9 @@ import {
   loadFresh,
   lookupAirQuality,
   lookupPlace,
-  round,
   searchPlaces,
 } from "./openweather";
+import { roundCoord } from "@/lib/weather/coordinates";
 import type { WeatherProvider } from "./provider";
 import {
   offsetToZone,
@@ -38,8 +38,8 @@ export const openWeatherFreeProvider: WeatherProvider = {
   name: "openweather-free",
 
   async getByCoords(rawLat, rawLon) {
-    const lat = round(rawLat);
-    const lon = round(rawLon);
+    const lat = roundCoord(rawLat);
+    const lon = roundCoord(rawLon);
     const params = { lat, lon, units: "metric", lang: "en" };
 
     const weather = (revalidate: number) =>

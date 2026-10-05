@@ -1,3 +1,4 @@
+import { hexToRgba } from "@/utils/color";
 import { tempColor } from "@/lib/weather/temp-color";
 import { formatCoords } from "@/lib/weather/formatters";
 import type { MapOption } from "@/lib/map-options";
@@ -246,11 +247,6 @@ async function drawMap({
 
 /* ---------- The sky ---------- */
 
-function rgba(hex: string, alpha: number) {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 function paintSky(
   ctx: CanvasRenderingContext2D,
   W: number,
@@ -271,7 +267,7 @@ function paintSky(
   const [gr, gg, gb, ga] = channels;
   const glow = ctx.createRadialGradient(x, y, 0, x, y, bloomRadius(W, H, x, y));
   for (const { offset, share } of bloomStops())
-    glow.addColorStop(offset, `rgba(${gr}, ${gg}, ${gb}, ${(ga * share).toFixed(4)})`);
+    glow.addColorStop(offset, `hexToRgba(${gr}, ${gg}, ${gb}, ${(ga * share).toFixed(4)})`);
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 }
@@ -356,15 +352,15 @@ function paintType(
 
   // A shade of the sky's top rising from the foot, so the name reads over any street.
   const shade = ctx.createLinearGradient(0, H * 0.5, 0, H);
-  shade.addColorStop(0, rgba(p.sky1, 0));
-  shade.addColorStop(0.55, rgba(p.sky1, 0.55));
-  shade.addColorStop(1, rgba(p.sky1, 0.85));
+  shade.addColorStop(0, hexToRgba(p.sky1, 0));
+  shade.addColorStop(0.55, hexToRgba(p.sky1, 0.55));
+  shade.addColorStop(1, hexToRgba(p.sky1, 0.85));
   ctx.fillStyle = shade;
   ctx.fillRect(0, H * 0.5, W, H * 0.5);
   // And a lighter one at the head, under the region and country.
   const head = ctx.createLinearGradient(0, 0, 0, m * 3.5);
-  head.addColorStop(0, rgba(p.sky1, 0.6));
-  head.addColorStop(1, rgba(p.sky1, 0));
+  head.addColorStop(0, hexToRgba(p.sky1, 0.6));
+  head.addColorStop(1, hexToRgba(p.sky1, 0));
   ctx.fillStyle = head;
   ctx.fillRect(0, 0, W, m * 3.5);
 

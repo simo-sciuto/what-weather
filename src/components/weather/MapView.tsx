@@ -1,7 +1,8 @@
 "use client";
 
 import { areaCorners, canvasSize, drawClouds, gridArea } from "@/lib/weather/cloud-render";
-import { capitalize, formatDate, formatTime, localHour } from "@/lib/weather/formatters";
+import { formatDate, formatTime, localHour } from "@/lib/weather/formatters";
+import { capitalize } from "@/utils/string";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMap } from "./MapContext";
 import { StylizedMap, type MapOverlay } from "./StylizedMap";

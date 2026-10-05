@@ -1,10 +1,10 @@
 import "server-only";
 import {
-  COORD_PRECISION,
   GEOCODE_REVALIDATE_SECONDS,
   MAX_DATA_AGE_SECONDS,
   WEATHER_REVALIDATE_SECONDS,
 } from "@/lib/weather/constants";
+import { roundCoord } from "@/lib/weather/coordinates";
 import type { WeatherProvider } from "./provider";
 import {
   toCurrent,
@@ -68,8 +68,6 @@ export async function get<T>(
   }
   return res.json() as Promise<T>;
 }
-
-export const round = (n: number) => Number(n.toFixed(COORD_PRECISION));
 
 /**
  * Loads through the cache, but refetches when the cached reading is too old
@@ -136,8 +134,8 @@ export const openWeatherProvider: WeatherProvider = {
   name: "openweather",
 
   async getByCoords(rawLat, rawLon) {
-    const lat = round(rawLat);
-    const lon = round(rawLon);
+    const lat = roundCoord(rawLat);
+    const lon = roundCoord(rawLon);
 
     const weather = (revalidate: number) =>
       Promise.all([

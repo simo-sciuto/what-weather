@@ -1,3 +1,4 @@
+import { clamp01, lerp, smoothstep } from "@/utils/math";
 import type { CloudGrid } from "@/types/map";
 
 /**
@@ -95,10 +96,6 @@ function blurWrap(v: Float32Array, size: number, r: number) {
 }
 
 const quintic = (f: number) => f * f * f * (f * (f * 6 - 15) + 10);
-const lerp = (a: number, b: number, f: number) => a + (b - a) * f;
-const smooth = (f: number) => f * f * (3 - 2 * f);
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-const smoothstep = (a: number, b: number, v: number) => smooth(clamp01((v - a) / (b - a)));
 
 const GRAIN_SIZE = 128;
 let grain: Float32Array | null = null;

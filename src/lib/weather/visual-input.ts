@@ -1,3 +1,4 @@
+import { clamp, smoothstep } from "@/utils/math";
 import { createAtmosphere, type AtmosphereState } from "./atmosphere";
 import { TYPICAL_CLOUD_COVER } from "./constants";
 import type { Condition, Intensity } from "@/types/weather";
@@ -31,11 +32,6 @@ export type AtmosphereComputation = {
   readonly inputStatus: Readonly<Record<Measurement, VisualInputStatus>>;
 };
 
-const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
-const smoothstep = (low: number, high: number, value: number) => {
-  const t = clamp((value - low) / (high - low), 0, 1);
-  return t * t * (3 - 2 * t);
-};
 
 const WARMTH: readonly (readonly [number, number])[] = [
   [-15, -1], [-5, -0.8], [5, -0.5], [12, -0.25], [18, 0],

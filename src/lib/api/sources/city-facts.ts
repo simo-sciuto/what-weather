@@ -1,4 +1,5 @@
 import "server-only";
+import { toRadians } from "@/utils/math";
 import { cacheLife } from "next/cache";
 
 /**
@@ -376,12 +377,11 @@ function distanceKm(
   a: { lat: number; lon: number },
   b: { lat: number; lon: number },
 ): number {
-  const rad = (deg: number) => (deg * Math.PI) / 180;
   const h =
-    Math.sin(rad(b.lat - a.lat) / 2) ** 2 +
-    Math.cos(rad(a.lat)) *
-      Math.cos(rad(b.lat)) *
-      Math.sin(rad(b.lon - a.lon) / 2) ** 2;
+    Math.sin(toRadians(b.lat - a.lat) / 2) ** 2 +
+    Math.cos(toRadians(a.lat)) *
+      Math.cos(toRadians(b.lat)) *
+      Math.sin(toRadians(b.lon - a.lon) / 2) ** 2;
   return 2 * EARTH_KM * Math.asin(Math.sqrt(h));
 }
 

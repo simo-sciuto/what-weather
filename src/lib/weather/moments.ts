@@ -1,5 +1,6 @@
 import { isWet } from "./constants";
-import { capitalize, conditionLabel, formatTemp, spokenTime } from "./formatters";
+import { conditionLabel, formatTemp, spokenTime } from "./formatters";
+import { capitalize } from "@/utils/string";
 import type { SunEvent } from "@/types/sky";
 import type { Condition, DailyPoint, Intensity } from "@/types/weather";
 

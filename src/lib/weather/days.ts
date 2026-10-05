@@ -1,4 +1,5 @@
-import { capitalize, formatDate, localDay } from "./formatters";
+import { formatDate, localDay } from "./formatters";
+import { capitalize } from "@/utils/string";
 import { darkWithoutSunTimes, hasSunTimes } from "./sun";
 import type { DailyPoint, WeatherData } from "@/types/weather";
 

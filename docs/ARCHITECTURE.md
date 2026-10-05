@@ -55,6 +55,10 @@ Types are declared with `type`, never `interface` (ESLint, ADR-014). A type live
 - `place.ts`: `PlaceRef`, `PlaceSummary`. `map.ts`: `CloudGrid`, `Mapbox`.
 Stay beside their module: the result or contract of a single module that one other area reads (`FrameLook`, `ActivityOutlook`, `TempRange`, `WeatherProvider`), the atmosphere engine's contracts (`AtmosphereAxes`, `WeatherFingerprint`: they change with the calibration, ADR-012), types derived from a value (`MapOption`, `MockScenario`) and the raw OpenWeather payloads (private to the adapter, ADR-001). Component props stay in their component.
 
+## Utils (`src/utils/`)
+
+Generic helpers that know nothing of weather, one file per area (ADR-014), each with its test: `math.ts` (`clamp`, `clamp01`, `lerp`, `smoothstep`, `mod`, `toRadians`, `toDegrees`), `color.ts` (`hexToRgb`, `hexToRgba`), `string.ts` (`capitalize`, `slug`). Domain functions stay in their modules: `formatters.ts`, `palette.ts` (its own `rgba`, `mix`, `scale` work on colour tuples and keep their names), `fingerprint.ts`, `coordinates.ts` (`roundCoord`, the one rounding that the page's cache key and every provider share, ADR-003). A helper that takes the weather's meaning is not a util. No barrel files.
+
 ## WeatherData and the timeline
 
 - `WeatherData`: place, timezone (IANA or fixed offset), current, minutely (nullable), quarterHourly (nullable), hourly, daily, airQuality (nullable), alerts, pollen.
@@ -68,7 +72,7 @@ The palette has two ways of weathering that base, sharing one finish (`finishPal
 
 ## Caching
 
-- `load()` in `weather-page.ts` is the single cached unit per place: `"use cache"`, coordinates rounded to 2 decimals (~1 km, `COORD_PRECISION`), `cacheLife` revalidate 600 s, expire 3600 s, stale 300 s. Mock uses `cacheLife("seconds")`.
+- `load()` in `weather-page.ts` is the single cached unit per place: `"use cache"`, coordinates rounded to 2 decimals (~1 km, `COORD_PRECISION`, through `roundCoord` in `lib/weather/coordinates.ts`), `cacheLife` revalidate 600 s, expire 3600 s, stale 300 s. Mock uses `cacheLife("seconds")`.
 - The page, `generateMetadata`, `/api/og`, `/api/summary` all go through `weatherFor()` so they share one entry.
 - Other cached units: place search (`/api/places`, 1 day revalidate), cloud grid (1 h), nearby towns, city facts.
 - Constants live in `src/lib/weather/constants.ts`.

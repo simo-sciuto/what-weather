@@ -1,7 +1,7 @@
 "use client";
 
 import type { ActivityOutlook } from "@/lib/weather/activities";
-import { capitalize } from "@/lib/weather/formatters";
+import { capitalize } from "@/utils/string";
 import { useView } from "../time/TimeContext";
 import { Chapter } from "./Chapter";
 

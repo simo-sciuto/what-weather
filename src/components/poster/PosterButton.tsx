@@ -1,4 +1,5 @@
 "use client";
+import { slug } from "@/utils/string";
 
 import { placeHref } from "@/lib/place";
 import { useEffect, useId, useRef, useState } from "react";
@@ -22,13 +23,6 @@ function revokeAll(drawn: Partial<Record<PosterFormat, Drawn>>) {
 
 /** A file name without accents or spaces: "what-weather-reykjavik-stampa-a.png". */
 function fileName(place: string, format: PosterFormat) {
-  const slug = (s: string) =>
-    s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
   return `what-weather-${slug(place)}-${slug(POSTER_FORMATS[format].label)}.png`;
 }
 

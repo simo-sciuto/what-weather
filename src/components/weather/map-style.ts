@@ -1,3 +1,5 @@
+import { hexToRgba } from "@/utils/color";
+import { toRadians } from "@/utils/math";
 import type { MapOption } from "@/lib/map-options";
 import type { MapInk, MapLayer } from "@/types/palette";
 import type { SunPosition } from "@/lib/weather/sun-position";
@@ -631,11 +633,6 @@ export const OPTION_LAYERS: Record<MapOption, MapLayer[]> = {
 export const activeLayers = (options: readonly MapOption[]): Set<MapLayer> =>
   new Set(options.flatMap((o) => OPTION_LAYERS[o]));
 
-const rad = (d: number) => (d * Math.PI) / 180;
-const rgba = (hex: string, alpha: number) => {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
 
 /** A typical building's height, in metres: the shadows are all cast by one, since a fill can't take each its own. */
 const SHADOW_BUILDING = 15;
@@ -654,14 +651,14 @@ const SHADOW_ZOOMS = [13, 17] as const;
 function shadowOffset(sun: SunPosition, lat: number): ExpressionSpecification {
   const metres = Math.min(
     SHADOW_BUILDING /
-      Math.tan(rad(Math.max(sun.altitude, SHADOW_MIN_ALTITUDE))),
+      Math.tan(toRadians(Math.max(sun.altitude, SHADOW_MIN_ALTITUDE))),
     SHADOW_MAX_LENGTH,
   );
-  const east = -Math.sin(rad(sun.azimuth)) * metres;
+  const east = -Math.sin(toRadians(sun.azimuth)) * metres;
   // The screen's y runs down: a shadow that falls to the north goes up
-  const down = Math.cos(rad(sun.azimuth)) * metres;
+  const down = Math.cos(toRadians(sun.azimuth)) * metres;
   const at = (zoom: number): ExpressionSpecification => {
-    const pixels = 2 ** zoom / (156_543.03 * Math.cos(rad(lat)));
+    const pixels = 2 ** zoom / (156_543.03 * Math.cos(toRadians(lat)));
     return [
       "literal",
       [+(east * pixels).toFixed(2), +(down * pixels).toFixed(2)],
@@ -769,17 +766,17 @@ export function syncMap(
         map.setPaintProperty(
           layer,
           "hillshade-highlight-color",
-          rgba(color, opacity * 0.4),
+          hexToRgba(color, opacity * 0.4),
         );
         map.setPaintProperty(
           layer,
           "hillshade-shadow-color",
-          rgba(inks.shadows.color, inks.shadows.opacity),
+          hexToRgba(inks.shadows.color, inks.shadows.opacity),
         );
         map.setPaintProperty(
           layer,
           "hillshade-accent-color",
-          rgba(inks.shadows.color, inks.shadows.opacity),
+          hexToRgba(inks.shadows.color, inks.shadows.opacity),
         );
         map.setPaintProperty(
           layer,

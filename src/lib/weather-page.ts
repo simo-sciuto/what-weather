@@ -7,11 +7,11 @@ import { getProvider } from "./api/providers/get-provider";
 import { lookupPollen } from "./api/sources/pollen";
 import { sinceYesterday } from "./api/sources/yesterday";
 import {
-  COORD_PRECISION,
   DEFAULT_PLACE,
   MAX_DATA_AGE_SECONDS,
   WEATHER_REVALIDATE_SECONDS,
 } from "./weather/constants";
+import { roundCoord } from "./weather/coordinates";
 import { buildTimeline } from "./weather/frames";
 import { randomPlace } from "./weather/random-places";
 
@@ -21,7 +21,6 @@ export type SearchParams = Promise<
 
 const param = (value: string | string[] | undefined) =>
   typeof value === "string" ? value : undefined;
-const round = (n: number) => Number(n.toFixed(COORD_PRECISION));
 
 /**
  * The weather for one place, fetched and worked out (timeline, palettes,
@@ -118,8 +117,8 @@ async function namesFor(
  */
 export function weatherFor(ref: PlaceRef, scenario?: string, at?: string) {
   return load(
-    round(ref.lat),
-    round(ref.lon),
+    roundCoord(ref.lat),
+    roundCoord(ref.lon),
     ref.name,
     ref.region,
     ref.country,

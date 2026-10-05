@@ -134,7 +134,6 @@ export function formatDuration(seconds: number, style: "long" | "compact" = "lon
   return m === 0 ? `${h}${hu}` : `${h}${hu} ${m}${mu}`;
 }
 
-export const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** A signed change with a typographic minus: "+3 hPa", "−1 hPa", "±0 hPa". */
 export function formatSigned(value: number, unit: string): string {
