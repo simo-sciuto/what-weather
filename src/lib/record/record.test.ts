@@ -142,8 +142,10 @@ describe("place fitting", () => {
 describe("font axes", () => {
   it("clamps every axis to the font's real range", () => {
     const f = clampAxes({ family: "display", wght: 1200, wdth: 40, size: 0.1, tracking: 0 });
-    expect(f.wght).toBe(900);
-    expect(f.wdth).toBe(62);
+    // Heros: always bold, condensed below the midpoint
+    expect(f.wght).toBe(700);
+    expect(f.wdth).toBe(82);
+    expect(clampAxes({ family: "display", wght: 200, wdth: 120, size: 0.1, tracking: 0 })).toMatchObject({ wght: 700, wdth: 100 });
     expect(clampAxes({ family: "mono", wght: 700, wdth: 80, size: 0.1, tracking: 0 })).toMatchObject({ wght: 500, wdth: 100 });
   });
 
@@ -243,12 +245,15 @@ describe("over the site's own map (raster)", () => {
     }
   });
 
-  it("keeps the map out of the head band and, in an atlas, under the foot rule", () => {
-    const band = raster("milan").layers.find((l) => l.id === "map")!.clip!.rect!;
-    expect(band.y).toBeCloseTo(64 / 840, 3);
-    expect(band.y + band.height).toBeCloseTo(752 / 840, 3);
-    const open = raster("tshuru").layers.find((l) => l.id === "map")!.clip!.rect!;
-    expect(open.y + open.height).toBeCloseTo(1, 3);
+  it("lays the map over the whole sheet, with no head or foot band", () => {
+    for (const k of ["milan", "tshuru", "tokyo"]) {
+      const s = raster(k);
+      expect(s.layers.find((l) => l.id === "map")!.clip!.rect).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
+      expect(s.layers.some((l) => l.id.startsWith("rule-") && l.role === "micro")).toBe(false);
+      const edge = s.layers.find((l) => l.id === "record-id")!;
+      expect(edge.transform?.rotate).toBe(-90);
+      expect(edge.payload.kind === "text" && edge.payload.lines[0].text).toContain("© MAPBOX © OPENSTREETMAP");
+    }
   });
 
   it("sets the place's name in the temperature's colour and centres a column of letters", () => {

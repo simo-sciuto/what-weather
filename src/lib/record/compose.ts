@@ -180,9 +180,10 @@ function atlas(c: Ctx, city: Point, preferred: boolean): Plan {
   texts.push({ id: "condition", lines: [{ text: c.word, x: COL[4], y: 596 }], font: conditionFont(500, 125), ink: "ink-1", opacity: 1, z: "micro" });
   const near = metricsFor(["feels", "range"], c.r, 2, []);
   near.forEach((m, i) => texts.push(...pairs(`near-${i}`, COL[4 + i], 616, m.label, m.value)));
-  const foot = metricsFor(FAMILY_ORDER[conditionFamily(c.r)], c.r, 3, near.map((m) => m.key));
-  texts.push(...pairs("date", M, 772, formatDate(c.r.date), stamp(c.r)));
-  foot.forEach((m, i) => texts.push(...pairs(`foot-${i}`, COL[2 + i], 772, m.label, m.value)));
+  // The rest of the readings and the moment under them, in the same two columns: no band at the foot
+  const more = metricsFor(FAMILY_ORDER[conditionFamily(c.r)], c.r, 3, near.map((m) => m.key));
+  const cells: [string, string][] = [...more.map((m): [string, string] => [m.label, m.value]), [formatDate(c.r.date), stamp(c.r)]];
+  cells.forEach(([label, value], i) => texts.push(...pairs(`more-${i}`, COL[4 + (i % 2)], 654 + Math.floor(i / 2) * 38, label, value)));
   const [lat, lon] = coordsOf(c.r);
   return {
     city,
@@ -191,7 +192,7 @@ function atlas(c: Ctx, city: Point, preferred: boolean): Plan {
     leader: [city, [city[0], capTop - 13]],
     node: "dot",
     coords: { id: "coords", lines: [{ text: `${lat}  ${lon}`, x: city[0] + 9, y: city[1] - 6 }], font: mono(400), ink: "ink-1", opacity: 1, z: "micro" },
-    rules: [{ from: [M, 752], to: [R, 752], opacity: 1 }],
+    rules: [],
     placeFit: `${fitted.step}, ${fitted.lines.length} line(s), wdth ${fitted.font.wdth}`,
     fitScore: s / 62,
     preferred,
@@ -490,8 +491,8 @@ export function getRecordComposition(
 
   add({ id: "paper", role: "paper", inkRole: "paper", opacity: 1, payload: { kind: "rect", x: 0, y: 0, width: 1, height: aspect } });
   const water = placed ? placed.water.flat() : [];
-  // The poster's own map: from under the head to the foot rule (atlas) or the foot, left and right to the edges
-  const band = { kind: "rect" as const, x: 0, y: ref.y(64) / aspect, width: 1, height: (ref.y(mode === "open-atlas" ? 752 : bottom) - ref.y(64)) / aspect };
+  // The poster's own map: the whole sheet, no head or foot band
+  const band = { kind: "rect" as const, x: 0, y: 0, width: 1, height: 1 };
   if (raster) add({ id: "map", role: "terrain", inkRole: "ink-1", opacity: 1, clip: { rect: band }, payload: { kind: "image", key: "map", x: 0, y: 0, width: 1, height: 1 } });
 
   if (mode !== "open-atlas" && placed) {
@@ -545,27 +546,21 @@ export function getRecordComposition(
 
   if (mode !== "field-record") plan.rules.forEach((r, i) => rule(i, r, "micro"));
   for (const t of plan.texts.filter((t) => t.z === "micro")) text(t);
-  // The head: the record's ID on the left, the signature quiet on the right
+  // No head or foot: the record's ID, the moment, the signature and the map's credits climb the right edge in
+  // one line of small type, as a print's edge notes
   const id = recordId(r.place.name, r.date);
-  text({ id: "record-id", lines: [{ text: id, x: M, y: 44 }], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" });
-  text({ id: "signature", lines: [{ text: "WHAT WEATHER", x: R, y: 44 }], font: mono(400), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
-  // The map's credits, required wherever its tiles are shown: in the head band, under the signature
-  if (raster)
-    text({ id: "map-credits", lines: [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: 56 }], font: mono(400, MICRO * 0.8), ink: "ink-1", opacity: 0.5, anchor: "end", z: "micro" });
-  if (mode === "field-record") {
-    // ROTATED MICROTYPE: the moment up the right margin, in the paper's colour where it crosses the water
-    const at: Point = [R + 14, bottom - 80];
-    const onWater = placed ? placed.water.some((poly) => inside(sheetPoint(at), poly)) : false;
-    text({
-      id: "date-rail",
-      lines: [{ text: `${formatDate(r.date)} · ${stamp(r)}`, x: at[0], y: at[1] }],
-      font: mono(400),
-      ink: onWater ? "paper" : "ink-1",
-      opacity: onWater ? 1 : 0.6,
-      rotate: { deg: -90, origin: at },
-      z: "micro",
-    });
-  }
+  const at: Point = [R + 18, bottom - M];
+  const edge = [id, `${formatDate(r.date)} ${stamp(r)}`, "WHAT WEATHER", ...(raster ? ["© MAPBOX © OPENSTREETMAP"] : [])].join("   ·   ");
+  const onWater = placed ? placed.water.some((poly) => inside(sheetPoint(at), poly)) : false;
+  text({
+    id: "record-id",
+    lines: [{ text: edge, x: at[0], y: at[1] }],
+    font: mono(400, MICRO * 0.85),
+    ink: onWater ? "paper" : "ink-1",
+    opacity: onWater ? 1 : 0.75,
+    rotate: { deg: -90, origin: at },
+    z: "micro",
+  });
 
   return {
     canvas: { width: canvas.width, height: canvas.height },
