@@ -12,7 +12,7 @@ export type Crop = {
   slot: Rect;
   /** The place on the ground at the slot's centre */
   center: LonLat;
-  /** The slot's long side, in km */
+  /** The slot's width, in km */
   spanKm: number;
 };
 
@@ -28,9 +28,9 @@ export type Placed = {
 const KM_PER_DEG_LAT = 110.57;
 const kmPerDegLon = (lat: number) => 111.32 * Math.cos((lat * Math.PI) / 180);
 
-/** Ground to sheet: a local equirectangular projection around the crop's centre, true enough at 420 km */
+/** Ground to sheet: a local equirectangular projection around the crop's centre, true enough at a few hundred km */
 export function projector(crop: Crop): (p: LonLat) => Point {
-  const kmPerUnit = crop.spanKm / Math.max(crop.slot.w, crop.slot.h);
+  const kmPerUnit = crop.spanKm / crop.slot.w;
   const [lon0, lat0] = crop.center;
   const kx = kmPerDegLon(lat0);
   const cx = crop.slot.x + crop.slot.w / 2;
@@ -40,7 +40,7 @@ export function projector(crop: Crop): (p: LonLat) => Point {
 
 /** Sheet to ground: where the crop must be centred for `place` to land on `at` */
 export function centerFor(place: LonLat, at: Point, slot: Rect, spanKm: number): LonLat {
-  const kmPerUnit = spanKm / Math.max(slot.w, slot.h);
+  const kmPerUnit = spanKm / slot.w;
   const dxKm = (at[0] - (slot.x + slot.w / 2)) * kmPerUnit;
   const dyKm = (at[1] - (slot.y + slot.h / 2)) * kmPerUnit;
   return [place[0] - dxKm / kmPerDegLon(place[1]), place[1] + dyKm / KM_PER_DEG_LAT];
@@ -157,7 +157,7 @@ export function featureLength(placed: Placed, kind: FeatureKind): number {
   return placed[kind].reduce((s, l) => s + lineLength(l), 0);
 }
 
-/** Where a line of the map crosses segment a-b (a glyph's baseline, an edge of the type), nearest `near` first */
+/** Where a line of the map crosses segment a-b (a glyph's baseline, a scan line across the type) */
 export function crossings(placed: Placed, kind: FeatureKind, a: Point, b: Point): Point[] {
   const out: Point[] = [];
   const [x1, y1] = a;

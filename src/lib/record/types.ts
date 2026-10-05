@@ -8,11 +8,12 @@ import type { Condition, Intensity } from "@/lib/weather/types";
 
 export type ConditionFamily = "CLEAR" | "CLOUD" | "FOG" | "RAIN" | "STORM" | "SNOW" | "WIND";
 
-export type CompositionMode = "open-atlas" | "collision" | "vertical-field";
+export type { RecordMode as CompositionMode } from "@/lib/weather/typography";
+import type { RecordMode as CompositionMode } from "@/lib/weather/typography";
 
 export type Dominant = "place" | "temperature";
 
-/** How geography and the dominant type meet: lines across the letters, or a band of lines in front of them */
+/** How geography and the dominant type meet: lines across the letters in the paper's colour, or water laid over them */
 export type Interplay = "through" | "interleave" | "none";
 
 export type InkRole = "paper" | "ink-1" | "ink-2" | "accent";
@@ -96,7 +97,7 @@ export type RectPayload = { kind: "rect"; x: number; y: number; width: number; h
 
 export type NodePayload = {
   kind: "node";
-  shape: "dot" | "cross";
+  shape: "dot" | "cross" | "triangle";
   at: Point;
   /** Radius, fraction of the sheet's width */
   r: number;
@@ -139,9 +140,11 @@ export type RecordScene = {
     seed: number;
     visualThesis: string;
     recordId: string;
-    /** How the place's name was fitted (`fitPlace` step) */
+    /** How the place's name was fitted: the `fitPlace` step */
     placeFit: string;
     /** Geographic anchors used by the nodes */
     nodes: string[];
+    /** The type engine's settings (`typeVisualState`) */
+    type: import("@/lib/weather/typography").TypeVisualState;
   };
 };

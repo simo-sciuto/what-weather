@@ -14,26 +14,27 @@ const geo = (g: unknown) => g as Geography;
 const day = { date: "2026-10-05", time: "12:00" };
 
 /**
- * The spike's test records (brief V3.1, section 32) and its edge cases. The weather is set by hand, plausible for
- * the place and season, not fetched: the spike proves the composition, not the data.
+ * The spike's test records (brief V3.1, section 32) and its edge cases. The weather is set by hand, not fetched:
+ * Milan, Tshuru and Tokyo as on the Type Engine research's hand-made posters, the others plausible for the place,
+ * except Ulaanbaatar's -24 °C on 5 October, which is the extreme-cold case, not the season.
  */
 export const SPIKE_RECORDS: SpikeRecord[] = [
   {
     key: "tshuru",
     note: "31 °C clear",
-    input: { place: { name: "Tshuru", lat: -4.4667, lon: 29.1 }, ...day, zone: "GMT+2", condition: "clear", intensity: "light", temp: 31, feelsLike: 33, high: 32, low: 21, windSpeed: 8, windDeg: 200, humidity: 40, uv: 8, cloudCover: 10, pressure: 1011 },
+    input: { place: { name: "Tshuru", lat: -4.4667, lon: 29.1 }, ...day, zone: "GMT+2", condition: "clear", intensity: "light", temp: 31, feelsLike: 33, high: 34, low: 24, windSpeed: 8, windDeg: 90, humidity: 42, uv: 8, cloudCover: 10, pressure: 1011 },
     geography: geo(tshuru),
   },
   {
     key: "milan",
     note: "8 °C fog",
-    input: { place: { name: "Milan", lat: 45.4642, lon: 9.19 }, ...day, zone: "GMT+2", condition: "fog", intensity: "moderate", temp: 8, feelsLike: 6, high: 11, low: 6, windSpeed: 4, windDeg: 90, humidity: 97, visibility: 0.4, cloudCover: 100, pressure: 1021 },
+    input: { place: { name: "Milan", lat: 45.4642, lon: 9.19 }, date: "2026-10-05", time: "07:00", zone: "GMT+2", light: 0.05, condition: "fog", intensity: "moderate", temp: 8, feelsLike: 6, high: 11, low: 5, windSpeed: 4, windDeg: 135, humidity: 97, visibility: 0.3, cloudCover: 100, pressure: 1021 },
     geography: geo(milan),
   },
   {
     key: "tokyo",
     note: "18 °C rain",
-    input: { place: { name: "Tokyo", lat: 35.6812, lon: 139.7671 }, ...day, zone: "GMT+9", condition: "rain", intensity: "moderate", temp: 18, feelsLike: 17, high: 20, low: 16, windSpeed: 18, windDeg: 45, humidity: 91, precipitation: 3.4, cloudCover: 100, pressure: 1006 },
+    input: { place: { name: "Tokyo", lat: 35.6812, lon: 139.7671 }, date: "2026-10-05", time: "18:00", zone: "GMT+9", light: 0.95, condition: "rain", intensity: "moderate", temp: 18, feelsLike: 17, high: 20, low: 16, windSpeed: 18, windDeg: 45, humidity: 88, precipitation: 6.2, cloudCover: 100, pressure: 1006 },
     geography: geo(tokyo),
   },
   {

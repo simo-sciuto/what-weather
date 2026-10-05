@@ -1,37 +1,28 @@
+import { computeAtmosphere } from "@/lib/weather/visual-input";
+import { typeVisualState, type TypeSetting, type TypeVisualState } from "@/lib/weather/typography";
 import { conditionFamily } from "./condition-family";
 import { fitPlace, type Fitted } from "./fit";
-import {
-  centerFor,
-  crossings,
-  featureLength,
-  placeGeography,
-  type Crop,
-  type FeatureKind,
-  type Placed,
-  type Rect,
-} from "./geography";
+import { centerFor, crossings, featureLength, placeGeography, type FeatureKind, type Placed, type Rect } from "./geography";
 import { recordInks } from "./inks";
 import {
   CONDITION_WORD,
   degrees,
   formatCoord,
   formatDate,
+  metricsFor,
   recordId,
   temperatureWords,
-  weatherMetrics,
+  type MetricKey,
 } from "./metrics";
-import { clamp, cropKm, lerp, normTemp, spaceCompression, typePressure } from "./pressure";
 import { mulberry32, recordSeed } from "./seed";
-import { CAP_HEIGHT, FAMILY_TYPE, MICRO_SIZE, clampAxes, dominantFont } from "./type-system";
+import { MICRO_SIZE, clampAxes } from "./type-system";
 import type {
   CompositionMode,
-  ConditionFamily,
-  Dominant,
   FontRef,
   Geography,
-  Interplay,
+  InkRole,
   Measure,
-  NodePayload,
+  PathsPayload,
   Point,
   RecordInput,
   RecordScene,
@@ -39,367 +30,327 @@ import type {
   TextLine,
 } from "./types";
 
-/* ---------- Decisions, in order: family, temperature, wind, visibility, humidity, seed ---------- */
-
-/** Dense cloud from this cover (%) is a vertical record */
-export const DENSE_CLOUD = 85;
-/** A clear record is a collision from this temperature (°C) */
-export const HOT = 25;
-/** The temperature takes over a collision at this heat, an atlas at this cold (°C) */
-export const TEMP_DOMINANT_HOT = 35;
-export const TEMP_DOMINANT_COLD = -15;
-/** Wind slants the dominant type from this speed (km/h), up to this angle (degrees) */
-export const SLANT_FROM = 25;
-export const SLANT_MAX = 7;
-
-export function compositionMode(family: ConditionFamily, temp: number, cloudCover?: number): CompositionMode {
-  switch (family) {
-    case "FOG":
-    case "SNOW":
-      return "open-atlas";
-    case "STORM":
-      return "collision";
-    case "RAIN":
-    case "WIND":
-      return "vertical-field";
-    case "CLOUD":
-      return (cloudCover ?? 0) >= DENSE_CLOUD ? "vertical-field" : "open-atlas";
-    case "CLEAR":
-      return temp >= HOT ? "collision" : "open-atlas";
-  }
-}
-
-export function dominantOf(mode: CompositionMode, temp: number): Dominant {
-  if (mode === "collision" && temp >= TEMP_DOMINANT_HOT) return "temperature";
-  if (mode === "open-atlas" && temp <= TEMP_DOMINANT_COLD) return "temperature";
-  return "place";
-}
-
-/** The wind's lean, in degrees: none below SLANT_FROM or without a direction; leaning the way it blows */
-export function windSlant(speed?: number, deg?: number): number {
-  if (speed == null || deg == null || speed < SLANT_FROM) return 0;
-  const strength = clamp((speed - SLANT_FROM) / 35, 0, 1);
-  // From the west (180..360) it pushes the type east: a lean to the right, which on screen is a negative turn
-  const east = Math.sin((deg * Math.PI) / 180) < 0;
-  return Math.round(strength * SLANT_MAX * (east ? -1 : 1) * 10) / 10;
-}
-
-/* ---------- The sheet's grid (sheet units: fractions of the width on both axes) ---------- */
+/**
+ * The composition, after the Type Engine research (2026-10-05): the type engine (`typeVisualState`) reads the
+ * atmosphere and decides the mode, the dominant element and how the type is set; the composition lays out the
+ * three hand-made posters' structure (Milan, Tshuru, Tokyo) on a six-column grid and lets the geography decide only
+ * where the city lands, among a few grid positions, by what the map then shows.
+ *
+ * Coordinates are written as on the research's 600 x 840 sheet ("reference units") and converted to the scene's
+ * sheet units (fractions of the width) here, so the posters stay comparable with the hand-made ones.
+ */
 
 export const PRINT = { width: 2480, height: 3508 } as const;
-const M = 0.06;
-const GUTTER = 0.016;
-const COL = (1 - 2 * M - 5 * GUTTER) / 6;
-const colX = (i: number) => M + i * (COL + GUTTER);
-const colR = (i: number) => colX(i) + COL;
-const LEAD = MICRO_SIZE * 1.7;
 
-/* ---------- Text blocks with their handles ---------- */
+/** The reference sheet */
+const REF_W = 600;
+const REF_H = 840;
+const M = 36;
+const COL = [36, 126, 216, 306, 396, 486] as const;
+const R = 564;
+/** The micro type: 7.5 on the reference sheet, 31 px on the print (`MICRO_SIZE`) */
+const MICRO = MICRO_SIZE * REF_W;
+const CAP = 0.72;
 
-type Block = {
+/** How wide a stretch of ground the sheet's width spans, in km, by mode; the heat tightens it a little */
+const SPAN_KM: Record<CompositionMode, number> = { "open-atlas": 170, collision: 110, "field-record": 90 };
+
+type Ref = { x: (v: number) => number; y: (v: number) => number; s: (v: number) => number };
+
+function refUnits(aspect: number): Ref {
+  return { x: (v) => v / REF_W, y: (v) => (v / REF_W) * (aspect / (REF_H / REF_W)), s: (v) => v / REF_W };
+}
+
+const display = (t: TypeSetting, size: number, tracking = t.tracking): FontRef =>
+  clampAxes({ family: "display", wght: t.weight, wdth: t.width, size, tracking });
+const mono = (wght: number, size = MICRO): FontRef => ({ family: "mono", wght, wdth: 100, size, tracking: 0.08 });
+const upper = (s: string) => s.toLocaleUpperCase("en");
+
+/* ---------- A plan: one candidate composition, in reference units ---------- */
+
+type Text = {
   id: string;
   lines: TextLine[];
-  widths: number[];
   font: FontRef;
-  rotate: number;
-  origin: Point;
+  ink: InkRole;
+  opacity: number;
+  anchor?: "start" | "end";
+  rotate?: { deg: number; origin: Point };
+  z: SceneLayer["role"];
 };
 
-function turn(p: Point, b: Pick<Block, "rotate" | "origin">): Point {
-  if (!b.rotate) return p;
-  const a = (b.rotate * Math.PI) / 180;
-  const [cx, cy] = b.origin;
-  const [dx, dy] = [p[0] - cx, p[1] - cy];
-  return [cx + dx * Math.cos(a) - dy * Math.sin(a), cy + dx * Math.sin(a) + dy * Math.cos(a)];
-}
-
-/** The foot of each glyph (its centre on the baseline), on the sheet; spaces have none */
-function glyphFeet(b: Block, measure: Measure): { at: Point; line: number; index: number }[] {
-  const out: { at: Point; line: number; index: number }[] = [];
-  b.lines.forEach((l, li) => {
-    for (let k = 0; k < l.text.length; k++) {
-      if (l.text[k] === " ") continue;
-      const before = k ? measure(l.text.slice(0, k), b.font) : 0;
-      const through = measure(l.text.slice(0, k + 1), b.font);
-      out.push({ at: turn([l.x + (before + through) / 2, l.y], b), line: li, index: k });
-    }
-  });
-  return out;
-}
-
-/** Each line's baseline as a segment on the sheet */
-function baselines(b: Block): [Point, Point][] {
-  return b.lines.map((l, i) => [turn([l.x, l.y], b), turn([l.x + b.widths[i], l.y], b)]);
-}
-
-/** The block's bounding box on the sheet (rotation included) */
-function bounds(b: Block): Rect {
-  const pts = b.lines.flatMap((l, i) => [
-    turn([l.x, l.y - CAP_HEIGHT * b.font.size], b),
-    turn([l.x + b.widths[i], l.y - CAP_HEIGHT * b.font.size], b),
-    turn([l.x, l.y], b),
-    turn([l.x + b.widths[i], l.y], b),
-  ]);
-  const xs = pts.map((p) => p[0]);
-  const ys = pts.map((p) => p[1]);
-  return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-}
-
-function stack(id: string, fitted: Fitted, x: number, firstBase: number, measure: Measure, leading = 0.9): Block {
-  const lines = fitted.lines.map((text, i) => ({ text, x, y: firstBase + i * fitted.font.size * leading }));
-  return { id, lines, widths: lines.map((l) => measure(l.text, fitted.font)), font: fitted.font, rotate: 0, origin: [x, firstBase] };
-}
-
-/* ---------- The layout of each mode ---------- */
-
-type Layout = {
-  dominant: Block;
-  /** The other of place and temperature, smaller */
-  secondary: Block | null;
-  slot: Rect;
-  /** Where the water may be filled, when it differs from the slot (the ground starting at a baseline) */
-  fillSlot?: Rect;
-  interplay: Interplay;
-  /** For INTERLEAVE: the band of the dominant type where the map runs in front */
-  band?: Rect;
-  /** Where the city may land: its typographic handle and the candidate spots in the slot */
-  candidates: { handle: Point; spot: Point; reach: number }[];
-  weatherAt: { x: number; top: number } | { x: number; bottom: number };
-  metaAt: { x: number; bottom: number };
-  signatureAt: { x: number; y: number; anchor: "start" | "end" };
-  /** Minor motif: the record ID set up a rail */
-  rail?: { x: number; top: number; bottom: number };
-  /** Minor motif: the temperature in words under its numeral */
-  numeralWord: boolean;
+type Plan = {
+  city: Point;
+  texts: Text[];
+  /** The dominant numeral's box, for scoring how the map meets it: x0, x1, top, base */
+  numeralBox: [number, number, number, number];
+  leader: [Point, Point];
+  node: "dot" | "triangle";
+  coords: Text;
+  rules: { from: Point; to: Point; opacity: number }[];
+  placeFit: string;
+  /** How well the place's name fitted here: 1 at its preferred size */
+  fitScore: number;
+  /** The hand-made poster's spot for the city */
+  preferred: boolean;
 };
 
 type Ctx = {
   r: RecordInput;
-  family: ConditionFamily;
-  t: number;
-  tp: number;
-  sc: number;
-  aspect: number;
+  tv: TypeVisualState;
   measure: Measure;
-  slant: number;
-  weatherRows: number;
+  word: string;
+  /** The sheet's foot in reference units (840 on the research's ratio) */
+  bottom: number;
 };
 
-const temperatureText = (t: number) => degrees(t);
-const upper = (s: string) => s.toLocaleUpperCase("en");
+/** Widths in reference units: the engine's measure works in sheet units */
+const width = (c: Ctx, text: string, f: FontRef) => c.measure(text, { ...f, size: f.size / REF_W }) * REF_W;
 
-function secondaryTemp(c: Ctx, size: number, x: number, base: number): Block {
-  const f = FAMILY_TYPE[c.family];
-  const font = clampAxes({ family: "display", wght: lerp(f.wght[0], f.wght[1], c.tp), wdth: Math.min(f.wdth, 110), size, tracking: -0.02 });
-  const text = temperatureText(c.r.temp);
-  return { id: "temperature", lines: [{ text, x, y: base }], widths: [c.measure(text, font)], font, rotate: 0, origin: [x, base] };
-}
-
-function secondaryPlace(c: Ctx, size: number, x: number, base: number, maxWidth: number): Block {
-  const f = FAMILY_TYPE[c.family];
+function fitName(c: Ctx, size: number, maxWidth: number, maxLines: number, tracking: number): Fitted {
   const fitted = fitPlace(upper(c.r.place.name), {
-    font: dominantFont(c.family, c.tp, c.r.humidity, size),
-    wdthMin: f.wdthMin,
-    maxWidth,
-    minSize: size * 0.6,
-    maxLines: 2,
+    font: display(c.tv.support, size / REF_W, tracking),
+    wdthMin: 62,
+    maxWidth: maxWidth / REF_W,
+    minSize: (size * 0.4) / REF_W,
+    maxLines,
     measure: c.measure,
   });
-  return stack("place", fitted, x, base, c.measure);
+  return { ...fitted, font: { ...fitted.font, size: fitted.font.size * REF_W }, width: fitted.width * REF_W };
 }
 
-/** The weather cluster's height: numeral, word, pairs */
-const weatherHeight = (c: Ctx, withNumeral: boolean, numeral: number) =>
-  (withNumeral ? numeral * CAP_HEIGHT + 0.03 : 0) + 0.035 + c.weatherRows * LEAD;
-const META_ROWS = 4;
-const metaHeight = META_ROWS * LEAD;
+/** An archival pair: a muted label over its value */
+const pairs = (id: string, x: number, y: number, label: string, value: string): Text[] => [
+  { id: `${id}-label`, lines: [{ text: label, x, y }], font: mono(400), ink: "ink-1", opacity: 0.6, z: "micro" },
+  { id: `${id}-value`, lines: [{ text: value, x, y: y + 11 }], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" },
+];
 
-function collision(c: Ctx, dominant: Dominant): Layout {
-  const bottom = c.aspect - M;
-  const clusterTop = bottom - Math.max(metaHeight, weatherHeight(c, dominant === "place", 0.11)) - lerp(0.02, 0.0, c.sc);
-  const f = FAMILY_TYPE[c.family];
-  if (dominant === "place") {
-    // Oversized and pressed to the right edge: the width it may take grows with the heat
-    const size = lerp(0.24, 0.33, c.tp);
-    const fitted = fitPlace(upper(c.r.place.name), {
-      font: dominantFont(c.family, c.tp, c.r.humidity, size),
-      wdthMin: f.wdthMin,
-      maxWidth: 1 - 2 * M + lerp(0, 0.05, c.tp),
-      minSize: 0.1,
-      maxLines: 3,
-      measure: c.measure,
-    });
-    const s = fitted.font.size;
-    const top = M + lerp(0.12, 0.05, c.sc);
-    const dom = stack("dominant", fitted, M - s * 0.03, top + CAP_HEIGHT * s, c.measure);
-    const last = dom.lines[dom.lines.length - 1];
-    const slot = { x: colX(1), y: top - 0.04, w: 1 - colX(1), h: clusterTop - lerp(0.12, 0.06, c.sc) - (top - 0.04) };
-    const below = (slot.y + slot.h - last.y) / 3;
-    return {
-      dominant: dom,
-      secondary: null,
-      slot,
-      // The water starts on the name's last baseline: above it only the lines run, through the letters
-      fillSlot: { ...slot, y: last.y, h: slot.y + slot.h - last.y },
-      interplay: "through",
-      candidates: [1, 2].flatMap((k) => feetSpots(c, dom, "down", [below * k])),
-      weatherAt: { x: M, bottom },
-      metaAt: { x: colX(3), bottom },
-      signatureAt: { x: 1 - M, y: bottom, anchor: "end" },
-      numeralWord: false,
-    };
-  }
-  // GIANT DATA: the temperature, flush right with its degree in sight, pushed off the left edge in extreme heat
-  const text = temperatureText(c.r.temp);
-  const font0 = dominantFont(c.family, c.tp, c.r.humidity, 1);
-  const unit = c.measure(text, { ...font0, size: 1 });
-  const bleed = lerp(0, 0.18, clamp((c.r.temp - TEMP_DOMINANT_HOT) / 13, 0, 1));
-  const size = Math.min(0.62, (1 - M) / (unit * (1 - bleed)));
-  const font = { ...font0, size };
-  const width = unit * size;
-  const base = clusterTop - 0.1;
-  const x = 1 - M - width;
-  const dom: Block = { id: "dominant", lines: [{ text, x, y: base }], widths: [width], font, rotate: 0, origin: [x, base] };
-  const capTop = base - CAP_HEIGHT * size;
-  const place = secondaryPlace(c, 0.13, M, M + 0.06 + CAP_HEIGHT * 0.13, 1 - 2 * M);
-  const placeBottom = place.lines[place.lines.length - 1].y;
-  const slot = { x: 0, y: placeBottom + 0.05, w: 1, h: base + 0.04 - (placeBottom + 0.05) };
-  const bandTop = base - CAP_HEIGHT * size * 0.3;
-  const above = (capTop - slot.y) / 2;
-  return {
-    dominant: dom,
-    secondary: place,
-    slot,
-    interplay: "interleave",
-    band: { x: 0, y: bandTop, w: 1, h: base - bandTop + 0.01 },
-    candidates: feetSpots(c, dom, "up", [above, above * 1.5].map((d) => d + CAP_HEIGHT * size)),
-    weatherAt: { x: M, bottom },
-    metaAt: { x: colX(3), bottom },
-    signatureAt: { x: 1 - M, y: bottom, anchor: "end" },
-    numeralWord: false,
-  };
-}
+const coordsOf = (r: RecordInput) => [formatCoord(r.place.lat, "lat"), formatCoord(r.place.lon, "lon")];
+const stamp = (r: RecordInput) => `${r.time} ${r.zone}`;
+const conditionFont = (wght: number, wdth: number) => clampAxes({ family: "display", wght, wdth, size: 19, tracking: 3 / 19 });
 
-function atlas(c: Ctx, dominant: Dominant): Layout {
-  const bottom = c.aspect - M;
-  const f = FAMILY_TYPE[c.family];
-  const air = lerp(0.14, 0.06, c.sc);
-  if (dominant === "place") {
-    const size = lerp(0.15, 0.2, c.tp);
-    const fitted = fitPlace(upper(c.r.place.name), {
-      font: dominantFont(c.family, c.tp, c.r.humidity, size),
-      wdthMin: f.wdthMin,
-      maxWidth: 1 - 2 * M,
-      minSize: 0.08,
-      maxLines: 3,
-      measure: c.measure,
-    });
-    const s = fitted.font.size;
-    const dom = stack("dominant", fitted, M - s * 0.03, M + 0.04 + CAP_HEIGHT * s, c.measure, 1.0);
-    const last = dom.lines[dom.lines.length - 1];
-    const slotTop = last.y + air + 0.02;
-    // Open on the right: the map runs off the sheet rather than sitting in a box
-    const slot = { x: colX(2), y: slotTop, w: 1 - colX(2), h: bottom - metaHeight - air - slotTop };
-    const numeral = 0.12;
-    const temp = secondaryTemp(c, numeral, M - numeral * 0.03, slotTop + CAP_HEIGHT * numeral);
-    const reach = slot.y - last.y;
-    return {
-      dominant: dom,
-      secondary: temp,
-      slot,
-      interplay: "none",
-      candidates: feetSpots(c, dom, "down", [reach + slot.h * 0.18, reach + slot.h * 0.32]),
-      weatherAt: { x: M, top: slotTop + CAP_HEIGHT * numeral + 0.03 },
-      metaAt: { x: M, bottom },
-      signatureAt: { x: 1 - M, y: bottom, anchor: "end" },
-      numeralWord: true,
-    };
-  }
-  // The temperature alone in a wide, sparse map, light and open; the place small above
-  const place = secondaryPlace(c, 0.075, M, M + 0.04 + CAP_HEIGHT * 0.075, colR(4) - M);
-  const placeBottom = place.lines[place.lines.length - 1].y;
-  const clusters = Math.max(metaHeight, weatherHeight(c, false, 0));
-  const slot = { x: colX(1), y: placeBottom + air, w: 1 - colX(1), h: bottom - clusters - air - (placeBottom + air) };
-  const text = temperatureText(c.r.temp);
-  const font0 = dominantFont(c.family, c.tp, c.r.humidity, 1);
-  const unit = c.measure(text, { ...font0, size: 1 });
-  const size = Math.min(0.4, (colR(5) - colX(1)) / unit);
-  const font = { ...font0, size };
-  const base = slot.y + slot.h * 0.5 + (CAP_HEIGHT * size) / 2;
-  const x = colX(1) - size * 0.03;
-  const dom: Block = { id: "dominant", lines: [{ text, x, y: base }], widths: [unit * size], font, rotate: 0, origin: [x, base] };
-  return {
-    dominant: dom,
-    secondary: place,
-    slot,
-    interplay: "through",
-    candidates: feetSpots(c, dom, "down", [slot.h * 0.14, slot.h * 0.24]),
-    weatherAt: { x: M, bottom },
-    metaAt: { x: colX(3), bottom },
-    signatureAt: { x: 1 - M, y: bottom, anchor: "end" },
-    numeralWord: false,
-  };
-}
+/** What the foot (atlas), the grid (collision) or the column (field) reports, by family, before the fallbacks */
+const FAMILY_ORDER: Record<ReturnType<typeof conditionFamily>, MetricKey[]> = {
+  CLEAR: ["uv", "humidity", "wind"],
+  CLOUD: ["cloud", "wind", "humidity"],
+  FOG: ["visibility", "humidity", "wind"],
+  RAIN: ["precip", "wind", "humidity"],
+  STORM: ["gust", "precip", "pressure"],
+  SNOW: ["precip", "wind", "humidity"],
+  WIND: ["wind", "gust", "humidity"],
+};
 
-function vertical(c: Ctx): Layout {
-  const bottom = c.aspect - M;
-  const f = FAMILY_TYPE[c.family];
-  const size = lerp(0.3, 0.4, c.tp);
-  const length = c.aspect - 2 * M - 0.06;
-  const fitted = fitPlace(upper(c.r.place.name), {
-    font: dominantFont(c.family, c.tp, c.r.humidity, size),
-    wdthMin: f.wdthMin,
-    maxWidth: length,
-    minSize: 0.12,
-    maxLines: 3,
-    measure: c.measure,
-  });
+/* ---------- OPEN ATLAS: the temperature large and faded, the place hanging from the city, a line map ---------- */
+
+function atlas(c: Ctx, city: Point, preferred: boolean): Plan {
+  const t = c.tv.display;
+  const num = degrees(c.r.temp).replace("°", "");
+  const unitNum = width(c, num, display(t, 1));
+  const unitDeg = width(c, "°", display(t, 1, 0));
+  // The engine's scale, unless a long numeral (−24) would leave the sheet: an atlas never bleeds
+  const size = Math.min(c.tv.scale * REF_H, (R - 22) / (unitNum + 0.59 * unitDeg));
+  const top = 84;
+  const degX = 22 + unitNum * size - 0.01 * size;
+  const degSize = size * 0.59;
+  // A minus is set in front of the map: water laid over the numeral may cover a digit's corner, never the sign
+  const minus = num.startsWith("\u2212");
+  const minusW = minus ? width(c, "\u2212", display(t, size)) : 0;
+  const texts: Text[] = [
+    { id: "dominant", lines: [{ text: minus ? num.slice(1) : num, x: 22 + minusW, y: top + CAP * size }], font: display(t, size), ink: "ink-1", opacity: c.tv.tone, z: "type-back" },
+    { id: "degree", lines: [{ text: "°", x: degX, y: top + 0.44 * size }], font: display(t, degSize, 0), ink: "ink-1", opacity: c.tv.tone, z: "type-back" },
+  ];
+  if (minus)
+    texts.push({ id: "minus", lines: [{ text: "\u2212", x: 22, y: top + CAP * size }], font: display(t, size), ink: "ink-1", opacity: c.tv.tone, z: "type-front" });
+  const wordFont = clampAxes({ family: "display", wght: 400, wdth: 125, size: 13, tracking: 0.04 });
+  const word = temperatureWords(c.r.temp);
+  const wordW = width(c, word, wordFont);
+  // Under the degree; when a long numeral leaves no room there, under the numeral's foot, flush right
+  const beside = degX + unitDeg * degSize * 0.12;
+  const wordAt: Point = beside + wordW <= R ? [beside, top + 0.44 * size + 0.22 * degSize + 16] : [R - wordW, top + CAP * size + 26];
+  if (c.tv.numeralWord)
+    texts.push({ id: "numeral-word", lines: [{ text: word, x: wordAt[0], y: wordAt[1] }], font: wordFont, ink: "ink-1", opacity: 1, z: "type-front" });
+
+  const nameX = city[0] - 3;
+  const fitted = fitName(c, 62, R - nameX, 2, 1 / 62);
   const s = fitted.font.size;
-  // Set along the left edge, reading upwards from the foot: turned a quarter, the caps' tops face the margin
-  const origin: Point = [M + CAP_HEIGHT * s, bottom];
-  const lines = fitted.lines.map((text, i) => ({ text, x: origin[0], y: origin[1] + i * s * 0.92 }));
-  const dom: Block = {
-    id: "dominant",
-    lines,
-    widths: lines.map((l) => c.measure(l.text, fitted.font)),
-    font: fitted.font,
-    rotate: -90 + c.slant,
-    origin,
-  };
-  const box = bounds(dom);
-  const right = box.x + box.w;
-  // A tall column of map, open at top and foot, over the letters' feet
-  const slot = { x: right - CAP_HEIGHT * s * 0.45, y: 0, w: colR(3) - (right - CAP_HEIGHT * s * 0.45), h: c.aspect };
-  const reach = (colR(3) - right) / 3;
+  const lines = fitted.lines.map((text, i) => ({ text, x: nameX, y: 700 - (fitted.lines.length - 1 - i) * s * 0.9 }));
+  texts.push({ id: "place", lines, font: fitted.font, ink: "ink-1", opacity: 1, z: "type-front" });
+  const capTop = lines[0].y - CAP * s;
+
+  texts.push({ id: "condition", lines: [{ text: c.word, x: COL[4], y: 596 }], font: conditionFont(500, 125), ink: "ink-1", opacity: 1, z: "micro" });
+  const near = metricsFor(["feels", "range"], c.r, 2, []);
+  near.forEach((m, i) => texts.push(...pairs(`near-${i}`, COL[4 + i], 616, m.label, m.value)));
+  const foot = metricsFor(FAMILY_ORDER[conditionFamily(c.r)], c.r, 3, near.map((m) => m.key));
+  texts.push(...pairs("date", M, 772, formatDate(c.r.date), stamp(c.r)));
+  foot.forEach((m, i) => texts.push(...pairs(`foot-${i}`, COL[2 + i], 772, m.label, m.value)));
+  const [lat, lon] = coordsOf(c.r);
   return {
-    dominant: dom,
-    secondary: secondaryTemp(c, 0.13, colX(4) - 0.13 * 0.03, M + CAP_HEIGHT * 0.13),
-    slot,
-    interplay: "through",
-    candidates: feetSpots(c, dom, "right", [reach, reach * 2]),
-    weatherAt: { x: colX(4), top: M + CAP_HEIGHT * 0.13 + 0.03 },
-    metaAt: { x: colX(4), bottom },
-    signatureAt: { x: 1 - M, y: bottom - metaHeight - 0.03, anchor: "end" },
-    rail: { x: colX(4) - GUTTER, top: M, bottom },
-    numeralWord: false,
+    city,
+    texts,
+    numeralBox: [22, degX + unitDeg * degSize, top, top + CAP * size],
+    leader: [city, [city[0], capTop - 13]],
+    node: "dot",
+    coords: { id: "coords", lines: [{ text: `${lat}  ${lon}`, x: city[0] + 9, y: city[1] - 6 }], font: mono(400), ink: "ink-1", opacity: 1, z: "micro" },
+    rules: [{ from: [M, 752], to: [R, 752], opacity: 1 }],
+    placeFit: `${fitted.step}, ${fitted.lines.length} line(s), wdth ${fitted.font.wdth}`,
+    fitScore: s / 62,
+    preferred,
   };
 }
 
-/** Candidate spots for the city: off each glyph's foot, along the direction the leader runs */
-function feetSpots(c: Ctx, b: Block, dir: "down" | "up" | "right", reaches: number[]) {
-  const feet = glyphFeet(b, c.measure).filter((g) => g.line === b.lines.length - 1 || dir === "right");
-  return feet.flatMap(({ at }) =>
-    reaches.map((reach) => {
-      const spot: Point =
-        dir === "down" ? [at[0], at[1] + reach] : dir === "up" ? [at[0], at[1] - reach] : [at[0] + reach, at[1]];
-      return { handle: at, spot, reach };
-    }),
-  );
+/* ---------- COLLISION: the temperature enormous at the foot, through the map; the place heavy at the head ---------- */
+
+function collision(c: Ctx, city: Point, preferred: boolean): Plan {
+  const t = c.tv.display;
+  const num = degrees(c.r.temp);
+  // The engine's size, held so that at least the degree's first half stays on the sheet
+  const unitDigits = width(c, num.replace("°", ""), display(t, 1));
+  const unitDeg = width(c, "°", display(t, 1));
+  const size = Math.min(c.tv.scale * REF_H * (1 + c.tv.bleed), (REF_W - 10) / (unitDigits + 0.5 * unitDeg));
+  const base = c.bottom + 0.033 * size;
+  const numW = width(c, num, display(t, size));
+  const texts: Text[] = [{ id: "dominant", lines: [{ text: num, x: 10, y: base }], font: display(t, size), ink: "ink-1", opacity: c.tv.tone, z: "type-back" }];
+
+  const nameX = city[0] - 4;
+  const fitted = fitName(c, 128, 590 - nameX, 3, -1 / 128);
+  const s = fitted.font.size;
+  const firstBase = 58 + CAP * s;
+  const lines = fitted.lines.map((text, i) => ({ text, x: nameX, y: firstBase + i * s * 0.9 }));
+  texts.push({ id: "place", lines, font: fitted.font, ink: "ink-1", opacity: 1, z: "type-front" });
+  const lastBase = lines[lines.length - 1].y;
+
+  // The weather beside the name's foot, never under it
+  const top = Math.max(204, lastBase + 54);
+  texts.push({ id: "condition", lines: [{ text: c.word, x: COL[4], y: top }], font: conditionFont(600, 110), ink: "ink-1", opacity: 1, z: "micro" });
+  const ms = metricsFor(["feels", "range", ...FAMILY_ORDER[conditionFamily(c.r)]], c.r, 5, []);
+  const cells: [string, string][] = [...ms.map((m): [string, string] => [m.label, m.value]), [formatDate(c.r.date).slice(0, 6), stamp(c.r)]];
+  cells.forEach(([label, value], i) => texts.push(...pairs(`cell-${i}`, COL[4 + (i % 2)], top + 20 + Math.floor(i / 2) * 38, label, value)));
+  if (c.tv.numeralWord)
+    texts.push({
+      id: "numeral-word",
+      lines: [{ text: temperatureWords(c.r.temp), x: COL[4], y: top + 20 + Math.ceil(cells.length / 2) * 38 + 14 }],
+      font: clampAxes({ family: "display", wght: 400, wdth: 100, size: 13, tracking: 0 }),
+      ink: "ink-1",
+      opacity: 1,
+      z: "micro",
+    });
+  const [lat, lon] = coordsOf(c.r);
+  return {
+    city,
+    texts,
+    numeralBox: [10, 10 + numW, base - CAP * size, Math.min(base, c.bottom)],
+    leader: [[city[0], lastBase + 10], city],
+    node: "triangle",
+    coords: {
+      id: "coords",
+      lines: [
+        { text: lat, x: city[0] - 10, y: city[1] + 2 },
+        { text: lon, x: city[0] - 10, y: city[1] + 12 },
+      ],
+      font: mono(400),
+      ink: "ink-1",
+      opacity: 1,
+      anchor: "end",
+      z: "micro",
+    },
+    rules: [],
+    placeFit: `${fitted.step}, ${fitted.lines.length} line(s), wdth ${fitted.font.wdth}`,
+    fitScore: s / 128,
+    preferred,
+  };
 }
 
-/* ---------- The crop: where the city lands, scored on what the map then shows ---------- */
+/* ---------- FIELD RECORD: the place as a column of letters on the grid's rails, the temperature beside it ---------- */
 
-const FEATURE_WEIGHT: Record<FeatureKind, number> = { coast: 1, border: 0.7, river: 0.5 };
+/** A name stands as a column of letters up to this length; a longer one, or several words, is turned a quarter */
+const STACK_MAX = 7;
+
+function field(c: Ctx, city: Point, preferred: boolean): Plan {
+  const name = upper(c.r.place.name);
+  const texts: Text[] = [];
+  let right: number;
+  let placeFit: string;
+  let fitScore = 1;
+  if (!/\s/.test(name) && name.length <= STACK_MAX) {
+    // One letter under another: the reference's 150 on a 122 step, closer for a longer name
+    const n = name.length;
+    const step = n > 1 ? Math.min(122, (684 - 196) / (n - 1)) : 122;
+    const f = display(c.tv.display, (150 * step) / 122, 0);
+    const letters = [...name];
+    letters.forEach((ch, i) =>
+      texts.push({ id: i ? `place-${i}` : "place", lines: [{ text: ch, x: M - 4, y: 196 + i * step }], font: f, ink: "ink-1", opacity: c.tv.tone, z: "type-back" }),
+    );
+    right = M - 4 + Math.max(...letters.map((ch) => width(c, ch, f)));
+    placeFit = `stacked, ${n} letters`;
+    fitScore = step / 122;
+  } else {
+    // The long-name setting: turned a quarter, reading upward along the left margin
+    const fitted = fitName(c, 110, c.bottom - 80 - 120, 2, 0);
+    const s = fitted.font.size;
+    const originX = M + CAP * s;
+    fitted.lines.forEach((text, i) => {
+      const l = { text, x: originX + i * s * 0.92, y: c.bottom - 80 };
+      texts.push({ id: i ? `place-${i}` : "place", lines: [l], font: fitted.font, ink: "ink-1", opacity: c.tv.tone, z: "type-back", rotate: { deg: -90, origin: [l.x, l.y] } });
+    });
+    right = originX + (fitted.lines.length - 1) * s * 0.92;
+    placeFit = `turned, ${fitted.step}, ${fitted.lines.length} line(s)`;
+    fitScore = s / 110;
+  }
+  const numSize = 220;
+  const nf = display(c.tv.support, numSize, -4 / numSize);
+  const num = degrees(c.r.temp);
+  const numX = Math.max(146, right + 12);
+  texts.push({ id: "temperature", lines: [{ text: num, x: numX, y: 610 }], font: nf, ink: "ink-1", opacity: 1, z: "type-back" });
+
+  texts.push({ id: "condition", lines: [{ text: c.word, x: COL[5], y: 96 }], font: conditionFont(600, 62), ink: "ink-1", opacity: 1, z: "micro" });
+  metricsFor([...FAMILY_ORDER[conditionFamily(c.r)], "feels"], c.r, 4, []).forEach((m, i) => texts.push(...pairs(`stack-${i}`, COL[5], 116 + i * 28, m.label, m.value)));
+  const [lat, lon] = coordsOf(c.r);
+  return {
+    city,
+    texts,
+    numeralBox: [numX, numX + width(c, num, nf), 610 - CAP * numSize, 610],
+    leader: [[right + 4, city[1]], city],
+    node: "dot",
+    coords: { id: "coords", lines: [{ text: `${lat}  ${lon}`, x: city[0] + 9, y: city[1] - 6 }], font: mono(400), ink: "ink-1", opacity: 1, z: "micro" },
+    rules: [...COL.slice(1), R].map((x) => ({ from: [x, 64] as Point, to: [x, c.bottom - 80] as Point, opacity: 0.22 })),
+    placeFit,
+    fitScore,
+    preferred,
+  };
+}
+
+/* ---------- Where the city lands ---------- */
+
+/** The grid positions the city may take in each mode; the first is the hand-made poster's */
+function citySpots(mode: CompositionMode, c: Ctx): Point[] {
+  if (mode === "open-atlas")
+    return [
+      [216, 600],
+      [126, 600],
+      [216, 570],
+      [126, 570],
+    ];
+  if (mode === "field-record")
+    return [
+      [306, 350],
+      [396, 350],
+      [306, 300],
+      [306, 400],
+      [396, 300],
+    ];
+  // Collision: under the name's last line, which a long name pushes down
+  const probe = collision(c, [126, 330], false);
+  const last = probe.texts.find((t) => t.id === "place")!.lines.at(-1)!.y;
+  const y = Math.max(330, last + 150);
+  return [
+    [126, y],
+    [216, y],
+    [126, y + 40],
+    [216, y + 40],
+  ];
+}
+
+const FEATURE_WEIGHT: Record<FeatureKind, number> = { coast: 1, border: 0.6, river: 0.5 };
 
 function ringArea(ring: Point[]): number {
   let a = 0;
@@ -411,99 +362,38 @@ function ringArea(ring: Point[]): number {
   return Math.abs(a) / 2;
 }
 
-function waterShare(placed: Placed, slot: Rect): number {
+/** How much of the sheet is water, 0..1 */
+function waterShare(placed: Placed, sheet: Rect): number {
   const area = placed.water.reduce((s, poly) => s + ringArea(poly[0]) - poly.slice(1).reduce((h, r) => h + ringArea(r), 0), 0);
-  return clamp(area / (slot.w * slot.h), 0, 1);
-}
-
-function scoreCrop(placed: Placed, slot: Rect, dom: Block, reach: number): number {
-  const lines = (Object.keys(FEATURE_WEIGHT) as FeatureKind[]).reduce(
-    (s, k) => s + FEATURE_WEIGHT[k] * Math.min(featureLength(placed, k), 3 * Math.max(slot.w, slot.h)),
-    0,
-  );
-  // Lines that actually cross the dominant type are the record's interplay
-  const cross = baselines(dom).reduce(
-    (s, [a, b]) => s + (["coast", "border", "river"] as FeatureKind[]).reduce((n, k) => n + crossings(placed, k, a, b).length, 0),
-    0,
-  );
-  const water = waterShare(placed, slot);
-  // Some sea or lake gives the map a shape; a slot drowned in it reads as a blank
-  const waterScore = water < 0.08 ? water : water > 0.55 ? 0.55 - (water - 0.55) * 2 : 0.08 + (water - 0.08) * 0.5;
-  return lines + Math.min(cross, 6) * 0.15 + waterScore * 2 - reach * 0.5;
-}
-
-/* ---------- Nodes ---------- */
-
-const NODE_R = 0.0042;
-
-const LABEL: Record<FeatureKind, string> = { coast: "SHORE", border: "BORDER", river: "RIVER" };
-
-function crossNode(at: Point, text: string): NodePayload {
-  return { kind: "node", shape: "cross", at, r: NODE_R * 1.6, label: { text, at: [at[0] + 0.012, at[1] + 0.022], anchor: "start" } };
+  return Math.min(1, Math.max(0, area / (sheet.w * sheet.h)));
 }
 
 /**
- * The second node, where a line of the map meets the type: on a baseline of the dominant element (the letter stands
- * on the line), else where the city's leader, which hangs from a letter, crosses one. GRID only when the slot has
- * no geography at all; with geography that touches neither, there is no second node rather than a decorative one.
+ * A candidate's score: how much geography the sheet shows, how many shores and borders cross the dominant numeral
+ * (the record's interplay), a share of water that gives the map a shape without drowning it, how well the name
+ * fits, and a small preference for the hand-made poster's spot.
  */
-function featureNode(placed: Placed | null, dom: Block, city: Point, handle: Point, measure: Measure): { node: NodePayload; anchor: string } | null {
-  const feet = glyphFeet(dom, measure).map((g) => g.at);
-  const kinds: FeatureKind[] = ["coast", "border", "river"];
-  if (placed) {
-    for (const kind of kinds) {
-      const hits = baselines(dom)
-        .flatMap(([a, b]) => crossings(placed, kind, a, b))
-        .filter((p) => Math.hypot(p[0] - city[0], p[1] - city[1]) > 0.06);
-      if (!hits.length) continue;
-      // The crossing nearest a glyph's foot
-      const scored = hits
-        .map((p) => ({ p, d: Math.min(...feet.map((f) => Math.hypot(f[0] - p[0], f[1] - p[1]))) }))
-        .sort((x, y) => x.d - y.d || x.p[0] - y.p[0] || x.p[1] - y.p[1]);
-      return { node: crossNode(scored[0].p, LABEL[kind]), anchor: kind };
-    }
-    for (const kind of kinds) {
-      const hits = crossings(placed, kind, handle, city).filter(
-        (p) => Math.hypot(p[0] - city[0], p[1] - city[1]) > 0.03 && Math.hypot(p[0] - handle[0], p[1] - handle[1]) > 0.03,
-      );
-      if (hits.length) return { node: crossNode(hits[0], LABEL[kind]), anchor: kind };
-    }
-    if (kinds.some((k) => placed[k].length) || placed.water.length) return null;
+function score(placed: Placed | null, box: [number, number, number, number], sheet: Rect, plan: Plan, mode: CompositionMode): number {
+  let s = plan.fitScore * 1.5 + (plan.preferred ? 0.3 : 0);
+  if (!placed) return s;
+  s += (Object.keys(FEATURE_WEIGHT) as FeatureKind[]).reduce((n, k) => n + FEATURE_WEIGHT[k] * Math.min(featureLength(placed, k), 4), 0) * 0.3;
+  const [x0, x1, top, base] = box;
+  let cross = 0;
+  for (const f of [0.25, 0.5, 0.75]) {
+    const y = top + (base - top) * f;
+    for (const k of ["coast", "border"] as FeatureKind[]) cross += crossings(placed, k, [Math.max(0, x0), y], [Math.min(1, x1), y]).length;
   }
-  // GRID: the column line nearest the middle of the last baseline
-  const [a, b] = baselines(dom)[dom.lines.length - 1];
-  const xs = [1, 2, 3, 4, 5].map(colX).filter((x) => x > Math.min(a[0], b[0]) + 0.02 && x < Math.max(a[0], b[0]) - 0.02);
-  const horizontal = Math.abs(b[1] - a[1]) < Math.abs(b[0] - a[0]);
-  const at: Point = horizontal && xs.length ? [xs[0], a[1] + ((b[1] - a[1]) * (xs[0] - a[0])) / (b[0] - a[0] || 1)] : feet[0];
-  return { node: crossNode(at, "GRID"), anchor: "grid" };
-}
-
-/* ---------- Visual thesis ---------- */
-
-/** The feature the map shows most of */
-function strongest(placed: Placed | null): string {
-  if (!placed) return "grid";
-  const kinds: FeatureKind[] = ["coast", "border", "river"];
-  const best = kinds.map((k) => ({ k, l: featureLength(placed, k) * FEATURE_WEIGHT[k] })).sort((a, b) => b.l - a.l)[0];
-  return best.l > 0 ? best.k : "grid";
-}
-
-function thesis(mode: CompositionMode, dominant: Dominant, r: RecordInput, family: ConditionFamily, feature: string): string {
-  const name = upper(r.place.name);
-  const t = degrees(r.temp);
-  const what = feature === "grid" ? "the grid" : feature === "coast" ? "the shoreline" : `the ${feature}`;
-  if (mode === "collision")
-    return dominant === "temperature" ? `${t} collides with ${what}, which runs in front of its foot` : `${name} is cut by ${what} running through it`;
-  if (mode === "open-atlas")
-    return dominant === "temperature" ? `${t} floats alone inside a sparse ${family === "SNOW" ? "winter" : "quiet"} map` : `${name} hangs over a quiet map, tied to it by one line`;
-  return `${name} rises along ${what}, set to the rhythm of the ${family === "RAIN" ? "rain" : family === "WIND" ? "wind" : "cloud"}`;
+  s += Math.min(cross, 8) * 0.2;
+  const water = waterShare(placed, sheet);
+  const want = mode === "open-atlas" ? 0.15 : 0.35;
+  return s - Math.abs(water - want) * (mode === "open-atlas" ? 0.5 : 1.5);
 }
 
 /* ---------- The composition ---------- */
 
 /**
- * One record's composition, pure: the same input and geography give the same scene. `measure` sets the type's
- * widths (the browser's own layout in the lab and the export, a fixed table in the tests).
+ * One record's composition, pure: the same input and geography give the same scene for the same type measure
+ * (the browser's own layout in the lab and the export, a fixed table in the tests).
  */
 export function getRecordComposition(
   r: RecordInput,
@@ -511,229 +401,182 @@ export function getRecordComposition(
   measure: Measure,
   canvas: { width: number; height: number } = PRINT,
 ): RecordScene {
+  if (!r.place.name.trim()) throw new Error("A record needs a place name");
+  const aspect = canvas.height / canvas.width;
+  const ref = refUnits(aspect);
+  const bottom = (aspect / (REF_H / REF_W)) * REF_H;
+  const { atmosphere } = computeAtmosphere({
+    light: r.light ?? 0.5,
+    temp: r.temp,
+    condition: r.condition,
+    intensity: r.intensity,
+    cloudCover: r.cloudCover,
+    humidity: r.humidity,
+    visibility: r.visibility,
+    precipitation: r.precipitation,
+    uvIndex: r.uv,
+  });
+  const tv = typeVisualState(atmosphere);
+  const mode = tv.mode;
   const family = conditionFamily(r);
-  const t = normTemp(r.temp);
   const seed = recordSeed(r.place.name, r.date, family);
   const rng = mulberry32(seed);
-  const aspect = canvas.height / canvas.width;
-  const metrics = weatherMetrics(family, r);
-  const c: Ctx = {
-    r,
-    family,
-    t,
-    tp: typePressure(t),
-    sc: spaceCompression(t),
-    aspect,
-    measure,
-    slant: windSlant(r.windSpeed, r.windDeg),
-    weatherRows: metrics.length,
-  };
-  const mode = compositionMode(family, r.temp, r.cloudCover);
-  const dominant = dominantOf(mode, r.temp);
-  const L = mode === "collision" ? collision(c, dominant) : mode === "open-atlas" ? atlas(c, dominant) : vertical(c);
-  // Wind leans a horizontal dominant block too, about its first baseline
-  if (mode !== "vertical-field" && c.slant) L.dominant.rotate = c.slant;
+  const c: Ctx = { r, tv, measure, word: CONDITION_WORD[family], bottom };
+  const build = (city: Point, preferred: boolean) =>
+    mode === "open-atlas" ? atlas(c, city, preferred) : mode === "collision" ? collision(c, city, preferred) : field(c, city, preferred);
 
-  // The crop: every candidate spot for the city is tried; the best map wins, the seed only splits a tie
-  const spanKm = cropKm(t);
-  const city: Point = [r.place.lon, r.place.lat];
-  const inSlot = L.candidates.filter(
-    ({ spot }) => spot[0] > L.slot.x + 0.03 && spot[0] < L.slot.x + L.slot.w - 0.03 && spot[1] > L.slot.y + 0.03 && spot[1] < L.slot.y + L.slot.h - 0.03,
-  );
-  const tried = (inSlot.length ? inSlot : L.candidates.slice(0, 1)).map((cand) => {
-    const crop: Crop = { slot: L.slot, center: centerFor(city, cand.spot, L.slot, spanKm), spanKm };
+  // The map spans the whole sheet and a little more, so its fills and lines leave by the edges
+  const bleed = 20;
+  const sheet: Rect = { x: ref.x(-bleed), y: ref.y(-bleed), w: ref.x(REF_W + 2 * bleed), h: ref.y(bottom + 2 * bleed) };
+  // The span is of the sheet's width; the slot is a little wider
+  const spanKm = SPAN_KM[mode] * (1 - 0.15 * Math.max(0, atmosphere.warmth)) * sheet.w;
+  const place: Point = [r.place.lon, r.place.lat];
+  const tried = citySpots(mode, c).map((spot, i) => {
+    const plan = build(spot, i === 0);
+    const crop = { slot: sheet, center: centerFor(place, [ref.x(spot[0]), ref.y(spot[1])], sheet, spanKm), spanKm };
     const placed = geography ? placeGeography(geography, crop) : null;
-    const score = placed ? scoreCrop(placed, L.slot, L.dominant, cand.reach) : -cand.reach;
-    return { cand, crop, placed, score: Math.round(score * 1000) / 1000, tie: rng() };
+    const b = plan.numeralBox;
+    const s = score(placed, [ref.x(b[0]), ref.x(b[1]), ref.y(b[2]), ref.y(b[3])], sheet, plan, mode);
+    return { plan, placed, score: Math.round(s * 1000) / 1000, tie: rng() };
   });
   tried.sort((a, b) => b.score - a.score || b.tie - a.tie);
-  const best = tried[0];
-  const placed = best.placed;
+  const { plan, placed } = tried[0];
 
-  const feature = featureNode(placed, L.dominant, best.cand.spot, best.cand.handle, measure);
-  const cityNode: NodePayload = {
-    kind: "node",
-    shape: "dot",
-    at: best.cand.spot,
-    r: NODE_R,
-    leader: [best.cand.handle, best.cand.spot],
+  /* ---------- Layers ---------- */
+  const layers: SceneLayer[] = [];
+  const Z: Record<SceneLayer["role"], number> = { paper: 0, terrain: 1, "type-back": 2, linework: 3, "type-front": 4, nodes: 5, micro: 6 };
+  let order = 0;
+  const add = (l: Omit<SceneLayer, "z">) => layers.push({ ...l, z: Z[l.role] + order++ / 1000 });
+  // The scene's space is normalized: y over the height. The plan is in reference units, the map in sheet units
+  const N = (p: Point): Point => [p[0], p[1] / aspect];
+  const P = (p: Point): Point => N([ref.x(p[0]), ref.y(p[1])]);
+  const text = (t: Text) =>
+    add({
+      id: t.id,
+      role: t.z,
+      inkRole: t.ink,
+      opacity: t.opacity,
+      transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
+      payload: {
+        kind: "text",
+        lines: t.lines.map((l) => ({ ...l, x: ref.x(l.x), y: ref.y(l.y) / aspect })),
+        font: { ...t.font, size: ref.s(t.font.size) },
+        anchor: t.anchor ?? "start",
+      },
+    });
+  const lines = (id: string, role: SceneLayer["role"], ink: InkRole, opacity: number, paths: Point[][], strokeRef: number, extra: Partial<PathsPayload> = {}) => {
+    if (paths.length) add({ id, role, inkRole: ink, opacity, payload: { kind: "paths", paths: paths.map((l) => l.map(N)), closed: false, stroke: ref.s(strokeRef), ...extra } });
   };
 
-  /* ---------- Layers (sheet units until `toScene`) ---------- */
-  const layers: SceneLayer[] = [];
-  const add = (l: Omit<SceneLayer, "z">) => layers.push({ ...l, z: Z[l.role] });
-  const vis = r.visibility == null ? 1 : lerp(0.65, 1, clamp(r.visibility / 10, 0, 1));
-  const slotRect = { kind: "rect" as const, x: L.slot.x, y: L.slot.y, width: L.slot.w, height: L.slot.h };
-
   add({ id: "paper", role: "paper", inkRole: "paper", opacity: 1, payload: { kind: "rect", x: 0, y: 0, width: 1, height: aspect } });
-  // Open atlas keeps its geography to lines: a filled sea there reads as a box on a quiet sheet
-  if (placed && mode !== "open-atlas") {
-    add({
-      id: "water",
-      role: "terrain",
-      inkRole: "ink-2",
-      opacity: 1,
-      clip: { rect: L.fillSlot ? { kind: "rect", x: L.fillSlot.x, y: L.fillSlot.y, width: L.fillSlot.w, height: L.fillSlot.h } : slotRect },
-      payload: { kind: "paths", paths: placed.water.flat(), closed: true, stroke: 0 },
-    });
-  }
-  const domText = (id: string, b: Block, inkRole: "ink-1" | "accent", role: "type-back" | "type-front"): Omit<SceneLayer, "z"> => ({
-    id,
-    role,
-    inkRole,
-    opacity: 1,
-    transform: b.rotate ? { rotate: b.rotate, origin: b.origin } : undefined,
-    payload: { kind: "text", lines: b.lines, font: b.font, anchor: "start" },
-  });
-  add(domText("dominant", L.dominant, dominant === "temperature" ? "accent" : "ink-1", "type-back"));
+  const water = placed ? placed.water.flat() : [];
 
-  const lineSets: [FeatureKind, number, number, readonly number[] | undefined][] = [
-    ["river", 0.0012, 0.6, undefined],
-    ["border", 0.0014, 0.75, [0.007, 0.004]],
-    ["coast", 0.0019, 0.92, undefined],
-  ];
+  if (mode !== "open-atlas" && placed) {
+    // Cobalt water under everything, rivers faint under the type
+    if (water.length) add({ id: "water", role: "terrain", inkRole: "ink-2", opacity: 1, payload: { kind: "paths", paths: water.map((l) => l.map(N)), closed: true, stroke: 0 } });
+    lines("river", "terrain", "ink-1", mode === "collision" ? 0.5 : 0.4, placed.river, 0.8);
+  }
+  const sheetPoint = (p: Point): Point => [ref.x(p[0]), ref.y(p[1])];
+  // The field record's rails stand behind the type; the atlas's foot rule is part of the micro type, over the map
+  const rule = (i: number, r: Plan["rules"][number], role: SceneLayer["role"]) =>
+    lines(`rule-${i}`, role, "ink-1", r.opacity, [[sheetPoint(r.from), sheetPoint(r.to)]], role === "micro" ? 0.75 : 0.6);
+  if (mode === "field-record") plan.rules.forEach((r, i) => rule(i, r, "terrain"));
+
+  // The dominant type, set behind the map
+  for (const t of plan.texts.filter((t) => t.z === "type-back")) text(t);
+
   if (placed) {
-    for (const [kind, stroke, opacity, dash] of lineSets) {
-      if (!placed[kind].length) continue;
-      const payload = { kind: "paths" as const, paths: placed[kind], closed: false, stroke, dash };
-      add({ id: kind, role: "linework", inkRole: "ink-1", opacity: opacity * vis, clip: { rect: slotRect }, payload });
-      if (L.interplay === "none") continue;
-      // Where a line crosses a letter it is cut out of it in the paper's colour: the map runs through the type
-      const band = L.interplay === "interleave" && L.band ? { kind: "rect" as const, x: L.band.x, y: L.band.y, width: L.band.w, height: L.band.h } : slotRect;
-      add({
-        id: `${kind}-through`,
-        role: "linework",
-        inkRole: "paper",
-        opacity: 1,
-        clip: { rect: band, glyphsOf: "dominant" },
-        payload: { ...payload, stroke: stroke * 1.25 },
-      });
+    if (mode === "open-atlas") {
+      // A line map: faint rivers, dotted borders, the water laid over the numeral in the paper's colour, shores in ink
+      lines("river", "linework", "ink-1", 0.3, placed.river, 0.7);
+      lines("border", "linework", "ink-1", 0.7, placed.border, 0.8, { dash: [ref.s(1), ref.s(3)] });
+      // INTERLEAVE never hides more than about 30% of the numeral: a sea that would is left under it, its shore drawn
+      if (water.length && waterOver(placed, plan.numeralBox.map((v, i) => (i < 2 ? ref.x(v) : ref.y(v))) as Plan["numeralBox"]) <= 0.3)
+        add({ id: "water", role: "linework", inkRole: "paper", opacity: 1, payload: { kind: "paths", paths: water.map((l) => l.map(N)), closed: true, stroke: 0 } });
+      lines("coast", "linework", "ink-1", 1, placed.coast, 0.9);
+    } else {
+      // THROUGH: the shores and borders cross the type in the paper's colour
+      lines("coast", "linework", "paper", 1, placed.coast, mode === "collision" ? 2.4 : 2);
+      lines("border", "linework", "paper", 1, placed.border, 1.1, { dash: [ref.s(5), ref.s(4)] });
     }
   }
 
-  if (L.secondary)
-    add(domText(L.secondary.id, L.secondary, L.secondary.id === "temperature" ? "accent" : "ink-1", "type-front"));
+  for (const t of plan.texts.filter((t) => t.z === "type-front")) text(t);
 
-  add({ id: "node-city", role: "nodes", inkRole: "ink-1", opacity: 1, payload: cityNode });
-  if (feature) add({ id: `node-${feature.anchor}`, role: "nodes", inkRole: "ink-1", opacity: 0.95, payload: feature.node });
+  // The city: the record's one accent, tied to the name by a hairline
+  lines("leader", "nodes", "ink-1", 1, [[sheetPoint(plan.leader[0]), sheetPoint(plan.leader[1])]], 0.75);
+  add({ id: "node-city", role: "nodes", inkRole: "accent", opacity: 1, payload: { kind: "node", shape: plan.node, at: P(plan.city), r: ref.s(plan.node === "dot" ? 4.2 : 6) } });
+  text(plan.coords);
 
-  /* Micro: the weather cluster, the metadata cluster, the signature, archival pairs on the grid */
-  const mono = (wght: number, size = MICRO_SIZE, tracking = 0.04): FontRef => ({ family: "mono", wght, wdth: 100, size, tracking });
-  const micro = (id: string, lines: TextLine[], font: FontRef, opacity: number, anchor: "start" | "end" = "start", transform?: SceneLayer["transform"]) =>
-    add({ id, role: "micro", inkRole: "ink-1", opacity, transform, payload: { kind: "text", lines, font, anchor } });
-
-  const word = upper(CONDITION_WORD[family]);
-  const wordFont = clampAxes({ family: "display", wght: 600, wdth: 112, size: 0.026, tracking: 0.12 });
-  const valueX = (x: number) => x + COL + GUTTER;
-  const rowsFrom = (top: number) => metrics.map((_, i) => top + i * LEAD);
-  // The cluster: [numeral], condition word, pairs. Hung from a top, or standing on the bottom margin with its last
-  // pair on the same baseline as the metadata's last line
-  const WORD_GAP = 0.035;
-  const pairTop =
-    "top" in L.weatherAt ? L.weatherAt.top + WORD_GAP + LEAD * 0.4 : L.weatherAt.bottom - (metrics.length - 1) * LEAD;
-  const weatherTop = "top" in L.weatherAt ? L.weatherAt.top : pairTop - WORD_GAP - LEAD * 0.4;
-  if (!("top" in L.weatherAt) && dominant === "place" && !L.secondary) {
-    // The temperature over its word, the record's one accent
-    const tb = secondaryTemp(c, 0.11, L.weatherAt.x - 0.11 * 0.03, weatherTop - WORD_GAP);
-    add(domText("temperature", tb, "accent", "type-front"));
-  }
-  const wx = L.weatherAt.x;
-  micro("condition", [{ text: word, x: wx, y: weatherTop }], wordFont, 1);
-  if (L.numeralWord) micro("temperature-word", [{ text: temperatureWords(r.temp), x: valueX(wx), y: weatherTop }], mono(400), 0.7);
-  micro("metric-labels", metrics.map((m, i) => ({ text: m.label, x: wx, y: rowsFrom(pairTop)[i] })), mono(400), 0.62);
-  micro("metric-values", metrics.map((m, i) => ({ text: m.value, x: valueX(wx), y: rowsFrom(pairTop)[i] })), mono(500), 1);
-
+  if (mode !== "field-record") plan.rules.forEach((r, i) => rule(i, r, "micro"));
+  for (const t of plan.texts.filter((t) => t.z === "micro")) text(t);
+  // The head: the record's ID on the left, the signature quiet on the right
   const id = recordId(r.place.name, r.date);
-  const meta = [
-    `${formatCoord(r.place.lat, "lat")} / ${formatCoord(r.place.lon, "lon")}`,
-    formatDate(r.date),
-    `${r.time} ${r.zone}`,
-  ];
-  const mb = L.metaAt.bottom;
-  const metaLines = meta.map((text, i) => ({ text, x: L.metaAt.x, y: mb - (meta.length - i) * LEAD }));
-  const metaTop = metaLines[0].y;
-  micro("metadata", metaLines, mono(500), 0.95);
-  if (L.rail) {
-    // ROTATED MICROTYPE: the record ID climbs the rail
-    add({
-      id: "rail",
-      role: "micro",
-      inkRole: "ink-1",
-      opacity: 0.4,
-      payload: { kind: "paths", paths: [[[L.rail.x, L.rail.top], [L.rail.x, L.rail.bottom]]], closed: false, stroke: 0.0011 },
+  text({ id: "record-id", lines: [{ text: id, x: M, y: 44 }], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" });
+  text({ id: "signature", lines: [{ text: "WHAT WEATHER", x: R, y: 44 }], font: mono(400), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
+  if (mode === "field-record") {
+    // ROTATED MICROTYPE: the moment up the right margin, in the paper's colour where it crosses the water
+    const at: Point = [R + 14, bottom - 80];
+    const onWater = placed ? placed.water.some((poly) => inside(sheetPoint(at), poly)) : false;
+    text({
+      id: "date-rail",
+      lines: [{ text: `${formatDate(r.date)} · ${stamp(r)}`, x: at[0], y: at[1] }],
+      font: mono(400),
+      ink: onWater ? "paper" : "ink-1",
+      opacity: onWater ? 1 : 0.6,
+      rotate: { deg: -90, origin: at },
+      z: "micro",
     });
-    micro("record-id", [{ text: id, x: L.rail.x - 0.008, y: L.rail.bottom }], mono(400), 0.62, "start", { rotate: -90, origin: [L.rail.x - 0.008, L.rail.bottom] });
-  } else micro("record-id", [{ text: id, x: L.metaAt.x, y: mb }], mono(400), 0.62);
+  }
 
-  // The signature, quiet: what (light) weather (heavy)
-  // On the metadata's first line when it shares the foot, so a long record ID never runs into it
-  const sig = L.rail ? L.signatureAt : { ...L.signatureAt, y: metaTop };
-  const sigSize = 0.02;
-  const light = clampAxes({ family: "display", wght: 300, wdth: 100, size: sigSize, tracking: -0.01 });
-  const heavy = clampAxes({ family: "display", wght: 800, wdth: 100, size: sigSize, tracking: -0.02 });
-  const wHeavy = measure("weather", heavy);
-  const wLight = measure("what ", light);
-  const x0 = sig.anchor === "end" ? sig.x - wHeavy - wLight : sig.x;
-  micro("signature-what", [{ text: "what", x: x0, y: sig.y }], light, 0.85);
-  micro("signature-weather", [{ text: "weather", x: x0 + wLight, y: sig.y }], heavy, 0.85);
-
-  const scene: RecordScene = {
+  return {
     canvas: { width: canvas.width, height: canvas.height },
-    inks: recordInks(r),
+    inks: recordInks(atmosphere),
     layers: layers.sort((a, b) => a.z - b.z),
     metadata: {
       mode,
       family,
-      dominant,
-      interplay: placed ? L.interplay : "none",
+      dominant: tv.dominant,
+      interplay: !placed ? "none" : mode === "open-atlas" ? "interleave" : "through",
       seed,
-      visualThesis: thesis(mode, dominant, r, family, feature?.anchor ?? strongest(placed)),
+      visualThesis: thesis(mode, tv.dominant, r, placed),
       recordId: id,
-      placeFit: L.dominant.id === "dominant" && dominant === "place" ? fitStepOf(c, L) : "temperature",
-      nodes: feature ? ["city", feature.anchor] : ["city"],
+      placeFit: plan.placeFit,
+      nodes: ["city"],
+      type: tv,
     },
   };
-  return toScene(scene, aspect);
 }
 
-function fitStepOf(c: Ctx, L: Layout): string {
-  return `${L.dominant.lines.length} line${L.dominant.lines.length > 1 ? "s" : ""}, wdth ${L.dominant.font.wdth}, size ${L.dominant.font.size.toFixed(3)}`;
+/** The share of a box (sheet units) that water covers, sampled on a grid */
+function waterOver(placed: Placed, [x0, x1, top, base]: Plan["numeralBox"]): number {
+  let hit = 0;
+  const n = 12;
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++) {
+      const p: Point = [x0 + ((x1 - x0) * (i + 0.5)) / n, top + ((base - top) * (j + 0.5)) / n];
+      if (placed.water.some((poly) => inside(p, poly))) hit++;
+    }
+  return hit / (n * n);
 }
 
-const Z: Record<SceneLayer["role"], number> = {
-  paper: 0,
-  terrain: 1,
-  "type-back": 2,
-  linework: 3,
-  "type-front": 4,
-  nodes: 5,
-  micro: 6,
-};
+/** Even-odd point in polygon (rings) */
+function inside(p: Point, rings: Point[][]): boolean {
+  let hit = false;
+  for (const ring of rings)
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i];
+      const [xj, yj] = ring[j];
+      if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) hit = !hit;
+    }
+  return hit;
+}
 
-/** Sheet units to the scene's normalized space: y over the height */
-function toScene(scene: RecordScene, aspect: number): RecordScene {
-  const p = ([x, y]: Point): Point => [x, y / aspect];
-  const rect = <T extends { y: number; height: number }>(r: T): T => ({ ...r, y: r.y / aspect, height: r.height / aspect });
-  return {
-    ...scene,
-    layers: scene.layers.map((l) => {
-      const payload = l.payload;
-      const out: SceneLayer = {
-        ...l,
-        transform: l.transform && { ...l.transform, origin: p(l.transform.origin) },
-        clip: l.clip && { ...l.clip, rect: l.clip.rect && rect(l.clip.rect) },
-      };
-      if (payload.kind === "text") out.payload = { ...payload, lines: payload.lines.map((ln) => ({ ...ln, y: ln.y / aspect })) };
-      else if (payload.kind === "paths") out.payload = { ...payload, paths: payload.paths.map((pts) => pts.map(p)) };
-      else if (payload.kind === "rect") out.payload = rect(payload);
-      else
-        out.payload = {
-          ...payload,
-          at: p(payload.at),
-          leader: payload.leader && [p(payload.leader[0]), p(payload.leader[1])],
-          label: payload.label && { ...payload.label, at: p(payload.label.at) },
-        };
-      return out;
-    }),
-  };
+function thesis(mode: CompositionMode, dominant: "temperature" | "place", r: RecordInput, placed: Placed | null): string {
+  const t = degrees(r.temp);
+  const name = upper(r.place.name);
+  const what = !placed ? "an empty grid" : placed.coast.length ? "the shore" : placed.border.length ? "a border" : "the rivers";
+  if (mode === "open-atlas") return `${t} fades into the paper, ${what} laid over it; ${name} hangs from the city`;
+  if (mode === "collision") return `${t} fills the foot of the sheet and ${what} cuts through it`;
+  return dominant === "place" ? `${name} stands as a column on the grid's rails, ${what} crossing ${t}` : `${t} beside the column of ${name}`;
 }

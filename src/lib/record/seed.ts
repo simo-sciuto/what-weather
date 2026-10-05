@@ -25,14 +25,22 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
-/** "San Cristóbal de las Casas" -> "SAN-CRISTOBAL-DE-LAS-CASAS" */
+/** Letters that do not decompose into a base and an accent */
+const FOLD: Record<string, string> = { Ł: "L", ł: "l", Ø: "O", ø: "o", Đ: "D", đ: "d", ß: "ss", Æ: "AE", æ: "ae", Œ: "OE", œ: "oe", Þ: "TH", þ: "th" };
+
+/**
+ * "San Cristóbal de las Casas" -> "SAN-CRISTOBAL-DE-LAS-CASAS". A name with no Latin letters at all keeps a
+ * stable code from its own characters instead of an empty slug.
+ */
 export function placeSlug(name: string): string {
-  return name
+  const slug = name
+    .replace(/[ŁłØøĐđßÆæŒœÞþ]/g, (ch) => FOLD[ch])
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/\p{M}/gu, "")
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+  return slug || `X${hash32(name.trim()).toString(36).toUpperCase()}`;
 }
 
 export function recordSeed(placeName: string, isoDate: string, family: string): number {

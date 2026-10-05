@@ -74,7 +74,9 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
       const mark =
         p.shape === "dot"
           ? `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="${ink(l)}"/>`
-          : `<path d="M${n(cx - r)},${n(cy)}H${n(cx + r)}M${n(cx)},${n(cy - r)}V${n(cy + r)}" stroke="${ink(l)}" stroke-width="${n(line * 1.4)}"/><circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r * 0.42)}" fill="none" stroke="${ink(l)}" stroke-width="${n(line)}"/>`;
+          : p.shape === "triangle"
+            ? `<path d="M${n(cx)},${n(cy - r)}L${n(cx + r)},${n(cy + r * 0.67)}H${n(cx - r)}Z" fill="${ink(l)}"/>`
+            : `<path d="M${n(cx - r)},${n(cy)}H${n(cx + r)}M${n(cx)},${n(cy - r)}V${n(cy + r)}" stroke="${ink(l)}" stroke-width="${n(line * 1.4)}"/><circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r * 0.42)}" fill="none" stroke="${ink(l)}" stroke-width="${n(line)}"/>`;
       const label = p.label
         ? `<text x="${n(p.label.at[0] * W)}" y="${n(p.label.at[1] * H)}" ${fontAttrs({ family: "mono", wght: 400, wdth: 100, size: 0.0125, tracking: 0.06 })} text-anchor="${p.label.anchor}" fill="${ink(l)}" opacity="0.7">${esc(p.label.text)}</text>`
         : "";

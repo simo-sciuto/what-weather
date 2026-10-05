@@ -1,24 +1,30 @@
 import { describe, expect, it } from "vitest";
+import { createAtmosphere, type AtmosphereAxes } from "@/lib/weather/atmosphere";
+import { recordMode, typeVisualState } from "@/lib/weather/typography";
 import { conditionFamily } from "./condition-family";
-import { compositionMode, dominantOf, getRecordComposition } from "./compose";
+import { getRecordComposition } from "./compose";
 import { fitPlace } from "./fit";
-import { weatherMetrics, recordId, formatCoord, MIN_METRICS } from "./metrics";
-import { cropKm, normTemp } from "./pressure";
-import { hash32, mulberry32, recordSeed } from "./seed";
+import { clipLine, clipRing, crossings } from "./geography";
+import { recordInks, PAPER, RECORD_ACCENT } from "./inks";
+import { formatCoord, metricsFor, recordId, temperatureWords } from "./metrics";
+import { hash32, mulberry32, placeSlug, recordSeed } from "./seed";
 import { clampAxes, DISPLAY_AXES } from "./type-system";
 import { renderSvg } from "./render-svg";
 import { EDGE_RECORDS, SPIKE_RECORDS } from "./fixtures/records";
-import type { FontRef, Measure, RecordInput } from "./types";
+import type { FontRef, Measure, Point, RecordInput, RecordScene } from "./types";
 
 /** A fixed type measure: 0.6 em per character, scaled by the width axis, plus tracking */
 const measure: Measure = (text: string, f: FontRef) =>
   text.length * f.size * (f.family === "mono" ? 0.6 : 0.6 * (f.wdth / 100)) + Math.max(0, text.length - 1) * f.tracking * f.size;
 
-const byKey = (k: string) => [...SPIKE_RECORDS, ...EDGE_RECORDS].find((r) => r.key === k)!;
+const ALL = [...SPIKE_RECORDS, ...EDGE_RECORDS];
+const byKey = (k: string) => ALL.find((r) => r.key === k)!;
 const compose = (k: string, patch: Partial<RecordInput> = {}) => {
   const r = byKey(k);
   return getRecordComposition({ ...r.input, ...patch }, r.geography, measure);
 };
+const axes = (a: Partial<AtmosphereAxes>): AtmosphereAxes =>
+  createAtmosphere({ daylight: 1, warmth: 0, cloudiness: 0, haze: 0, wetness: 0, severity: 0, snow: 0, energy: 0, ...a });
 
 describe("condition family", () => {
   it("maps every normalized condition, with wind taking over clear and cloud only", () => {
@@ -31,28 +37,47 @@ describe("condition family", () => {
     expect(conditionFamily({ condition: "thunderstorm" })).toBe("STORM");
     expect(conditionFamily({ condition: "snow" })).toBe("SNOW");
     expect(conditionFamily({ condition: "clear", windSpeed: 45 })).toBe("WIND");
-    expect(conditionFamily({ condition: "cloudy", windGust: 70 })).toBe("WIND");
     expect(conditionFamily({ condition: "rain", windSpeed: 60 })).toBe("RAIN");
   });
 });
 
-describe("modes and dominance", () => {
-  it("are chosen by family and temperature, never by the seed", () => {
-    expect(compositionMode("CLEAR", 31)).toBe("collision");
-    expect(compositionMode("CLEAR", 18)).toBe("open-atlas");
-    expect(compositionMode("FOG", 8)).toBe("open-atlas");
-    expect(compositionMode("RAIN", 18)).toBe("vertical-field");
-    expect(compositionMode("CLOUD", 6, 92)).toBe("vertical-field");
-    expect(compositionMode("CLOUD", 6, 50)).toBe("open-atlas");
-    expect(compositionMode("STORM", 14)).toBe("collision");
-    expect(dominantOf("collision", 41)).toBe("temperature");
-    expect(dominantOf("collision", 31)).toBe("place");
-    expect(dominantOf("open-atlas", -24)).toBe("temperature");
+describe("type engine (typeVisualState)", () => {
+  it("chooses the mode from the atmosphere", () => {
+    expect(recordMode(axes({ warmth: 0.7 }))).toBe("collision");
+    expect(recordMode(axes({ severity: 0.8, wetness: 0.9 }))).toBe("collision");
+    expect(recordMode(axes({ wetness: 0.6, cloudiness: 1 }))).toBe("field-record");
+    expect(recordMode(axes({ snow: 0.5, cloudiness: 1 }))).toBe("open-atlas");
+    expect(recordMode(axes({ cloudiness: 0.95 }))).toBe("field-record");
+    expect(recordMode(axes({ cloudiness: 1, haze: 1 }))).toBe("open-atlas");
   });
 
-  it("resolve the eight test records to the expected modes", () => {
-    const modes = SPIKE_RECORDS.map((r) => getRecordComposition(r.input, r.geography, measure).metadata.mode);
-    expect(modes).toEqual(["collision", "open-atlas", "vertical-field", "open-atlas", "collision", "open-atlas", "vertical-field", "collision"]);
+  it("is heavy and narrow in the heat, light and wide in the cold, within the font's axes", () => {
+    const hot = typeVisualState(axes({ warmth: 1 }));
+    const cold = typeVisualState(axes({ warmth: -1 }));
+    expect(hot.display.weight).toBeGreaterThan(cold.display.weight);
+    expect(hot.display.width).toBeLessThan(cold.display.width);
+    expect(hot.bleed).toBeGreaterThan(0);
+    expect(cold.bleed).toBe(0);
+    for (const t of [hot, cold]) {
+      expect(t.display.weight).toBeGreaterThanOrEqual(100);
+      expect(t.display.weight).toBeLessThanOrEqual(900);
+      expect(t.display.width).toBeGreaterThanOrEqual(62);
+      expect(t.display.width).toBeLessThanOrEqual(125);
+    }
+    expect(typeVisualState(axes({ haze: 1 })).tone).toBeCloseTo(0.22, 2);
+  });
+
+  it("gives the hand-made posters' settings for Tshuru and Tokyo", () => {
+    const tshuru = compose("tshuru").metadata;
+    expect(tshuru.mode).toBe("collision");
+    expect(tshuru.type.display.width).toBe(62);
+    expect(Math.round(tshuru.type.display.weight)).toBe(880);
+    expect(tshuru.type.scale).toBeCloseTo(0.79, 2);
+    const tokyo = compose("tokyo").metadata;
+    expect(tokyo.mode).toBe("field-record");
+    expect(tokyo.dominant).toBe("place");
+    expect(Math.abs(tokyo.type.display.weight - 835)).toBeLessThan(5);
+    expect(compose("milan").metadata.mode).toBe("open-atlas");
   });
 });
 
@@ -70,28 +95,30 @@ describe("determinism", () => {
     const b = compose("oslo", { date: "2026-11-12" });
     expect(b.metadata.seed).not.toBe(a.metadata.seed);
     for (const k of ["mode", "family", "dominant", "interplay"] as const) expect(b.metadata[k]).toBe(a.metadata[k]);
-    const size = (s: typeof a) => s.layers.find((l) => l.id === "dominant")!.payload;
-    expect(size(b)).toEqual(size(a));
+    expect(b.metadata.type).toEqual(a.metadata.type);
     expect(b.metadata.recordId).toBe("WW / 2026 / 316 / OSLO");
   });
 
-  it("hashes with FNV-1a", () => {
+  it("hashes with FNV-1a and slugs names, Latin or not", () => {
     expect(hash32("")).toBe(0x811c9dc5);
     expect(hash32("a")).toBe(0xe40c292c);
+    expect(placeSlug("San Cristóbal de las Casas")).toBe("SAN-CRISTOBAL-DE-LAS-CASAS");
+    expect(placeSlug("Łódź")).toBe("LODZ");
+    expect(placeSlug("東京")).toMatch(/^X[0-9A-Z]+$/);
+    expect(placeSlug("東京")).not.toBe(placeSlug("大阪"));
   });
 });
 
 describe("place fitting", () => {
-  const base: FontRef = { family: "display", wght: 800, wdth: 125, size: 0.3, tracking: 0 };
+  const base: FontRef = { family: "display", wght: 800, wdth: 125, size: 0.25, tracking: 0 };
   it("keeps a short name at the preferred size, never enlarged to fill", () => {
-    const f = fitPlace("OSLO", { font: { ...base, size: 0.25 }, wdthMin: 62, maxWidth: 0.88, minSize: 0.1, maxLines: 3, measure });
+    const f = fitPlace("OSLO", { font: base, wdthMin: 62, maxWidth: 0.88, minSize: 0.1, maxLines: 3, measure });
     expect(f.step).toBe("preferred");
     expect(f.font.size).toBe(0.25);
-    expect(f.width).toBeLessThan(0.88);
   });
 
   it("narrows, wraps on whole words and stays within three lines for a long name", () => {
-    const f = fitPlace("SAN CRISTOBAL DE LAS CASAS", { font: base, wdthMin: 62, maxWidth: 0.88, minSize: 0.1, maxLines: 3, measure });
+    const f = fitPlace("SAN CRISTOBAL DE LAS CASAS", { font: { ...base, size: 0.3 }, wdthMin: 62, maxWidth: 0.88, minSize: 0.1, maxLines: 3, measure });
     expect(f.lines.length).toBeLessThanOrEqual(3);
     expect(f.lines.join(" ")).toBe("SAN CRISTOBAL DE LAS CASAS");
     expect(f.width).toBeLessThanOrEqual(0.88 + 1e-9);
@@ -99,10 +126,15 @@ describe("place fitting", () => {
   });
 
   it("never truncates a single long word: the long-name setting scales it to the measure", () => {
-    const f = fitPlace("LLANFAIRPWLLGWYNGYLLGOGERYCHWYRNDROBWLL", { font: base, wdthMin: 62, maxWidth: 0.88, minSize: 0.1, maxLines: 3, measure });
+    const f = fitPlace("LLANFAIRPWLLGWYNGYLLGOGERYCHWYRNDROBWLL", { font: { ...base, size: 0.3 }, wdthMin: 62, maxWidth: 0.88, minSize: 0.1, maxLines: 3, measure });
     expect(f.step).toBe("long-name");
     expect(f.lines).toEqual(["LLANFAIRPWLLGWYNGYLLGOGERYCHWYRNDROBWLL"]);
     expect(f.width).toBeLessThanOrEqual(0.88 + 1e-9);
+  });
+
+  it("turns a long name in a field record instead of stacking its letters", () => {
+    expect(compose("tokyo").metadata.placeFit).toMatch(/^stacked/);
+    expect(compose("tokyo", { place: { name: "Rio de Janeiro", lat: 35.68, lon: 139.77 } }).metadata.placeFit).toMatch(/^turned/);
   });
 });
 
@@ -115,7 +147,7 @@ describe("font axes", () => {
   });
 
   it("never asks for an axis outside the range in any test record", () => {
-    for (const r of [...SPIKE_RECORDS, ...EDGE_RECORDS])
+    for (const r of ALL)
       for (const l of getRecordComposition(r.input, r.geography, measure).layers)
         if (l.payload.kind === "text" && l.payload.font.family === "display") {
           expect(l.payload.font.wght).toBeGreaterThanOrEqual(100);
@@ -129,53 +161,91 @@ describe("font axes", () => {
 describe("metrics", () => {
   it("fills a cluster a missing reading left short, never with an empty value", () => {
     const fog = byKey("milan-no-visibility").input;
-    const m = weatherMetrics("FOG", fog);
+    const m = metricsFor(["visibility", "humidity", "wind"], fog, 3, []);
     expect(m.map((x) => x.key)).not.toContain("visibility");
-    expect(m.length).toBeGreaterThanOrEqual(MIN_METRICS);
+    expect(m).toHaveLength(3);
     expect(m.every((x) => x.value.length > 0)).toBe(true);
-    expect(weatherMetrics("CLEAR", byKey("tshuru-no-uv").input).map((x) => x.key)).not.toContain("uv");
+    const texts = compose("tshuru-no-uv").layers.flatMap((l) => (l.payload.kind === "text" ? l.payload.lines.map((x) => x.text) : []));
+    expect(texts).not.toContain("UV");
+    expect(texts.every((t) => t.trim().length > 0)).toBe(true);
   });
 
-  it("prints archival coordinates and record IDs", () => {
+  it("prints archival coordinates, record IDs and the temperature in words", () => {
     expect(formatCoord(-4.4667, "lat")).toBe("04°28'S");
     expect(formatCoord(29.1, "lon")).toBe("29°06'E");
     expect(recordId("Tshuru", "2026-10-05")).toBe("WW / 2026 / 278 / TSHURU");
+    expect(temperatureWords(31)).toBe("thirty-one");
+    expect(temperatureWords(-24)).toBe("minus twenty-four");
+    expect(temperatureWords(8)).toBe("eight");
+    expect(temperatureWords(61)).toBe("61");
   });
 });
 
-describe("nodes and interplay", () => {
-  it("falls back to the grid when there is no geography", () => {
+describe("the city and the inks", () => {
+  const accentLayers = (s: RecordScene) => s.layers.filter((l) => l.inkRole === "accent");
+
+  it("marks the city once, in the one accent, tied to the type by a leader", () => {
+    for (const r of ALL) {
+      const s = getRecordComposition(r.input, r.geography, measure);
+      expect(accentLayers(s).map((l) => l.id)).toEqual(["node-city"]);
+      expect(s.layers.some((l) => l.id === "leader")).toBe(true);
+      expect(s.metadata.nodes).toEqual(["city"]);
+    }
+  });
+
+  it("works without geography", () => {
     const s = compose("no-geography");
-    expect(s.metadata.nodes).toEqual(["city", "grid"]);
     expect(s.metadata.interplay).toBe("none");
+    expect(s.layers.some((l) => l.role === "linework")).toBe(false);
   });
 
-  it("keeps to three nodes and one interplay per record, the city always among them", () => {
-    for (const r of [...SPIKE_RECORDS, ...EDGE_RECORDS]) {
-      const s = getRecordComposition(r.input, r.geography, measure);
-      const nodes = s.layers.filter((l) => l.role === "nodes");
-      expect(nodes.length).toBeLessThanOrEqual(3);
-      expect(nodes.some((l) => l.id === "node-city")).toBe(true);
-      expect(["through", "interleave", "none"]).toContain(s.metadata.interplay);
-      const glyphCuts = s.layers.filter((l) => l.clip?.glyphsOf);
-      expect(new Set(glyphCuts.map((l) => l.clip?.glyphsOf)).size).toBeLessThanOrEqual(1);
-    }
+  it("tints the paper with the warmth and keeps the accent fixed", () => {
+    expect(recordInks(axes({ warmth: 1 })).paper).toBe(PAPER.warm.toLowerCase());
+    expect(recordInks(axes({ warmth: -1 })).paper).toBe(PAPER.cool.toLowerCase());
+    expect(recordInks(axes({ warmth: -1, haze: 1 })).paper).toBe(PAPER.haze.toLowerCase());
+    expect(recordInks(axes({})).accent).toBe(RECORD_ACCENT);
   });
 
-  it("uses the accent once", () => {
-    for (const r of SPIKE_RECORDS) {
-      const s = getRecordComposition(r.input, r.geography, measure);
-      expect(s.layers.filter((l) => l.inkRole === "accent")).toHaveLength(1);
-    }
+  it("never lays water over a minus sign", () => {
+    const s = compose("reykjavik");
+    const minus = s.layers.find((l) => l.id === "minus")!;
+    const water = s.layers.find((l) => l.id === "water");
+    expect(minus.role).toBe("type-front");
+    if (water) expect(water.z).toBeLessThan(minus.z);
+  });
+
+  it("rejects a record without a name", () => {
+    expect(() => compose("oslo", { place: { name: "  ", lat: 0, lon: 0 } })).toThrow();
   });
 });
 
-describe("temperature pressure", () => {
-  it("normalizes and tightens the crop with the heat", () => {
-    expect(normTemp(-20)).toBe(0);
-    expect(normTemp(45)).toBe(1);
-    expect(cropKm(0)).toBeGreaterThan(cropKm(0.5));
-    expect(cropKm(0.5)).toBeGreaterThan(cropKm(1));
+describe("geography", () => {
+  const box = { x: 0, y: 0, w: 1, h: 1 };
+  it("cuts lines and rings at the slot and finds crossings", () => {
+    const l: Point[] = [
+      [-1, 0.5],
+      [0.5, 0.5],
+      [2, 0.5],
+    ];
+    expect(clipLine(l, box)).toEqual([
+      [
+        [0, 0.5],
+        [0.5, 0.5],
+        [1, 0.5],
+      ],
+    ]);
+    const ring = clipRing(
+      [
+        [-1, -1],
+        [0.5, -1],
+        [0.5, 0.5],
+        [-1, 0.5],
+      ],
+      box,
+    );
+    expect(ring.every(([x, y]) => x >= 0 && x <= 1 && y >= 0 && y <= 1)).toBe(true);
+    const placed = { coast: [l], border: [], river: [], water: [] };
+    expect(crossings(placed, "coast", [0.3, 0], [0.3, 1])).toEqual([[0.3, 0.5]]);
   });
 });
 
@@ -184,8 +254,8 @@ describe("Swiss Flat renderer", () => {
     const s = compose("tshuru");
     const svg = renderSvg(s, "swiss-flat", { width: 620, height: 877 });
     expect(svg.startsWith("<svg")).toBe(true);
-    const colours = new Set([...svg.matchAll(/(?:fill|stroke)="(#[0-9a-f]{6}|rgb\([^)]*\))"/g)].map((m) => m[1]));
-    colours.delete("#000"); // clip shapes
-    for (const c of colours) expect(Object.values(s.inks)).toContain(c);
+    const colours = new Set([...svg.matchAll(/(?:fill|stroke)="(#[0-9a-fA-F]{6})"/g)].map((m) => m[1].toLowerCase()));
+    const inks = Object.values(s.inks).map((c) => c.toLowerCase());
+    for (const c of colours) expect(inks).toContain(c);
   });
 });

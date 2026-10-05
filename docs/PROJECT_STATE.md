@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-05 (poster readout, WTH-183)
+Last updated: 2026-10-05 (Visual Record engine spike, WTH-187)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -12,7 +12,7 @@ Set by the user 2026-10-04 (ROADMAP.md, ADR-013): Visual Weather Records. Free d
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-WTH-183 done and merged into `main` (fast-forward, pushed 2026-10-05; `claude/poster-readout` can be deleted), with the `usePosterSnapshot()` hook (the user agreed a context provider made no sense). The user keeps the stand-in marking as it is and saw a render without the map (no Mapbox token in the cloud container); their look at a poster with the map is pending. Next: WTH-186, the code conventions (approved, on the board, four checkpoints on a dedicated branch, architect check first). Earlier: WTH-046 V1 complete and merged into `main`; WTH-046M PARKED.
+WTH-187, the Visual Record System (the poster's own graphic engine), Phase 3 spike on branch `claude/record-engine`, not wired into the real poster. Round 2 follows the user's Type Engine research: `typeVisualState` (`src/lib/weather/typography.ts`) sets the type from the atmosphere, `src/lib/record/compose.ts` lays out the three hand-made posters' structure, Swiss Flat SVG renderer, Natural Earth fixtures, dev route `/lab/record`, export script `scripts/record/export-sheet.mjs`. Waiting for the user's look at the eight exported records. Before Phase 4: geography source (WTH-194, ADR-009), record language (WTH-198, ADR-010), fixed type metrics (WTH-195), provenance in `RecordInput` (WTH-196). WTH-186 (code conventions) waits behind it.
 
 ## Last checkpoint
 WTH-183 (committed on `claude/poster-readout`, reviewed: no critical problems; I1 stand-in zeros invisible, I3 a whole day's false minute, M1 to M4 and M6 fixed; I2 is the user's call): the poster's foot drops the colour grid and the day of the year for a readout of the Weather Fingerprint (`src/components/poster/readout.ts`, `paintReadout` in `render-poster.ts`): a numeric stamp on the place's clock over eight fixed bars, no figures, dashed tracks for stand-ins. `PosterInput` gains `time`, `timeZone`, `allDay`, `fingerprint` and loses `dayKey`. Twelve tests. Before it, WTH-165.

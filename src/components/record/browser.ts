@@ -37,7 +37,8 @@ export async function loadRecordFonts(): Promise<void> {
   await Promise.all(
     [`100 ${DISPLAY_FAMILY}`, `900 ${DISPLAY_FAMILY}`, `400 ${MONO_FAMILY}`, `500 ${MONO_FAMILY}`].map((spec) => {
       const [weight, ...family] = spec.split(" ");
-      return document.fonts.load(`${weight} 40px "${family.join(" ")}"`, "AÁ°−0");
+      // One character from each subset, so the Latin Extended file is in before anything is measured
+      return document.fonts.load(`${weight} 40px "${family.join(" ")}"`, "AÁ°−0Łș");
     }),
   );
   await document.fonts.ready;

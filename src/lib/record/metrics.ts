@@ -3,7 +3,7 @@ import { placeSlug } from "./seed";
 
 export type Metric = { key: MetricKey; label: string; value: string };
 
-type MetricKey = "feels" | "range" | "wind" | "gust" | "humidity" | "uv" | "precip" | "pressure" | "visibility" | "cloud";
+export type MetricKey = "feels" | "range" | "wind" | "gust" | "humidity" | "uv" | "precip" | "pressure" | "visibility" | "cloud";
 
 /** What each family reports first; the fallbacks fill a cluster that a missing reading left short */
 export const FAMILY_METRICS: Record<ConditionFamily, MetricKey[]> = {
@@ -118,6 +118,22 @@ const TENS = ["", "", "twenty", "thirty", "forty", "fifty"];
 /** 31 -> "thirty-one", -24 -> "minus twenty-four": the minor motif NUMERAL + WORD */
 export function temperatureWords(t: number): string {
   const n = Math.abs(Math.round(t));
+  if (n >= 60) return String(Math.round(t));
   const words = n < 20 ? ONES[n] : `${TENS[Math.floor(n / 10)]}${n % 10 ? `-${ONES[n % 10]}` : ""}`;
   return `${t < -0.5 ? "minus " : ""}${words}`;
+}
+
+/**
+ * Up to `n` readings in the order asked, skipping missing ones and those in `used`, topped up from the fallbacks
+ * so a missing field never leaves a gap.
+ */
+export function metricsFor(order: MetricKey[], r: RecordInput, n: number, used: MetricKey[]): Metric[] {
+  const out: Metric[] = [];
+  for (const key of [...order, ...FALLBACK]) {
+    if (out.length === n) break;
+    if (used.includes(key) || out.some((m) => m.key === key)) continue;
+    const m = metric(key, r);
+    if (m) out.push(m);
+  }
+  return out;
 }

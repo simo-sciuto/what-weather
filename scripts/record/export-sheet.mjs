@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 /**
+ * Bundles with esbuild, which comes with vitest (vite) and is not a dependency of its own.
+ *
  * Exports the Visual Record spike (WTH-187): every test record as a full-size PNG (2480 x 3508), a contact sheet
  * and a sheet of 120 px thumbnails, through the browser's own type and the app's SVG-to-PNG export.
  *
@@ -8,7 +10,7 @@
 import { build } from "esbuild";
 import { createServer } from "node:http";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, extname } from "node:path";
+import { join, extname, normalize } from "node:path";
 import { chromium } from "@playwright/test";
 
 const outDir = process.argv[2] ?? "record-export";
@@ -31,14 +33,18 @@ const server = createServer((req, res) => {
     res.writeHead(200, { "content-type": "text/html" });
     return res.end(html);
   }
+  // Only the fonts the harness asks for: nothing outside public/fonts/record
+  const path = normalize(decodeURIComponent(req.url.split("?")[0]));
+  if (!path.startsWith("/fonts/record/")) return res.writeHead(404).end();
   try {
-    const body = readFileSync(join("public", decodeURIComponent(req.url.split("?")[0])));
+    const body = readFileSync(join("public", path));
     res.writeHead(200, { "content-type": extname(req.url) === ".woff2" ? "font/woff2" : "application/octet-stream" });
     res.end(body);
   } catch {
     res.writeHead(404).end();
   }
-}).listen(0);
+});
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const port = server.address().port;
 
 // A preinstalled Chromium when the environment has one (PLAYWRIGHT_CHROMIUM), else Playwright's own
