@@ -12,7 +12,8 @@ type Mapbox = typeof import("mapbox-gl").default;
  * changed), drawn off screen for the poster only, in two pictures:
  *
  * - "map": the whole map, as the page shows it, with the city on the spot the composition chose for it;
- * - "map-cut": the map's strong marks alone (water, motorways, main roads, railways, metro, tram), in their
+ * - "map-cut": the map's strong marks alone (lakes and rivers, motorways, main roads, railways, metro, tram; the
+ *   sea is taken out, so it stays under the type), in their
  *   own colours over a soft shadow, which the composition lays over its large type, inside the letters only: the
  *   city's roads pass over the numbers and the name.
  */
@@ -27,6 +28,102 @@ const PIXEL_RATIO = 2;
 /** The width of city the sheet spans at the page's top, as on the poster */
 const SPAN_METRES = 30_000;
 const MAP_TIMEOUT_MS = 25_000;
+/** How far past the sea's edge the cut is cleared, in print pixels, so its shore line goes with it */
+const SEA_EDGE = 6;
+/** Water this large, or touching this many of the sheet's edges and this large, is sea; smaller or enclosed is a lake */
+const SEA_SHARE = 0.06;
+const SEA_EDGES = 2;
+const SEA_EDGE_SHARE = 0.03;
+/** How many grid cells (8 print pixels each) the water is thinned by before it is measured: rivers narrower than about twice this come away */
+const THIN = 4;
+
+/**
+ * The sea in a picture of the water alone (black where there is water). Mapbox draws sea and lakes in one layer with
+ * nothing to tell them apart, so the picture is read: each patch of water is measured on a coarse grid, and a patch
+ * that is large, or that reaches two edges of the sheet and is not small, is the sea. A rule of thumb: a lake that
+ * fills half the sheet would read as sea.
+ */
+export function seaMask(water: HTMLCanvasElement): HTMLCanvasElement {
+  const step = 8;
+  const [gw, gh] = [Math.ceil(water.width / step), Math.ceil(water.height / step)];
+  const small = document.createElement("canvas");
+  [small.width, small.height] = [gw, gh];
+  const sctx = small.getContext("2d", { willReadFrequently: true });
+  const out = document.createElement("canvas");
+  [out.width, out.height] = [water.width, water.height];
+  if (!sctx) return out;
+  sctx.drawImage(water, 0, 0, gw, gh);
+  const px = sctx.getImageData(0, 0, gw, gh).data;
+  const water0 = new Uint8Array(gw * gh);
+  for (let i = 0; i < gw * gh; i++) water0[i] = px[i * 4 + 3] > 128 ? 1 : 0;
+  // Thinned first: a river, narrow, comes away from the sea it flows into, and is measured on its own
+  const pass = (from: Uint8Array, keep: (v: number[]) => boolean, within?: Uint8Array) => {
+    const to = new Uint8Array(from.length);
+    for (let y = 0; y < gh; y++)
+      for (let x = 0; x < gw; x++) {
+        const i = y * gw + x;
+        const around = [from[i], x > 0 ? from[i - 1] : 0, x < gw - 1 ? from[i + 1] : 0, y > 0 ? from[i - gw] : 0, y < gh - 1 ? from[i + gw] : 0];
+        to[i] = keep(around) && (!within || within[i]) ? 1 : 0;
+      }
+    return to;
+  };
+  let wet = water0;
+  for (let k = 0; k < THIN; k++) wet = pass(wet, (v) => v.every(Boolean));
+  const label = new Int32Array(gw * gh).fill(-1);
+  const seaCells = new Uint8Array(gw * gh);
+  const stack: number[] = [];
+  let id = 0;
+  for (let start = 0; start < wet.length; start++) {
+    if (!wet[start] || label[start] >= 0) continue;
+    const cells: number[] = [];
+    let edges = 0;
+    const touched = [false, false, false, false];
+    stack.push(start);
+    label[start] = id;
+    while (stack.length) {
+      const i = stack.pop() as number;
+      cells.push(i);
+      const [x, y] = [i % gw, Math.floor(i / gw)];
+      if (x === 0) touched[0] = true;
+      if (x === gw - 1) touched[1] = true;
+      if (y === 0) touched[2] = true;
+      if (y === gh - 1) touched[3] = true;
+      for (const [nx, ny] of [
+        [x - 1, y],
+        [x + 1, y],
+        [x, y - 1],
+        [x, y + 1],
+      ]) {
+        if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue;
+        const j = ny * gw + nx;
+        if (wet[j] && label[j] < 0) {
+          label[j] = id;
+          stack.push(j);
+        }
+      }
+    }
+    edges = touched.filter(Boolean).length;
+    const share = cells.length / (gw * gh);
+    if (share >= SEA_SHARE || (edges >= SEA_EDGES && share >= SEA_EDGE_SHARE)) for (const i of cells) seaCells[i] = 1;
+    id++;
+  }
+  // Then grown back over the water it was thinned from, so the sea keeps its own shore (and a river only its mouth)
+  let grown = seaCells;
+  for (let k = 0; k < THIN + 1; k++) grown = pass(grown, (v) => v.some(Boolean), water0);
+  const img = sctx.createImageData(gw, gh);
+  for (let i = 0; i < gw * gh; i++) img.data[i * 4 + 3] = grown[i] ? 255 : 0;
+  sctx.putImageData(img, 0, 0);
+  const octx = out.getContext("2d");
+  if (octx) {
+    octx.imageSmoothingEnabled = true;
+    // Only the sea's own pixels, at full resolution: the coarse mask chooses the patches, the water picture draws them
+    octx.drawImage(small, 0, 0, out.width, out.height);
+    octx.globalCompositeOperation = "source-in";
+    octx.drawImage(water, 0, 0);
+  }
+  return out;
+}
+
 /** The shadow under the lines laid over the type, in print pixels */
 const SHADOW_BLUR = 10;
 const SHADOW_OFFSET = 4;
@@ -152,10 +249,35 @@ export async function drawRecordMap(o: RecordMapInput): Promise<{ map: string; "
       m.addLayer({ id: SHORE, type: "line", source: "streets", "source-layer": "water", paint: { "line-color": water, "line-width": 1.6 } });
       keep.add(SHORE);
     }
+    // First the water alone, to tell the sea from lakes and wide rivers: the sea stays under the type
+    let sea: HTMLCanvasElement | null = null;
+    if (showing.has("water")) {
+      for (const id of keep) m.setLayoutProperty(id, "visibility", "none");
+      m.setLayoutProperty("water", "visibility", "visible");
+      m.setPaintProperty("water", "fill-opacity", 1);
+      m.setPaintProperty("water", "fill-color", "#000");
+      await idle(m);
+      sea = seaMask(copy(m, W, H));
+      m.setPaintProperty("water", "fill-color", o.palette.map.water.color);
+      for (const id of keep) m.setLayoutProperty(id, "visibility", "visible");
+    }
     for (const id of keep)
       if (id !== SHORE) m.setPaintProperty(id, m.getLayer(id)?.type === "fill" ? "fill-opacity" : "line-opacity", 1);
     await idle(m);
-    const cut = overShadow(copy(m, W, H));
+    const lines = copy(m, W, H);
+    if (sea) {
+      // The sea and its shore taken out of the cut, a little wider than the water so its edge goes too
+      const ctx = lines.getContext("2d");
+      if (ctx) {
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.filter = `blur(${Math.round(SEA_EDGE)}px)`;
+        ctx.drawImage(sea, 0, 0);
+        ctx.filter = "none";
+        ctx.drawImage(sea, 0, 0);
+        ctx.globalCompositeOperation = "source-over";
+      }
+    }
+    const cut = overShadow(lines);
 
     return { map: whole.toDataURL("image/png"), "map-cut": cut.toDataURL("image/png") };
   } finally {
