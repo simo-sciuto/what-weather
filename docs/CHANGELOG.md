@@ -3,6 +3,7 @@
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
 ## 2026-10-06
+- WTH-214 (checkpoint 1, branch `claude/territorio-page`, not merged): the place's Territorio is a page of its own, `/territorio?lat&lon&name`, with the content it had as a chapter; the weather page keeps one link row where the chapter was (only with a Mapbox token). A place with nothing known says so instead of showing a blank page. `territoryHref` beside `placeHref`.
 - WTH-212 (the credit): the poster and its exports credit the weather data's source on the credits line, "WEATHER DATA OPEN-METEO.COM" or "WEATHER DATA OPENWEATHER" by the provider in use, none for sample data; Open-Meteo's CC BY 4.0 and OpenWeather's licence ask for it.
 - WTH-196: the poster's facts say where they come from (ADR-006): an hour between two of the provider's points prints its figures as "~17°", and a partial day's range or an estimated humidity or visibility is not printed (another reading takes its place).
 - WTH-204: the poster's sea is found in one pass over the water's grid (`seaGrid`), the same result as before; a long harbour at print size took 3.6 s, now 26 ms.

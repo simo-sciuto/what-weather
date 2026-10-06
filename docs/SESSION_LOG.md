@@ -2,6 +2,12 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-06 (licences, areas, Territorio page)
+- Worked on: WTH-166 research (docs/LICENCES.md; the poster now credits the weather data's source, WTH-212), the areas of the app (docs/APP_AREAS.md: Meteo, Territorio, Record; the user chose Territorio as a page of its own and wants it richer, WTH-214, WTH-215, WTH-216), and checkpoint 1 of WTH-214 after the architect's check.
+- Decided by the user: a page, not a tab; Territorio to help understand the place and choose where to go.
+- Not verified: the official terms of Mapbox, Open-Meteo and OpenWeather (blocked in the container, read through search summaries); the Territorio page with real Mapbox data (the user's look).
+- Next: the user's look at `/territorio`, then the terrain map (WTH-216).
+
 ## 2026-10-06 (poster closed, sea and provenance)
 - Closed with the user's look at real exports (Torino, El Paso, Bergamo; iPhone): WTH-187, WTH-199, WTH-200, WTH-203.
 - Done and reviewed: WTH-204 (`seaGrid`, one flood, identical output, 3.6 s to 26 ms on a long harbour), WTH-196 (`RecordInput.provenance`; "~" on an interpolated hour, no partial range or estimated air printed).
