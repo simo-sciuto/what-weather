@@ -58,14 +58,15 @@ export const PAGE_INK = "#ffffff";
 export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<InkRole, string> {
   const p = atmospherePalette(light, a);
   const [r, g, b] = (tempColor(temp).match(/\d+/g) ?? ["255", "255", "255"]).slice(0, 3).map(Number);
+  // Every ink a little into the sky of the moment, so the type sits in the scene instead of shouting over it
   return {
     paper: p.sky2,
-    "ink-1": PAGE_INK,
-    "ink-2": `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`,
+    "ink-1": mix(PAGE_INK, p.sky2, 0.14),
+    "ink-2": mix(`#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`, p.sky2, 0.28),
     accent: RECORD_ACCENT,
     brand: BRAND_BUTTER,
     // The ground seen through the hole, and the place's name: the moment's own light (a warm sun by day, a cold
-    // moon at night) taken a little toward the sky's horizon, so it belongs to the scene
-    hole: mix(p.sun.startsWith("#") ? p.sun : HOLE_GROUND, p.sky3, 0.22),
+    // moon at night) taken well toward the sky, soft rather than bright
+    hole: mix(p.sun.startsWith("#") ? p.sun : HOLE_GROUND, p.sky2, 0.42),
   };
 }

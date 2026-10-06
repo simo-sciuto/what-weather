@@ -405,7 +405,6 @@ function hole(c: Ctx, city: Point, preferred: boolean, slot: Point): Plan {
         ink: "hole",
         opacity: 1,
         z: "type-back",
-        stroke: 0.025,
         stretch: stretched ? { sx: pull, origin: [x, y] } : undefined,
       });
       x += stretched ? w * pull : w;

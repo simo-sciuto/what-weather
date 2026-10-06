@@ -127,7 +127,7 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
     // A hole: the edges of what lies around it cast a soft shadow inside, from the top left
     if (l.inset) {
       const fid = id(`hole-${l.id}`);
-      // Two shadows: a fine one, close and darker, that draws the cut edge; a broad, faint one for the depth
+      // Two shadows: a soft one close to the edge, and a broad, deep one: the hole reads deep, its edge gentle
       const shadow = (inn: string, blur: number, off: number, opacity: number, out: string) =>
         `<feGaussianBlur in="${inn}" stdDeviation="${n(blur * W)}" result="${out}-b"/>` +
         `<feOffset in="${out}-b" dx="${n(off * W)}" dy="${n(off * W)}" result="${out}-o"/>` +
@@ -137,8 +137,8 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
       defs.push(
         `<filter id="${fid}" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse">` +
           `<feComponentTransfer in="SourceAlpha" result="outside"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>` +
-          shadow("outside", 0.0012, 0.0025, 0.6, "edge") +
-          shadow("outside", 0.008, 0.007, 0.28, "depth") +
+          shadow("outside", 0.003, 0.003, 0.32, "edge") +
+          shadow("outside", 0.016, 0.012, 0.55, "depth") +
           `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="depth"/><feMergeNode in="edge"/></feMerge></filter>`,
       );
       inner = `<g filter="url(#${fid})">${inner}</g>`;
