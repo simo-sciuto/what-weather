@@ -17,6 +17,10 @@ import {
 import { NarrativeText } from "../time/NarrativeText";
 import { HeroCondition, HeroGlyph, HeroTemp } from "../time/HeroTemp";
 
+/** The width of a capital of the name and of a figure of the temperature, in the title's em (Climate Crisis) */
+const NAME_EM = 0.98 * 0.74;
+const TEMP_EM = 0.82;
+
 /**
  * The reading as a Swiss typographic poster, on a six-column grid, flush left
  * and ragged right. From the top: the two actions; then one composition: the
@@ -57,10 +61,11 @@ export function WeatherHero({
     ...[current.temp, range.min, range.max].map((t) => formatTemp(t).length),
   );
   // The whole width is 100 units, 96 of them kept for the line, so no word ever breaks onto a second
-  // line (a heavy grotesk runs about 0.58em a letter).
+  // line. Climate Crisis (ADR-014) is wide: a capital runs about 0.98em, set at 0.74 of the title (NAME_EM),
+  // a figure about 0.82em at 1.9 times it (TEMP_EM).
   const titleSize = Math.min(
     15,
-    96 / (0.58 * longest + 0.58 * 1.9 * widestTemp + 0.1),
+    96 / (NAME_EM * longest + TEMP_EM * 1.9 * widestTemp + 0.1),
     place.name.length > 20 ? 8 : 15,
   );
 
@@ -85,7 +90,7 @@ export function WeatherHero({
       <div className="rise-in pt-4 lg:hidden">
         <div
           style={{
-            fontSize: `min(4.25rem, ${(92 / (0.58 * longest)).toFixed(2)}vw)`,
+            fontSize: `min(4.25rem, ${(92 / (NAME_EM * longest)).toFixed(2)}vw)`,
           }}
         >
           <LocationControl />

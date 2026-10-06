@@ -190,14 +190,22 @@ body {
 }
 
 /*
- * The place name, as on a Swiss poster: a heavy grotesk, set tight (letters
- * nearly touching, lines nearly overlapping), flush left.
+ * The place name, as on a Swiss poster, set in Climate Crisis on the year of the moment on show (ADR-014): its
+ * letters melt as the Arctic ice did that year. Flush left, lines close.
  */
 .display-caps {
-  font-family: var(--font-poster);
-  font-weight: 800;
-  letter-spacing: -0.045em;
+  font-family: var(--font-climate), var(--font-poster);
+  font-weight: 400;
+  font-variation-settings: "YEAR" var(--climate-year, 1979);
+  letter-spacing: -0.01em;
   line-height: 0.86;
+}
+
+/* The temperature, in the same face and year as the name (ADR-014) */
+.climate {
+  font-family: var(--font-climate), var(--font-poster);
+  font-weight: 400;
+  font-variation-settings: "YEAR" var(--climate-year, 1979);
 }
 /* On a phone the name's lines sit closer still */
 @media (width < 64rem) {
