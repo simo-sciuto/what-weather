@@ -12,6 +12,7 @@ CLAUDE.md (loaded automatically), docs/PROJECT_STATE.md, docs/BOARD.md
 | UI, layout, copy, interaction | PRODUCT.md, ARCHITECTURE.md (UI structure) |
 | Anything that touches an earlier decision | DECISIONS.md |
 | Weather Visual Engine: V1 plan, subtask scope, atmospheric grammar | WEATHER_VISUAL_ENGINE.md, DECISIONS.md |
+| The app's areas (Meteo, Territorio, Record), where a new feature goes | APP_AREAS.md, ROADMAP.md |
 | Selling records: data, map and hosting licences | LICENCES.md, ROADMAP.md |
 | Planning, "what next" | ROADMAP.md, BOARD.md |
 | "What did we do" | CHANGELOG.md, SESSION_LOG.md |
