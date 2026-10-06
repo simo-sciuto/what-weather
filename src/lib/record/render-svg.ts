@@ -39,15 +39,8 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
     return `font-family="${family}" font-size="${n(f.size * W)}" style="font-weight:${f.wght};${variation}letter-spacing:${n(f.tracking * f.size * W)}px;font-kerning:normal"`;
   };
 
-  const transformOf = (l: SceneLayer) => {
-    if (!l.transform) return "";
-    const [ox, oy] = [n(l.transform.origin[0] * W), n(l.transform.origin[1] * H)];
-    const turn = l.transform.rotate ? `rotate(${l.transform.rotate} ${ox} ${oy})` : "";
-    const sx = l.transform.scaleX;
-    const pull = sx && sx !== 1 ? `translate(${ox} ${oy}) scale(${sx.toFixed(3)} 1) translate(${-ox} ${-oy})` : "";
-    const both = [turn, pull].filter(Boolean).join(" ");
-    return both ? ` transform="${both}"` : "";
-  };
+  const transformOf = (l: SceneLayer) =>
+    l.transform ? ` transform="rotate(${l.transform.rotate} ${n(l.transform.origin[0] * W)} ${n(l.transform.origin[1] * H)})"` : "";
 
   const textOf = (l: SceneLayer, fill: string, withHalo = true) => {
     if (l.payload.kind !== "text") return "";
@@ -139,7 +132,12 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
           `<feComponentTransfer in="SourceAlpha" result="outside"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>` +
           shadow("outside", 0.003, 0.003, 0.32, "edge") +
           shadow("outside", 0.016, 0.012, 0.55, "depth") +
-          `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="depth"/><feMergeNode in="edge"/></feMerge></filter>`,
+          // The glow: light from under the map coming up through the hole, a thin halo at its edge
+          (l.glow
+            ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${n(0.007 * W)}" result="halo-b"/>` +
+              `<feComponentTransfer in="halo-b" result="halo"><feFuncA type="linear" slope="0.4"/></feComponentTransfer>`
+            : "") +
+          `<feMerge>${l.glow ? `<feMergeNode in="halo"/>` : ""}<feMergeNode in="SourceGraphic"/><feMergeNode in="depth"/><feMergeNode in="edge"/></feMerge></filter>`,
       );
       inner = `<g filter="url(#${fid})">${inner}</g>`;
     }

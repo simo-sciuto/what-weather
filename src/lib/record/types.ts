@@ -128,8 +128,7 @@ export type Clip = {
   glyphsOf?: string[];
 };
 
-/** A turn and, for a letter pulled sideways, a horizontal stretch, both about `origin` */
-export type Transform = { rotate: number; origin: Point; scaleX?: number };
+export type Transform = { rotate: number; origin: Point };
 
 export type SceneLayer = {
   id: string;
@@ -141,6 +140,8 @@ export type SceneLayer = {
   clip?: Clip;
   /** Drawn as a hole in what lies under it: the edges cast a shadow inside the shape, down from the top left */
   inset?: boolean;
+  /** A soft light of the layer's own ink round it, as if it shone out of the map */
+  glow?: boolean;
   payload: TextPayload | PathsPayload | RectPayload | NodePayload | ImagePayload | ShadePayload;
 };
 

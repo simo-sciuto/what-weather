@@ -1,6 +1,5 @@
 import type { AtmosphereAxes } from "@/lib/weather/atmosphere";
 import { atmospherePalette } from "@/lib/weather/palette";
-import { tempColor } from "@/lib/weather/temp-color";
 import { HAZE_ONSET } from "@/lib/weather/atmosphere";
 import type { InkRole } from "./types";
 
@@ -50,23 +49,24 @@ export function recordInks(a: AtmosphereAxes): Record<InkRole, string> {
 export const PAGE_INK = "#ffffff";
 
 /**
- * The inks over the poster's own map, from the colour study already in the app and nothing else: the paper is the
- * sky of the moment (`atmospherePalette`), the small type is the page's white, and the place's name and the
- * temperature carry the temperature's colour on the absolute scale (`tempColor`, ADR-012: a temperature's figure
- * never takes a weathered colour), as the page and the old poster set them. The city's mark keeps the one accent.
+ * The inks over the poster's own map, from the atmosphere engine only: the paper is the sky of the moment
+ * (`atmospherePalette`), the small type the page's white, the place's name the moment's own light, and the ground
+ * seen through the temperature's hole that light taken far toward the sky. The city's mark keeps the one accent.
+ * The temperature is a hole, not a figure here, so it does not take the absolute temperature scale (ADR-012).
  */
-export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<InkRole, string> {
-  const p = atmospherePalette(light, a);
-  const [r, g, b] = (tempColor(temp).match(/\d+/g) ?? ["255", "255", "255"]).slice(0, 3).map(Number);
-  // Every ink a little into the sky of the moment, so the type sits in the scene instead of shouting over it
+export function mapInks(daylight: number, a: AtmosphereAxes): Record<InkRole, string> {
+  const p = atmospherePalette(daylight, a);
+  // Every ink a little into the sky of the moment, so the type sits in the scene instead of shouting over it. The
+  // moment's own light: a warm sun by day, a cold moon at night
+  const light = p.sun.startsWith("#") ? p.sun : HOLE_GROUND;
   return {
     paper: p.sky2,
     "ink-1": mix(PAGE_INK, p.sky2, 0.14),
-    "ink-2": mix(`#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`, p.sky2, 0.28),
+    // The place's name (and its region on the sheet): the moment's own light, nearly whole, so it shines
+    "ink-2": mix(light, p.sky2, 0.12),
     accent: RECORD_ACCENT,
     brand: BRAND_BUTTER,
-    // The ground seen through the hole, and the place's name: the moment's own light (a warm sun by day, a cold
-    // moon at night) taken well toward the sky, soft rather than bright
-    hole: mix(p.sun.startsWith("#") ? p.sun : HOLE_GROUND, p.sky2, 0.42),
+    // The ground seen through the hole: the same light taken far toward the sky, so the temperature stays quiet
+    hole: mix(light, p.sky2, 0.64),
   };
 }

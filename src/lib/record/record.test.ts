@@ -243,11 +243,10 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
       expect(dom.inkRole).toBe("hole");
       expect(dom.inset).toBe(true);
       expect(s.inks.hole).not.toBe("#ffffff");
-      // Wider than the sheet: a decoration, not a figure
-      if (dom.payload.kind === "text") expect(measure(dom.payload.lines[0].text, dom.payload.font)).toBeGreaterThan(1);
+      // Large, but inside the sheet
+      if (dom.payload.kind === "text") expect(measure(dom.payload.lines[0].text, dom.payload.font)).toBeLessThan(1);
       const cut = s.layers.find((l) => l.id === "map-cut")!;
-      expect(cut.clip?.glyphsOf?.[0]).toBe("dominant");
-      expect(cut.clip?.glyphsOf?.slice(1).every((id) => id.startsWith("place-"))).toBe(true);
+      expect(cut.clip?.glyphsOf).toEqual(["dominant", "place"]);
       expect(cut.z).toBeGreaterThan(dom.z);
     }
   });
@@ -262,7 +261,7 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
     expect(all.join(" ")).toContain("WW / 2026 / 278 / TOKYO");
     // Only the name and the temperature take the large face
     for (const l of s.layers)
-      if (l.payload.kind === "text" && l.payload.font.family === "display") expect(l.id === "dominant" || l.id.startsWith("place-")).toBe(true);
+      if (l.payload.kind === "text" && l.payload.font.family === "display") expect(["dominant", "place"]).toContain(l.id);
   });
 
   it("sets the home page's wordmark: what, a butter bar, weather", () => {
@@ -274,22 +273,23 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
     expect(s.inks.brand).toBe("#f9e8a7");
   });
 
-  it("sets the name and the hole in the atmosphere's colour, the accent kept", () => {
+  it("sets the name and the hole in the atmosphere's light, the hole quieter, no stroke, the accent kept", () => {
     const s = raster("tokyo");
     expect(s.inks.accent).toBe(RECORD_ACCENT);
-    expect(s.layers.filter((l) => l.id.startsWith("place-")).every((l) => l.inkRole === "hole")).toBe(true);
+    const place = s.layers.find((l) => l.id === "place")!;
+    expect(place.inkRole).toBe("ink-2");
+    expect(place.inset).toBe(true);
+    expect(place.glow).toBe(true);
     expect(s.layers.find((l) => l.id === "dominant")!.inkRole).toBe("hole");
+    // The hole quieter than the name: nearer the sky
+    expect(place.payload.kind === "text" && place.payload.stroke).toBeFalsy();
   });
 
-  it("pulls one letter of each line of the name sideways, deterministically, and keeps the name whole", () => {
-    const s = raster("san-cristobal");
-    const letters = s.layers.filter((l) => l.id.startsWith("place-"));
-    const rows = new Set(letters.map((l) => l.id.split("-")[1]));
-    expect(rows.size).toBeLessThanOrEqual(2);
-    for (const row of rows) expect(letters.filter((l) => l.id.split("-")[1] === row && (l.transform?.scaleX ?? 1) > 1)).toHaveLength(1);
-    const text = [...rows].map((row) => letters.filter((l) => l.id.split("-")[1] === row).map((l) => (l.payload.kind === "text" ? l.payload.lines[0].text : "")).join("")).join(" ");
-    expect(text).toBe("SAN CRISTOBAL DE LAS CASAS");
-    expect(raster("san-cristobal")).toEqual(s);
+  it("fits a long name on two lines at the foot, whole and unstretched", () => {
+    const place = raster("san-cristobal").layers.find((l) => l.id === "place")!;
+    expect(place.transform).toBeUndefined();
+    expect(place.payload.kind === "text" && place.payload.lines.length).toBeLessThanOrEqual(2);
+    expect(place.payload.kind === "text" && place.payload.lines.map((l) => l.text).join(" ")).toBe("SAN CRISTOBAL DE LAS CASAS");
   });
 
   it("puts the pictures it is given into the SVG", () => {
@@ -298,7 +298,7 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
     expect(svg).toContain('href="data:image/png;base64,BB=="');
     expect(svg).toContain("WW Record Brand");
     expect(svg).toContain('tableValues="1 0"'); // the hole's inner shadow
-    expect(svg).toMatch(/scale\(\d\.\d+ 1\)/); // a letter pulled sideways
+    expect(svg).not.toMatch(/scale\(/); // no letter stretched
   });
 });
 

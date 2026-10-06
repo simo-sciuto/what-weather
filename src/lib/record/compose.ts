@@ -79,10 +79,10 @@ type Text = {
   z: SceneLayer["role"];
   /** Drawn as a hole in the map (the temperature) */
   inset?: boolean;
+  /** A soft light round it (the name) */
+  glow?: boolean;
   /** A stroke in the letters' own ink, in em */
   stroke?: number;
-  /** A letter pulled sideways: its horizontal stretch about its baseline's left end */
-  stretch?: { sx: number; origin: Point };
 };
 
 type Plan = {
@@ -365,52 +365,24 @@ function hole(c: Ctx, city: Point, preferred: boolean, slot: Point): Plan {
   const texts: Text[] = [];
   const bottom = c.bottom;
 
-  // The temperature across the whole sheet, a little past both edges, centred on the sheet's height
+  // The temperature large but inside the sheet, centred on its width and height: a quiet hole, not a headline
   const num = degrees(c.r.temp);
   const nf0 = display({ weight: 800, width: 100, tracking: -0.04 }, 1, -0.04);
   const unit = width(c, num, nf0);
-  const numSize = (REF_W * 1.06) / unit;
+  const numSize = (REF_W * 0.86) / unit;
   const numX = (REF_W - unit * numSize) / 2;
   const numBase = bottom * 0.56 + (CAP * numSize) / 2;
   texts.push({ id: "dominant", lines: [{ text: num, x: numX, y: numBase }], font: { ...nf0, size: numSize }, ink: "hole", opacity: 1, z: "type-back", inset: true });
 
-  // The name at the foot, in the hole's colour, as large as the width allows over the wordmark, one letter of each
-  // line pulled sideways to the right: which one the seed picks, how far the wind says
+  // The name at the foot, in the moment's light, as large as the width allows over the wordmark, a hole in the map
+  // like the temperature
   const markBase = bottom - 26;
-  const pull = 1.6 + Math.min(1, (c.r.windSpeed ?? 0) / 40) * 0.9;
-  const pick = mulberry32(recordSeed(c.r.place.name, c.r.date, "stretch"));
-  const fitted = fitName(c, 120, (R - M) / 1.3, 2, -0.03, 800);
-  const unitFont = { ...fitted.font, size: 1 };
-  const shaped = fitted.lines.map((text) => {
-    const letters = [...text];
-    const candidates = letters.map((ch, i) => i).filter((i) => /[A-ZÀ-ÖØ-Þ]/.test(letters[i]) && !/[IJ]/.test(letters[i]));
-    const at = candidates.length ? candidates[Math.floor(pick() * candidates.length)] : -1;
-    const widths = letters.map((ch) => width(c, ch, unitFont));
-    const total = widths.reduce((a, w, i) => a + (i === at ? w * pull : w), 0);
-    return { letters, at, widths, total };
-  });
-  const sz = Math.min(120, (R - M) / Math.max(...shaped.map((l) => l.total)));
+  const fitted = fitName(c, 120, R - M, 2, -0.03, 800);
+  const sz = fitted.font.size;
   const nameBase = markBase - 30;
-  const nameFont = { ...fitted.font, size: sz };
-  shaped.forEach((line, li) => {
-    const y = nameBase - (shaped.length - 1 - li) * sz * 0.92;
-    let x = M - sz * 0.03;
-    line.letters.forEach((ch, i) => {
-      const w = line.widths[i] * sz;
-      const stretched = i === line.at;
-      texts.push({
-        id: `place-${li}-${i}`,
-        lines: [{ text: ch, x, y }],
-        font: nameFont,
-        ink: "hole",
-        opacity: 1,
-        z: "type-back",
-        stretch: stretched ? { sx: pull, origin: [x, y] } : undefined,
-      });
-      x += stretched ? w * pull : w;
-    });
-  });
-  const fittedLines = shaped.length;
+  const lines = fitted.lines.map((text, i) => ({ text, x: M - sz * 0.03, y: nameBase - (fitted.lines.length - 1 - i) * sz * 0.92 }));
+  texts.push({ id: "place", lines, font: fitted.font, ink: "ink-2", opacity: 1, z: "type-back", inset: true, glow: true });
+  const fittedLines = fitted.lines.length;
 
   // The facts, gathered as a square block on the grid (no fill, no border): the condition, four readings, the place's region and country, its coordinates
   const [bx, by] = slot;
@@ -447,7 +419,7 @@ function hole(c: Ctx, city: Point, preferred: boolean, slot: Point): Plan {
     node: "dot",
     coords: { id: "city-coords", lines: [], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" },
     rules: [],
-    placeFit: `hole, ${fitted.step}, ${fittedLines} line(s), pulled ${pull.toFixed(2)}`,
+    placeFit: `hole, ${fitted.step}, ${fittedLines} line(s)`,
     fitScore: 1,
     preferred,
     cut: true,
@@ -603,17 +575,16 @@ export function getRecordComposition(
   // The scene's space is normalized: y over the height. The plan is in reference units, the map in sheet units
   const N = (p: Point): Point => [p[0], p[1] / aspect];
   const P = (p: Point): Point => N([ref.x(p[0]), ref.y(p[1])]);
-  const inks = raster ? mapInks(r.light ?? 0.5, atmosphere, r.temp) : recordInks(atmosphere);
+  const inks = raster ? mapInks(r.light ?? 0.5, atmosphere) : recordInks(atmosphere);
   const text = (t: Text) => {
     add({
       id: t.id,
       role: t.z,
       inkRole: t.ink,
       inset: t.inset,
+      glow: t.glow,
       opacity: t.opacity,
-      transform: t.rotate
-        ? { rotate: t.rotate.deg, origin: P(t.rotate.origin) }
-        : t.stretch && { rotate: 0, origin: P(t.stretch.origin), scaleX: t.stretch.sx },
+      transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
       payload: {
         kind: "text",
         lines: t.lines.map((l) => ({ ...l, x: ref.x(l.x), y: ref.y(l.y) / aspect })),
