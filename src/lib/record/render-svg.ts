@@ -39,12 +39,20 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
     return `font-family="${family}" font-size="${n(f.size * W)}" style="font-weight:${f.wght};${variation}letter-spacing:${n(f.tracking * f.size * W)}px;font-kerning:normal"`;
   };
 
-  const transformOf = (l: SceneLayer) =>
-    l.transform ? ` transform="rotate(${l.transform.rotate} ${n(l.transform.origin[0] * W)} ${n(l.transform.origin[1] * H)})"` : "";
+  const transformOf = (l: SceneLayer) => {
+    if (!l.transform) return "";
+    const [ox, oy] = [n(l.transform.origin[0] * W), n(l.transform.origin[1] * H)];
+    const turn = l.transform.rotate ? `rotate(${l.transform.rotate} ${ox} ${oy})` : "";
+    const sx = l.transform.scaleX;
+    const pull = sx && sx !== 1 ? `translate(${ox} ${oy}) scale(${sx.toFixed(3)} 1) translate(${-ox} ${-oy})` : "";
+    const both = [turn, pull].filter(Boolean).join(" ");
+    return both ? ` transform="${both}"` : "";
+  };
 
   const textOf = (l: SceneLayer, fill: string, withHalo = true) => {
     if (l.payload.kind !== "text") return "";
     const p = l.payload;
+    const fill_ = p.stroke ? ` stroke="${fill}" stroke-width="${n(p.stroke * p.font.size * W)}" stroke-linejoin="round"` : "";
     const halo =
       withHalo && p.halo
         ? ` stroke="${scene.inks[p.halo]}" stroke-width="${n(p.font.size * W * 0.32)}" stroke-linejoin="round" paint-order="stroke"`
@@ -52,7 +60,7 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
     return p.lines
       .map(
         (line) =>
-          `<text x="${n(line.x * W)}" y="${n(line.y * H)}" ${fontAttrs(p.font)} text-anchor="${p.anchor}" fill="${fill}"${halo}${transformOf(l)}>${esc(line.text)}</text>`,
+          `<text x="${n(line.x * W)}" y="${n(line.y * H)}" ${fontAttrs(p.font)} text-anchor="${p.anchor}" fill="${fill}"${fill_}${halo}${transformOf(l)}>${esc(line.text)}</text>`,
       )
       .join("");
   };
@@ -119,17 +127,19 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
     // A hole: the edges of what lies around it cast a soft shadow inside, from the top left
     if (l.inset) {
       const fid = id(`hole-${l.id}`);
-      const blur = n(0.009 * W);
-      const off = n(0.006 * W);
+      // Two shadows: a fine one, close and darker, that draws the cut edge; a broad, faint one for the depth
+      const shadow = (inn: string, blur: number, off: number, opacity: number, out: string) =>
+        `<feGaussianBlur in="${inn}" stdDeviation="${n(blur * W)}" result="${out}-b"/>` +
+        `<feOffset in="${out}-b" dx="${n(off * W)}" dy="${n(off * W)}" result="${out}-o"/>` +
+        `<feFlood flood-color="#000" flood-opacity="${opacity}"/>` +
+        `<feComposite in2="${out}-o" operator="in" result="${out}-c"/>` +
+        `<feComposite in="${out}-c" in2="SourceAlpha" operator="in" result="${out}"/>`;
       defs.push(
         `<filter id="${fid}" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse">` +
           `<feComponentTransfer in="SourceAlpha" result="outside"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>` +
-          `<feGaussianBlur in="outside" stdDeviation="${blur}" result="soft"/>` +
-          `<feOffset in="soft" dx="${off}" dy="${off}" result="cast"/>` +
-          `<feFlood flood-color="#000" flood-opacity="0.7"/>` +
-          `<feComposite in2="cast" operator="in" result="shade"/>` +
-          `<feComposite in="shade" in2="SourceAlpha" operator="in" result="inner"/>` +
-          `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="inner"/></feMerge></filter>`,
+          shadow("outside", 0.0012, 0.0025, 0.6, "edge") +
+          shadow("outside", 0.008, 0.007, 0.28, "depth") +
+          `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="depth"/><feMergeNode in="edge"/></feMerge></filter>`,
       );
       inner = `<g filter="url(#${fid})">${inner}</g>`;
     }

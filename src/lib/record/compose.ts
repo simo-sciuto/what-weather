@@ -79,6 +79,10 @@ type Text = {
   z: SceneLayer["role"];
   /** Drawn as a hole in the map (the temperature) */
   inset?: boolean;
+  /** A stroke in the letters' own ink, in em */
+  stroke?: number;
+  /** A letter pulled sideways: its horizontal stretch about its baseline's left end */
+  stretch?: { sx: number; origin: Point };
 };
 
 type Plan = {
@@ -370,13 +374,44 @@ function hole(c: Ctx, city: Point, preferred: boolean, slot: Point): Plan {
   const numBase = bottom * 0.56 + (CAP * numSize) / 2;
   texts.push({ id: "dominant", lines: [{ text: num, x: numX, y: numBase }], font: { ...nf0, size: numSize }, ink: "hole", opacity: 1, z: "type-back", inset: true });
 
-  // The name at the foot, as large as the width allows, over the wordmark
+  // The name at the foot, in the hole's colour, as large as the width allows over the wordmark, one letter of each
+  // line pulled sideways to the right: which one the seed picks, how far the wind says
   const markBase = bottom - 26;
-  const fitted = fitName(c, 92, R - M, 2, -0.02, 800);
-  const sz = fitted.font.size;
+  const pull = 1.6 + Math.min(1, (c.r.windSpeed ?? 0) / 40) * 0.9;
+  const pick = mulberry32(recordSeed(c.r.place.name, c.r.date, "stretch"));
+  const fitted = fitName(c, 120, (R - M) / 1.3, 2, -0.03, 800);
+  const unitFont = { ...fitted.font, size: 1 };
+  const shaped = fitted.lines.map((text) => {
+    const letters = [...text];
+    const candidates = letters.map((ch, i) => i).filter((i) => /[A-ZÀ-ÖØ-Þ]/.test(letters[i]) && !/[IJ]/.test(letters[i]));
+    const at = candidates.length ? candidates[Math.floor(pick() * candidates.length)] : -1;
+    const widths = letters.map((ch) => width(c, ch, unitFont));
+    const total = widths.reduce((a, w, i) => a + (i === at ? w * pull : w), 0);
+    return { letters, at, widths, total };
+  });
+  const sz = Math.min(120, (R - M) / Math.max(...shaped.map((l) => l.total)));
   const nameBase = markBase - 30;
-  const lines = fitted.lines.map((text, i) => ({ text, x: M - sz * 0.03, y: nameBase - (fitted.lines.length - 1 - i) * sz * 0.92 }));
-  texts.push({ id: "place", lines, font: fitted.font, ink: "ink-2", opacity: 1, z: "type-back" });
+  const nameFont = { ...fitted.font, size: sz };
+  shaped.forEach((line, li) => {
+    const y = nameBase - (shaped.length - 1 - li) * sz * 0.92;
+    let x = M - sz * 0.03;
+    line.letters.forEach((ch, i) => {
+      const w = line.widths[i] * sz;
+      const stretched = i === line.at;
+      texts.push({
+        id: `place-${li}-${i}`,
+        lines: [{ text: ch, x, y }],
+        font: nameFont,
+        ink: "hole",
+        opacity: 1,
+        z: "type-back",
+        stroke: 0.025,
+        stretch: stretched ? { sx: pull, origin: [x, y] } : undefined,
+      });
+      x += stretched ? w * pull : w;
+    });
+  });
+  const fittedLines = shaped.length;
 
   // The facts, gathered as a square block on the grid (no fill, no border): the condition, four readings, the place's region and country, its coordinates
   const [bx, by] = slot;
@@ -413,12 +448,12 @@ function hole(c: Ctx, city: Point, preferred: boolean, slot: Point): Plan {
     node: "dot",
     coords: { id: "city-coords", lines: [], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" },
     rules: [],
-    placeFit: `hole, ${fitted.step}, ${fitted.lines.length} line(s)`,
+    placeFit: `hole, ${fitted.step}, ${fittedLines} line(s), pulled ${pull.toFixed(2)}`,
     fitScore: 1,
     preferred,
     cut: true,
     wordmark: { x: M, y: markBase, size: 17 },
-    shades: [{ y0: nameBase - fitted.lines.length * sz - 60, y1: bottom, from: 0, to: 0.7 }],
+    shades: [{ y0: nameBase - fittedLines * sz - 60, y1: bottom, from: 0, to: 0.7 }],
   };
 }
 
@@ -577,12 +612,15 @@ export function getRecordComposition(
       inkRole: t.ink,
       inset: t.inset,
       opacity: t.opacity,
-      transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
+      transform: t.rotate
+        ? { rotate: t.rotate.deg, origin: P(t.rotate.origin) }
+        : t.stretch && { rotate: 0, origin: P(t.stretch.origin), scaleX: t.stretch.sx },
       payload: {
         kind: "text",
         lines: t.lines.map((l) => ({ ...l, x: ref.x(l.x), y: ref.y(l.y) / aspect })),
         font: clampAxes({ ...t.font, size: ref.s(t.font.size) }),
         anchor: t.anchor ?? "start",
+        stroke: t.stroke,
       },
     });
   };

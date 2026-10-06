@@ -86,6 +86,8 @@ export type TextPayload = {
   anchor: "start" | "end";
   /** A thin outline in this ink under the letters, so small type reads over a busy map (cartography's halo) */
   halo?: InkRole;
+  /** A stroke in the letters' own ink, in em, to fill out a face past its heaviest weight */
+  stroke?: number;
 };
 
 /** A veil of one ink down a rectangle, its opacity running from `from` at the top to `to` at the bottom */
@@ -126,7 +128,8 @@ export type Clip = {
   glyphsOf?: string[];
 };
 
-export type Transform = { rotate: number; origin: Point };
+/** A turn and, for a letter pulled sideways, a horizontal stretch, both about `origin` */
+export type Transform = { rotate: number; origin: Point; scaleX?: number };
 
 export type SceneLayer = {
   id: string;

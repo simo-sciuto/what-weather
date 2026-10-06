@@ -64,6 +64,8 @@ export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<
     "ink-2": `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`,
     accent: RECORD_ACCENT,
     brand: BRAND_BUTTER,
-    hole: mix(HOLE_GROUND, p.sky2, 0.18),
+    // The ground seen through the hole, and the place's name: the moment's own light (a warm sun by day, a cold
+    // moon at night) taken a little toward the sky's horizon, so it belongs to the scene
+    hole: mix(p.sun.startsWith("#") ? p.sun : HOLE_GROUND, p.sky3, 0.22),
   };
 }
