@@ -3,7 +3,7 @@ import { typeVisualState, type TypeSetting, type TypeVisualState } from "@/lib/w
 import { conditionFamily } from "./condition-family";
 import { fitPlace, type Fitted } from "./fit";
 import { centerFor, crossings, featureLength, placeGeography, type FeatureKind, type Placed, type Rect } from "./geography";
-import { mapInks, recordInks } from "./inks";
+import { mapInks, printStyle, recordInks } from "./inks";
 import {
   CONDITION_WORD,
   degrees,
@@ -261,69 +261,74 @@ function collision(c: Ctx, city: Point, preferred: boolean): Plan {
   };
 }
 
-/* ---------- FIELD RECORD: the place as a column of letters on the grid's rails, the temperature beside it ---------- */
+/* ---------- FIELD RECORD: the place broken into staggered blocks (MI / LA / NO), the temperature on the last ---------- */
 
-/** A name stands as a column of letters up to this length; a longer one, or several words, is turned a quarter */
-const STACK_MAX = 7;
+/**
+ * The place's name in blocks, one per line: its words when it has several, else its letters in even blocks of two
+ * (up to six letters) or three. MILANO is MI LA NO, ULAANBAATAR is ULA ANB AAT AR, RIO DE JANEIRO is three words.
+ */
+export function nameBlocks(name: string): string[] {
+  const words = name.trim().split(/\s+/);
+  if (words.length > 1) return words.length <= 4 ? words : [words.slice(0, 2).join(" "), ...words.slice(2)].slice(0, 4);
+  const letters = [...words[0]];
+  const size = letters.length <= 6 ? 2 : 3;
+  const out: string[] = [];
+  for (let i = 0; i < letters.length; i += size) out.push(letters.slice(i, i + size).join(""));
+  // A last block of one letter joins the one before
+  if (out.length > 1 && out[out.length - 1].length === 1 && letters.length > 3) out[out.length - 2] += out.pop();
+  return out;
+}
 
 function field(c: Ctx, city: Point, preferred: boolean): Plan {
-  const name = upper(c.r.place.name);
+  const blocks = nameBlocks(upper(c.r.place.name));
+  const n = blocks.length;
   const texts: Text[] = [];
-  let right: number;
-  let placeFit: string;
-  let fitScore = 1;
-  if (!/\s/.test(name) && name.length <= STACK_MAX) {
-    // One letter under another: the reference's 150 on a 122 step, closer for a longer name
-    const n = name.length;
-    const step = n > 1 ? Math.min(122, (684 - 196) / (n - 1)) : 122;
-    const size = (150 * step) / 122;
-    const f = display(c.tv.display, size, 0);
-    const letters = [...name];
-    // The column centred on the sheet's height: from the first cap's top to the last baseline
-    const first = c.bottom / 2 - ((n - 1) * step - CAP * size) / 2;
-    // Every letter centred on one axis, the widest one's middle: a narrow I sits in the column, not on its edge
-    const widest = Math.max(...letters.map((ch) => width(c, ch, f)));
-    const axis = M - 4 + widest / 2;
-    letters.forEach((ch, i) =>
-      texts.push({ id: i ? `place-${i}` : "place", lines: [{ text: ch, x: axis - width(c, ch, f) / 2, y: first + i * step }], font: f, ink: "ink-1", opacity: c.tv.tone, z: "type-back" }),
-    );
-    right = M - 4 + widest;
-    placeFit = `stacked, ${n} letters`;
-    fitScore = step / 122;
-  } else {
-    // The long-name setting: turned a quarter, reading upward along the left margin
-    const fitted = fitName(c, 110, c.bottom - 80 - 120, 2, 0);
-    const s = fitted.font.size;
-    const originX = M + CAP * s;
-    // Centred on the sheet's height: the turned line runs up from half its length below the middle
-    const startY = c.bottom / 2 + fitted.width / 2;
-    fitted.lines.forEach((text, i) => {
-      const l = { text, x: originX + i * s * 0.92, y: startY };
-      texts.push({ id: i ? `place-${i}` : "place", lines: [l], font: fitted.font, ink: "ink-1", opacity: c.tv.tone, z: "type-back", rotate: { deg: -90, origin: [l.x, l.y] } });
-    });
-    right = originX + (fitted.lines.length - 1) * s * 0.92;
-    placeFit = `turned, ${fitted.step}, ${fitted.lines.length} line(s)`;
-    fitScore = s / 110;
-  }
-  const numSize = 220;
-  const nf = display(c.tv.support, numSize, -4 / numSize);
-  const num = degrees(c.r.temp);
-  const numX = Math.max(146, right + 12);
-  texts.push({ id: "temperature", lines: [{ text: num, x: numX, y: 610 }], font: nf, ink: "ink-1", opacity: 1, z: "type-back" });
+  // Each line steps right by half a column: the name descends as a stair, the rain's own slant
+  const step = (COL[1] - COL[0]) / 2 + 12;
+  const lead = 0.86;
+  const maxH = c.bottom * 0.58;
+  const font0 = display(c.tv.display, 1, -0.02);
+  // As large as the width allows (the stair included) and three fifths of the height, never past 230
+  const widest = Math.max(...blocks.map((b) => width(c, b, font0)));
+  let size = Math.min(230, (R - M - (n - 1) * step) / widest, maxH / (CAP + (n - 1) * lead));
+  if (!Number.isFinite(size) || size <= 0) size = 120;
+  const f = display(c.tv.display, size, -0.02);
+  // Centred on the sheet's height, from the first cap's top to the last baseline
+  const first = c.bottom / 2 - ((n - 1) * lead * size - CAP * size) / 2;
+  const lines = blocks.map((text, i) => ({ text, x: M - size * 0.04 + i * step, y: first + i * lead * size }));
+  lines.forEach((l, i) => texts.push({ id: i ? `place-${i}` : "place", lines: [l], font: f, ink: "ink-1", opacity: c.tv.tone, z: "type-back" }));
+  const last = lines[n - 1];
+  const lastRight = last.x + width(c, last.text, f);
 
-  texts.push({ id: "condition", lines: [{ text: c.word, x: COL[5], y: 96 }], font: conditionFont(600, 62), ink: "ink-1", opacity: 1, z: "micro" });
+  // The temperature on the last block's baseline, after it; under it when the line is full
+  const num = degrees(c.r.temp);
+  let numSize = Math.min(size * 0.62, 200);
+  let nf = display(c.tv.support, numSize, -0.02);
+  let numX = lastRight + 16;
+  let numY = last.y;
+  if (numX + width(c, num, nf) > R) {
+    numSize = Math.min(numSize, (R - last.x) / Math.max(1e-6, width(c, num, display(c.tv.support, 1, -0.02))));
+    nf = display(c.tv.support, numSize, -0.02);
+    numX = last.x;
+    numY = last.y + CAP * numSize + 24;
+  }
+  texts.push({ id: "temperature", lines: [{ text: num, x: numX, y: numY }], font: nf, ink: "ink-1", opacity: 1, z: "type-back" });
+
+  texts.push({ id: "condition", lines: [{ text: c.word, x: COL[5], y: 96 }], font: conditionFont(600, 75), ink: "ink-1", opacity: 1, z: "micro" });
   metricsFor([...FAMILY_ORDER[conditionFamily(c.r)], "feels"], c.r, 4, []).forEach((m, i) => texts.push(...pairs(`stack-${i}`, COL[5], 116 + i * 28, m.label, m.value)));
   const [lat, lon] = coordsOf(c.r);
+  const firstRight = lines[0].x + width(c, lines[0].text, f);
   return {
     city,
     texts,
-    numeralBox: [numX, numX + width(c, num, nf), 610 - CAP * numSize, 610],
-    leader: [[right + 4, city[1]], city],
+    numeralBox: [numX, numX + width(c, num, nf), numY - CAP * numSize, numY],
+    // The leader leaves the first block's end and runs right to the city
+    leader: [[firstRight + 6, lines[0].y - (CAP * size) / 2], [city[0], lines[0].y - (CAP * size) / 2]],
     node: "dot",
     coords: { id: "coords", lines: [{ text: `${lat}  ${lon}`, x: city[0] + 9, y: city[1] - 6 }], font: mono(400), ink: "ink-1", opacity: 1, z: "micro" },
-    rules: [...COL.slice(1), R].map((x) => ({ from: [x, 64] as Point, to: [x, c.bottom - 80] as Point, opacity: 0.22 })),
-    placeFit,
-    fitScore,
+    rules: [],
+    placeFit: `stair, ${n} blocks`,
+    fitScore: Math.min(1, size / 150),
     preferred,
   };
 }
@@ -339,14 +344,14 @@ function citySpots(mode: CompositionMode, c: Ctx): Point[] {
       [216, 570],
       [126, 570],
     ];
-  if (mode === "field-record")
-    return [
-      [306, 350],
-      [396, 350],
-      [306, 300],
-      [306, 400],
-      [396, 300],
-    ];
+  if (mode === "field-record") {
+    // On the first block's middle line, to its right: the leader runs flat from the name to the city
+    const probe = field(c, [0, 0], false);
+    const [from, to] = probe.leader;
+    const y = to[1];
+    const xs = [90, 170, 250].map((d) => from[0] + d).filter((x) => x < R - 40);
+    return (xs.length ? xs : [R - 40]).map((x): Point => [x, y]);
+  }
   // Collision: under the name's last line, which a long name pushes down
   const probe = collision(c, [126, 330], false);
   const last = probe.texts.find((t) => t.id === "place")!.lines.at(-1)!.y;
@@ -435,7 +440,9 @@ export function getRecordComposition(
     uvIndex: r.uv,
   });
   const tv = typeVisualState(atmosphere);
-  const mode = tv.mode;
+  // Over the site's map every record takes the Tshuru structure (the user's choice, 2026-10-06): the name heavy at
+  // the head, the temperature huge at the foot; the atmosphere moves its type, scale, bleed and tone
+  const mode = raster ? "collision" : tv.mode;
   const family = conditionFamily(r);
   const seed = recordSeed(r.place.name, r.date, family);
   const rng = mulberry32(seed);
@@ -449,9 +456,12 @@ export function getRecordComposition(
   // The span is of the sheet's width; the slot is a little wider
   const spanKm = SPAN_KM[mode] * (1 - 0.15 * Math.max(0, atmosphere.warmth)) * sheet.w;
   const place: Point = [r.place.lon, r.place.lat];
+  // The seed's one choice over the map: the structure as drawn, or mirrored (name flush right, the number leaving
+  // by the right edge); both are the same record's equals, neither is the weather's
+  const mirrored = raster && (seed & 1) === 1;
   const tried = citySpots(mode, c).map((spot, i) => {
-    const plan = build(spot, i === 0);
-    const crop = { slot: sheet, center: centerFor(place, [ref.x(spot[0]), ref.y(spot[1])], sheet, spanKm), spanKm };
+    const plan = mirrored ? mirrorPlan(build(spot, i === 0), c) : build(spot, i === 0);
+    const crop = { slot: sheet, center: centerFor(place, [ref.x(plan.city[0]), ref.y(plan.city[1])], sheet, spanKm), spanKm };
     const placed = geography ? placeGeography(geography, crop) : null;
     const b = plan.numeralBox;
     const s = score(placed, [ref.x(b[0]), ref.x(b[1]), ref.y(b[2]), ref.y(b[3])], sheet, plan, mode);
@@ -468,8 +478,33 @@ export function getRecordComposition(
   // The scene's space is normalized: y over the height. The plan is in reference units, the map in sheet units
   const N = (p: Point): Point => [p[0], p[1] / aspect];
   const P = (p: Point): Point => N([ref.x(p[0]), ref.y(p[1])]);
-  const text = (t: Text) =>
+  const inks = raster ? mapInks(r.light ?? 0.5, atmosphere, r.temp) : recordInks(atmosphere);
+  const print = raster ? printStyle(atmosphere, inks.paper, r.windDeg) : undefined;
+  const text = (t: Text) => {
+    const large = raster && print && t.font.family === "display" && (t.z === "type-back" || t.z === "type-front");
+    if (large && print) {
+      // The second impression, a little off register, in the other ink: where the two meet the inks overprint
+      const ghostInk: InkRole = /^place(-\d+)?$/.test(t.id) ? "ink-1" : "ink-2";
+      const [dx, dy] = print.offset;
+      add({
+        id: `${t.id}-second`,
+        role: t.z,
+        inkRole: ghostInk,
+        opacity: 0.85 * t.opacity,
+        blend: print.blend,
+        grain: true,
+        transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
+        payload: {
+          kind: "text",
+          lines: t.lines.map((l) => ({ ...l, x: ref.x(l.x) + dx, y: ref.y(l.y) / aspect + (dy / aspect) })),
+          font: { ...t.font, size: ref.s(t.font.size) },
+          anchor: t.anchor ?? "start",
+        },
+      });
+    }
     add({
+      blend: large && print ? print.blend : undefined,
+      grain: large ? true : undefined,
       id: t.id,
       role: t.z,
       // Over the site's map the place's name is set in the temperature's colour (ink-2 there)
@@ -481,10 +516,9 @@ export function getRecordComposition(
         lines: t.lines.map((l) => ({ ...l, x: ref.x(l.x), y: ref.y(l.y) / aspect })),
         font: { ...t.font, size: ref.s(t.font.size) },
         anchor: t.anchor ?? "start",
-        // Over a real map the small type keeps a thin halo of the paper, as a map's own labels do
-        halo: raster && t.font.family === "mono" ? "paper" : undefined,
       },
     });
+  };
   const lines = (id: string, role: SceneLayer["role"], ink: InkRole, opacity: number, paths: Point[][], strokeRef: number, extra: Partial<PathsPayload> = {}) => {
     if (paths.length) add({ id, role, inkRole: ink, opacity, payload: { kind: "paths", paths: paths.map((l) => l.map(N)), closed: false, stroke: ref.s(strokeRef), ...extra } });
   };
@@ -546,25 +580,24 @@ export function getRecordComposition(
 
   if (mode !== "field-record") plan.rules.forEach((r, i) => rule(i, r, "micro"));
   for (const t of plan.texts.filter((t) => t.z === "micro")) text(t);
-  // No head or foot: the record's ID, the moment, the signature and the map's credits climb the right edge in
-  // one line of small type, as a print's edge notes
+  // No head or foot band and nothing set upright: the record's ID and moment on one small line at the top left,
+  // the signature and the map's credits at the top right, straight on the map
   const id = recordId(r.place.name, r.date);
-  const at: Point = [R + 18, bottom - M];
-  const edge = [id, `${formatDate(r.date)} ${stamp(r)}`, "WHAT WEATHER", ...(raster ? ["© MAPBOX © OPENSTREETMAP"] : [])].join("   ·   ");
-  const onWater = placed ? placed.water.some((poly) => inside(sheetPoint(at), poly)) : false;
+  const noteFont = mono(400, MICRO * 0.85);
+  text({ id: "record-id", lines: [{ text: `${id}   ${formatDate(r.date)} ${stamp(r)}`, x: M, y: 34 }], font: noteFont, ink: "ink-1", opacity: 0.8, z: "micro" });
   text({
-    id: "record-id",
-    lines: [{ text: edge, x: at[0], y: at[1] }],
-    font: mono(400, MICRO * 0.85),
-    ink: onWater ? "paper" : "ink-1",
-    opacity: onWater ? 1 : 0.75,
-    rotate: { deg: -90, origin: at },
+    id: "signature",
+    lines: [{ text: ["WHAT WEATHER", ...(raster ? ["© MAPBOX © OPENSTREETMAP"] : [])].join("   "), x: R, y: 34 }],
+    font: noteFont,
+    ink: "ink-1",
+    opacity: 0.6,
+    anchor: "end",
     z: "micro",
   });
 
   return {
     canvas: { width: canvas.width, height: canvas.height },
-    inks: raster ? mapInks(r.light ?? 0.5, atmosphere, r.temp) : recordInks(atmosphere),
+    inks,
     layers: layers.sort((a, b) => a.z - b.z),
     metadata: {
       mode,
@@ -577,9 +610,35 @@ export function getRecordComposition(
       placeFit: plan.placeFit,
       nodes: ["city"],
       cityAt: P(plan.city),
+      print,
       spanKm: spanKm / sheet.w,
       type: tv,
     },
+  };
+}
+
+/** A plan reflected left to right on the reference sheet: each line keeps its own reading order */
+function mirrorPlan(plan: Plan, c: Ctx): Plan {
+  const mx = (x: number) => REF_W - x;
+  // Small type turns flush right at the mirrored point (and back); large type keeps reading from its left edge,
+  // moved across by its own width
+  const flip = (t: Text): Text => {
+    const mono = t.font.family === "mono";
+    if (mono) return { ...t, anchor: t.anchor === "end" ? "start" : "end", lines: t.lines.map((l) => ({ ...l, x: mx(l.x) })) };
+    return { ...t, lines: t.lines.map((l) => ({ ...l, x: mx(l.x) - width(c, l.text, t.font) })) };
+  };
+  const [x0, x1, top, base] = plan.numeralBox;
+  return {
+    ...plan,
+    city: [mx(plan.city[0]), plan.city[1]],
+    texts: plan.texts.map(flip),
+    coords: flip(plan.coords),
+    leader: [
+      [mx(plan.leader[0][0]), plan.leader[0][1]],
+      [mx(plan.leader[1][0]), plan.leader[1][1]],
+    ],
+    numeralBox: [mx(x1), mx(x0), top, base],
+    rules: plan.rules.map((r) => ({ ...r, from: [mx(r.from[0]), r.from[1]], to: [mx(r.to[0]), r.to[1]] })),
   };
 }
 

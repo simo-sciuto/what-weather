@@ -122,12 +122,28 @@ export type Clip = {
 
 export type Transform = { rotate: number; origin: Point };
 
+/** How an ink sits on what is under it: as a screenprint's light inks over a dark ground, or dark over light */
+export type Blend = "normal" | "screen" | "multiply";
+
+/** The print's character (screenprint, WTH-187), from the atmosphere: how the inks meet the ground */
+export type PrintStyle = {
+  blend: Blend;
+  /** The second impression's shift, fractions of the sheet's width */
+  offset: Point;
+  /** The share of an ink's surface the screen leaves bare, 0..1 */
+  grain: number;
+};
+
 export type SceneLayer = {
   id: string;
   role: LayerRole;
   z: number;
   inkRole: InkRole;
   opacity: number;
+  /** The print's blend, for the inks that take it */
+  blend?: Blend;
+  /** The print's grain on this layer */
+  grain?: boolean;
   transform?: Transform;
   clip?: Clip;
   payload: TextPayload | PathsPayload | RectPayload | NodePayload | ImagePayload;
@@ -153,6 +169,8 @@ export type RecordScene = {
     cityAt: Point;
     /** The kilometres the sheet's width spans, for a map drawn elsewhere at the same scale */
     spanKm: number;
+    /** The print's character over the site's map; absent for the flat vector style */
+    print?: PrintStyle;
     /** The type engine's settings (`typeVisualState`) */
     type: import("@/lib/weather/typography").TypeVisualState;
   };

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createAtmosphere, type AtmosphereAxes } from "@/lib/weather/atmosphere";
 import { recordMode, typeVisualState } from "@/lib/weather/typography";
 import { conditionFamily } from "./condition-family";
-import { getRecordComposition } from "./compose";
+import { getRecordComposition, nameBlocks } from "./compose";
 import { fitPlace } from "./fit";
 import { clipLine, clipRing, crossings } from "./geography";
 import { recordInks, PAPER, RECORD_ACCENT } from "./inks";
@@ -133,19 +133,26 @@ describe("place fitting", () => {
     expect(f.width).toBeLessThanOrEqual(0.88 + 1e-9);
   });
 
-  it("turns a long name in a field record instead of stacking its letters", () => {
-    expect(compose("tokyo").metadata.placeFit).toMatch(/^stacked/);
-    expect(compose("tokyo", { place: { name: "Rio de Janeiro", lat: 35.68, lon: 139.77 } }).metadata.placeFit).toMatch(/^turned/);
+  it("breaks a field record's name into staggered blocks, never a vertical line", () => {
+    expect(nameBlocks("MILANO")).toEqual(["MI", "LA", "NO"]);
+    expect(nameBlocks("TOKYO")).toEqual(["TO", "KYO"]);
+    expect(nameBlocks("ULAANBAATAR")).toEqual(["ULA", "ANB", "AAT", "AR"]);
+    expect(nameBlocks("RIO DE JANEIRO")).toEqual(["RIO", "DE", "JANEIRO"]);
+    expect(compose("tokyo").metadata.placeFit).toBe("stair, 2 blocks");
+    const s = compose("tokyo", { place: { name: "Milano", lat: 35.68, lon: 139.77 } });
+    const blocks = s.layers.filter((l) => /^place(-\d+)?$/.test(l.id));
+    expect(blocks.every((l) => !l.transform)).toBe(true);
+    const xs = blocks.map((l) => (l.payload.kind === "text" ? l.payload.lines[0].x : 0));
+    expect(xs[1]).toBeGreaterThan(xs[0]);
+    expect(xs[2]).toBeGreaterThan(xs[1]);
   });
 });
 
 describe("font axes", () => {
   it("clamps every axis to the font's real range", () => {
     const f = clampAxes({ family: "display", wght: 1200, wdth: 40, size: 0.1, tracking: 0 });
-    // Heros: always bold, condensed below the midpoint
-    expect(f.wght).toBe(700);
-    expect(f.wdth).toBe(82);
-    expect(clampAxes({ family: "display", wght: 200, wdth: 120, size: 0.1, tracking: 0 })).toMatchObject({ wght: 700, wdth: 100 });
+    expect(f.wght).toBe(900);
+    expect(f.wdth).toBe(75);
     expect(clampAxes({ family: "mono", wght: 700, wdth: 80, size: 0.1, tracking: 0 })).toMatchObject({ wght: 500, wdth: 100 });
   });
 
@@ -236,7 +243,8 @@ describe("over the site's own map (raster)", () => {
       expect(map.payload).toMatchObject({ kind: "image", key: "map" });
       expect(cut.payload).toMatchObject({ kind: "image", key: "map-cut" });
       expect(cut.inkRole).toBe("paper");
-      const back = s.layers.filter((l) => l.role === "type-back").map((l) => l.id);
+      // The cut follows the first impression's letters, not the second one's
+      const back = s.layers.filter((l) => l.role === "type-back" && !l.id.endsWith("-second")).map((l) => l.id);
       expect(cut.clip?.glyphsOf).toEqual(back);
       expect(map.z).toBeLessThan(Math.min(...s.layers.filter((l) => l.role === "type-back").map((l) => l.z)));
       expect(cut.z).toBeGreaterThan(Math.max(...s.layers.filter((l) => l.role === "type-back").map((l) => l.z)));
@@ -250,41 +258,42 @@ describe("over the site's own map (raster)", () => {
       const s = raster(k);
       expect(s.layers.find((l) => l.id === "map")!.clip!.rect).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
       expect(s.layers.some((l) => l.id.startsWith("rule-") && l.role === "micro")).toBe(false);
-      const edge = s.layers.find((l) => l.id === "record-id")!;
-      expect(edge.transform?.rotate).toBe(-90);
-      expect(edge.payload.kind === "text" && edge.payload.lines[0].text).toContain("© MAPBOX © OPENSTREETMAP");
+      // Nothing upright: the notes run flat along the top
+      expect(s.layers.filter((l) => l.transform?.rotate)).toEqual([]);
+      const sig = s.layers.find((l) => l.id === "signature")!;
+      expect(sig.payload.kind === "text" && sig.payload.lines[0].text).toContain("© MAPBOX © OPENSTREETMAP");
     }
   });
 
-  it("sets the place's name in the temperature's colour and centres a column of letters", () => {
-    const s = raster("tokyo");
-    expect(s.inks["ink-2"]).toBe(tempColor(18));
-    const letters = s.layers.filter((l) => /^place(-\d+)?$/.test(l.id));
-    expect(letters.length).toBe(5);
-    for (const l of letters) expect(l.inkRole).toBe("ink-2");
-    const ys = letters.map((l) => (l.payload.kind === "text" ? l.payload.lines[0].y : 0));
-    const size = letters[0].payload.kind === "text" ? letters[0].payload.font.size : 0;
-    // From the first cap's top (y in height units: size is in width units) to the last baseline, around the middle
-    const top = ys[0] - (0.72 * size * 2480) / 3508;
-    expect((top + ys[ys.length - 1]) / 2).toBeCloseTo(0.5, 2);
+  it("takes the Tshuru structure for every weather over the map, mirrored or not by the seed", () => {
+    for (const k of ["milan", "tokyo", "reykjavik", "oslo"]) expect(raster(k).metadata.mode).toBe("collision");
   });
 
-  it("sets the small type with a halo of the paper, white type and the one accent", () => {
-    const s = raster("tokyo");
-    const micro = s.layers.filter((l) => l.payload.kind === "text" && l.payload.font.family === "mono");
-    expect(micro.length).toBeGreaterThan(0);
-    for (const l of micro) expect(l.payload).toMatchObject({ halo: "paper" });
-    expect(s.inks.accent).toBe(RECORD_ACCENT);
-    expect(s.inks["ink-1"]).toBe("#f3efe6");
-    expect(s.metadata.cityAt[0]).toBeGreaterThan(0);
-    expect(s.metadata.cityAt[1]).toBeGreaterThan(0);
+  it("takes its two inks and its print from the atmosphere, the accent kept", () => {
+    const night = raster("tokyo");
+    expect(night.inks.accent).toBe(RECORD_ACCENT);
+    expect(night.inks["ink-1"]).not.toBe(night.inks.paper);
+    expect(night.inks["ink-2"]).not.toBe(tempColor(18));
+    const print = night.metadata.print!;
+    expect(["screen", "multiply"]).toContain(print.blend);
+    expect(print.grain).toBeGreaterThan(0);
+    // A storm prints further off register than a calm day
+    const calm = Math.hypot(...raster("tshuru").metadata.print!.offset);
+    const storm = Math.hypot(...raster("san-cristobal").metadata.print!.offset);
+    expect(storm).toBeGreaterThan(calm);
+    // The large type gets its second impression, in the other ink, and the print's blend
+    const second = night.layers.find((l) => l.id === "place-second")!;
+    expect(second.inkRole).toBe("ink-1");
+    expect(second.blend).toBe(print.blend);
+    expect(night.layers.find((l) => l.id === "place")!.inkRole).toBe("ink-2");
   });
 
   it("puts the pictures it is given into the SVG", () => {
     const svg = renderSvg(raster("oslo"), "swiss-flat", { width: 620, height: 877, images: { map: "data:image/png;base64,AA==", "map-cut": "data:image/png;base64,BB==" } });
     expect(svg).toContain('href="data:image/png;base64,AA=="');
     expect(svg).toContain('href="data:image/png;base64,BB=="');
-    expect(svg).toContain('paint-order="stroke"');
+    expect(svg).toContain("mix-blend-mode:");
+    expect(svg).toContain("<feTurbulence");
   });
 });
 
