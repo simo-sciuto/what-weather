@@ -51,6 +51,7 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 ## ADR-009: Maps are Mapbox's alone, and optional
 - Decision: no token means no backdrop map, no map chapter, no Territorio chapter. The weather clouds are drawn from the Open-Meteo grid on top.
 - Status: Accepted.
+- Update 2026-10-06 (WTH-214, WTH-216): the Territorio is a page of its own (`/territorio`) with a third Mapbox map, the land around the place (`TerritoryMap`: the site's `STYLE` and `syncMap`, water, green, relief, contours and main roads, movable and zoomable, never turned). Without a token the page has no map, and the weather page has no link to it. Each map is a billed Mapbox map load: going back to the weather opens another (to price with Mapbox's plan, docs/LICENCES.md).
 
 ## ADR-010: Italian UI, English code
 - Decision: all user-facing copy in Italian; code, comments and docs in English.

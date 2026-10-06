@@ -93,7 +93,7 @@ A word is a label here when two places say it; a choice made twice is one functi
 | Route | Purpose |
 | --- | --- |
 | `/` (`src/app/page.tsx`) | the poster page; server component, reads searchParams |
-| `/territorio` (`src/app/territorio/page.tsx`) | the place's Territorio (WTH-214): the same `?lat&lon&name&region&country` as `/`, no random landing (without a place it redirects to `/`); the weather of the place gives the sky (`weatherFor`, the same cache entry as `/`); the default export is synchronous and hands the address to an async component under `Suspense`, and the facts (`Territory`, streamed from Wikidata) sit under their own `Suspense`; no `MapProvider`, no phone sheet |
+| `/territorio` (`src/app/territorio/page.tsx`) | the place's Territorio (WTH-214): the same `?lat&lon&name&region&country` as `/`, no random landing (without a place it redirects to `/`); the weather of the place gives the sky (`weatherFor`, the same cache entry as `/`); the default export is synchronous and hands the address to an async component under `Suspense`, and `TerritoryMap` (`src/components/territory/`, the site's `STYLE` and `syncMap`, Mapbox GL through the exported `loadMapbox`) draws the land first; the facts (`Territory` in `src/components/territory/CityFacts.tsx`, streamed from Wikidata) sit under their own `Suspense`; no `MapProvider`, no phone sheet |
 | `/lab/atmosfera` | dev-only calibration lab for the Weather Visual Engine (both palette engines over the calibration scenarios); `notFound()` in production |
 | `/api/places` | place search, runs server-side so keys stay hidden |
 | `/api/summary` | small summary for a saved place's card |
