@@ -409,7 +409,7 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const nameBottom = lines[n - 1].y;
 
   // The facts, gathered as a square block on the grid (no fill, no border): the condition, the temperature and three
-  // readings, the place's region and country
+  // readings
   const side = span(2);
   const [bx, by] = placement.facts({ top, bottom: nameBottom, sheetBottom: bottom, side });
   const pad = 12;
@@ -419,9 +419,8 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const half = (side - 2 * pad) / 2;
   ms.forEach((m, i) => texts.push(...pairs(`metric-${i}`, bx + pad + (i % 2) * half, by + pad + 34 + Math.floor(i / 2) * 34, m.label, m.value)));
   const where = [c.r.place.region, c.r.place.country && upper(c.r.place.country)].filter(Boolean).join(", ");
-  const footY = by + side - pad - 13;
-  // The coordinates are written by the city's mark, not here
-  if (where) texts.push({ id: "where", lines: [{ text: where, x: bx + pad, y: footY + 13 }], font: mono(700), ink: "ink-2", opacity: 1, z: "micro" });
+  // The region, the country and the coordinates are written by the city's mark, not here
+  if (where) texts.push({ id: "where", lines: [{ text: where, x: city[0] + 76, y: city[1] - 9 }], font: mono(700), ink: "ink-2", opacity: 1, z: "micro" });
 
   // Up the right edge: the record's ID and its moment
   const edgeAt: Point = [R + 16, markBase - 30];

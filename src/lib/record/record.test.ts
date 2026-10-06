@@ -268,6 +268,15 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
     expect(node.inkRole).toBe("accent");
     expect(s.layers.find((l) => l.id === "leader")!.inkRole).toBe("ink-1");
     expect(texts(s)).toContain("59°55'N  10°45'E");
+    // The region and the country just above the coordinates
+    const where = raster("oslo", { place: { name: "Oslo", lat: 59.91, lon: 10.75, region: "Oslo", country: "Norvegia" } });
+    const w = where.layers.find((l) => l.id === "where")!.payload;
+    const c = where.layers.find((l) => l.id === "city-coords")!.payload;
+    if (w.kind === "text" && c.kind === "text") {
+      expect(w.lines[0].text).toBe("Oslo, NORVEGIA");
+      expect(w.lines[0].x).toBeCloseTo(c.lines[0].x, 6);
+      expect(w.lines[0].y).toBeLessThan(c.lines[0].y);
+    }
   });
 
   it("places the name on the grid in one of five ways, chosen by the seed only", () => {
