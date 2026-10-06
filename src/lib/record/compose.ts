@@ -91,7 +91,7 @@ type Plan = {
   /** The dominant numeral's box, for scoring how the map meets it: x0, x1, top, base */
   numeralBox: [number, number, number, number];
   leader: [Point, Point];
-  node: "dot" | "triangle";
+  node: "dot" | "triangle" | "ring";
   coords: Text;
   rules: { from: Point; to: Point; opacity: number }[];
   placeFit: string;
@@ -354,112 +354,74 @@ const GRID_GUTTER = 12;
 const span = (cols: number) => cols * GRID_COL - GRID_GUTTER;
 
 /**
- * The placements of the name and the temperature on the grid, one per record by its seed (never by its weather).
- * `temp`: the columns it spans, how it sits in them, and the row (in eighths of the height) its middle falls on.
- * `facts`: where the block of facts may sit, by its top-left corner, all clear of the two large elements.
+ * The placements of the place's name on the grid, one per record by its seed (never by its weather): the columns it
+ * spans and how it sits in them, and where on the height it stands (at the foot, at the head, or with its middle on
+ * a row, in eighths of the height). `facts`: where the block of facts may sit, by its top-left corner, clear of it.
  */
 type Placement = {
-  name: "foot" | "head";
-  temp: { from: number; cols: number; align: "left" | "center" | "right"; row: number };
-  facts: (c: { nameBottom: number; bottom: number; side: number }) => Point[];
+  cols: { from: number; count: number; align: "left" | "right" };
+  at: "foot" | "head" | number;
+  facts: (c: { top: number; bottom: number; sheetBottom: number; side: number }) => Point;
 };
 
 export const PLACEMENTS: readonly Placement[] = [
-  // The name at the foot, the temperature across all six columns in the middle, the facts at the top
-  {
-    name: "foot",
-    temp: { from: 0, cols: 6, align: "center", row: 4.6 },
-    facts: () => [
-      [COL[4], 64],
-      [M, 64],
-      [COL[2], 64],
-    ],
-  },
-  // The name at the head, the temperature across the sheet low down, the facts at the foot on the right
-  {
-    name: "head",
-    temp: { from: 0, cols: 6, align: "center", row: 4.7 },
-    facts: ({ bottom, side }) => [[COL[4], bottom - 52 - side]],
-  },
-  // The name at the foot, the temperature high on five columns flush right, the facts at the top left
-  {
-    name: "foot",
-    temp: { from: 1, cols: 5, align: "right", row: 3.2 },
-    facts: () => [[M, 64]],
-  },
-  // The name at the head, the temperature low on five columns flush left, the facts under the name on the right
-  {
-    name: "head",
-    temp: { from: 0, cols: 5, align: "left", row: 5.6 },
-    facts: ({ nameBottom }) => [[COL[4], nameBottom + 30]],
-  },
+  // At the foot across all six columns, the facts at the top right
+  { cols: { from: 0, count: 6, align: "left" }, at: "foot", facts: () => [COL[4], 64] },
+  // At the head across all six columns, the facts low on the right
+  { cols: { from: 0, count: 6, align: "left" }, at: "head", facts: ({ sheetBottom, side }) => [COL[4], sheetBottom - 52 - side] },
+  // Across the middle, the facts at the top left
+  { cols: { from: 0, count: 6, align: "left" }, at: 4, facts: () => [M, 64] },
+  // High on the four right-hand columns, flush right, the facts under it on the left
+  { cols: { from: 2, count: 4, align: "right" }, at: 2.6, facts: ({ bottom }) => [M, bottom + 40] },
+  // Low on the four left-hand columns, the facts above it on the right
+  { cols: { from: 0, count: 4, align: "left" }, at: 5.6, facts: ({ top, side }) => [COL[4], top - 40 - side] },
 ];
 
 /**
- * The poster over the site's map (the user's brief of 2026-10-06, WTH-200): the temperature a quiet hole in the map,
- * the place's name a hole lit from under it, the map's strong lines over both, both placed on the grid (one of
- * `PLACEMENTS`); the facts in a block with no fill; the record's ID up the right edge; the home page's wordmark.
+ * The poster over the site's map (the user's brief of 2026-10-06, WTH-200): the place's name a deep hole in the map,
+ * lit from under it, placed on the grid (one of `PLACEMENTS`), the map's strong lines over it; the facts in a block
+ * with no fill (the temperature among them); the record's ID up the right edge; the home page's wordmark.
  */
 function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const texts: Text[] = [];
   const bottom = c.bottom;
   const row = bottom / 8;
   const placement = PLACEMENTS[(seed >>> 3) % PLACEMENTS.length];
-
-  // The name, in the moment's light, as large as the width allows, a hole in the map lit from under it
   const markBase = bottom - 26;
-  const fitted = fitName(c, 120, R - M, 2, -0.03, 800);
+
+  // The name, in the moment's light, as large as its columns allow, a hole in the map lit from under it
+  const room = span(placement.cols.count);
+  const fitted = fitName(c, 130, room, placement.cols.count < 6 ? 3 : 2, -0.03, 800);
   const sz = fitted.font.size;
   const n = fitted.lines.length;
-  const firstBase = placement.name === "foot" ? markBase - 30 - (n - 1) * sz * 0.92 : 64 + CAP * sz;
-  const lines = fitted.lines.map((text, i) => ({ text, x: M - sz * 0.03, y: firstBase + i * sz * 0.92 }));
+  const lead = sz * 0.92;
+  const blockH = CAP * sz + (n - 1) * lead;
+  const top =
+    placement.at === "foot" ? markBase - 34 - blockH : placement.at === "head" ? 64 : row * placement.at - blockH / 2;
+  const firstBase = top + CAP * sz;
+  const left = COL[placement.cols.from];
+  const lines = fitted.lines.map((text, i) => {
+    const w = width(c, text, fitted.font);
+    const x = placement.cols.align === "right" ? left + room - w + sz * 0.03 : left - sz * 0.03;
+    return { text, x, y: firstBase + i * lead };
+  });
   texts.push({ id: "place", lines, font: fitted.font, ink: "ink-2", opacity: 1, z: "type-back", inset: true, glow: true });
-  const nameTop = firstBase - CAP * sz;
   const nameBottom = lines[n - 1].y;
 
-  // The temperature on its columns and row: large but inside the sheet, a quiet hole, not a headline. The degree is
-  // set at half the figures' size on their cap line: Syne's own degree is nearly a figure wide
-  const digits = degrees(c.r.temp).replace("°", "");
-  const nf0 = display({ weight: 800, width: 100, tracking: -0.04 }, 1, -0.04);
-  const DEGREE = 0.5;
-  const unitDigits = width(c, digits, nf0);
-  const unitDegree = width(c, "°", { ...nf0, tracking: 0 }) * DEGREE;
-  const unit = unitDigits + 0.04 + unitDegree;
-  const t = placement.temp;
-  const room = span(t.cols);
-  const numSize = room / unit;
-  const left = COL[t.from];
-  const numW = unit * numSize;
-  const numX = t.align === "left" ? left : t.align === "right" ? left + room - numW : left + (room - numW) / 2;
-  const numBase = row * t.row + (CAP * numSize) / 2;
-  texts.push({ id: "dominant", lines: [{ text: digits, x: numX, y: numBase }], font: { ...nf0, size: numSize }, ink: "hole", opacity: 1, z: "type-back", inset: true });
-  const degSize = numSize * DEGREE;
-  texts.push({
-    id: "degree",
-    // Its top on the figures' cap line: the degree sits about its own cap height above its baseline
-    lines: [{ text: "°", x: numX + (unitDigits + 0.04) * numSize, y: numBase - CAP * numSize + CAP * degSize }],
-    font: { ...nf0, size: degSize, tracking: 0 },
-    ink: "hole",
-    opacity: 1,
-    z: "type-back",
-    inset: true,
-  });
-
-  // The facts, gathered as a square block on the grid (no fill, no border): the condition, four readings, the
-  // place's region and country, its coordinates
+  // The facts, gathered as a square block on the grid (no fill, no border): the condition, the temperature and three
+  // readings, the place's region and country
   const side = span(2);
-  const slots = placement.facts({ nameBottom, bottom, side });
-  const [bx, by] = slots[seed % slots.length];
+  const [bx, by] = placement.facts({ top, bottom: nameBottom, sheetBottom: bottom, side });
   const pad = 12;
   const [lat, lon] = coordsOf(c.r);
   texts.push({ id: "condition", lines: [{ text: c.word, x: bx + pad, y: by + pad + 12 }], font: { ...mono(700, 13), tracking: 0.08 }, ink: "ink-1", opacity: 1, z: "micro" });
-  const ms = metricsFor(["feels", "range", ...FAMILY_ORDER[conditionFamily(c.r)]], c.r, 4, []);
+  const ms = metricsFor(["temp", "feels", "range", ...FAMILY_ORDER[conditionFamily(c.r)]], c.r, 4, []);
   const half = (side - 2 * pad) / 2;
   ms.forEach((m, i) => texts.push(...pairs(`metric-${i}`, bx + pad + (i % 2) * half, by + pad + 34 + Math.floor(i / 2) * 34, m.label, m.value)));
   const where = [c.r.place.region, c.r.place.country && upper(c.r.place.country)].filter(Boolean).join(", ");
   const footY = by + side - pad - 13;
-  if (where) texts.push({ id: "where", lines: [{ text: where, x: bx + pad, y: footY }], font: mono(700), ink: "ink-2", opacity: 1, z: "micro" });
-  texts.push({ id: "coords", lines: [{ text: `${lat}  ${lon}`, x: bx + pad, y: footY + 13 }], font: mono(500), ink: "ink-1", opacity: 0.9, z: "micro" });
+  // The coordinates are written by the city's mark, not here
+  if (where) texts.push({ id: "where", lines: [{ text: where, x: bx + pad, y: footY + 13 }], font: mono(700), ink: "ink-2", opacity: 1, z: "micro" });
 
   // Up the right edge: the record's ID and its moment
   const edgeAt: Point = [R + 16, markBase - 30];
@@ -474,27 +436,26 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   });
   texts.push({ id: "credits", lines: [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: markBase }], font: mono(500, MICRO * 0.8), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
 
+  const nameRight = Math.max(...lines.map((l) => l.x + width(c, l.text, fitted.font)));
   return {
     city,
     texts,
-    numeralBox: [numX, numX + numW, numBase - CAP * numSize, numBase],
-    leader: [city, city],
-    node: "dot",
-    coords: { id: "city-coords", lines: [], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" },
+    numeralBox: [left, nameRight, top, nameBottom],
+    // The city: a red ring with a point in it, a white line out to its latitude and longitude
+    leader: [[city[0] + 9, city[1]], [city[0] + 70, city[1]]],
+    node: "ring",
+    coords: { id: "city-coords", lines: [{ text: `${lat}  ${lon}`, x: city[0] + 76, y: city[1] + 4 }], font: mono(700), ink: "ink-1", opacity: 1, z: "micro" },
     rules: [],
     placeFit: `hole ${PLACEMENTS.indexOf(placement)}, ${fitted.step}, ${n} line(s)`,
     fitScore: 1,
     preferred,
     cut: true,
     wordmark: { x: M, y: markBase, size: 17 },
-    // A veil of the sky behind the name, so it reads on any street
-    shades:
-      placement.name === "foot"
-        ? [{ y0: nameTop - 60, y1: bottom, from: 0, to: 0.7 }]
-        : [
-            { y0: 0, y1: nameBottom + 60, from: 0.7, to: 0 },
-            { y0: markBase - 60, y1: bottom, from: 0, to: 0.5 },
-          ],
+    // A veil of the sky behind the name, fading in above it and out below it, so it reads on any street
+    shades: [
+      { y0: Math.max(0, top - 90), y1: (top + nameBottom) / 2, from: 0, to: 0.5 },
+      { y0: (top + nameBottom) / 2, y1: Math.min(bottom, nameBottom + 90), from: 0.5, to: 0 },
+    ],
   };
 }
 
@@ -735,8 +696,8 @@ export function getRecordComposition(
 
   // The city: the record's one accent, tied to the name by a hairline
   const [l0, l1] = plan.leader;
-  if (l0[0] !== l1[0] || l0[1] !== l1[1]) lines("leader", "nodes", "ink-1", 1, [[sheetPoint(l0), sheetPoint(l1)]], 0.75);
-  add({ id: "node-city", role: "nodes", inkRole: "accent", opacity: 1, payload: { kind: "node", shape: plan.node, at: P(plan.city), r: ref.s(plan.node === "dot" ? 4.2 : 6) } });
+  if (l0[0] !== l1[0] || l0[1] !== l1[1]) lines("leader", "nodes", "ink-1", 1, [[sheetPoint(l0), sheetPoint(l1)]], plan.node === "ring" ? 1.2 : 0.75);
+  add({ id: "node-city", role: "nodes", inkRole: "accent", opacity: 1, payload: { kind: "node", shape: plan.node, at: P(plan.city), r: ref.s(plan.node === "dot" ? 4.2 : plan.node === "ring" ? 7 : 6) } });
   if (plan.coords.lines.length) text(plan.coords);
 
   if (mode !== "field-record" || raster) plan.rules.forEach((r, i) => rule(i, r, "micro"));

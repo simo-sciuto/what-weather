@@ -93,6 +93,8 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
       const mark =
         p.shape === "dot"
           ? `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="${ink(l)}"/>`
+          : p.shape === "ring"
+            ? `<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="none" stroke="${ink(l)}" stroke-width="${n(r * 0.32)}"/><circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r * 0.34)}" fill="${ink(l)}"/>`
           : p.shape === "triangle"
             ? `<path d="M${n(cx)},${n(cy - r)}L${n(cx + r)},${n(cy + r * 0.67)}H${n(cx - r)}Z" fill="${ink(l)}"/>`
             : `<path d="M${n(cx - r)},${n(cy)}H${n(cx + r)}M${n(cx)},${n(cy - r)}V${n(cy + r)}" stroke="${ink(l)}" stroke-width="${n(line * 1.4)}"/><circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r * 0.42)}" fill="none" stroke="${ink(l)}" stroke-width="${n(line)}"/>`;
@@ -130,8 +132,8 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
       defs.push(
         `<filter id="${fid}" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse">` +
           `<feComponentTransfer in="SourceAlpha" result="outside"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>` +
-          shadow("outside", 0.003, 0.003, 0.32, "edge") +
-          shadow("outside", 0.016, 0.012, 0.55, "depth") +
+          shadow("outside", 0.003, 0.004, 0.5, "edge") +
+          shadow("outside", 0.018, 0.016, 0.75, "depth") +
           // The glow: light from under the map coming up through the hole, a thin halo at its edge
           (l.glow
             ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${n(0.007 * W)}" result="halo-b"/>` +

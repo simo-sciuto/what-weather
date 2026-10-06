@@ -110,7 +110,7 @@ export type RectPayload = { kind: "rect"; x: number; y: number; width: number; h
 
 export type NodePayload = {
   kind: "node";
-  shape: "dot" | "cross" | "triangle";
+  shape: "dot" | "cross" | "triangle" | "ring";
   at: Point;
   /** Radius, fraction of the sheet's width */
   r: number;

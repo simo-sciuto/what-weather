@@ -228,66 +228,49 @@ describe("the city and the inks", () => {
   });
 });
 
-describe("over the site's own map: the temperature as a hole, the facts in a box (WTH-200)", () => {
+describe("over the site's own map: the name as a hole on the grid, the facts in a block (WTH-200)", () => {
   const raster = (k: string, patch: Partial<RecordInput> = {}) => {
     const r = byKey(k);
     return getRecordComposition({ ...r.input, ...patch }, r.geography, measure, undefined, "raster");
   };
   const texts = (s: RecordScene) => s.layers.flatMap((l) => (l.payload.kind === "text" ? l.payload.lines.map((x) => x.text) : []));
 
-  it("sets the temperature across the sheet as a hole in the map (paper ground, inner shadow), under the strong lines", () => {
+  it("leaves the large temperature out: the name alone is the large type, a hole lit from under the map", () => {
     for (const k of ["milan", "tshuru", "tokyo", "san-cristobal"]) {
       const s = raster(k);
-      expect(s.metadata.placeFit).toMatch(/^hole/);
-      const dom = s.layers.find((l) => l.id === "dominant")!;
-      expect(dom.inkRole).toBe("hole");
-      expect(dom.inset).toBe(true);
-      expect(s.inks.hole).not.toBe("#ffffff");
-      // Large, but inside the sheet, the degree half the figures' size
-      if (dom.payload.kind === "text") expect(measure(dom.payload.lines[0].text, dom.payload.font)).toBeLessThan(1);
-      const deg = s.layers.find((l) => l.id === "degree")!;
-      if (deg.payload.kind === "text" && dom.payload.kind === "text") expect(deg.payload.font.size).toBeCloseTo(dom.payload.font.size / 2, 6);
+      expect(s.layers.some((l) => l.id === "dominant" || l.id === "degree")).toBe(false);
+      for (const l of s.layers) if (l.payload.kind === "text" && l.payload.font.family === "display") expect(l.id).toBe("place");
+      const place = s.layers.find((l) => l.id === "place")!;
+      expect(place.inkRole).toBe("ink-2");
+      expect(place.inset).toBe(true);
+      expect(place.glow).toBe(true);
+      expect(place.payload.kind === "text" && place.payload.stroke).toBeFalsy();
+      expect(place.transform).toBeUndefined();
       const cut = s.layers.find((l) => l.id === "map-cut")!;
-      expect([...(cut.clip?.glyphsOf ?? [])].sort()).toEqual(["degree", "dominant", "place"]);
-      expect(cut.z).toBeGreaterThan(dom.z);
+      expect(cut.clip?.glyphsOf).toEqual(["place"]);
+      expect(cut.z).toBeGreaterThan(place.z);
     }
   });
 
-  it("gathers the facts as a block on the grid with no fill or border, and the record's ID up the right edge", () => {
+  it("keeps the temperature among the facts, with no fill or border, and the ID up the right edge", () => {
     const s = raster("tokyo", { place: { name: "Tokyo", lat: 35.68, lon: 139.77, region: "Tokyo", country: "Giappone" } });
-    expect(s.layers.some((l) => l.id.startsWith("box-"))).toBe(false);
     const all = texts(s);
-    for (const t of ["RAIN", "Tokyo, GIAPPONE", "© MAPBOX © OPENSTREETMAP"]) expect(all).toContain(t);
-    const edge = s.layers.find((l) => l.id === "record-id")!;
-    expect(edge.transform?.rotate).toBe(-90);
+    for (const t of ["RAIN", "TEMP", "18°", "Tokyo, GIAPPONE", "© MAPBOX © OPENSTREETMAP"]) expect(all).toContain(t);
+    expect(s.layers.some((l) => l.id.startsWith("box-"))).toBe(false);
+    expect(s.layers.find((l) => l.id === "record-id")!.transform?.rotate).toBe(-90);
     expect(all.join(" ")).toContain("WW / 2026 / 278 / TOKYO");
-    // Only the name and the temperature take the large face
-    for (const l of s.layers)
-      if (l.payload.kind === "text" && l.payload.font.family === "display") expect(["dominant", "degree", "place"]).toContain(l.id);
   });
 
-  it("sets the home page's wordmark: what, a butter bar, weather", () => {
+  it("marks the city with a red ring and a white line out to its coordinates", () => {
     const s = raster("oslo");
-    expect(s.layers.find((l) => l.id === "wordmark-what")!.payload).toMatchObject({ kind: "text", font: { family: "brand", wght: 300 } });
-    expect(s.layers.find((l) => l.id === "wordmark-weather")!.payload).toMatchObject({ kind: "text", font: { family: "brand", wght: 800 } });
-    const bar = s.layers.find((l) => l.id === "wordmark-bar")!;
-    expect(bar.inkRole).toBe("brand");
-    expect(s.inks.brand).toBe("#f9e8a7");
+    const node = s.layers.find((l) => l.id === "node-city")!;
+    expect(node.payload).toMatchObject({ kind: "node", shape: "ring" });
+    expect(node.inkRole).toBe("accent");
+    expect(s.layers.find((l) => l.id === "leader")!.inkRole).toBe("ink-1");
+    expect(texts(s)).toContain("59°55'N  10°45'E");
   });
 
-  it("sets the name and the hole in the atmosphere's light, the hole quieter, no stroke, the accent kept", () => {
-    const s = raster("tokyo");
-    expect(s.inks.accent).toBe(RECORD_ACCENT);
-    const place = s.layers.find((l) => l.id === "place")!;
-    expect(place.inkRole).toBe("ink-2");
-    expect(place.inset).toBe(true);
-    expect(place.glow).toBe(true);
-    expect(s.layers.find((l) => l.id === "dominant")!.inkRole).toBe("hole");
-    // The hole quieter than the name: nearer the sky
-    expect(place.payload.kind === "text" && place.payload.stroke).toBeFalsy();
-  });
-
-  it("places the name and the temperature on the grid in one of four ways, chosen by the seed only", () => {
+  it("places the name on the grid in one of five ways, chosen by the seed only", () => {
     const seen = new Set<string>();
     for (let d = 1; d <= 28; d++) {
       const date = `2026-10-${String(d).padStart(2, "0")}`;
@@ -296,23 +279,31 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
       expect(raster("oslo", { date })).toEqual(s);
     }
     expect(seen.size).toBeGreaterThan(1);
-    for (const p of seen) expect(p).toMatch(/^hole [0-3]$/);
+    for (const p of seen) expect(p).toMatch(/^hole [0-4]$/);
   });
 
-  it("fits a long name on two lines, whole and unstretched", () => {
-    const place = raster("san-cristobal").layers.find((l) => l.id === "place")!;
-    expect(place.transform).toBeUndefined();
-    expect(place.payload.kind === "text" && place.payload.lines.length).toBeLessThanOrEqual(2);
-    expect(place.payload.kind === "text" && place.payload.lines.map((l) => l.text).join(" ")).toBe("SAN CRISTOBAL DE LAS CASAS");
+  it("sets the home page's wordmark: what, a butter bar, weather", () => {
+    const s = raster("oslo");
+    expect(s.layers.find((l) => l.id === "wordmark-what")!.payload).toMatchObject({ kind: "text", font: { family: "brand", wght: 300 } });
+    expect(s.layers.find((l) => l.id === "wordmark-weather")!.payload).toMatchObject({ kind: "text", font: { family: "brand", wght: 800 } });
+    expect(s.layers.find((l) => l.id === "wordmark-bar")!.inkRole).toBe("brand");
+    expect(s.inks.brand).toBe("#f9e8a7");
+    expect(s.inks.accent).toBe(RECORD_ACCENT);
   });
 
-  it("puts the pictures it is given into the SVG", () => {
+  it("keeps a long name whole on at most three lines", () => {
+    const place = raster("san-cristobal").layers.find((l) => l.id === "place")!.payload;
+    expect(place.kind === "text" && place.lines.length).toBeLessThanOrEqual(3);
+    expect(place.kind === "text" && place.lines.map((l) => l.text).join(" ")).toBe("SAN CRISTOBAL DE LAS CASAS");
+  });
+
+  it("puts the pictures it is given into the SVG, with the hole's shadow and the brand face", () => {
     const svg = renderSvg(raster("oslo"), "swiss-flat", { width: 620, height: 877, images: { map: "data:image/png;base64,AA==", "map-cut": "data:image/png;base64,BB==" } });
     expect(svg).toContain('href="data:image/png;base64,AA=="');
     expect(svg).toContain('href="data:image/png;base64,BB=="');
     expect(svg).toContain("WW Record Brand");
-    expect(svg).toContain('tableValues="1 0"'); // the hole's inner shadow
-    expect(svg).not.toMatch(/scale\(/); // no letter stretched
+    expect(svg).toContain('tableValues="1 0"');
+    expect(svg).not.toMatch(/scale\(/);
   });
 });
 

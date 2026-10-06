@@ -3,7 +3,7 @@ import { placeSlug } from "./seed";
 
 export type Metric = { key: MetricKey; label: string; value: string };
 
-export type MetricKey = "feels" | "range" | "wind" | "gust" | "humidity" | "uv" | "precip" | "pressure" | "visibility" | "cloud";
+export type MetricKey = "temp" | "feels" | "range" | "wind" | "gust" | "humidity" | "uv" | "precip" | "pressure" | "visibility" | "cloud";
 
 /** What each family reports first; the fallbacks fill a cluster that a missing reading left short */
 export const FAMILY_METRICS: Record<ConditionFamily, MetricKey[]> = {
@@ -28,6 +28,8 @@ const pad2 = (n: number) => String(Math.round(n)).padStart(2, "0");
 
 function metric(key: MetricKey, r: RecordInput): Metric | null {
   switch (key) {
+    case "temp":
+      return { key, label: "TEMP", value: degrees(r.temp) };
     case "feels":
       return r.feelsLike == null ? null : { key, label: "FEELS", value: degrees(r.feelsLike) };
     case "range":
