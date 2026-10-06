@@ -36,6 +36,8 @@ const SEA_EDGES = 2;
 const SEA_EDGE_SHARE = 0.03;
 /** How many grid cells (8 print pixels each) the water is thinned by before it is measured: rivers narrower than about twice this come away */
 const THIN = 4;
+/** Water narrower than about twice this many cells is a river or a channel; wider, joined to the sea, is sea */
+const NARROW = 2;
 
 /**
  * The sea in a picture of the water alone (black where there is water). Mapbox draws sea and lakes in one layer with
@@ -107,9 +109,18 @@ export function seaMask(water: HTMLCanvasElement): HTMLCanvasElement {
     if (share >= SEA_SHARE || (edges >= SEA_EDGES && share >= SEA_EDGE_SHARE)) for (const i of cells) seaCells[i] = 1;
     id++;
   }
-  // Then grown back over the water it was thinned from, so the sea keeps its own shore (and a river only its mouth)
+  // Then grown back: first through all the water that is not narrow (a harbour's basins, a bay behind a mole, joined
+  // to the sea), as far as it reaches; then over the last few cells of shore. A river, narrow, stops at its mouth.
+  let wide = water0;
+  for (let k = 0; k < NARROW; k++) wide = pass(wide, (v) => v.every(Boolean));
   let grown = seaCells;
-  for (let k = 0; k < THIN + 1; k++) grown = pass(grown, (v) => v.some(Boolean), water0);
+  for (let k = 0; k < gw + gh; k++) {
+    const next = pass(grown, (v) => v.some(Boolean), wide);
+    for (let i = 0; i < next.length; i++) next[i] = next[i] || grown[i];
+    if (next.every((v, i) => v === grown[i])) break;
+    grown = next;
+  }
+  for (let k = 0; k < NARROW + 2; k++) grown = pass(grown, (v) => v.some(Boolean), water0);
   const img = sctx.createImageData(gw, gh);
   for (let i = 0; i < gw * gh; i++) img.data[i * 4 + 3] = grown[i] ? 255 : 0;
   sctx.putImageData(img, 0, 0);

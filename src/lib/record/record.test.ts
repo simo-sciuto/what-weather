@@ -243,10 +243,12 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
       expect(dom.inkRole).toBe("hole");
       expect(dom.inset).toBe(true);
       expect(s.inks.hole).not.toBe("#ffffff");
-      // Large, but inside the sheet
+      // Large, but inside the sheet, the degree half the figures' size
       if (dom.payload.kind === "text") expect(measure(dom.payload.lines[0].text, dom.payload.font)).toBeLessThan(1);
+      const deg = s.layers.find((l) => l.id === "degree")!;
+      if (deg.payload.kind === "text" && dom.payload.kind === "text") expect(deg.payload.font.size).toBeCloseTo(dom.payload.font.size / 2, 6);
       const cut = s.layers.find((l) => l.id === "map-cut")!;
-      expect([...(cut.clip?.glyphsOf ?? [])].sort()).toEqual(["dominant", "place"]);
+      expect([...(cut.clip?.glyphsOf ?? [])].sort()).toEqual(["degree", "dominant", "place"]);
       expect(cut.z).toBeGreaterThan(dom.z);
     }
   });
@@ -261,7 +263,7 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
     expect(all.join(" ")).toContain("WW / 2026 / 278 / TOKYO");
     // Only the name and the temperature take the large face
     for (const l of s.layers)
-      if (l.payload.kind === "text" && l.payload.font.family === "display") expect(["dominant", "place"]).toContain(l.id);
+      if (l.payload.kind === "text" && l.payload.font.family === "display") expect(["dominant", "degree", "place"]).toContain(l.id);
   });
 
   it("sets the home page's wordmark: what, a butter bar, weather", () => {

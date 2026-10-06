@@ -417,10 +417,14 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const nameTop = firstBase - CAP * sz;
   const nameBottom = lines[n - 1].y;
 
-  // The temperature on its columns and row: large but inside the sheet, a quiet hole, not a headline
-  const num = degrees(c.r.temp);
+  // The temperature on its columns and row: large but inside the sheet, a quiet hole, not a headline. The degree is
+  // set at half the figures' size on their cap line: Syne's own degree is nearly a figure wide
+  const digits = degrees(c.r.temp).replace("°", "");
   const nf0 = display({ weight: 800, width: 100, tracking: -0.04 }, 1, -0.04);
-  const unit = width(c, num, nf0);
+  const DEGREE = 0.5;
+  const unitDigits = width(c, digits, nf0);
+  const unitDegree = width(c, "°", { ...nf0, tracking: 0 }) * DEGREE;
+  const unit = unitDigits + 0.04 + unitDegree;
   const t = placement.temp;
   const room = span(t.cols);
   const numSize = room / unit;
@@ -428,7 +432,18 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const numW = unit * numSize;
   const numX = t.align === "left" ? left : t.align === "right" ? left + room - numW : left + (room - numW) / 2;
   const numBase = row * t.row + (CAP * numSize) / 2;
-  texts.push({ id: "dominant", lines: [{ text: num, x: numX, y: numBase }], font: { ...nf0, size: numSize }, ink: "hole", opacity: 1, z: "type-back", inset: true });
+  texts.push({ id: "dominant", lines: [{ text: digits, x: numX, y: numBase }], font: { ...nf0, size: numSize }, ink: "hole", opacity: 1, z: "type-back", inset: true });
+  const degSize = numSize * DEGREE;
+  texts.push({
+    id: "degree",
+    // Its top on the figures' cap line: the degree sits about its own cap height above its baseline
+    lines: [{ text: "°", x: numX + (unitDigits + 0.04) * numSize, y: numBase - CAP * numSize + CAP * degSize }],
+    font: { ...nf0, size: degSize, tracking: 0 },
+    ink: "hole",
+    opacity: 1,
+    z: "type-back",
+    inset: true,
+  });
 
   // The facts, gathered as a square block on the grid (no fill, no border): the condition, four readings, the
   // place's region and country, its coordinates
