@@ -486,8 +486,8 @@ export function getRecordComposition(
     add({
       id: t.id,
       role: t.z,
-      // Over the site's map the place's name is set in the temperature's colour (ink-2 there)
-      inkRole: raster && /^place(-\d+)?$/.test(t.id) ? "ink-2" : t.ink,
+      // Over the site's map the place's name and the temperature are set in the temperature's colour (ink-2 there)
+      inkRole: raster && /^(place(-\d+)?|dominant|degree|temperature|minus)$/.test(t.id) ? "ink-2" : t.ink,
       opacity: t.opacity,
       transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
       payload: {

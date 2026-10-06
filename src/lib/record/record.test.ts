@@ -268,10 +268,12 @@ describe("over the site's own map (raster)", () => {
     for (const k of ["milan", "tokyo", "reykjavik", "oslo"]) expect(raster(k).metadata.mode).toBe("collision");
   });
 
-  it("takes its two inks from the atmosphere, apart on the colour wheel, the accent kept; one flat pass", () => {
+  it("takes its colours from the app's colour study: the sky, the page's white, the temperature's absolute colour", () => {
     const night = raster("tokyo");
     expect(night.inks.accent).toBe(RECORD_ACCENT);
-    expect(night.inks["ink-1"]).not.toBe(night.inks.paper);
+    expect(night.inks["ink-1"]).toBe("#ffffff");
+    expect(night.inks["ink-2"]).toBe("#b3e9c4"); // tempColor(18): rgb(179 233 196)
+    expect(night.layers.find((l) => l.id === "dominant")!.inkRole).toBe("ink-2");
     expect(night.layers.find((l) => l.id === "place")!.inkRole).toBe("ink-2");
     expect(night.layers.some((l) => l.id.endsWith("-second"))).toBe(false);
   });

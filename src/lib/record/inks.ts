@@ -1,5 +1,5 @@
 import type { AtmosphereAxes } from "@/lib/weather/atmosphere";
-import { atmospherePalette, scaleChroma } from "@/lib/weather/palette";
+import { atmospherePalette } from "@/lib/weather/palette";
 import { tempColor } from "@/lib/weather/temp-color";
 import { HAZE_ONSET } from "@/lib/weather/atmosphere";
 import type { InkRole } from "./types";
@@ -40,55 +40,22 @@ export function recordInks(a: AtmosphereAxes): Record<InkRole, string> {
   };
 }
 
-/** The two inks' hues stay at least this far apart, in degrees */
-export const MIN_HUE_APART = 110;
-
-/** Hue (degrees), saturation and lightness (0..1) of a hex colour */
-function hsl(hex: string): [number, number, number] {
-  const [r, g, b] = rgb(hex).map((v) => v / 255);
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  if (max === min) return [0, 0, l];
-  const d = max - min;
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-  return [h * 60, s, l];
-}
-
-function fromHsl(h: number, s: number, l: number): string {
-  const k = (n: number) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
-  return `#${[f(0), f(8), f(4)].map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("")}`;
-}
+/** The page's type colour, white over the sky (globals.css) */
+export const PAGE_INK = "#ffffff";
 
 /**
- * The inks over the poster's own map, two of them as in a screenprint, both from the atmosphere: the light ink is
- * the moment's own light (`sun`: a warm sun by day, a cold moon at night), the name's ink the temperature's colour
- * on the absolute scale; each a little into the paper, more in haze, so the type sits in the scene rather than
- * cut out of it. The city's mark keeps the one accent.
+ * The inks over the poster's own map, from the colour study already in the app and nothing else: the paper is the
+ * sky of the moment (`atmospherePalette`), the small type is the page's white, and the place's name and the
+ * temperature carry the temperature's colour on the absolute scale (`tempColor`, ADR-012: a temperature's figure
+ * never takes a weathered colour), as the page and the old poster set them. The city's mark keeps the one accent.
  */
 export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<InkRole, string> {
   const p = atmospherePalette(light, a);
-  // Haze takes a little from both inks; never so much that the two stop reading as two
-  const soften = 0.1 * smoothstep(HAZE_ONSET, 1, a.haze);
-  const toHex = ([r, g, b]: readonly number[]) => `#${[r, g, b].map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, "0")).join("")}`;
-  const channels = (c: string) => (c.startsWith("#") ? rgb(c) : (c.match(/\d+/g) ?? ["0", "0", "0"]).slice(0, 3).map(Number));
-  // The colour ink: the temperature's hue, pushed to a printing ink's strength
-  const [r, g, b] = channels(tempColor(temp));
-  const colour = toHex(scaleChroma([r, g, b], 2.4));
-  // The two inks always part on the colour wheel: when the moment's light sits near the temperature's hue (a warm
-  // sun on a hot day), the light ink takes the opposite hue, kept pale so it reads on the map
-  let lightInk = toHex(channels(p.sun));
-  const [h1] = hsl(lightInk);
-  const [h2] = hsl(colour);
-  const apart = Math.min(Math.abs(h1 - h2), 360 - Math.abs(h1 - h2));
-  if (apart < MIN_HUE_APART) lightInk = fromHsl((h2 + 180) % 360, 0.75, 0.82);
+  const [r, g, b] = (tempColor(temp).match(/\d+/g) ?? ["255", "255", "255"]).slice(0, 3).map(Number);
   return {
     paper: p.sky2,
-    "ink-1": mix(lightInk, p.sky2, soften),
-    "ink-2": mix(colour, p.sky2, soften),
+    "ink-1": PAGE_INK,
+    "ink-2": `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`,
     accent: RECORD_ACCENT,
   };
 }
