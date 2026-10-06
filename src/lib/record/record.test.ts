@@ -246,7 +246,7 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
       // Large, but inside the sheet
       if (dom.payload.kind === "text") expect(measure(dom.payload.lines[0].text, dom.payload.font)).toBeLessThan(1);
       const cut = s.layers.find((l) => l.id === "map-cut")!;
-      expect(cut.clip?.glyphsOf).toEqual(["dominant", "place"]);
+      expect([...(cut.clip?.glyphsOf ?? [])].sort()).toEqual(["dominant", "place"]);
       expect(cut.z).toBeGreaterThan(dom.z);
     }
   });
@@ -285,7 +285,19 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
     expect(place.payload.kind === "text" && place.payload.stroke).toBeFalsy();
   });
 
-  it("fits a long name on two lines at the foot, whole and unstretched", () => {
+  it("places the name and the temperature on the grid in one of four ways, chosen by the seed only", () => {
+    const seen = new Set<string>();
+    for (let d = 1; d <= 28; d++) {
+      const date = `2026-10-${String(d).padStart(2, "0")}`;
+      const s = raster("oslo", { date });
+      seen.add(s.metadata.placeFit.split(",")[0]);
+      expect(raster("oslo", { date })).toEqual(s);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+    for (const p of seen) expect(p).toMatch(/^hole [0-3]$/);
+  });
+
+  it("fits a long name on two lines, whole and unstretched", () => {
     const place = raster("san-cristobal").layers.find((l) => l.id === "place")!;
     expect(place.transform).toBeUndefined();
     expect(place.payload.kind === "text" && place.payload.lines.length).toBeLessThanOrEqual(2);
