@@ -34,6 +34,8 @@ export type PosterSources = {
   options: readonly MapOption[];
   view: PosterInput["view"];
   /** The day's range, when the frame's day is known */
+  /** The credit the weather data's licence asks for (`weatherCredit`) */
+  credit?: string;
   /** The day's range; `partial` when it covers only part of the day */
   day?: { high: number; low: number; partial?: boolean };
 };
@@ -57,7 +59,7 @@ export function recordClock(ts: number, timeZone: string): { time: string; zone:
  * so they stay out (the atmosphere then takes the condition's own rain or snow, as for any absent rate); its
  * temperature is the day's high.
  */
-export function recordInputOf({ place, frame, timeZone, day }: Pick<PosterSources, "place" | "frame" | "timeZone" | "day">): RecordInput {
+export function recordInputOf({ place, frame, timeZone, day, credit }: Pick<PosterSources, "place" | "frame" | "timeZone" | "day" | "credit">): RecordInput {
   const allDay = frame.overview === true;
   const reading = <T,>(v: T) => (allDay ? undefined : v);
   return {
@@ -79,6 +81,7 @@ export function recordInputOf({ place, frame, timeZone, day }: Pick<PosterSource
     precipitation: reading(frame.precipitation),
     light: frame.light,
     provenance: provenanceOf(frame, day),
+    credit,
   };
 }
 
@@ -95,9 +98,9 @@ function provenanceOf(frame: PosterSources["frame"], day: PosterSources["day"]):
 }
 
 /** The snapshot from its sources: pure, so what goes on a poster can be checked without a page */
-export function posterSnapshot({ place, frame, look, timeZone, palette, options, view, day }: PosterSources): PosterSnapshot {
+export function posterSnapshot({ place, frame, look, timeZone, palette, options, view, day, credit }: PosterSources): PosterSnapshot {
   return {
-    record: recordInputOf({ place, frame, timeZone, day }),
+    record: recordInputOf({ place, frame, timeZone, day, credit }),
     place: { name: place.name, ...placeParts(place), lat: place.lat, lon: place.lon },
     time: frame.time,
     timeZone,
@@ -118,12 +121,12 @@ export function posterSnapshot({ place, frame, look, timeZone, palette, options,
  */
 export function usePosterSnapshot(): () => PosterSnapshot {
   const { place } = usePlace();
-  const { timezone } = useMap();
+  const { timezone, weatherCredit } = useMap();
   const { frame, look } = useMoment();
   const palette = useMapPalette();
   const options = useMapOptions();
   const { timeline } = useTimeline();
   const day = timeline.days.find((d) => d.key === frame.dayKey);
   return () =>
-    posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: currentView(), day: day && { high: day.high, low: day.low, partial: day.partial } });
+    posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: currentView(), credit: weatherCredit, day: day && { high: day.high, low: day.low, partial: day.partial } });
 }

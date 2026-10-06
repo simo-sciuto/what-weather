@@ -12,7 +12,7 @@ The records cannot be sold today. Three things stand in the way, in this order o
 2. **Open-Meteo's free API is non-commercial only.** A paid plan is needed, whichever weather provider the page uses.
 3. **Hosting: Vercel's free Hobby plan forbids a site that takes payment.** Pro is needed.
 
-Smaller gaps: the poster carries no credit for the weather data, and OpenWeather's share-alike wording needs a written answer.
+Smaller gap: OpenWeather's share-alike wording needs a written answer. (The poster's credit for the weather data is done.)
 
 ## By source
 
@@ -22,7 +22,7 @@ Smaller gaps: the poster carries no credit for the weather data, and OpenWeather
 - **Rule:** the free API is for non-commercial use: private or non-profit sites and apps without subscriptions or advertising, research, education. Commercial examples: apps with subscriptions or ads, and "integrating the service into commercial products or promotional activities".
 - **Consequence:** the free app with no ads is fine today. Once records are sold, the app is the shop window of a commercial product, so it needs a commercial plan, even while OpenWeather is the forecast provider, because the sources above stay on Open-Meteo.
 - **Price (third-party summaries, check the pricing page):** Standard 29 USD per month, 1 million calls (forecast, marine, air quality, geocoding, elevation, flood); Professional 99 USD per month, 5 million calls, adds historical reanalysis, ensembles, climate and solar; Enterprise on request, above 50 million calls. A subscription gives a commercial licence and an API key on a dedicated endpoint, no per-call overage.
-- **Attribution (CC BY 4.0), always, paid or not:** a link next to wherever Open-Meteo data is shown, like "Weather data by Open-Meteo.com". The site's footer does it (`SiteFooter.tsx`); **the poster does not** (its credits read only "© MAPBOX © OPENSTREETMAP", `compose.ts`).
+- **Attribution (CC BY 4.0), always, paid or not:** a link next to wherever Open-Meteo data is shown, like "Weather data by Open-Meteo.com". The site's footer does it (`SiteFooter.tsx`); **the poster did not**; since 2026-10-06 it does: "WEATHER DATA OPEN-METEO.COM" beside the map's credit (`weatherCredit`, `src/lib/record/credits.ts`).
 - **Needed for the Historical records track (WTH-170):** archive data; check which plan includes it.
 
 ### Mapbox (map, terrain, geocoding)
@@ -46,7 +46,7 @@ Smaller gaps: the poster carries no credit for the weather data, and OpenWeather
 - **Used for:** the forecast (One Call 4.0, `OPENWEATHER_API_KEY`), place names from coordinates, geocoding, the air quality.
 - **Rule (the summaries cover One Call 3.0, the project uses 4.0: not verified for 4.0):** self-service plans are under ODbL for the data and CC BY-SA 4.0 for the API, with visible attribution to OpenWeather. They allow commercial use and building a commercial derivative product, **with a share-alike duty on how that product is then distributed.** A separate "OpenWeather for Business" licence builds a commercial derivative product with no such duty.
 - **Consequence:** a poster is a product made from the weather data. Whether it is a "derivative product" that would have to be shared alike, or a Produced Work that needs only a credit, is for OpenWeather to say. Ask in writing; if the answer is not clear, either take the Business licence or sell on Open-Meteo's commercial plan (CC BY, no share-alike).
-- **Attribution:** the poster has none for OpenWeather. Needed whichever provider the poster's numbers come from.
+- **Attribution:** the poster prints "WEATHER DATA OPENWEATHER" when OpenWeather is the provider (2026-10-06); sample data prints none.
 
 ### Hosting (Vercel)
 
@@ -66,7 +66,7 @@ Consumer law (right of withdrawal on custom goods, VAT, invoicing), privacy of o
 
 1. Write to Mapbox sales (the case above) and OpenWeather (share-alike on a poster); keep the answers. Nothing else is worth building before Mapbox answers: if Mapbox says no, the poster needs another map source (WTH-194 touches this).
 2. Choose the weather source for sale: Open-Meteo Standard (29 USD per month) with CC BY credit, or OpenWeather Business. Open-Meteo is cheaper and simpler; the sources that stay on Open-Meteo need its plan anyway.
-3. Add the weather data's credit to the poster (and the exports), next to the map's.
+3. ~~Add the weather data's credit to the poster (and the exports), next to the map's.~~ Done 2026-10-06.
 4. Vercel Pro before taking payment.
 
 ## Sources

@@ -67,6 +67,8 @@ export type RecordInput = {
   light?: number;
   /** Where the figures come from (ADR-006, WTH-196); absent, every figure is as the provider gave it */
   provenance?: RecordProvenance;
+  /** The credit the weather data's licence asks for, printed beside the map's (WTH-212); none for sample data */
+  credit?: string;
 };
 
 export type RecordProvenance = {

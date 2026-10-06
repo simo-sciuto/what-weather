@@ -502,7 +502,7 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
     rotate: { deg: -90, origin: edgeAt },
     z: "micro",
   });
-  texts.push({ id: "credits", lines: [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: markBase }], font: mono(500, MICRO * 0.8), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
+  texts.push({ id: "credits", lines: [{ text: [c.r.credit, "© MAPBOX © OPENSTREETMAP"].filter(Boolean).join("   "), x: R, y: markBase }], font: mono(500, MICRO * 0.8), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
 
   const nameRight = nameRight0;
   return {

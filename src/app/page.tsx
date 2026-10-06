@@ -16,6 +16,7 @@ import { DailyForecast } from "@/components/weather/DailyForecast";
 import { PrecipitationTimeline } from "@/components/weather/PrecipitationTimeline";
 import { MapBackdropGL } from "@/components/weather/MapBackdropGL";
 import { MapProvider } from "@/components/weather/MapContext";
+import { weatherCredit } from "@/lib/record/credits";
 import { MapView } from "@/components/weather/MapView";
 import { MapSheet } from "@/components/weather/MapControls";
 import { MapCompass } from "@/components/weather/MapCompass";
@@ -123,7 +124,7 @@ export default async function Home({
     >
       <PlaceProvider place={data.place}>
         {/* The maps (the backdrop and the chapter) share Mapbox, the place and its cloud grid */}
-        <MapProvider timezone={data.timezone}>
+        <MapProvider timezone={data.timezone} weatherCredit={weatherCredit(provider)}>
           <PhoneNavProvider>
             <AutoRefresh
               landedAt={landed ? placeHref(data.place) : undefined}

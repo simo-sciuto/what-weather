@@ -17,6 +17,8 @@ type MapState = {
   /** The place the maps centre on */
   center: { lat: number; lon: number; name: string };
   timezone: string;
+  /** The credit the weather data's licence asks for on the poster (WTH-212) */
+  weatherCredit?: string;
   /** Mapbox public token; without it there are no maps */
   token: string | undefined;
   /** Mapbox GL, once for every map; rejects without WebGL */
@@ -38,7 +40,7 @@ function loadMapbox(): Promise<Mapbox> {
 
 const MapContext = createContext<MapState | null>(null);
 
-export function MapProvider({ timezone, children }: { timezone: string; children: ReactNode }) {
+export function MapProvider({ timezone, weatherCredit, children }: { timezone: string; weatherCredit?: string; children: ReactNode }) {
   const { place } = usePlace();
   const { lat, lon, name } = place;
   const center = useMemo(() => ({ lat, lon, name }), [lat, lon, name]);
@@ -58,8 +60,8 @@ export function MapProvider({ timezone, children }: { timezone: string; children
   const grid = clouds?.key === key ? clouds.grid : null;
 
   const value = useMemo<MapState>(
-    () => ({ center, timezone, token: TOKEN, loadMapbox, clouds: grid }),
-    [center, timezone, grid],
+    () => ({ center, timezone, weatherCredit, token: TOKEN, loadMapbox, clouds: grid }),
+    [center, timezone, weatherCredit, grid],
   );
   return <MapContext.Provider value={value}>{children}</MapContext.Provider>;
 }

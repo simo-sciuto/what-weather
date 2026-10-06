@@ -285,6 +285,16 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
     expect(all.join(" ")).toContain("WW / 2026 / 278 / TOKYO");
   });
 
+  it("prints the weather data's credit before the map's, on one line, and nothing extra without one (WTH-212)", () => {
+    const credits = (s: RecordScene) => s.layers.find((l) => l.id === "credits")!.payload;
+    const line = (s: RecordScene) => {
+      const p = credits(s);
+      return p.kind === "text" ? p.lines.map((x) => x.text) : [];
+    };
+    expect(line(raster("oslo", { credit: "WEATHER DATA OPEN-METEO.COM" }))).toEqual(["WEATHER DATA OPEN-METEO.COM   © MAPBOX © OPENSTREETMAP"]);
+    expect(line(raster("oslo"))).toEqual(["© MAPBOX © OPENSTREETMAP"]);
+  });
+
   it("marks the city with a red ring and a white line out to its coordinates", () => {
     const s = raster("oslo");
     const node = s.layers.find((l) => l.id === "node-city")!;

@@ -4,6 +4,7 @@ import { fingerprintKey, fingerprintOf } from "@/lib/weather/fingerprint";
 import { frameLook } from "@/lib/weather/look";
 import { createMockProvider } from "@/lib/api/providers/mock";
 import { getRecordComposition } from "@/lib/record/compose";
+import { weatherCredit } from "@/lib/record/credits";
 import { metricsFor } from "@/lib/record/metrics";
 import type { Measure } from "@/lib/record/types";
 import { posterSnapshot, recordClock, recordInputOf } from "./usePosterSnapshot";
@@ -95,6 +96,16 @@ describe("the poster's snapshot", () => {
     expect(input(estimated).provenance).toEqual({ estimated: ["humidity"] });
     // A day's stand-in is a whole day, not an interpolated hour
     expect(input(timeline.days[timeline.days.length - 1].overview).provenance).toBeUndefined();
+  });
+
+  it("carries the weather data's credit to the record, and none for sample data (WTH-212)", async () => {
+    const { data, timeline } = await sources();
+    const frame = timeline.frames[0];
+    const input = (credit?: string) => recordInputOf({ place: data.place, frame, timeZone: data.timezone, credit });
+    expect(input(weatherCredit("open-meteo")).credit).toBe("WEATHER DATA OPEN-METEO.COM");
+    expect(input(weatherCredit("openweather")).credit).toBe("WEATHER DATA OPENWEATHER");
+    expect(input(weatherCredit("openweather-free")).credit).toBe("WEATHER DATA OPENWEATHER");
+    expect(input(weatherCredit("mock")).credit).toBeUndefined();
   });
 
   it("reads the place's clock, half-hour zones included, and falls back to GMT for an unknown zone", () => {
