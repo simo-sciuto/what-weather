@@ -276,7 +276,6 @@ describe("over the site's own map (raster)", () => {
     expect(night.inks["ink-2"]).not.toBe(tempColor(18));
     const print = night.metadata.print!;
     expect(["screen", "multiply"]).toContain(print.blend);
-    expect(print.grain).toBeGreaterThan(0);
     // A storm prints further off register than a calm day
     const calm = Math.hypot(...raster("tshuru").metadata.print!.offset);
     const storm = Math.hypot(...raster("san-cristobal").metadata.print!.offset);
@@ -284,7 +283,8 @@ describe("over the site's own map (raster)", () => {
     // The large type gets its second impression, in the other ink, and the print's blend
     const second = night.layers.find((l) => l.id === "place-second")!;
     expect(second.inkRole).toBe("ink-1");
-    expect(second.blend).toBe(print.blend);
+    // Two flat passes: no blend, no texture
+    expect(second.blend).toBeUndefined();
     expect(night.layers.find((l) => l.id === "place")!.inkRole).toBe("ink-2");
   });
 
@@ -292,8 +292,7 @@ describe("over the site's own map (raster)", () => {
     const svg = renderSvg(raster("oslo"), "swiss-flat", { width: 620, height: 877, images: { map: "data:image/png;base64,AA==", "map-cut": "data:image/png;base64,BB==" } });
     expect(svg).toContain('href="data:image/png;base64,AA=="');
     expect(svg).toContain('href="data:image/png;base64,BB=="');
-    expect(svg).toContain("mix-blend-mode:");
-    expect(svg).toContain("<feTurbulence");
+    expect(svg).not.toContain("<feTurbulence");
   });
 });
 

@@ -217,7 +217,8 @@ function collision(c: Ctx, city: Point, preferred: boolean): Plan {
   const s = fitted.font.size;
   const firstBase = 58 + CAP * s;
   const lines = fitted.lines.map((text, i) => ({ text, x: nameX, y: firstBase + i * s * 0.9 }));
-  texts.push({ id: "place", lines, font: fitted.font, ink: "ink-1", opacity: 1, z: "type-front" });
+  // On the temperature's level, under the map's strong lines: they cross the name as they cross the number
+  texts.push({ id: "place", lines, font: fitted.font, ink: "ink-1", opacity: 1, z: "type-back" });
   const lastBase = lines[lines.length - 1].y;
 
   // The weather beside the name's foot, never under it
@@ -490,9 +491,7 @@ export function getRecordComposition(
         id: `${t.id}-second`,
         role: t.z,
         inkRole: ghostInk,
-        opacity: 0.85 * t.opacity,
-        blend: print.blend,
-        grain: true,
+        opacity: t.opacity,
         transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
         payload: {
           kind: "text",
@@ -503,8 +502,6 @@ export function getRecordComposition(
       });
     }
     add({
-      blend: large && print ? print.blend : undefined,
-      grain: large ? true : undefined,
       id: t.id,
       role: t.z,
       // Over the site's map the place's name is set in the temperature's colour (ink-2 there)

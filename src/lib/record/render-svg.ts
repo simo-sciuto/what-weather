@@ -59,34 +59,6 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
 
   const byId = new Map(scene.layers.map((l) => [l.id, l]));
 
-  // The screenprint (WTH-187): ink that spreads a little at the edges, lies thicker in places and thinner in others
-  // as a squeegee leaves it, and stays off where the mesh did not carry it. Sizes are in print pixels, scaled to
-  // this resolution, so a preview and the PNG print the same.
-  const print = scene.metadata.print;
-  const grainId = print && print.grain > 0 ? id("ink") : null;
-  if (print && grainId) {
-    const k = W / 2480;
-    const steps = 20;
-    const bare = Math.max(1, Math.round(print.grain * steps));
-    const speckle = Array.from({ length: steps }, (_, i) => (i >= steps - bare ? 0 : 1)).join(" ");
-    const seed = scene.metadata.seed % 997;
-    defs.push(
-      `<filter id="${grainId}" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">` +
-        // Edges that spread: the letters pushed about by a slow noise, a couple of pixels
-        `<feTurbulence type="fractalNoise" baseFrequency="${(0.035 / k).toFixed(4)}" numOctaves="2" seed="${seed}" result="warp"/>` +
-        `<feDisplacementMap in="SourceGraphic" in2="warp" scale="${n(5 * k)}" xChannelSelector="R" yChannelSelector="G" result="spread"/>` +
-        // The squeegee: broad patches of more and less ink, between 72% and 100%
-        `<feTurbulence type="fractalNoise" baseFrequency="${(0.004 / k).toFixed(4)}" numOctaves="3" seed="${seed + 1}" result="cloud"/>` +
-        `<feColorMatrix in="cloud" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.75 0 0 0 0.45" result="density"/>` +
-        // The mesh: a fine speckle left bare
-        `<feTurbulence type="fractalNoise" baseFrequency="${(0.7 / k).toFixed(4)}" numOctaves="1" seed="${seed + 2}" result="noise"/>` +
-        `<feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  2.2 0 0 0 -0.6" result="field"/>` +
-        `<feComponentTransfer in="field" result="mesh"><feFuncA type="discrete" tableValues="${speckle}"/></feComponentTransfer>` +
-        `<feComposite in="spread" in2="density" operator="in" result="inked"/>` +
-        `<feComposite in="inked" in2="mesh" operator="in"/></filter>`,
-    );
-  }
-
   const body = scene.layers.map((l) => {
     let inner = "";
     const p = l.payload;
@@ -138,8 +110,6 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
       defs.push(`<clipPath id="${cid}"><rect x="${n(r.x * W)}" y="${n(r.y * H)}" width="${n(r.width * W)}" height="${n(r.height * H)}"/></clipPath>`);
       inner = `<g clip-path="url(#${cid})">${inner}</g>`;
     }
-    // The screen's grain: the ink left out where the mesh did not carry it
-    if (l.grain && grainId) inner = `<g filter="url(#${grainId})">${inner}</g>`;
     const blend = l.blend && l.blend !== "normal" ? ` style="mix-blend-mode:${l.blend}"` : "";
     return `<g data-layer="${l.id}" data-role="${l.role}"${blend}${l.opacity < 1 ? ` opacity="${l.opacity.toFixed(3)}"` : ""}>${inner}</g>`;
   });

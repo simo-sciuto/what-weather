@@ -125,13 +125,11 @@ export type Transform = { rotate: number; origin: Point };
 /** How an ink sits on what is under it: as a screenprint's light inks over a dark ground, or dark over light */
 export type Blend = "normal" | "screen" | "multiply";
 
-/** The print's character (screenprint, WTH-187), from the atmosphere: how the inks meet the ground */
+/** The print's character (screenprint, WTH-187), from the atmosphere: a second pass in another ink, a little off register */
 export type PrintStyle = {
   blend: Blend;
   /** The second impression's shift, fractions of the sheet's width */
   offset: Point;
-  /** The share of an ink's surface the screen leaves bare, 0..1 */
-  grain: number;
 };
 
 export type SceneLayer = {
@@ -142,8 +140,6 @@ export type SceneLayer = {
   opacity: number;
   /** The print's blend, for the inks that take it */
   blend?: Blend;
-  /** The print's grain on this layer */
-  grain?: boolean;
   transform?: Transform;
   clip?: Clip;
   payload: TextPayload | PathsPayload | RectPayload | NodePayload | ImagePayload;

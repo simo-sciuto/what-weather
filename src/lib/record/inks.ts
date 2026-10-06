@@ -67,13 +67,12 @@ export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<
 /**
  * The print's character from the atmosphere: light inks screen over a dark ground and dark ones multiply over a
  * light one; the second impression drifts with the weather's energy (storm most, then rain, then the sun's), the
- * way the wind blows when it is known; the screen's grain opens in haze and snow.
+ * way the wind blows when it is known. Two flat passes, no ink texture: the user's screenprint.
  */
 export function printStyle(a: AtmosphereAxes, paper: string, windDeg?: number): PrintStyle {
   const blend: Blend = luminanceOf(paper) < 0.55 ? "screen" : "multiply";
-  const shift = 0.0028 + 0.004 * a.severity + 0.002 * a.wetness + 0.001 * a.energy;
+  const shift = 0.0022 + 0.003 * a.severity + 0.0015 * a.wetness + 0.0008 * a.energy;
   // Downwind: the wind's degrees say where it comes from; with no wind, down and to the right
   const angle = windDeg == null ? Math.PI / 5 : ((windDeg + 180 - 90) * Math.PI) / 180;
-  const grain = 0.06 + 0.08 * smoothstep(HAZE_ONSET, 1, a.haze) + 0.06 * a.snow;
-  return { blend, offset: [Math.cos(angle) * shift, Math.sin(angle) * shift], grain: Math.round(grain * 100) / 100 };
+  return { blend, offset: [Math.cos(angle) * shift, Math.sin(angle) * shift] };
 }

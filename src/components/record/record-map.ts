@@ -12,13 +12,13 @@ type Mapbox = typeof import("mapbox-gl").default;
  * changed), drawn off screen for the poster only, in two pictures:
  *
  * - "map": the whole map, as the page shows it, with the city on the spot the composition chose for it;
- * - "map-cut": the map's strongest lines alone (motorways, main roads, railways, rivers, the water's edge), in their
+ * - "map-cut": the map's strong marks alone (water, motorways, main roads, railways, metro, tram), in their
  *   own colours over a soft shadow, which the composition lays over its large type, inside the letters only: the
  *   city's roads pass over the numbers and the name.
  */
 
 /** The map's own layers whose lines cut the type, when the viewer shows them */
-const CUT_LAYERS = ["motorways", "main-roads", "train", "metro", "waterway"] as const;
+const CUT_LAYERS = ["water", "waterway", "motorways", "main-roads", "train", "metro", "tram"] as const;
 /** The water's edge, added to the record's own copy of the map for the cut */
 const SHORE = "record-shore";
 
@@ -152,7 +152,8 @@ export async function drawRecordMap(o: RecordMapInput): Promise<{ map: string; "
       m.addLayer({ id: SHORE, type: "line", source: "streets", "source-layer": "water", paint: { "line-color": water, "line-width": 1.6 } });
       keep.add(SHORE);
     }
-    for (const id of keep) if (id !== SHORE) m.setPaintProperty(id, "line-opacity", 1);
+    for (const id of keep)
+      if (id !== SHORE) m.setPaintProperty(id, m.getLayer(id)?.type === "fill" ? "fill-opacity" : "line-opacity", 1);
     await idle(m);
     const cut = overShadow(copy(m, W, H));
 
