@@ -4,18 +4,19 @@ import { renderSvg } from "@/lib/record/render-svg";
 import type { Measure, RecordInput, RecordScene } from "@/lib/record/types";
 import { atmospherePalette } from "@/lib/weather/palette";
 import { sunPosition } from "@/lib/weather/sun-position";
+import type { Mapbox } from "@/types/map";
 import { computeAtmosphere } from "@/lib/weather/visual-input";
 import { BASE_ZOOM } from "../weather/map-view";
 import { drawRecordMap } from "./record-map";
-
-type Mapbox = typeof import("mapbox-gl").default;
 
 /** "2026-10-05", "12:00", "GMT+2" to Unix seconds */
 export function recordTime(r: Pick<RecordInput, "date" | "time" | "zone">): number {
   const [y, m, d] = r.date.split("-").map(Number);
   const [hh, mm] = r.time.split(":").map(Number);
-  const offset = Number(/GMT([+-]\d+(?:\.\d+)?)/.exec(r.zone)?.[1] ?? 0);
-  return Date.UTC(y, m - 1, d, hh - offset, mm) / 1000;
+  // "GMT+2", "GMT-3", "GMT+5:30" (half-hour zones), or "GMT" alone
+  const [, sign = "+", oh = "0", om = "0"] = /GMT(?:([+-])(\d+)(?::(\d+))?)?/.exec(r.zone) ?? [];
+  const offset = (sign === "-" ? -1 : 1) * (Number(oh) * 60 + Number(om));
+  return Date.UTC(y, m - 1, d, hh, mm - offset) / 1000;
 }
 
 /**
