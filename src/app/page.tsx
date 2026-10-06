@@ -21,7 +21,7 @@ import { MapView } from "@/components/weather/MapView";
 import { MapSheet } from "@/components/weather/MapControls";
 import { MapCompass } from "@/components/weather/MapCompass";
 import { MapGestures } from "@/components/weather/MapGestures";
-import { Territory } from "@/components/weather/CityFacts";
+import { TerritoryLink } from "@/components/weather/TerritoryLink";
 import { SiteFooter } from "@/components/weather/SiteFooter";
 import { Sky } from "@/components/weather/Sky";
 import { WeatherAlerts } from "@/components/weather/WeatherAlert";
@@ -37,14 +37,12 @@ import { detailModules, moonInfo } from "@/lib/weather/details";
 import {
   conditionLabel,
   formatTemp,
-  placeParts,
 } from "@/lib/weather/formatters";
 import { buildNarrative } from "@/lib/weather/narrative";
 import { precipOutlook } from "@/lib/weather/precipitation";
 import { tempRange } from "@/lib/weather/today";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 
 /** The maps are Mapbox's alone: with no token the page has none. */
 const MAPBOX = Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
@@ -214,15 +212,8 @@ export default async function Home({
                     {/* The moment's quick facts lead the data: this column on a computer, the sheet on a phone */}
                     <MomentFacts />
 
-                    {/* The place itself, right after the hours: what it is, its capitals, the towns around, its waters and peaks (streamed; nothing known, no chapter) */}
-                    <Suspense fallback={null}>
-                      <Territory
-                        lat={data.place.lat}
-                        lon={data.place.lon}
-                        name={data.place.name}
-                        country={placeParts(data.place).country}
-                      />
-                    </Suspense>
+                    {/* The place itself has a page of its own (WTH-214): one line here, where its chapter was. Without a map token there are no facts, so no link. */}
+                    {MAPBOX && <TerritoryLink place={data.place} />}
 
                     {urgent && (
                       <div className="flex flex-col gap-2.5">

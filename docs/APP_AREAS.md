@@ -27,7 +27,7 @@ The place is the common thread: it already travels in the address (`?lat&lon&nam
 
 ## What would change, in order
 
-1. **Territorio on its own page**, with today's content, the place in the address, and on the weather page a single line pointing to it instead of the chapter. A layout change of the live app, which ADR-013 pauses: it needs the user's confirmation when reached (as WTH-181 had), and an `architect` check first (it touches the app's routes, the weather page and how the slow Wikidata data streams).
+1. **Territorio on its own page** (done 2026-10-06, WTH-214, checkpoint 1: `/territorio`, the content identical), with today's content, the place in the address, and on the weather page a single line pointing to it instead of the chapter. A layout change of the live app, which ADR-013 pauses: it needs the user's confirmation when reached (as WTH-181 had), and an `architect` check first (it touches the app's routes, the weather page and how the slow Wikidata data streams).
 2. **Peaks and lakes touchable** in Territorio: each becomes a place with its own weather. Territorio already holds their names and points (Wikidata); the rivers' points are to check.
 3. **Routes**, in Territorio and in the records (WTH-213): a line on the map and the poster. A record needs a past date, so records depend on the historical provider (WTH-168). The data is OpenStreetMap or CAI Infomont (ODbL, docs/LICENCES.md); selling a poster with Mapbox's map waits for Mapbox's answer (WTH-211).
 

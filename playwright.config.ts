@@ -4,8 +4,8 @@ import { defineConfig, devices } from "@playwright/test";
  * End-to-end tests: the built site, served on its own port with the sample
  * weather (WEATHER_PROVIDER=mock), so every run sees the same skies whatever
  * the real ones do. `?mock=<scenario>&at=HH:MM` picks the weather and the hour.
- * It is built without the Mapbox token, so there are no maps and no
- * "Territorio" chapter: nothing the tests touch waits on a service outside
+ * It is built without the Mapbox token, so there are no maps, no
+ * link to the "Territorio" page and no facts on it: nothing the tests touch waits on a service outside
  * (the build replaces the one in .next: run `npm run build` again for a full one).
  * They drive the Chrome installed on the machine, so there is no browser to
  * download. A server already up on the port is reused (not on CI).
