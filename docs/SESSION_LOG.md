@@ -6,7 +6,7 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Worked on: the conventions the user asked for (types not interfaces, shared types in one place, constants and labels in a file, utils, api folder), as ADR-014, after the architect's check; four checkpoints on `claude/code-conventions`, each reviewed.
 - Found: the `rgba(` to `hexToRgba(` rename also hit a CSS string in the poster's glow, which no test, golden run or e2e draws (the poster needs the Mapbox token); the reviewer saw it. Fixed with `bloomColor` and a test, and from then on the poster is checked by a real render through a harness with a fake map, pixel by pixel.
 - Not verified: the poster on screen with the map. Optional leftovers in WTH-189; WTH-188 (providers and sources depend on each other).
-- Next: the user decides the merge of `claude/code-conventions` into `main`.
+- Next: `claude/code-conventions` merged into `main` 2026-10-06 (fast-forward); then `main` into `claude/record-engine`.
 
 ## 2026-10-05 (poster readout)
 - Worked on: WTH-183, the poster's foot as a readout of the Weather Fingerprint, on the user's proposal; the user chose English labels, the compass kept, no figures, the block small on the right.
