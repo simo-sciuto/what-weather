@@ -66,13 +66,20 @@ export interface PosterInput {
 export async function renderPoster({ format, record, palette, options, sun, view, token, loadMapbox }: PosterInput): Promise<Blob> {
   const { width, height } = POSTER_FORMATS[format];
   const measure = await recordMeasure();
-  const composed = getRecordComposition(record, null, measure, { width, height }, "raster");
-  // The paper is the sky the viewer's map was drawn against
-  const scene = { ...composed, inks: { ...composed.inks, paper: palette.sky2 } };
+  const compose = (factsAt?: number) => {
+    const composed = getRecordComposition(record, null, measure, { width, height }, "raster", { factsAt });
+    // The paper is the sky the viewer's map was drawn against
+    return { ...composed, inks: { ...composed.inks, paper: palette.sky2 } };
+  };
+  let scene = compose();
   const [images, fontCss] = await Promise.all([
     drawRecordMap({ width, height, place: record.place, palette, options, sun, view, cityAt: scene.metadata.cityAt, token, loadMapbox }),
     embeddedFontCss(),
   ]);
+  // The facts go where the drawn map is calmest (the sea, a park), measured on the map itself: the same map, the same
+  // choice. The city's spot does not depend on it, so the map need not be drawn again.
+  const calmest = await calmestSlot(images.map, scene.metadata.factsSlots ?? []);
+  if (calmest > 0) scene = compose(calmest);
   return svgToPng(renderSvg(scene, "swiss-flat", { fontCss, images, title: scene.metadata.recordId }), width, height);
 }
 
@@ -87,4 +94,41 @@ function recordMeasure() {
     return domMeasure();
   })();
   return measuring;
+}
+
+/**
+ * Of the cells given (normalized), the one where the map is calmest: the least change in light between neighbouring
+ * points, sampled on a small copy of the map. The layout's own cell keeps its place unless another is clearly calmer.
+ */
+async function calmestSlot(map: string, slots: { x: number; y: number; width: number; height: number }[]): Promise<number> {
+  if (slots.length < 2) return 0;
+  const img = new Image();
+  img.src = map;
+  await img.decode();
+  const [w, h] = [Math.round(img.width / 8), Math.round(img.height / 8)];
+  const c = document.createElement("canvas");
+  [c.width, c.height] = [w, h];
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return 0;
+  ctx.drawImage(img, 0, 0, w, h);
+  const px = ctx.getImageData(0, 0, w, h).data;
+  const lum = (x: number, y: number) => {
+    const i = (y * w + x) * 4;
+    return 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+  };
+  const busy = slots.map((s) => {
+    const [x0, y0] = [Math.floor(s.x * w), Math.floor(s.y * h)];
+    const [x1, y1] = [Math.min(w - 1, Math.ceil((s.x + s.width) * w)), Math.min(h - 1, Math.ceil((s.y + s.height) * h))];
+    let sum = 0;
+    let n = 0;
+    for (let y = y0; y < y1; y++)
+      for (let x = x0; x < x1; x++) {
+        sum += Math.abs(lum(x + 1, y) - lum(x, y)) + Math.abs(lum(x, y + 1) - lum(x, y));
+        n++;
+      }
+    return n ? sum / n : Infinity;
+  });
+  let best = 0;
+  for (let i = 1; i < busy.length; i++) if (busy[i] < busy[best] * 0.8) best = i;
+  return best;
 }

@@ -302,6 +302,17 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
     expect(s.inks.accent).toBe(RECORD_ACCENT);
   });
 
+  it("offers the facts several free cells and takes the one asked for, the name and the city untouched", () => {
+    const a = raster("oslo");
+    const slots = a.metadata.factsSlots!;
+    expect(slots.length).toBeGreaterThan(1);
+    const b = getRecordComposition(byKey("oslo").input, null, measure, undefined, "raster", { factsAt: 1 });
+    const x = (s: RecordScene) => (s.layers.find((l) => l.id === "condition")!.payload as { lines: { x: number }[] }).lines[0].x;
+    expect(x(b)).toBeCloseTo(slots[1].x + 12 / 600, 6);
+    expect(b.metadata.cityAt).toEqual(a.metadata.cityAt);
+    expect(b.layers.find((l) => l.id === "place")).toEqual(a.layers.find((l) => l.id === "place"));
+  });
+
   it("keeps a long name whole on at most three lines", () => {
     const place = raster("san-cristobal").layers.find((l) => l.id === "place")!.payload;
     expect(place.kind === "text" && place.lines.length).toBeLessThanOrEqual(3);

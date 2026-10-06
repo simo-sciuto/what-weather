@@ -103,6 +103,8 @@ type Plan = {
   shades?: { y0: number; y1: number; from: number; to: number }[];
   /** The map's strong lines run over the large type */
   cut?: boolean;
+  /** The cells the facts may take, the one in use first (reference units) */
+  factsSlots?: { x: number; y: number; w: number; h: number }[];
   /** The home page's wordmark, its baseline's left end and size (reference units) */
   wordmark?: { x: number; y: number; size: number };
 };
@@ -114,6 +116,8 @@ type Ctx = {
   word: string;
   /** The sheet's foot in reference units (840 on the research's ratio) */
   bottom: number;
+  /** Over the map: which of the facts' candidate cells to use (the calmest, measured on the drawn map) */
+  factsAt?: number;
 };
 
 /** Widths in reference units: the engine's measure works in sheet units */
@@ -352,6 +356,8 @@ function field(c: Ctx, city: Point, preferred: boolean): Plan {
 const GRID_COL = 90;
 const GRID_GUTTER = 12;
 const span = (cols: number) => cols * GRID_COL - GRID_GUTTER;
+/** How close to the sheet's edge a name on six columns may run (reference units) */
+const EDGE = 14;
 
 /**
  * The placements of the place's name on the grid, one per record by its seed (never by its weather): the columns it
@@ -390,8 +396,11 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const markBase = bottom - 26;
 
   // The name, in the moment's light, as large as its columns allow, a hole in the map lit from under it
-  const room = span(placement.cols.count);
-  const fitted = fitName(c, 130, room, placement.cols.count < 6 ? 3 : 2, -0.03, 800);
+  // On six columns the name runs nearly from edge to edge, past the margins: Syne is wide, and a short name over an
+  // empty sea should be large
+  const full = placement.cols.count === 6;
+  const room = full ? REF_W - 2 * EDGE : span(placement.cols.count);
+  const fitted = fitName(c, full ? 180 : 130, room, full ? 2 : 3, -0.045, 800);
   const sz = fitted.font.size;
   const n = fitted.lines.length;
   const lead = sz * 0.92;
@@ -399,7 +408,7 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const top =
     placement.at === "foot" ? markBase - 34 - blockH : placement.at === "head" ? 64 : row * placement.at - blockH / 2;
   const firstBase = top + CAP * sz;
-  const left = COL[placement.cols.from];
+  const left = full ? EDGE : COL[placement.cols.from];
   const lines = fitted.lines.map((text, i) => {
     const w = width(c, text, fitted.font);
     const x = placement.cols.align === "right" ? left + room - w + sz * 0.03 : left - sz * 0.03;
@@ -411,7 +420,21 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   // The facts, gathered as a square block on the grid (no fill, no border): the condition, the temperature and three
   // readings
   const side = span(2);
-  const [bx, by] = placement.facts({ top, bottom: nameBottom, sheetBottom: bottom, side });
+  const nameRight0 = Math.max(...lines.map((l) => l.x + width(c, l.text, fitted.font)));
+  const clear = (x: number, y: number) => {
+    const hits = (a: [number, number, number, number]) => x < a[1] && x + side > a[0] && y < a[3] && y + side > a[2];
+    const name: [number, number, number, number] = [left - 10, nameRight0 + 10, top - 24, nameBottom + 24];
+    // The city's ring and its line out to the region and coordinates
+    const mark: [number, number, number, number] = [city[0] - 14, city[0] + 250, city[1] - 30, city[1] + 16];
+    const foot: [number, number, number, number] = [0, REF_W, markBase - 30, bottom];
+    return !hits(name) && !hits(mark) && !hits(foot) && x + side <= R + 1 && y >= 50;
+  };
+  const preferred0 = placement.facts({ top, bottom: nameBottom, sheetBottom: bottom, side });
+  const grid: Point[] = [];
+  for (const y of [64, (bottom - side) / 2, bottom - 70 - side]) for (const x of [M, COL[2], COL[4]]) grid.push([x, y]);
+  const slots = [preferred0, ...grid.filter(([x, y]) => !(x === preferred0[0] && y === preferred0[1]))].filter(([x, y]) => clear(x, y));
+  if (!slots.length) slots.push(preferred0);
+  const [bx, by] = slots[Math.min(Math.max(0, c.factsAt ?? 0), slots.length - 1)];
   const pad = 12;
   const [lat, lon] = coordsOf(c.r);
   texts.push({ id: "condition", lines: [{ text: c.word, x: bx + pad, y: by + pad + 12 }], font: { ...mono(700, 13), tracking: 0.08 }, ink: "ink-1", opacity: 1, z: "micro" });
@@ -435,7 +458,7 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   });
   texts.push({ id: "credits", lines: [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: markBase }], font: mono(500, MICRO * 0.8), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
 
-  const nameRight = Math.max(...lines.map((l) => l.x + width(c, l.text, fitted.font)));
+  const nameRight = nameRight0;
   return {
     city,
     texts,
@@ -449,6 +472,7 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
     fitScore: 1,
     preferred,
     cut: true,
+    factsSlots: slots.map(([x, y]) => ({ x, y, w: side, h: side })),
     wordmark: { x: M, y: markBase, size: 17 },
   };
 }
@@ -540,6 +564,8 @@ export function getRecordComposition(
    * and "map-cut" (its strongest lines alone, in their colours over a shadow): the scene says where they go.
    */
   map: "vector" | "raster" = "vector",
+  /** `factsAt`: over the map, the facts' cell chosen once the map is drawn (see `factsSlots`) */
+  options: { factsAt?: number } = {},
 ): RecordScene {
   if (!r.place.name.trim()) throw new Error("A record needs a place name");
   const raster = map === "raster";
@@ -566,7 +592,7 @@ export function getRecordComposition(
   const family = conditionFamily(r);
   const seed = recordSeed(r.place.name, r.date, family);
   const rng = mulberry32(seed);
-  const c: Ctx = { r, tv, measure, word: CONDITION_WORD[family], bottom };
+  const c: Ctx = { r, tv, measure, word: CONDITION_WORD[family], bottom, factsAt: options.factsAt };
   const build = (city: Point, preferred: boolean) =>
     raster ? hole(c, city, preferred, seed) : mode === "open-atlas" ? atlas(c, city, preferred) : mode === "collision" ? collision(c, city, preferred) : field(c, city, preferred);
 
@@ -730,6 +756,10 @@ export function getRecordComposition(
       placeFit: plan.placeFit,
       nodes: ["city"],
       cityAt: P(plan.city),
+      factsSlots: plan.factsSlots?.map((b) => {
+        const [x0, y0] = [ref.x(b.x), ref.y(b.y) / aspect];
+        return { x: x0, y: y0, width: ref.x(b.x + b.w) - x0, height: ref.y(b.y + b.h) / aspect - y0 };
+      }),
       spanKm: spanKm / sheet.w,
       type: tv,
     },
