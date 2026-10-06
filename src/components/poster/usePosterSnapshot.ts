@@ -53,7 +53,8 @@ export function recordClock(ts: number, timeZone: string): { time: string; zone:
  * The record's facts from the moment on show (WTH-187): the frame's readings, the day's range, the place's clock.
  * Absent readings stay absent, so the poster never prints a reading the provider did not give. A day's stand-in
  * (`Frame.overview`) is a whole day: its feels-like, wind, cloud and rain are fillers of the stand-in, not readings,
- * so they stay out; its temperature is the day's high.
+ * so they stay out (the atmosphere then takes the condition's own rain or snow, as for any absent rate); its
+ * temperature is the day's high.
  */
 export function recordInputOf({ place, frame, timeZone, day }: Pick<PosterSources, "place" | "frame" | "timeZone" | "day">): RecordInput {
   const allDay = frame.overview === true;

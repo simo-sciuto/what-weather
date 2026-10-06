@@ -4,6 +4,7 @@ import { fingerprintKey, fingerprintOf } from "@/lib/weather/fingerprint";
 import { frameLook } from "@/lib/weather/look";
 import { createMockProvider } from "@/lib/api/providers/mock";
 import { getRecordComposition } from "@/lib/record/compose";
+import { metricsFor } from "@/lib/record/metrics";
 import type { Measure } from "@/lib/record/types";
 import { posterSnapshot, recordClock, recordInputOf } from "./usePosterSnapshot";
 
@@ -56,6 +57,19 @@ describe("the poster's snapshot", () => {
     expect(all).toContain("ALL DAY");
     expect(all).toContain("HIGH / LOW");
     expect(all).not.toMatch(/\d\d:\d\d|GMT|TEMP|FEELS|WIND|PRECIP|CLOUD/);
+  });
+
+  it("prints a whole day without its range as its high alone, and its UV as the day's peak", async () => {
+    const { data, timeline } = await sources();
+    const frame = timeline.days[timeline.days.length - 1].overview;
+    const r = { ...recordInputOf({ place: data.place, frame, timeZone: data.timezone }), uv: 6 };
+    const measure: Measure = (text, f) => text.length * f.size * 0.6;
+    const all = getRecordComposition(r, null, measure, undefined, "raster")
+      .layers.flatMap((l) => (l.payload.kind === "text" ? l.payload.lines.map((x) => x.text) : []));
+    expect(all).toContain("HIGH");
+    expect(all).not.toContain("TEMP");
+    expect(all).not.toContain("HIGH / LOW");
+    expect(metricsFor(["uv"], r, 1, [])[0].label).toBe("UV MAX");
   });
 
   it("gives the record an hour as it is: its clock, its zone and its readings", async () => {

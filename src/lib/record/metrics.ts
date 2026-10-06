@@ -45,7 +45,8 @@ function metric(key: MetricKey, r: RecordInput): Metric | null {
     case "humidity":
       return r.humidity == null ? null : { key, label: "HUMIDITY", value: `${Math.round(r.humidity)}%` };
     case "uv":
-      return r.uv == null ? null : { key, label: "UV", value: pad2(r.uv) };
+      // A whole day's UV is its peak
+      return r.uv == null ? null : { key, label: r.allDay ? "UV MAX" : "UV", value: pad2(r.uv) };
     case "precip":
       return r.precipitation == null ? null : { key, label: "PRECIP", value: `${r.precipitation.toFixed(1)} MM/H` };
     case "pressure":

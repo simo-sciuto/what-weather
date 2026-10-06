@@ -300,7 +300,7 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
       { width: 1440, height: 2560 },
       { width: 2400, height: 2400 },
     ];
-    const names = ["Bo", "La Paz", "Al Ain", "Oslo", "Reggio nell'Emilia", "Llanfairpwllgwyngyll", "Paraty", "Yogyakarta"];
+    const names = ["Bo", "La Paz", "Al Ain", "Oslo", "Reggio nell'Emilia", "Llanfairpwllgwyngyll", "Paraty", "Yogyakarta", "Şanlıurfa"];
     const r = byKey("oslo");
     for (const canvas of formats) {
       const aspect = canvas.height / canvas.width;
@@ -316,7 +316,7 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
           // Sizes are of the width, positions of the height: the cap height and the tails in the height's terms
           const cap = (0.72 * place.font.size) / aspect;
           const last = place.lines.at(-1)!;
-          const tail = /[gjpqy,;]/.test(last.text) ? (0.24 * place.font.size) / aspect : 0;
+          const tail = /[gjpqyQJ,;çşţęąįųÇŞŢĘĄĮŲ]/.test(last.text) ? (0.24 * place.font.size) / aspect : 0;
           const top = place.lines[0].y - cap;
           const foot = last.y + tail;
           const mark = s.layers.find((l) => l.id === "wordmark-what")!.payload;
@@ -329,7 +329,12 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
           // The city's ring, its region and its coordinates stay out of the name's band
           const coords = s.layers.find((l) => l.id === "city-coords")!.payload;
           if (coords.kind !== "text") throw new Error(at);
-          for (const y of [s.metadata.cityAt[1], coords.lines[0].y]) expect(y < top || y > foot, at).toBe(true);
+          // The mark reaches 30 above the city (the region's line) and 16 under it (the coordinates), on the width's scale
+          const [up, down] = [30 / 600 / aspect, 16 / 600 / aspect];
+          const city = s.metadata.cityAt[1];
+          expect(city + down < top || city - up > foot, at).toBe(true);
+          for (const y of [coords.lines[0].y, s.layers.find((l) => l.id === "where")?.payload.kind === "text" ? (s.layers.find((l) => l.id === "where")!.payload as { lines: { y: number }[] }).lines[0].y : city])
+            expect(y < top || y > foot, at).toBe(true);
         }
       expect(seen.size).toBe(5);
     }

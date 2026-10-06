@@ -41,8 +41,8 @@ Board tooling limitation: `scripts/board/board-md.mjs` recognizes numeric IDs on
 
 ## NEXT
 
-- [ ] WTH-188 Record engine: DENSE STORM MODE, a fourth composition mode for violent storms (the spike sends storms to Collision).
-- [ ] WTH-189 Record engine: TRUE GLYPH OUTLINE HANDLES. Nodes anchor on glyph boxes measured by the browser; judge whether real outlines (opentype or similar) improve the nodes enough to justify a dependency.
+- [ ] WTH-201 Record engine: DENSE STORM MODE, a fourth composition mode for violent storms (the spike sends storms to Collision).
+- [ ] WTH-202 Record engine: TRUE GLYPH OUTLINE HANDLES. Nodes anchor on glyph boxes measured by the browser; judge whether real outlines (opentype or similar) improve the nodes enough to justify a dependency.
 - [ ] WTH-190 Record engine: COAST SPLIT, the type treated differently over land and sea; possible with the vector water polygons the spike already has.
 - [ ] WTH-191 Record engine: SCREENPRINT render style, a second `renderScene` style over the same scene.
 - [ ] WTH-192 Record engine: PRINT-RESOLUTION EXPORT (A3/A2 at 300 dpi, beyond the 4096 px canvas limit: tiled drawing or a server render of the SVG).
@@ -52,6 +52,13 @@ Board tooling limitation: `scripts/board/board-md.mjs` recognizes numeric IDs on
 - [ ] WTH-196 Record engine: `RecordInput` carries no provenance (measured or interpolated hour, partial day, estimated reading); the record prints every figure as a reading. Add it before Phase 4 (rule 7, ADR-006). Found in the WTH-187 review.
 - [ ] WTH-198 Record language: the record's micro type is English (FEELS, HUMIDITY, SNOW, "minus three", WHAT WEATHER); ADR-010's update covers only the readout. Decide with WTH-173 and record it in DECISIONS.
 - [ ] WTH-199 The home page's place name (capitals, 0.74 of the title size, word breaks only) and large temperature in the record's display face (ADR-015 update): first Climate Crisis on the moment's year, then Syne (2026-10-06) when Climate Crisis read too poorly. On branch `claude/record-engine`; the user's look pending. 2026-10-06: the name back to `main`'s Inter Tight styling; the temperature stays in Syne.
+- [ ] WTH-203 Poster on a phone (branch review I5, before the merge of `claude/record-engine`): export a print and a square poster on an iPhone and check the type is the record's (Safari may draw an SVG image's text before its embedded fonts are ready) and that the export does not fail on iOS's canvas memory; if it does, release the full-size canvases after use (`width = 0`) in `record-map.ts` and pass the pictures as blob URLs rather than data URLs.
+- [ ] WTH-204 Poster: `seaMask` (`src/components/record/record-map.ts`) grows the sea by repeated passes that allocate per cell, which may freeze the page for seconds over a long harbour (estimate, not measured): rewrite it as one O(n) flood from the sea cells within `wide`, a pure grid function with tests.
+- [ ] WTH-205 Record engine clean-up after the poster rounds: dead code (`mirrorPlan` and `mirrored`, `Plan.shades`, `Text.stroke`, `TextPayload.halo`, unused node payloads, the `hole` ink and `HOLE_GROUND`, `FAMILY_METRICS`/`weatherMetrics`/`MIN_METRICS`/`MAX_METRICS`, `CAP_HEIGHT`/`MONO_CAP`, the unused `PosterInput` fields and the `fingerprintOf` they cost); `src/components/poster/readout.ts` and its test (the user confirmed 2026-10-06 that dropping WTH-183's readout was intended); stale comments from abandoned faces and layouts (Archivo, IBM Plex, Climate Crisis, Tshuru, veils), one of them visible on the lab page; `placeFit` reporting the fit step from before the 0.42 cap.
+- [ ] WTH-206 Poster export weight: every poster SVG embeds Syne, which the raster poster no longer draws, and fetches Inter Tight a second time beside next/font's copy: embed only the families the scene uses.
+- [ ] WTH-207 Record code and ADR-014 leftovers: `smoothstep` re-declared in `inks.ts` and `typography.ts`, a hex parser in `inks.ts` beside `hexToRgb`, `type Mapbox` in `RecordLab.tsx`, `86_400_000` in `metrics.ts` (`DAY_SECONDS`), `compassPoint` duplicated from `lib/weather/details.ts`, `RecordInput`/`FontRef`/`Measure` used by three areas (to `src/types/record.ts`), `CONDITION_WORD` mapping each key to itself.
+- [ ] WTH-208 Poster legibility budget gaps: the lab's export (`record-on-map.ts`) passes no `nameBox` to `drawRecordMap`, so it skips the budget; `nameBox` ends at the last baseline, so descenders are not counted; the sea edge's `ctx.filter` blur is missing on older Safari, which falls back to the exact mask (a shore line may stay over the name). Verify on Safari.
+- [ ] WTH-209 Docs for the record engine: `docs/ARCHITECTURE.md` does not describe `src/lib/record`, `src/components/record` or `/lab/record`; `scripts/record/export-sheet.mjs` imports `esbuild`, a transitive dependency only.
 
 Records track, in order. WTH-167 is the gate: WTH-169 onwards are built only if validation says people want records.
 

@@ -55,6 +55,8 @@ const CAP = 0.72;
 const NAME_MAX_SHARE = 0.42;
 /** How far under the baseline the small letters' tails reach, as a share of the size */
 const TAIL = 0.24;
+/** Letters that reach under the baseline: the tails, and the cedillas and ogoneks of the place names ("Şanlıurfa") */
+const DESCENDS = /[gjpqyQJ,;çşţęąįųÇŞŢĘĄĮŲ]/;
 
 /** How wide a stretch of ground the sheet's width spans, in km, by mode; the heat tightens it a little */
 const SPAN_KM: Record<CompositionMode, number> = { "open-atlas": 170, collision: 110, "field-record": 90 };
@@ -436,7 +438,7 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const blockH = CAP * sz + (n - 1) * lead;
   // Under the head's margin and over the foot's notes, wherever the placement asks for it; a last line with tails
   // (g, j, p, q, y) stands higher by them, so they stop where a line without would sit
-  const tails = /[gjpqy,;]/.test(fit.lines[n - 1]) ? TAIL * sz : 0;
+  const tails = DESCENDS.test(fit.lines[n - 1]) ? TAIL * sz : 0;
   const lowest = markBase - 34 - tails - blockH;
   const top = Math.min(
     lowest,
