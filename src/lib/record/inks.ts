@@ -41,6 +41,29 @@ export function recordInks(a: AtmosphereAxes): Record<InkRole, string> {
   };
 }
 
+/** The two inks' hues stay at least this far apart, in degrees */
+export const MIN_HUE_APART = 110;
+
+/** Hue (degrees), saturation and lightness (0..1) of a hex colour */
+function hsl(hex: string): [number, number, number] {
+  const [r, g, b] = rgb(hex).map((v) => v / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+
+function fromHsl(h: number, s: number, l: number): string {
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return `#${[f(0), f(8), f(4)].map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("")}`;
+}
+
 const luminanceOf = (hex: string) => {
   const [r, g, b] = rgb(hex);
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
@@ -61,9 +84,16 @@ export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<
   // The colour ink: the temperature's hue, pushed to a printing ink's strength
   const [r, g, b] = channels(tempColor(temp));
   const colour = toHex(scaleChroma([r, g, b], 2.4));
+  // The two inks always part on the colour wheel: when the moment's light sits near the temperature's hue (a warm
+  // sun on a hot day), the light ink takes the opposite hue, kept pale so it reads on the map
+  let lightInk = toHex(channels(p.sun));
+  const [h1] = hsl(lightInk);
+  const [h2] = hsl(colour);
+  const apart = Math.min(Math.abs(h1 - h2), 360 - Math.abs(h1 - h2));
+  if (apart < MIN_HUE_APART) lightInk = fromHsl((h2 + 180) % 360, 0.75, 0.82);
   return {
     paper: p.sky2,
-    "ink-1": mix(toHex(channels(p.sun)), p.sky2, soften),
+    "ink-1": mix(lightInk, p.sky2, soften),
     "ink-2": mix(colour, p.sky2, soften),
     accent: RECORD_ACCENT,
   };
@@ -76,7 +106,8 @@ export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<
  */
 export function printStyle(a: AtmosphereAxes, paper: string, windDeg?: number): PrintStyle {
   const blend: Blend = luminanceOf(paper) < 0.55 ? "screen" : "multiply";
-  const shift = 0.008 + 0.005 * a.severity + 0.0025 * a.wetness + 0.0015 * a.energy;
+  // At least about ten pixels on the preview (fifty on the print), more with the weather's energy
+  const shift = 0.02 + 0.006 * a.severity + 0.003 * a.wetness + 0.002 * a.energy;
   // Downwind: the wind's degrees say where it comes from; with no wind, down and to the right
   const angle = windDeg == null ? Math.PI / 5 : ((windDeg + 180 - 90) * Math.PI) / 180;
   return { blend, offset: [Math.cos(angle) * shift, Math.sin(angle) * shift] };

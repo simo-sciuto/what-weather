@@ -276,6 +276,8 @@ describe("over the site's own map (raster)", () => {
     expect(night.inks["ink-2"]).not.toBe(tempColor(18));
     const print = night.metadata.print!;
     expect(["screen", "multiply"]).toContain(print.blend);
+    // Well off register, at least a fiftieth of the sheet
+    expect(Math.hypot(...print.offset)).toBeGreaterThanOrEqual(0.02);
     // A storm prints further off register than a calm day
     const calm = Math.hypot(...raster("tshuru").metadata.print!.offset);
     const storm = Math.hypot(...raster("san-cristobal").metadata.print!.offset);
