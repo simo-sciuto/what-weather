@@ -756,6 +756,14 @@ export function getRecordComposition(
       placeFit: plan.placeFit,
       nodes: ["city"],
       cityAt: P(plan.city),
+      nameBox: raster
+        ? (() => {
+            const [x0, x1, t0, t1] = plan.numeralBox;
+            // From the first line's cap height to the last baseline: where the letters are
+            const [a, b] = [ref.y(t0) / aspect, ref.y(t1) / aspect];
+            return { x: ref.x(x0), y: a, width: ref.x(x1) - ref.x(x0), height: b - a };
+          })()
+        : undefined,
       factsSlots: plan.factsSlots?.map((b) => {
         const [x0, y0] = [ref.x(b.x), ref.y(b.y) / aspect];
         return { x: x0, y: y0, width: ref.x(b.x + b.w) - x0, height: ref.y(b.y + b.h) / aspect - y0 };

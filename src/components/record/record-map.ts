@@ -135,6 +135,26 @@ export function seaMask(water: HTMLCanvasElement): HTMLCanvasElement {
   return out;
 }
 
+/** The most of the name's box the marks laid over it may cover, 0..1 */
+const CUT_BUDGET = 0.12;
+
+/** The share of a box (normalized) that a picture's marks cover, on a small copy */
+export function coverage(lines: HTMLCanvasElement, box: { x: number; y: number; width: number; height: number }): number {
+  const [sx, sy, sw, sh] = [box.x * lines.width, box.y * lines.height, box.width * lines.width, box.height * lines.height];
+  if (sw <= 0 || sh <= 0) return 0;
+  const w = 240;
+  const h = Math.max(1, Math.round((w * sh) / sw));
+  const c = document.createElement("canvas");
+  [c.width, c.height] = [w, h];
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return 0;
+  ctx.drawImage(lines, sx, sy, sw, sh, 0, 0, w, h);
+  const px = ctx.getImageData(0, 0, w, h).data;
+  let on = 0;
+  for (let i = 3; i < px.length; i += 4) if (px[i] > 60) on++;
+  return on / (w * h);
+}
+
 /** The shadow under the lines laid over the type, in print pixels */
 const SHADOW_BLUR = 10;
 const SHADOW_OFFSET = 4;
@@ -150,6 +170,8 @@ export type RecordMapInput = {
   view: { zoom: number; pitch: number; bearing?: number };
   /** Where the city must land, normalized (the scene's `metadata.cityAt`) */
   cityAt: readonly [number, number];
+  /** The name's box, normalized (the scene's `metadata.nameBox`): the marks over it are kept few enough to read it */
+  nameBox?: { x: number; y: number; width: number; height: number };
   token: string;
   loadMapbox: () => Promise<Mapbox>;
 };
@@ -281,20 +303,34 @@ export async function drawRecordMap(o: RecordMapInput): Promise<{ map: string; "
       if (ink) m.setPaintProperty(id, fill ? "fill-color" : "line-color", inkOverSky(o.palette.sky2, ink));
       m.setPaintProperty(id, fill ? "fill-opacity" : "line-opacity", 1);
     }
-    await idle(m);
-    const lines = copy(m, W, H);
-    if (sea) {
-      // The sea and its shore taken out of the cut, a little wider than the water so its edge goes too
-      const ctx = lines.getContext("2d");
-      if (ctx) {
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.filter = `blur(${Math.round(SEA_EDGE)}px)`;
-        ctx.drawImage(sea, 0, 0);
-        ctx.filter = "none";
-        ctx.drawImage(sea, 0, 0);
-        ctx.globalCompositeOperation = "source-over";
+    // The marks laid over the name, in tiers from the fullest down: a tier is used only while it leaves the name
+    // legible (it covers at most CUT_BUDGET of the name's box); a dense water country (polders, canals) falls back to
+    // the main lines, then to motorways and railways alone
+    const draw = async (ids: Set<string>) => {
+      for (const id of keep) m.setLayoutProperty(id, "visibility", ids.has(id) ? "visible" : "none");
+      await idle(m);
+      const canvas = copy(m, W, H);
+      if (sea) {
+        // The sea and its shore taken out, a little wider than the water so its edge goes too
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.filter = `blur(${Math.round(SEA_EDGE)}px)`;
+          ctx.drawImage(sea, 0, 0);
+          ctx.filter = "none";
+          ctx.drawImage(sea, 0, 0);
+          ctx.globalCompositeOperation = "source-over";
+        }
       }
-    }
+      return canvas;
+    };
+    const tiers = [
+      new Set(keep),
+      new Set([...keep].filter((id) => id !== "water" && id !== SHORE)),
+      new Set([...keep].filter((id) => id === "motorways" || id === "train")),
+    ];
+    let lines = await draw(tiers[0]);
+    for (let t = 1; t < tiers.length && o.nameBox && coverage(lines, o.nameBox) > CUT_BUDGET; t++) lines = await draw(tiers[t]);
     const cut = overShadow(lines);
 
     return { map: whole.toDataURL("image/png"), "map-cut": cut.toDataURL("image/png") };

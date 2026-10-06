@@ -313,6 +313,14 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
     expect(b.layers.find((l) => l.id === "place")).toEqual(a.layers.find((l) => l.id === "place"));
   });
 
+  it("gives the name's box, for keeping the marks laid over it few enough to read", () => {
+    const s = raster("oslo");
+    const box = s.metadata.nameBox!;
+    expect(box.width).toBeGreaterThan(0.3);
+    expect(box.height).toBeGreaterThan(0.02);
+    expect(box.y + box.height).toBeLessThanOrEqual(1);
+  });
+
   it("keeps a long name whole on at most three lines", () => {
     const place = raster("san-cristobal").layers.find((l) => l.id === "place")!.payload;
     expect(place.kind === "text" && place.lines.length).toBeLessThanOrEqual(3);

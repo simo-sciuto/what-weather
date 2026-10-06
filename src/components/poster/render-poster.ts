@@ -73,7 +73,7 @@ export async function renderPoster({ format, record, palette, options, sun, view
   };
   let scene = compose();
   const [images, fontCss] = await Promise.all([
-    drawRecordMap({ width, height, place: record.place, palette, options, sun, view, cityAt: scene.metadata.cityAt, token, loadMapbox }),
+    drawRecordMap({ width, height, place: record.place, palette, options, sun, view, cityAt: scene.metadata.cityAt, nameBox: scene.metadata.nameBox, token, loadMapbox }),
     embeddedFontCss(),
   ]);
   // The facts go where the drawn map is calmest (the sea, a park), measured on the map itself: the same map, the same

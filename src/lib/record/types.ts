@@ -163,6 +163,8 @@ export type RecordScene = {
     nodes: string[];
     /** Where the city sits on the sheet (normalized): a map drawn elsewhere is centred so the place lands here */
     cityAt: Point;
+    /** Over the map: the place's name's box (normalized), for keeping the marks over it legible */
+    nameBox?: { x: number; y: number; width: number; height: number };
     /** Over the map: the cells the facts may take (normalized), the one in use first unless `factsAt` chose another */
     factsSlots?: { x: number; y: number; width: number; height: number }[];
     /** The kilometres the sheet's width spans, for a map drawn elsewhere at the same scale */
