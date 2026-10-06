@@ -1,6 +1,6 @@
 import type { Map as MapboxMap } from "mapbox-gl";
 import type { MapOption } from "@/lib/map-options";
-import type { SkyPalette } from "@/lib/weather/palette";
+import { inkOverSky, type MapLayer, type SkyPalette } from "@/lib/weather/palette";
 import type { SunPosition } from "@/lib/weather/sun-position";
 import { STYLE, syncMap } from "../weather/map-style";
 import { BASE_ZOOM } from "../weather/map-view";
@@ -256,7 +256,7 @@ export async function drawRecordMap(o: RecordMapInput): Promise<{ map: string; "
     const keep = new Set<string>(CUT_LAYERS.filter((id) => showing.has(id)));
     for (const id of showing) if (!keep.has(id)) m.setLayoutProperty(id, "visibility", "none");
     if (showing.has("water")) {
-      const water = o.palette.map.water.color;
+      const water = inkOverSky(o.palette.sky2, o.palette.map.water);
       m.addLayer({ id: SHORE, type: "line", source: "streets", "source-layer": "water", paint: { "line-color": water, "line-width": 1.6 } });
       keep.add(SHORE);
     }
@@ -269,11 +269,18 @@ export async function drawRecordMap(o: RecordMapInput): Promise<{ map: string; "
       m.setPaintProperty("water", "fill-color", "#000");
       await idle(m);
       sea = seaMask(copy(m, W, H));
-      m.setPaintProperty("water", "fill-color", o.palette.map.water.color);
+      m.setPaintProperty("water", "fill-color", inkOverSky(o.palette.sky2, o.palette.map.water));
       for (const id of keep) m.setLayoutProperty(id, "visibility", "visible");
     }
-    for (const id of keep)
-      if (id !== SHORE) m.setPaintProperty(id, m.getLayer(id)?.type === "fill" ? "fill-opacity" : "line-opacity", 1);
+    // Inside the letters each mark keeps the colour it has on the map: its ink laid over the sky, made solid, so the
+    // river crossing the name is the same river as around it, on top of the letters, not a darker channel under them
+    for (const id of keep) {
+      if (id === SHORE) continue;
+      const fill = m.getLayer(id)?.type === "fill";
+      const ink = o.palette.map[id as MapLayer];
+      if (ink) m.setPaintProperty(id, fill ? "fill-color" : "line-color", inkOverSky(o.palette.sky2, ink));
+      m.setPaintProperty(id, fill ? "fill-opacity" : "line-opacity", 1);
+    }
     await idle(m);
     const lines = copy(m, W, H);
     if (sea) {
