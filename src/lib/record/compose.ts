@@ -63,7 +63,7 @@ function refUnits(aspect: number): Ref {
 
 const display = (t: TypeSetting, size: number, tracking = t.tracking): FontRef =>
   clampAxes({ family: "display", wght: t.weight, wdth: t.width, size, tracking });
-const mono = (wght: number, size = MICRO): FontRef => ({ family: "mono", wght, wdth: 100, size, tracking: 0.08 });
+const mono = (wght: number, size = MICRO): FontRef => ({ family: "mono", wght, wdth: 100, size, tracking: 0.05 });
 const upper = (s: string) => s.toLocaleUpperCase("en");
 
 /* ---------- A plan: one candidate composition, in reference units ---------- */
@@ -121,8 +121,8 @@ function fitName(c: Ctx, size: number, maxWidth: number, maxLines: number, track
 
 /** An archival pair: a muted label over its value */
 const pairs = (id: string, x: number, y: number, label: string, value: string): Text[] => [
-  { id: `${id}-label`, lines: [{ text: label, x, y }], font: mono(400), ink: "ink-1", opacity: 0.6, z: "micro" },
-  { id: `${id}-value`, lines: [{ text: value, x, y: y + 11 }], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" },
+  { id: `${id}-label`, lines: [{ text: label, x, y }], font: mono(400), ink: "ink-1", opacity: 0.85, z: "micro" },
+  { id: `${id}-value`, lines: [{ text: value, x, y: y + 13 }], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" },
 ];
 
 const coordsOf = (r: RecordInput) => [formatCoord(r.place.lat, "lat"), formatCoord(r.place.lon, "lon")];
@@ -502,6 +502,7 @@ export function getRecordComposition(
       });
     }
     add({
+      // The top pass in its own ink, flat over the first: the first shows as a band of the other colour at the edge
       id: t.id,
       role: t.z,
       // Over the site's map the place's name is set in the temperature's colour (ink-2 there)
@@ -581,13 +582,13 @@ export function getRecordComposition(
   // the signature and the map's credits at the top right, straight on the map
   const id = recordId(r.place.name, r.date);
   const noteFont = mono(400, MICRO * 0.85);
-  text({ id: "record-id", lines: [{ text: `${id}   ${formatDate(r.date)} ${stamp(r)}`, x: M, y: 34 }], font: noteFont, ink: "ink-1", opacity: 0.8, z: "micro" });
+  text({ id: "record-id", lines: [{ text: `${id}   ${formatDate(r.date)} ${stamp(r)}`, x: M, y: 34 }], font: noteFont, ink: "ink-1", opacity: 1, z: "micro" });
   text({
     id: "signature",
     lines: [{ text: ["WHAT WEATHER", ...(raster ? ["© MAPBOX © OPENSTREETMAP"] : [])].join("   "), x: R, y: 34 }],
     font: noteFont,
     ink: "ink-1",
-    opacity: 0.6,
+    opacity: 0.85,
     anchor: "end",
     z: "micro",
   });

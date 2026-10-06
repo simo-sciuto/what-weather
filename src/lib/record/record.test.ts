@@ -152,8 +152,8 @@ describe("font axes", () => {
   it("clamps every axis to the font's real range", () => {
     const f = clampAxes({ family: "display", wght: 1200, wdth: 40, size: 0.1, tracking: 0 });
     expect(f.wght).toBe(900);
-    expect(f.wdth).toBe(75);
-    expect(clampAxes({ family: "mono", wght: 700, wdth: 80, size: 0.1, tracking: 0 })).toMatchObject({ wght: 500, wdth: 100 });
+    expect(f.wdth).toBe(100); // Schibsted has one width
+    expect(clampAxes({ family: "mono", wght: 700, wdth: 80, size: 0.1, tracking: 0 })).toMatchObject({ wght: 700, wdth: 100 });
   });
 
   it("never asks for an axis outside the range in any test record", () => {
@@ -283,8 +283,9 @@ describe("over the site's own map (raster)", () => {
     // The large type gets its second impression, in the other ink, and the print's blend
     const second = night.layers.find((l) => l.id === "place-second")!;
     expect(second.inkRole).toBe("ink-1");
-    // Two flat passes: no blend, no texture
+    // Two flat passes, no blend, no texture
     expect(second.blend).toBeUndefined();
+    expect(night.layers.find((l) => l.id === "place")!.blend).toBeUndefined();
     expect(night.layers.find((l) => l.id === "place")!.inkRole).toBe("ink-2");
   });
 

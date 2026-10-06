@@ -1,5 +1,5 @@
 import type { AtmosphereAxes } from "@/lib/weather/atmosphere";
-import { atmospherePalette } from "@/lib/weather/palette";
+import { atmospherePalette, scaleChroma } from "@/lib/weather/palette";
 import { tempColor } from "@/lib/weather/temp-color";
 import type { Blend, PrintStyle } from "./types";
 import { HAZE_ONSET } from "@/lib/weather/atmosphere";
@@ -54,12 +54,17 @@ const luminanceOf = (hex: string) => {
  */
 export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<InkRole, string> {
   const p = atmospherePalette(light, a);
-  const soften = 0.26 + 0.24 * smoothstep(HAZE_ONSET, 1, a.haze);
-  const hex = (c: string) => (c.startsWith("#") ? c : `#${(c.match(/\d+/g) ?? ["0", "0", "0"]).slice(0, 3).map((v) => Number(v).toString(16).padStart(2, "0")).join("")}`);
+  // Haze takes a little from both inks; never so much that the two stop reading as two
+  const soften = 0.1 * smoothstep(HAZE_ONSET, 1, a.haze);
+  const toHex = ([r, g, b]: readonly number[]) => `#${[r, g, b].map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, "0")).join("")}`;
+  const channels = (c: string) => (c.startsWith("#") ? rgb(c) : (c.match(/\d+/g) ?? ["0", "0", "0"]).slice(0, 3).map(Number));
+  // The colour ink: the temperature's hue, pushed to a printing ink's strength
+  const [r, g, b] = channels(tempColor(temp));
+  const colour = toHex(scaleChroma([r, g, b], 2.4));
   return {
     paper: p.sky2,
-    "ink-1": mix(hex(p.sun), p.sky2, soften),
-    "ink-2": mix(hex(tempColor(temp)), p.sky2, soften * 0.6),
+    "ink-1": mix(toHex(channels(p.sun)), p.sky2, soften),
+    "ink-2": mix(colour, p.sky2, soften),
     accent: RECORD_ACCENT,
   };
 }
@@ -71,7 +76,7 @@ export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<
  */
 export function printStyle(a: AtmosphereAxes, paper: string, windDeg?: number): PrintStyle {
   const blend: Blend = luminanceOf(paper) < 0.55 ? "screen" : "multiply";
-  const shift = 0.0022 + 0.003 * a.severity + 0.0015 * a.wetness + 0.0008 * a.energy;
+  const shift = 0.008 + 0.005 * a.severity + 0.0025 * a.wetness + 0.0015 * a.energy;
   // Downwind: the wind's degrees say where it comes from; with no wind, down and to the right
   const angle = windDeg == null ? Math.PI / 5 : ((windDeg + 180 - 90) * Math.PI) / 180;
   return { blend, offset: [Math.cos(angle) * shift, Math.sin(angle) * shift] };

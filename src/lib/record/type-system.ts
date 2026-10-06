@@ -3,14 +3,14 @@ import type { FontRef } from "./types";
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 
-/** Mona Sans's real axes: nothing outside them is ever asked for */
-export const DISPLAY_AXES = { wght: [200, 900], wdth: [75, 125] } as const;
-/** IBM Plex Mono, the two static weights the poster loads */
-export const MONO_WEIGHTS = [400, 500] as const;
+/** Schibsted Grotesk's real axes: weight 400-900, one width */
+export const DISPLAY_AXES = { wght: [400, 900], wdth: [100, 100] } as const;
+/** The small notes' two weights in Schibsted Grotesk: labels, then figures */
+export const MONO_WEIGHTS = [500, 700] as const;
 
 export function clampAxes(font: FontRef): FontRef {
   if (font.family === "mono") {
-    const wght = font.wght >= 450 ? 500 : 400;
+    const wght = font.wght >= 450 ? MONO_WEIGHTS[1] : MONO_WEIGHTS[0];
     return { ...font, wght, wdth: 100 };
   }
   return {
@@ -20,13 +20,13 @@ export function clampAxes(font: FontRef): FontRef {
   };
 }
 
-/** Proportions of Mona Sans, in em: caps and figures stand this tall over the baseline */
+/** Proportions of Schibsted Grotesk, in em: caps and figures stand this tall over the baseline */
 export const CAP_HEIGHT = 0.7;
 /** IBM Plex Mono's caps */
 export const MONO_CAP = 0.7;
 
 /**
- * The smallest type on the sheet: 0.0125 of the width, 31 px on the 2480 px print (7.5 pt on A4). Nothing
+ * The smallest type on the sheet: 0.0155 of the width, 38 px on the 2480 px print (9.3 pt on A4). Nothing
  * prints below it.
  */
-export const MICRO_SIZE = 0.0125;
+export const MICRO_SIZE = 0.0155;
