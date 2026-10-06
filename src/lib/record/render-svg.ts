@@ -35,7 +35,7 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
 
   const fontAttrs = (f: FontRef) => {
     const family = f.family === "display" ? DISPLAY_FAMILY : MONO_FAMILY;
-    const variation = f.family === "display" ? `font-variation-settings:'wght' ${f.wght},'wdth' ${f.wdth};font-stretch:${f.wdth}%;` : "";
+    const variation = f.family === "display" && f.year != null ? `font-variation-settings:'YEAR' ${f.year};` : "";
     return `font-family="${family}" font-size="${n(f.size * W)}" style="font-weight:${f.wght};${variation}letter-spacing:${n(f.tracking * f.size * W)}px;font-kerning:normal"`;
   };
 
@@ -110,8 +110,7 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
       defs.push(`<clipPath id="${cid}"><rect x="${n(r.x * W)}" y="${n(r.y * H)}" width="${n(r.width * W)}" height="${n(r.height * H)}"/></clipPath>`);
       inner = `<g clip-path="url(#${cid})">${inner}</g>`;
     }
-    const blend = l.blend && l.blend !== "normal" ? ` style="mix-blend-mode:${l.blend}"` : "";
-    return `<g data-layer="${l.id}" data-role="${l.role}"${blend}${l.opacity < 1 ? ` opacity="${l.opacity.toFixed(3)}"` : ""}>${inner}</g>`;
+    return `<g data-layer="${l.id}" data-role="${l.role}"${l.opacity < 1 ? ` opacity="${l.opacity.toFixed(3)}"` : ""}>${inner}</g>`;
   });
 
   const fonts = o.fontCss ? `<style>${o.fontCss}</style>` : "";

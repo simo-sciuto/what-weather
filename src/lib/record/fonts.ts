@@ -1,8 +1,7 @@
 /**
- * The record's one face, self-hosted in public/fonts/record (SIL Open Font License 1.1): Schibsted Grotesk, a
- * newspaper grotesk, variable on weight (400-900), for everything on the sheet, the user's choice of 2026-10-06.
- * Two family names over the same files keep the roles apart: the large type (`display`) and the small notes
- * (`mono`, a role now, not a monospace).
+ * The record's faces, self-hosted in public/fonts/record (SIL Open Font License 1.1): Climate Crisis for the large
+ * type (the user's choice of 2026-10-06), whose YEAR axis (1979-2050) melts the letters with the Arctic sea ice, set
+ * to the record's year; Schibsted Grotesk for the small notes (`mono`, a role, not a monospace).
  */
 export const DISPLAY_FAMILY = "WW Record Display";
 export const MONO_FAMILY = "WW Record Mono";
@@ -15,10 +14,12 @@ const LATIN_EXT =
 
 export type FontFaceSpec = { family: string; file: string; weight: string; stretch: string; unicodeRange: string };
 
-export const RECORD_FONT_FACES: readonly FontFaceSpec[] = [DISPLAY_FAMILY, MONO_FAMILY].flatMap((family) => [
-  { family, file: "schibsted-grotesk-400-900-latin.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN },
-  { family, file: "schibsted-grotesk-400-900-latin-ext.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN_EXT },
-]);
+export const RECORD_FONT_FACES: readonly FontFaceSpec[] = [
+  { family: DISPLAY_FAMILY, file: "climate-crisis-latin.woff2", weight: "400", stretch: "100%", unicodeRange: LATIN },
+  { family: DISPLAY_FAMILY, file: "climate-crisis-latin-ext.woff2", weight: "400", stretch: "100%", unicodeRange: LATIN_EXT },
+  { family: MONO_FAMILY, file: "schibsted-grotesk-400-900-latin.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN },
+  { family: MONO_FAMILY, file: "schibsted-grotesk-400-900-latin-ext.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN_EXT },
+];
 
 /** The @font-face rules, each face's source from `src` (a URL for the page, a data URI inside an exported SVG) */
 export function fontFaceCss(src: (file: string) => string): string {

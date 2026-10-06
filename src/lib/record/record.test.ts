@@ -6,7 +6,6 @@ import { getRecordComposition, nameBlocks } from "./compose";
 import { fitPlace } from "./fit";
 import { clipLine, clipRing, crossings } from "./geography";
 import { recordInks, PAPER, RECORD_ACCENT } from "./inks";
-import { tempColor } from "@/lib/weather/temp-color";
 import { formatCoord, metricsFor, recordId, temperatureWords } from "./metrics";
 import { hash32, mulberry32, placeSlug, recordSeed } from "./seed";
 import { clampAxes, DISPLAY_AXES } from "./type-system";
@@ -151,7 +150,7 @@ describe("place fitting", () => {
 describe("font axes", () => {
   it("clamps every axis to the font's real range", () => {
     const f = clampAxes({ family: "display", wght: 1200, wdth: 40, size: 0.1, tracking: 0 });
-    expect(f.wght).toBe(900);
+    expect(f.wght).toBe(400);
     expect(f.wdth).toBe(100); // Schibsted has one width
     expect(clampAxes({ family: "mono", wght: 700, wdth: 80, size: 0.1, tracking: 0 })).toMatchObject({ wght: 700, wdth: 100 });
   });
@@ -261,7 +260,7 @@ describe("over the site's own map (raster)", () => {
       // Nothing upright: the notes run flat along the top
       expect(s.layers.filter((l) => l.transform?.rotate)).toEqual([]);
       const sig = s.layers.find((l) => l.id === "signature")!;
-      expect(sig.payload.kind === "text" && sig.payload.lines[0].text).toContain("© MAPBOX © OPENSTREETMAP");
+      expect(sig.payload.kind === "text" && sig.payload.lines.map((l) => l.text).join(" ")).toContain("© MAPBOX © OPENSTREETMAP");
     }
   });
 
@@ -269,26 +268,22 @@ describe("over the site's own map (raster)", () => {
     for (const k of ["milan", "tokyo", "reykjavik", "oslo"]) expect(raster(k).metadata.mode).toBe("collision");
   });
 
-  it("takes its two inks and its print from the atmosphere, the accent kept", () => {
+  it("takes its two inks from the atmosphere, apart on the colour wheel, the accent kept; one flat pass", () => {
     const night = raster("tokyo");
     expect(night.inks.accent).toBe(RECORD_ACCENT);
     expect(night.inks["ink-1"]).not.toBe(night.inks.paper);
-    expect(night.inks["ink-2"]).not.toBe(tempColor(18));
-    const print = night.metadata.print!;
-    expect(["screen", "multiply"]).toContain(print.blend);
-    // Well off register, at least a fiftieth of the sheet
-    expect(Math.hypot(...print.offset)).toBeGreaterThanOrEqual(0.02);
-    // A storm prints further off register than a calm day
-    const calm = Math.hypot(...raster("tshuru").metadata.print!.offset);
-    const storm = Math.hypot(...raster("san-cristobal").metadata.print!.offset);
-    expect(storm).toBeGreaterThan(calm);
-    // The large type gets its second impression, in the other ink, and the print's blend
-    const second = night.layers.find((l) => l.id === "place-second")!;
-    expect(second.inkRole).toBe("ink-1");
-    // Two flat passes, no blend, no texture
-    expect(second.blend).toBeUndefined();
-    expect(night.layers.find((l) => l.id === "place")!.blend).toBeUndefined();
     expect(night.layers.find((l) => l.id === "place")!.inkRole).toBe("ink-2");
+    expect(night.layers.some((l) => l.id.endsWith("-second"))).toBe(false);
+  });
+
+  it("sets the large type on the record's year, along Climate Crisis's YEAR axis", () => {
+    const s = raster("tokyo");
+    const dom = s.layers.find((l) => l.id === "dominant")!;
+    expect(dom.payload.kind === "text" && dom.payload.font.year).toBe(2026);
+    const old = getRecordComposition({ ...byKey("tokyo").input, date: "1950-05-01" }, null, measure, undefined, "raster");
+    const d = old.layers.find((l) => l.id === "dominant")!;
+    expect(d.payload.kind === "text" && d.payload.font.year).toBe(1979);
+    expect(renderSvg(s, "swiss-flat", { width: 620, height: 877 })).toContain("'YEAR' 2026");
   });
 
   it("puts the pictures it is given into the SVG", () => {
@@ -296,6 +291,7 @@ describe("over the site's own map (raster)", () => {
     expect(svg).toContain('href="data:image/png;base64,AA=="');
     expect(svg).toContain('href="data:image/png;base64,BB=="');
     expect(svg).not.toContain("<feTurbulence");
+    expect(svg).not.toContain("mix-blend-mode");
   });
 });
 

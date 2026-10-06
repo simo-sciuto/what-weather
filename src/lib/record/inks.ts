@@ -1,7 +1,6 @@
 import type { AtmosphereAxes } from "@/lib/weather/atmosphere";
 import { atmospherePalette, scaleChroma } from "@/lib/weather/palette";
 import { tempColor } from "@/lib/weather/temp-color";
-import type { Blend, PrintStyle } from "./types";
 import { HAZE_ONSET } from "@/lib/weather/atmosphere";
 import type { InkRole } from "./types";
 
@@ -64,11 +63,6 @@ function fromHsl(h: number, s: number, l: number): string {
   return `#${[f(0), f(8), f(4)].map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("")}`;
 }
 
-const luminanceOf = (hex: string) => {
-  const [r, g, b] = rgb(hex);
-  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-};
-
 /**
  * The inks over the poster's own map, two of them as in a screenprint, both from the atmosphere: the light ink is
  * the moment's own light (`sun`: a warm sun by day, a cold moon at night), the name's ink the temperature's colour
@@ -97,18 +91,4 @@ export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<
     "ink-2": mix(colour, p.sky2, soften),
     accent: RECORD_ACCENT,
   };
-}
-
-/**
- * The print's character from the atmosphere: light inks screen over a dark ground and dark ones multiply over a
- * light one; the second impression drifts with the weather's energy (storm most, then rain, then the sun's), the
- * way the wind blows when it is known. Two flat passes, no ink texture: the user's screenprint.
- */
-export function printStyle(a: AtmosphereAxes, paper: string, windDeg?: number): PrintStyle {
-  const blend: Blend = luminanceOf(paper) < 0.55 ? "screen" : "multiply";
-  // At least about ten pixels on the preview (fifty on the print), more with the weather's energy
-  const shift = 0.02 + 0.006 * a.severity + 0.003 * a.wetness + 0.002 * a.energy;
-  // Downwind: the wind's degrees say where it comes from; with no wind, down and to the right
-  const angle = windDeg == null ? Math.PI / 5 : ((windDeg + 180 - 90) * Math.PI) / 180;
-  return { blend, offset: [Math.cos(angle) * shift, Math.sin(angle) * shift] };
 }

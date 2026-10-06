@@ -69,6 +69,8 @@ export type FontRef = {
   size: number;
   /** In em */
   tracking: number;
+  /** Climate Crisis's YEAR axis (1979-2050): the record's year, its letters melting with the Arctic ice */
+  year?: number;
 };
 
 /** Measures a line set in `font`, as a fraction of the sheet's width; injected, so the engine stays pure */
@@ -122,24 +124,12 @@ export type Clip = {
 
 export type Transform = { rotate: number; origin: Point };
 
-/** How an ink sits on what is under it: as a screenprint's light inks over a dark ground, or dark over light */
-export type Blend = "normal" | "screen" | "multiply";
-
-/** The print's character (screenprint, WTH-187), from the atmosphere: a second pass in another ink, a little off register */
-export type PrintStyle = {
-  blend: Blend;
-  /** The second impression's shift, fractions of the sheet's width */
-  offset: Point;
-};
-
 export type SceneLayer = {
   id: string;
   role: LayerRole;
   z: number;
   inkRole: InkRole;
   opacity: number;
-  /** The print's blend, for the inks that take it */
-  blend?: Blend;
   transform?: Transform;
   clip?: Clip;
   payload: TextPayload | PathsPayload | RectPayload | NodePayload | ImagePayload;
@@ -165,8 +155,6 @@ export type RecordScene = {
     cityAt: Point;
     /** The kilometres the sheet's width spans, for a map drawn elsewhere at the same scale */
     spanKm: number;
-    /** The print's character over the site's map; absent for the flat vector style */
-    print?: PrintStyle;
     /** The type engine's settings (`typeVisualState`) */
     type: import("@/lib/weather/typography").TypeVisualState;
   };

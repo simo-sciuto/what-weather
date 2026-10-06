@@ -3,7 +3,7 @@ import { typeVisualState, type TypeSetting, type TypeVisualState } from "@/lib/w
 import { conditionFamily } from "./condition-family";
 import { fitPlace, type Fitted } from "./fit";
 import { centerFor, crossings, featureLength, placeGeography, type FeatureKind, type Placed, type Rect } from "./geography";
-import { mapInks, printStyle, recordInks } from "./inks";
+import { mapInks, recordInks } from "./inks";
 import {
   CONDITION_WORD,
   degrees,
@@ -161,7 +161,7 @@ function atlas(c: Ctx, city: Point, preferred: boolean): Plan {
   ];
   if (minus)
     texts.push({ id: "minus", lines: [{ text: "\u2212", x: 22, y: top + CAP * size }], font: display(t, size), ink: "ink-1", opacity: c.tv.tone, z: "type-front" });
-  const wordFont = clampAxes({ family: "display", wght: 400, wdth: 125, size: 13, tracking: 0.04 });
+  const wordFont = mono(500, 13);
   const word = temperatureWords(c.r.temp);
   const wordW = width(c, word, wordFont);
   // Under the degree; when a long numeral leaves no room there, under the numeral's foot, flush right
@@ -231,7 +231,7 @@ function collision(c: Ctx, city: Point, preferred: boolean): Plan {
     texts.push({
       id: "numeral-word",
       lines: [{ text: temperatureWords(c.r.temp), x: COL[4], y: top + 20 + Math.ceil(cells.length / 2) * 38 + 14 }],
-      font: clampAxes({ family: "display", wght: 400, wdth: 100, size: 13, tracking: 0 }),
+      font: mono(500, 13),
       ink: "ink-1",
       opacity: 1,
       z: "micro",
@@ -480,29 +480,10 @@ export function getRecordComposition(
   const N = (p: Point): Point => [p[0], p[1] / aspect];
   const P = (p: Point): Point => N([ref.x(p[0]), ref.y(p[1])]);
   const inks = raster ? mapInks(r.light ?? 0.5, atmosphere, r.temp) : recordInks(atmosphere);
-  const print = raster ? printStyle(atmosphere, inks.paper, r.windDeg) : undefined;
+  // The record's year on Climate Crisis's YEAR axis: its letters melt as the Arctic ice did that year
+  const year = Number(r.date.slice(0, 4));
   const text = (t: Text) => {
-    const large = raster && print && t.font.family === "display" && (t.z === "type-back" || t.z === "type-front");
-    if (large && print) {
-      // The second impression, a little off register, in the other ink: where the two meet the inks overprint
-      const ghostInk: InkRole = /^place(-\d+)?$/.test(t.id) ? "ink-1" : "ink-2";
-      const [dx, dy] = print.offset;
-      add({
-        id: `${t.id}-second`,
-        role: t.z,
-        inkRole: ghostInk,
-        opacity: t.opacity,
-        transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
-        payload: {
-          kind: "text",
-          lines: t.lines.map((l) => ({ ...l, x: ref.x(l.x) + dx, y: ref.y(l.y) / aspect + (dy / aspect) })),
-          font: { ...t.font, size: ref.s(t.font.size) },
-          anchor: t.anchor ?? "start",
-        },
-      });
-    }
     add({
-      // The top pass in its own ink, flat over the first: the first shows as a band of the other colour at the edge
       id: t.id,
       role: t.z,
       // Over the site's map the place's name is set in the temperature's colour (ink-2 there)
@@ -512,7 +493,7 @@ export function getRecordComposition(
       payload: {
         kind: "text",
         lines: t.lines.map((l) => ({ ...l, x: ref.x(l.x), y: ref.y(l.y) / aspect })),
-        font: { ...t.font, size: ref.s(t.font.size) },
+        font: clampAxes({ ...t.font, size: ref.s(t.font.size), ...(t.font.family === "display" ? { year } : {}) }),
         anchor: t.anchor ?? "start",
       },
     });
@@ -582,10 +563,23 @@ export function getRecordComposition(
   // the signature and the map's credits at the top right, straight on the map
   const id = recordId(r.place.name, r.date);
   const noteFont = mono(400, MICRO * 0.85);
-  text({ id: "record-id", lines: [{ text: `${id}   ${formatDate(r.date)} ${stamp(r)}`, x: M, y: 34 }], font: noteFont, ink: "ink-1", opacity: 1, z: "micro" });
+  text({
+    id: "record-id",
+    lines: [
+      { text: id, x: M, y: 30 },
+      { text: `${formatDate(r.date)}  ${stamp(r)}`, x: M, y: 42 },
+    ],
+    font: noteFont,
+    ink: "ink-1",
+    opacity: 1,
+    z: "micro",
+  });
   text({
     id: "signature",
-    lines: [{ text: ["WHAT WEATHER", ...(raster ? ["© MAPBOX © OPENSTREETMAP"] : [])].join("   "), x: R, y: 34 }],
+    lines: [
+      { text: "WHAT WEATHER", x: R, y: 30 },
+      ...(raster ? [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: 42 }] : []),
+    ],
     font: noteFont,
     ink: "ink-1",
     opacity: 0.85,
@@ -608,7 +602,6 @@ export function getRecordComposition(
       placeFit: plan.placeFit,
       nodes: ["city"],
       cityAt: P(plan.city),
-      print,
       spanKm: spanKm / sheet.w,
       type: tv,
     },
