@@ -179,6 +179,27 @@ describe("metrics", () => {
     expect(texts.every((t) => t.trim().length > 0)).toBe(true);
   });
 
+  it("marks an interpolated hour's figures as approximate, never the provider's own range", () => {
+    const r = { ...byKey("milan-no-visibility").input, high: 21, low: 15, provenance: { interpolated: true } };
+    const m = metricsFor(["temp", "feels", "range"], r, 3, []);
+    expect(m.find((x) => x.key === "temp")?.value).toBe(`~${Math.round(r.temp)}°`);
+    expect(m.find((x) => x.key === "range")?.value).toBe("21° / 15°");
+    expect(metricsFor(["temp"], { ...r, provenance: undefined }, 1, [])[0].value).not.toMatch(/^~/);
+  });
+
+  it("never prints a partial day's range or estimated air as readings", () => {
+    const base = { ...byKey("milan-no-visibility").input, high: 21, low: 15, humidity: 80, visibility: 4 };
+    const keys = (r: RecordInput) => metricsFor(["range", "humidity", "visibility"], r, 5, []).map((x) => x.key);
+    expect(keys(base)).toEqual(expect.arrayContaining(["range", "humidity", "visibility"]));
+    const shown = keys({ ...base, provenance: { partialRange: true, estimated: ["humidity", "visibility"] } });
+    expect(shown).not.toContain("range");
+    expect(shown).not.toContain("humidity");
+    expect(shown).not.toContain("visibility");
+    // A whole day whose range is partial has no high of its own to print either
+    const allDay = metricsFor(["temp"], { ...base, allDay: true, provenance: { partialRange: true } }, 5, []);
+    expect(allDay.map((x) => x.key)).not.toContain("temp");
+  });
+
   it("prints archival coordinates, record IDs and the temperature in words", () => {
     expect(formatCoord(-4.4667, "lat")).toBe("04°28'S");
     expect(formatCoord(29.1, "lon")).toBe("29°06'E");

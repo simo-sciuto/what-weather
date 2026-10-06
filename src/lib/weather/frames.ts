@@ -233,6 +233,7 @@ export function buildTimeline(d: WeatherData): Timeline {
       isToday: day.isToday,
       high: p.max,
       low: p.min,
+      ...(p.partial ? { partial: true } : {}),
       summary,
       best: window && { ...window, label: windowLabel(window, tz) },
       hours,

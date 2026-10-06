@@ -61,6 +61,8 @@ export type DayTimeline = {
   isToday: boolean;
   high: number;
   low: number;
+  /** True when high and low cover only part of the day (`DailyPoint.partial`) */
+  partial?: boolean;
   /** A sentence for the whole day */
   summary: string;
   /** The best hours of the day to be outside; null when there are none (or no hours to tell) */

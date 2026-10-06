@@ -26,11 +26,26 @@ export const compassPoint = (deg: number) => POINTS[Math.round((((deg % 360) + 3
 export const degrees = (t: number) => `${Math.round(t) < 0 ? "−" : ""}${Math.abs(Math.round(t))}°`;
 const pad2 = (n: number) => String(Math.round(n)).padStart(2, "0");
 
+/** Marks a figure the record did not read but worked out (ADR-006): an hour between two of the provider's points */
+const APPROX = "~";
+
 function metric(key: MetricKey, r: RecordInput): Metric | null {
+  const m = reading(key, r);
+  if (!m) return null;
+  const p = r.provenance;
+  // Estimated air and a partial day's range are not readings: they stay off the record, and a fallback takes the place
+  if ((key === "humidity" || key === "visibility") && p?.estimated?.includes(key)) return null;
+  if (key === "range" && p?.partialRange) return null;
+  // The day's range is the provider's own, whichever hour is on show
+  return p?.interpolated && key !== "range" ? { ...m, value: APPROX + m.value } : m;
+}
+
+function reading(key: MetricKey, r: RecordInput): Metric | null {
   switch (key) {
     case "temp":
-      // A whole day's temperature is its high: the range says it, or it stands alone as the high
-      if (r.allDay) return r.high != null && r.low != null ? null : { key, label: "HIGH", value: degrees(r.temp) };
+      // A whole day's temperature is its high: the range says it, or it stands alone as the high; a partial day's
+      // high is not the day's, so it is not printed at all
+      if (r.allDay) return (r.high != null && r.low != null) || r.provenance?.partialRange ? null : { key, label: "HIGH", value: degrees(r.temp) };
       return { key, label: "TEMP", value: degrees(r.temp) };
     case "feels":
       return r.feelsLike == null ? null : { key, label: "FEELS", value: degrees(r.feelsLike) };

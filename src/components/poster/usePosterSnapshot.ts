@@ -13,7 +13,7 @@ import { useMoment, useTimeline } from "../time/TimeContext";
 import { useMapOptions, useMapPalette } from "../weather/MapControls";
 import { useMap } from "../weather/MapContext";
 import { currentView } from "../weather/map-view";
-import type { RecordInput } from "@/lib/record/types";
+import type { RecordInput, RecordProvenance } from "@/lib/record/types";
 import type { PosterInput } from "./render-poster";
 
 /**
@@ -34,7 +34,8 @@ export type PosterSources = {
   options: readonly MapOption[];
   view: PosterInput["view"];
   /** The day's range, when the frame's day is known */
-  day?: { high: number; low: number };
+  /** The day's range; `partial` when it covers only part of the day */
+  day?: { high: number; low: number; partial?: boolean };
 };
 
 /** "2026-10-05", "12:00", "GMT+2" for a moment on the place's clock; the zone as a fixed offset when Intl lacks it */
@@ -77,7 +78,20 @@ export function recordInputOf({ place, frame, timeZone, day }: Pick<PosterSource
     uv: frame.uv,
     precipitation: reading(frame.precipitation),
     light: frame.light,
+    provenance: provenanceOf(frame, day),
   };
+}
+
+/** What on the record is not a plain reading (ADR-006): an interpolated hour, a partial day's range, estimated air */
+function provenanceOf(frame: PosterSources["frame"], day: PosterSources["day"]): RecordProvenance | undefined {
+  const sources = frame.atmosphericSources ?? {};
+  const estimated = (["humidity", "visibility"] as const).filter((k) => sources[k] === "estimated");
+  const p: RecordProvenance = {
+    ...(!frame.measured && !frame.overview ? { interpolated: true } : {}),
+    ...(day?.partial ? { partialRange: true } : {}),
+    ...(estimated.length ? { estimated } : {}),
+  };
+  return Object.keys(p).length ? p : undefined;
 }
 
 /** The snapshot from its sources: pure, so what goes on a poster can be checked without a page */
@@ -111,5 +125,5 @@ export function usePosterSnapshot(): () => PosterSnapshot {
   const { timeline } = useTimeline();
   const day = timeline.days.find((d) => d.key === frame.dayKey);
   return () =>
-    posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: currentView(), day: day && { high: day.high, low: day.low } });
+    posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: currentView(), day: day && { high: day.high, low: day.low, partial: day.partial } });
 }

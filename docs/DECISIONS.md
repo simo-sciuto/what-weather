@@ -36,6 +36,7 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - Reason: do not present estimates as readings.
 - Consequences: UI that shows a value as a reading should respect `measured`. Open: how consistently the UI surfaces it (see BOARD).
 - Status: Accepted (model); UI coverage unverified.
+- Update 2026-10-06 (WTH-196): the Visual Record follows it. `RecordInput.provenance` carries an interpolated hour, a partial day's range (`DayTimeline.partial`, new and optional) and estimated humidity or visibility; the record's facts print an interpolated hour's figures with "~" and leave out a partial range and estimated air. The live page's coverage is still unverified.
 
 ## ADR-007: Palette and sun position are derived in the browser
 - Decision: frames carry condition, phase, light, cloud cover; palettes and sun position are computed client-side (`look.ts`).

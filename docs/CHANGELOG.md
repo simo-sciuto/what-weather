@@ -3,6 +3,8 @@
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
 ## 2026-10-06
+- WTH-196: the poster's facts say where they come from (ADR-006): an hour between two of the provider's points prints its figures as "~17°", and a partial day's range or an estimated humidity or visibility is not printed (another reading takes its place).
+- WTH-204: the poster's sea is found in one pass over the water's grid (`seaGrid`), the same result as before; a long harbour at print size took 3.6 s, now 26 ms.
 - WTH-187, WTH-199, WTH-200: the poster is a Visual Record drawn over the site's own map (merged from `claude/record-engine`). The pure record engine in `src/lib/record/` composes a scene, the map is drawn off screen in the site's style, and the place's name is a hole in the map on one of five grid placements, the map's strong lines over it, the facts in a block on the grid, the city as a red ring with its coordinates. The home page's temperature in Syne (ADR-015). The branch review's fixes are in: the layout on one scale on every format, the name bounded and clear of the city, a day's stand-in printed as ALL DAY, the fonts' OFL text (WTH-197). A lab at `/lab/record` on Vercel previews only. Not yet seen by the user on a real export: a two-line and a descender name, and an iPhone export (WTH-203).
 
 ## 2026-10-05

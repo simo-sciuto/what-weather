@@ -65,6 +65,17 @@ export type RecordInput = {
   pressure?: number;
   /** `Frame.light`: -1..2, sunrise 0, sunset 1; midday when absent */
   light?: number;
+  /** Where the figures come from (ADR-006, WTH-196); absent, every figure is as the provider gave it */
+  provenance?: RecordProvenance;
+};
+
+export type RecordProvenance = {
+  /** The hour lies between two of the provider's points: its figures are interpolated, printed as approximate */
+  interpolated?: boolean;
+  /** The high and low cover only part of the day (a partial today), so they are not printed as the day's range */
+  partialRange?: boolean;
+  /** Readings the provider did not give, estimated from others: they shape the record but are never printed */
+  estimated?: ("humidity" | "visibility")[];
 };
 
 export type FontRef = {

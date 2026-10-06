@@ -81,6 +81,22 @@ describe("the poster's snapshot", () => {
     expect(r.time).toMatch(/^\d\d:\d\d$/);
   });
 
+  it("tells the record which figures are not plain readings (ADR-006)", async () => {
+    const { data, timeline } = await sources();
+    const read = timeline.frames.find((f, i) => i > 0 && f.measured)!;
+    // The mock gives every hour; an hour between two of a provider's points is one it marks unmeasured
+    const between = { ...read, measured: false };
+    const input = (frame: typeof read, day?: { high: number; low: number; partial?: boolean }) =>
+      recordInputOf({ place: data.place, frame, timeZone: data.timezone, day });
+    expect(input(between).provenance).toEqual({ interpolated: true });
+    expect(input(read).provenance).toBeUndefined();
+    expect(input(read, { high: 20, low: 10, partial: true }).provenance).toEqual({ partialRange: true });
+    const estimated = { ...read, atmosphericSources: { humidity: "estimated" as const, visibility: "provider" as const } };
+    expect(input(estimated).provenance).toEqual({ estimated: ["humidity"] });
+    // A day's stand-in is a whole day, not an interpolated hour
+    expect(input(timeline.days[timeline.days.length - 1].overview).provenance).toBeUndefined();
+  });
+
   it("reads the place's clock, half-hour zones included, and falls back to GMT for an unknown zone", () => {
     const ts = Date.parse("2026-10-05T10:00:00Z") / 1000;
     expect(recordClock(ts, "Europe/Rome")).toEqual({ time: "12:00", zone: "GMT+2" });
