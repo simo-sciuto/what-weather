@@ -324,7 +324,14 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
   it("keeps a long name whole on at most three lines", () => {
     const place = raster("san-cristobal").layers.find((l) => l.id === "place")!.payload;
     expect(place.kind === "text" && place.lines.length).toBeLessThanOrEqual(3);
-    expect(place.kind === "text" && place.lines.map((l) => l.text).join(" ")).toBe("SAN CRISTOBAL DE LAS CASAS");
+    expect(place.kind === "text" && place.lines.map((l) => l.text).join(" ")).toBe("San Cristobal de las Casas");
+  });
+
+  it("sets the name in Inter Tight, spelt as written, and large", () => {
+    const place = raster("oslo").layers.find((l) => l.id === "place")!.payload;
+    expect(place.kind === "text" && place.lines[0].text).toBe("Oslo");
+    expect(place.kind === "text" && place.font.family).toBe("brand");
+    expect(place.kind === "text" && place.font.size).toBeGreaterThan(0.2);
   });
 
   it("puts the pictures it is given into the SVG, with the hole's shadow and the brand face", () => {

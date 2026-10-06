@@ -123,9 +123,20 @@ type Ctx = {
 /** Widths in reference units: the engine's measure works in sheet units */
 const width = (c: Ctx, text: string, f: FontRef) => c.measure(text, { ...f, size: f.size / REF_W }) * REF_W;
 
-function fitName(c: Ctx, size: number, maxWidth: number, maxLines: number, tracking: number, weight?: number): Fitted {
-  const fitted = fitPlace(upper(c.r.place.name), {
-    font: display(weight == null ? c.tv.support : { ...c.tv.support, weight }, size / REF_W, tracking),
+function fitName(
+  c: Ctx,
+  size: number,
+  maxWidth: number,
+  maxLines: number,
+  tracking: number,
+  weight?: number,
+  family: FontRef["family"] = "display",
+  /** "upper" in capitals; "as-written" as the place is spelt (a capital, then small letters) */
+  letterCase: "upper" | "as-written" = "upper",
+): Fitted {
+  const base = display(weight == null ? c.tv.support : { ...c.tv.support, weight }, size / REF_W, tracking);
+  const fitted = fitPlace(letterCase === "upper" ? upper(c.r.place.name) : c.r.place.name.trim(), {
+    font: family === "display" ? base : { ...base, family, wght: weight ?? base.wght, wdth: 100 },
     wdthMin: 62,
     maxWidth: maxWidth / REF_W,
     minSize: (size * 0.4) / REF_W,
@@ -377,10 +388,10 @@ export const PLACEMENTS: readonly Placement[] = [
   { cols: { from: 0, count: 6, align: "left" }, at: "head", facts: ({ sheetBottom, side }) => [COL[4], sheetBottom - 52 - side] },
   // Across the middle, the facts at the top left
   { cols: { from: 0, count: 6, align: "left" }, at: 4, facts: () => [M, 64] },
-  // High on the four right-hand columns, flush right, the facts under it on the left
-  { cols: { from: 2, count: 4, align: "right" }, at: 2.6, facts: ({ bottom }) => [M, bottom + 40] },
-  // Low on the four left-hand columns, the facts above it on the right
-  { cols: { from: 0, count: 4, align: "left" }, at: 5.6, facts: ({ top, side }) => [COL[4], top - 40 - side] },
+  // High on the five right-hand columns, flush right, the facts under it on the left
+  { cols: { from: 1, count: 5, align: "right" }, at: 2.4, facts: ({ bottom }) => [M, bottom + 40] },
+  // Low on the five left-hand columns, the facts above it on the right
+  { cols: { from: 0, count: 5, align: "left" }, at: 5.8, facts: ({ top, side }) => [COL[4], top - 40 - side] },
 ];
 
 /**
@@ -400,10 +411,13 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   // empty sea should be large
   const full = placement.cols.count === 6;
   const room = full ? REF_W - 2 * EDGE : span(placement.cols.count);
-  const fitted = fitName(c, full ? 180 : 130, room, full ? 2 : 3, -0.045, 800);
+  // Inter Tight, the page's own face (the user's choice of 2026-10-06), heavy and tight, spelt as the place is (a
+  // capital, then small letters), and as large as its columns allow: the sheet's space is the name's
+  const fitted = fitName(c, full ? 320 : 260, room, full ? 2 : 3, -0.045, 800, "brand", "as-written");
   const sz = fitted.font.size;
   const n = fitted.lines.length;
-  const lead = sz * 0.92;
+  // Room between lines for the small letters' tails (g, p, y)
+  const lead = sz * 0.98;
   const blockH = CAP * sz + (n - 1) * lead;
   const top =
     placement.at === "foot" ? markBase - 34 - blockH : placement.at === "head" ? 64 : row * placement.at - blockH / 2;
@@ -416,6 +430,9 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   });
   texts.push({ id: "place", lines, font: fitted.font, ink: "ink-2", opacity: 1, z: "type-back", inset: true, glow: true });
   const nameBottom = lines[n - 1].y;
+  // The city lands in the half of the sheet the name leaves free, so its mark and coordinates never meet the letters
+  const nameMiddle = (top + nameBottom) / 2;
+  city = [city[0], nameMiddle < bottom * 0.45 ? bottom * 0.64 : nameMiddle > bottom * 0.55 ? bottom * 0.3 : bottom * 0.2];
 
   // The facts, gathered as a square block on the grid (no fill, no border): the condition, the temperature and three
   // readings

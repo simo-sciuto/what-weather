@@ -22,6 +22,7 @@ export const RECORD_FONT_FACES: readonly FontFaceSpec[] = [
   { family: MONO_FAMILY, file: "schibsted-grotesk-400-900-latin.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN },
   { family: MONO_FAMILY, file: "schibsted-grotesk-400-900-latin-ext.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN_EXT },
   { family: BRAND_FAMILY, file: "inter-tight-100-900-latin.woff2", weight: "100 900", stretch: "100%", unicodeRange: LATIN },
+  { family: BRAND_FAMILY, file: "inter-tight-100-900-latin-ext.woff2", weight: "100 900", stretch: "100%", unicodeRange: LATIN_EXT },
 ];
 
 /** The @font-face rules, each face's source from `src` (a URL for the page, a data URI inside an exported SVG) */

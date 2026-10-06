@@ -17,8 +17,8 @@ import {
 import { NarrativeText } from "../time/NarrativeText";
 import { HeroCondition, HeroGlyph, HeroTemp } from "../time/HeroTemp";
 
-/** The width of a capital of the name and of a figure of the temperature, in the title's em (Syne, ADR-014) */
-const NAME_EM = 1.1 * 0.74;
+/** The width of a letter of the name (Inter Tight, heavy) and of a figure of the temperature (Syne), in the title's em */
+const NAME_EM = 0.58;
 const TEMP_EM = 0.72;
 
 /**
@@ -61,8 +61,8 @@ export function WeatherHero({
     ...[current.temp, range.min, range.max].map((t) => formatTemp(t).length),
   );
   // The whole width is 100 units, 96 of them kept for the line, so no word ever breaks onto a second
-  // line. Syne (ADR-014) is wide: a heavy capital runs up to 1.1em, set at 0.74 of the title (NAME_EM),
-  // a figure about 0.72em at 1.9 times it (TEMP_EM).
+  // line. A heavy grotesk runs about 0.58em a letter (NAME_EM); the temperature's Syne figure about 0.72em at 1.9
+  // times the name's size (TEMP_EM).
   const titleSize = Math.min(
     15,
     96 / (NAME_EM * longest + TEMP_EM * 1.9 * widestTemp + 0.1),
