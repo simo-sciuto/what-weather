@@ -99,14 +99,22 @@ async function TerritoryView({ searchParams }: { searchParams: SearchParams }) {
 
             <div className="on-sky flex flex-col gap-6 pb-10 pt-10 lg:pt-16">
               <div className="flex flex-col gap-2">
-                <p className="label">Territorio</p>
+                <p aria-hidden="true" className="label">
+                  Territorio
+                </p>
                 <h1 className="display-caps text-balance text-[clamp(2.5rem,9vw,6rem)] leading-[0.95]">{place.name}</h1>
                 <p className="text-ink-muted">{placeSubtitle(place)}</p>
               </div>
 
               {MAPBOX ? (
                 <Suspense fallback={<FactsSkeleton />}>
-                  <Territory lat={place.lat} lon={place.lon} name={place.name} country={placeParts(place).country} />
+                  <Territory
+                    lat={place.lat}
+                    lon={place.lon}
+                    name={place.name}
+                    country={placeParts(place).country}
+                    empty={<p className="text-ink-muted">Di questo luogo non abbiamo trovato nulla: né che cos&apos;è, né i dintorni, le acque o le vette.</p>}
+                  />
                 </Suspense>
               ) : (
                 <p className="text-ink-muted">Il territorio si legge sulle mappe: senza il token di Mapbox qui non c&apos;è nulla da mostrare.</p>
@@ -114,7 +122,7 @@ async function TerritoryView({ searchParams }: { searchParams: SearchParams }) {
 
               <Link
                 href={back}
-                className="label self-start rounded-sm py-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                className="label inline-flex min-h-11 items-center self-start rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
               >
                 ← Il meteo di {place.name}
               </Link>

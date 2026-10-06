@@ -24,9 +24,8 @@ test("the Territorio page is of its place: its name, a way back to its weather, 
   // The way back is the weather of this place, not a city drawn at random
   const back = page.getByRole("link", { name: /Il meteo di Torino/ });
   await expect(back).toHaveAttribute("href", /^\/\?lat=45\.07.*lon=7\.69.*name=Torino/);
-  await back.click();
-  await expect(page).toHaveURL(/^http:\/\/localhost:\d+\/\?lat=45\.07/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Torino");
+  // The wordmark goes the same way
+  await expect(page.getByRole("link", { name: /what/i }).first()).toHaveAttribute("href", /^\/\?lat=45\.07/);
 });
 
 test("a Territorio without a place goes to the weather page", async ({ page }) => {

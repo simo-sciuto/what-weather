@@ -166,9 +166,10 @@ function List({
  * its capitals, the towns around (the two best known, then the nearest) with their weather right now (each a link to
  * its own page), its waters (those it stands on, then the best-known lakes
  * around) and the best-known peaks around, with their heights. No distances. Async and cached, streamed in; a list with nothing
- * known is left out, and with nothing known at all there is no chapter.
+ * known is left out, and with nothing known at all there is no chapter: `empty` (nothing by default) stands in its place,
+ * for the page of its own, where a blank would pass for a load that never ends.
  */
-export async function Territory({ lat, lon, name, country }: Where) {
+export async function Territory({ lat, lon, name, country, empty = null }: Where & { empty?: ReactNode }) {
   const {
     rank,
     altitude,
@@ -275,7 +276,7 @@ export async function Territory({ lat, lon, name, country }: Where) {
       })),
     },
   ].filter((l) => l.items.length);
-  if (!lists.length) return null;
+  if (!lists.length) return empty;
   const columns = [
     "",
     "@lg:grid-cols-2",
