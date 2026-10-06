@@ -9,6 +9,7 @@ export const DISPLAY_AXES = { wght: [400, 800], wdth: [100, 100] } as const;
 export const MONO_WEIGHTS = [500, 700] as const;
 
 export function clampAxes(font: FontRef): FontRef {
+  if (font.family === "brand") return { ...font, wdth: 100 };
   if (font.family === "mono") {
     const wght = font.wght >= 450 ? MONO_WEIGHTS[1] : MONO_WEIGHTS[0];
     return { ...font, wght, wdth: 100 };

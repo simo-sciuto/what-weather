@@ -16,7 +16,8 @@ export type Dominant = "place" | "temperature";
 /** How geography and the dominant type meet: lines across the letters in the paper's colour, or water laid over them */
 export type Interplay = "through" | "interleave" | "none";
 
-export type InkRole = "paper" | "ink-1" | "ink-2" | "accent";
+/** paper, the type's two inks, the city's red mark, and the wordmark's butter bar */
+export type InkRole = "paper" | "ink-1" | "ink-2" | "accent" | "brand";
 
 export type Point = readonly [number, number];
 /** [lon, lat] */
@@ -62,7 +63,8 @@ export type RecordInput = {
 };
 
 export type FontRef = {
-  family: "display" | "mono";
+  /** The large type, the notes, and the wordmark's own face (the home page's Inter Tight) */
+  family: "display" | "mono" | "brand";
   wght: number;
   /** Percent of normal width; 100 for the mono */
   wdth: number;

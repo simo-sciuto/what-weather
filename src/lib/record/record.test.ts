@@ -228,60 +228,68 @@ describe("the city and the inks", () => {
   });
 });
 
-describe("over the site's own map: the classic poster with the record's facts", () => {
+describe("over the site's own map: the temperature as a hole, the facts in a box (WTH-200)", () => {
   const raster = (k: string, patch: Partial<RecordInput> = {}) => {
     const r = byKey(k);
     return getRecordComposition({ ...r.input, ...patch }, r.geography, measure, undefined, "raster");
   };
   const texts = (s: RecordScene) => s.layers.flatMap((l) => (l.payload.kind === "text" ? l.payload.lines.map((x) => x.text) : []));
 
-  it("lays the whole map under veils of the sky at the head and the foot, with no cut through the type", () => {
+  it("sets the temperature across the sheet in white, under the map's strong lines with the name", () => {
     for (const k of ["milan", "tshuru", "tokyo", "san-cristobal"]) {
       const s = raster(k);
-      expect(s.metadata.placeFit).toMatch(/^classic/);
-      expect(s.layers.find((l) => l.id === "map")!.payload).toMatchObject({ kind: "image", key: "map" });
-      expect(s.layers.filter((l) => l.payload.kind === "shade")).toHaveLength(2);
-      expect(s.layers.some((l) => l.id === "map-cut")).toBe(false);
-      expect(s.layers.filter((l) => l.transform?.rotate)).toEqual([]);
+      expect(s.metadata.placeFit).toMatch(/^hole/);
+      const dom = s.layers.find((l) => l.id === "dominant")!;
+      expect(dom.inkRole).toBe("ink-1");
+      expect(s.inks["ink-1"]).toBe("#ffffff");
+      // Wider than the sheet: a decoration, not a figure
+      if (dom.payload.kind === "text") expect(measure(dom.payload.lines[0].text, dom.payload.font)).toBeGreaterThan(1);
+      const cut = s.layers.find((l) => l.id === "map-cut")!;
+      expect(cut.clip?.glyphsOf).toEqual(["dominant", "place"]);
+      expect(cut.z).toBeGreaterThan(dom.z);
     }
   });
 
-  it("sets the head (region, country) and the foot (name, temperature, facts, signature, credits)", () => {
+  it("puts the facts in a box on the grid, the seed choosing where, and the record's ID up the right edge", () => {
     const s = raster("tokyo", { place: { name: "Tokyo", lat: 35.68, lon: 139.77, region: "Tokyo", country: "Giappone" } });
+    expect(s.layers.some((l) => l.id === "box-0" && l.payload.kind === "rect")).toBe(true);
     const all = texts(s);
-    expect(all).toContain("GIAPPONE");
-    expect(all).toContain("TOKYO");
-    expect(all).toContain("18°");
-    expect(all).toContain("RAIN");
-    expect(all).toContain("© MAPBOX © OPENSTREETMAP");
-    expect(all).toContain("WW / 2026 / 278 / TOKYO");
-    // The name and the temperature share the last baseline, the temperature flush right
-    const place = s.layers.find((l) => l.id === "place")!.payload;
-    const num = s.layers.find((l) => l.id === "dominant")!.payload;
-    if (place.kind === "text" && num.kind === "text") expect(num.lines[0].y).toBeCloseTo(place.lines[place.lines.length - 1].y, 6);
+    for (const t of ["RAIN", "Tokyo, GIAPPONE", "© MAPBOX © OPENSTREETMAP"]) expect(all).toContain(t);
+    const edge = s.layers.find((l) => l.id === "record-id")!;
+    expect(edge.transform?.rotate).toBe(-90);
+    expect(all.join(" ")).toContain("WW / 2026 / 278 / TOKYO");
+    // Only the name and the temperature take the large face
+    for (const l of s.layers)
+      if (l.payload.kind === "text" && l.payload.font.family === "display") expect(["dominant", "place"]).toContain(l.id);
   });
 
-  it("takes its colours from the app's colour study: the sky, the page's white, the temperature's absolute colour", () => {
+  it("sets the home page's wordmark: what, a butter bar, weather", () => {
+    const s = raster("oslo");
+    expect(s.layers.find((l) => l.id === "wordmark-what")!.payload).toMatchObject({ kind: "text", font: { family: "brand", wght: 300 } });
+    expect(s.layers.find((l) => l.id === "wordmark-weather")!.payload).toMatchObject({ kind: "text", font: { family: "brand", wght: 800 } });
+    const bar = s.layers.find((l) => l.id === "wordmark-bar")!;
+    expect(bar.inkRole).toBe("brand");
+    expect(s.inks.brand).toBe("#f9e8a7");
+  });
+
+  it("takes its colours from the app's colour study", () => {
     const s = raster("tokyo");
     expect(s.inks.accent).toBe(RECORD_ACCENT);
-    expect(s.inks["ink-1"]).toBe("#ffffff");
     expect(s.inks["ink-2"]).toBe("#b3e9c4"); // tempColor(18): rgb(179 233 196)
-    expect(s.layers.find((l) => l.id === "dominant")!.inkRole).toBe("ink-2");
     expect(s.layers.find((l) => l.id === "place")!.inkRole).toBe("ink-2");
   });
 
-  it("fits a long name on two lines beside the temperature", () => {
-    const s = raster("san-cristobal");
-    const place = s.layers.find((l) => l.id === "place")!.payload;
+  it("fits a long name on two lines at the foot", () => {
+    const place = raster("san-cristobal").layers.find((l) => l.id === "place")!.payload;
     expect(place.kind === "text" && place.lines.length).toBeLessThanOrEqual(2);
     expect(place.kind === "text" && place.lines.map((l) => l.text).join(" ")).toBe("SAN CRISTOBAL DE LAS CASAS");
   });
 
-  it("puts the pictures it is given into the SVG, with the veils as gradients", () => {
+  it("puts the pictures it is given into the SVG", () => {
     const svg = renderSvg(raster("oslo"), "swiss-flat", { width: 620, height: 877, images: { map: "data:image/png;base64,AA==", "map-cut": "data:image/png;base64,BB==" } });
     expect(svg).toContain('href="data:image/png;base64,AA=="');
-    expect(svg).toContain("<linearGradient");
-    expect(svg).not.toContain("<feTurbulence");
+    expect(svg).toContain('href="data:image/png;base64,BB=="');
+    expect(svg).toContain("WW Record Brand");
   });
 });
 

@@ -1,4 +1,4 @@
-import { DISPLAY_FAMILY, MONO_FAMILY } from "./fonts";
+import { BRAND_FAMILY, DISPLAY_FAMILY, MONO_FAMILY } from "./fonts";
 import type { FontRef, Point, RecordScene, SceneLayer } from "./types";
 
 /**
@@ -34,7 +34,7 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
   const defs: string[] = [];
 
   const fontAttrs = (f: FontRef) => {
-    const family = f.family === "display" ? DISPLAY_FAMILY : MONO_FAMILY;
+    const family = f.family === "display" ? DISPLAY_FAMILY : f.family === "brand" ? BRAND_FAMILY : MONO_FAMILY;
     const variation = f.family === "display" ? `font-variation-settings:'wght' ${f.wght};` : "";
     return `font-family="${family}" font-size="${n(f.size * W)}" style="font-weight:${f.wght};${variation}letter-spacing:${n(f.tracking * f.size * W)}px;font-kerning:normal"`;
   };

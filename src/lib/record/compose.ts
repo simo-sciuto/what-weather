@@ -95,6 +95,12 @@ type Plan = {
   preferred: boolean;
   /** Veils of the paper over the map, so the type reads on any street (reference units) */
   shades?: { y0: number; y1: number; from: number; to: number }[];
+  /** The map's strong lines run over the large type */
+  cut?: boolean;
+  /** Boxes of the paper the facts sit in (reference units) */
+  boxes?: { x: number; y: number; w: number; h: number }[];
+  /** The home page's wordmark, its baseline's left end and size (reference units) */
+  wordmark?: { x: number; y: number; size: number };
 };
 
 type Ctx = {
@@ -336,92 +342,84 @@ function field(c: Ctx, city: Point, preferred: boolean): Plan {
   };
 }
 
-/* ---------- CLASSIC: the poster as it was (map, name at the foot, hairlines), with the record's facts ---------- */
+/* ---------- HOLE: the temperature as a white hole in the map, the name at the foot, the facts in a box ---------- */
+
+/** Where the facts' box may sit on the grid, by its top-left corner, all clear of the temperature: the seed picks one */
+const BOX_SLOTS: Point[] = [
+  [COL[4], 64],
+  [M, 64],
+  [COL[2], 64],
+];
 
 /**
- * The poster's own style before the records (the user's choice of 2026-10-06), over the site's map: the region and
- * the country at the head over a hairline, the record's ID and moment under it; at the foot the place's name, large,
- * with the temperature beside it as on the home page, then a hairline and the record's facts on the grid's columns
- * (coordinates, day and hour, the condition and its readings), the signature and the map's credits last.
+ * The poster over the site's map (the user's brief of 2026-10-06, WTH-200): the temperature full bleed in white,
+ * read as a hole in the map rather than a figure; the place's name large at the foot in the temperature's colour;
+ * the map's strong lines over both; the facts in a square box set on the grid; the record's ID and moment up the
+ * right edge; the home page's wordmark at the foot.
  */
-function classic(c: Ctx, city: Point, preferred: boolean): Plan {
+function hole(c: Ctx, city: Point, preferred: boolean, slot: Point): Plan {
   const texts: Text[] = [];
-  const small = MICRO;
-  // Head
-  const headBase = 46;
-  if (c.r.place.region)
-    texts.push({ id: "region", lines: [{ text: c.r.place.region, x: M, y: headBase }], font: mono(500, small * 1.3), ink: "ink-1", opacity: 0.95, z: "micro" });
-  if (c.r.place.country)
-    texts.push({
-      id: "country",
-      lines: [{ text: upper(c.r.place.country), x: c.r.place.region ? R : M, y: headBase }],
-      font: { ...mono(700, small * 1.3), tracking: 0.08 },
-      ink: "ink-2",
-      opacity: 1,
-      anchor: c.r.place.region ? "end" : "start",
-      z: "micro",
-    });
-  texts.push({ id: "record-id", lines: [{ text: recordId(c.r.place.name, c.r.date), x: M, y: headBase + 26 }], font: mono(500, small * 0.9), ink: "ink-1", opacity: 0.8, z: "micro" });
-  texts.push({ id: "moment", lines: [{ text: `${formatDate(c.r.date)}  ${stamp(c.r)}`, x: R, y: headBase + 26 }], font: mono(500, small * 0.9), ink: "ink-1", opacity: 0.8, anchor: "end", z: "micro" });
+  const bottom = c.bottom;
 
-  // Foot, from the bottom up: credits and signature, two rows of facts, the hairline, the name and the temperature
-  const signBase = c.bottom - 24;
-  texts.push({ id: "signature", lines: [{ text: "what weather", x: M, y: signBase }], font: display({ weight: 800, width: 100, tracking: -0.02 }, 15, -0.02), ink: "ink-1", opacity: 0.9, z: "micro" });
-  texts.push({ id: "credits", lines: [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: signBase }], font: mono(500, small * 0.8), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
-  const rowB = signBase - 34;
-  const rowA = rowB - 40;
-  const [lat, lon] = coordsOf(c.r);
-  texts.push(...pairs("lat", COL[0], rowA, "LAT", lat), ...pairs("lon", COL[1], rowA, "LON", lon));
-  texts.push(...pairs("date", COL[0], rowB, "DAY", formatDate(c.r.date)), ...pairs("time", COL[1], rowB, "TIME", stamp(c.r)));
-  texts.push({ id: "condition", lines: [{ text: c.word, x: COL[3], y: rowA + 12 }], font: { ...conditionFont(700, 100), size: 13, tracking: 0.04 }, ink: "ink-1", opacity: 1, z: "micro" });
-  const ms = metricsFor(["feels", "range", ...FAMILY_ORDER[conditionFamily(c.r)]], c.r, 5, []);
-  const slots: Point[] = [
-    [COL[4], rowA],
-    [COL[5], rowA],
-    [COL[3], rowB],
-    [COL[4], rowB],
-    [COL[5], rowB],
-  ];
-  ms.forEach((m, i) => texts.push(...pairs(`metric-${i}`, slots[i][0], slots[i][1], m.label, m.value)));
-  const rule = rowA - 26;
-
-  // The temperature at the right, on the name's last baseline; the name takes what the line leaves
+  // The temperature across the whole sheet, a little past both edges, centred on the sheet's height
   const num = degrees(c.r.temp);
-  const nameBase = rule - 18;
-  const numFont = display({ weight: 600, width: 100, tracking: -0.03 }, 1, -0.03);
-  const numUnit = width(c, num, numFont);
-  // The temperature is 1.35 times the name's size, never more than the room kept for it at the name's largest
-  const NAME_MAX = 96;
-  const numMax = NAME_MAX * 1.35;
-  const fitted = fitName(c, NAME_MAX, R - M - numUnit * numMax - 16, 2, -0.02, 800);
-  const s = fitted.font.size;
-  // As large as the line leaves it, up to 1.9 times the name (as on the home page)
-  const numSize = Math.max(s * 1.35 > numMax ? numMax : s * 1.35, Math.min((R - M - fitted.width - 20) / numUnit, s * 1.9, 170));
-  const nf = { ...numFont, size: numSize };
-  const numW = width(c, num, nf);
-  const nameFont = fitted.font;
-  const lines = fitted.lines.map((text, i) => ({ text, x: M - s * 0.03, y: nameBase - (fitted.lines.length - 1 - i) * s * 0.92 }));
-  texts.push({ id: "place", lines, font: nameFont, ink: "ink-2", opacity: 1, z: "type-back" });
-  texts.push({ id: "dominant", lines: [{ text: num, x: R - numW, y: nameBase }], font: nf, ink: "ink-2", opacity: 1, z: "type-back" });
-  const nameTop = lines[0].y - CAP * s;
+  const nf0 = display({ weight: 800, width: 100, tracking: -0.04 }, 1, -0.04);
+  const unit = width(c, num, nf0);
+  const numSize = (REF_W * 1.06) / unit;
+  const numX = (REF_W - unit * numSize) / 2;
+  const numBase = bottom * 0.56 + (CAP * numSize) / 2;
+  texts.push({ id: "dominant", lines: [{ text: num, x: numX, y: numBase }], font: { ...nf0, size: numSize }, ink: "ink-1", opacity: 1, z: "type-back" });
+
+  // The name at the foot, as large as the width allows, over the wordmark
+  const markBase = bottom - 26;
+  const fitted = fitName(c, 92, R - M, 2, -0.02, 800);
+  const sz = fitted.font.size;
+  const nameBase = markBase - 30;
+  const lines = fitted.lines.map((text, i) => ({ text, x: M - sz * 0.03, y: nameBase - (fitted.lines.length - 1 - i) * sz * 0.92 }));
+  texts.push({ id: "place", lines, font: fitted.font, ink: "ink-2", opacity: 1, z: "type-back" });
+
+  // The facts' box: the condition, four readings, the place's region and country, its coordinates
+  const [bx, by] = slot;
+  const side = COL[2] - COL[0] - 12;
+  const pad = 12;
+  const [lat, lon] = coordsOf(c.r);
+  texts.push({ id: "condition", lines: [{ text: c.word, x: bx + pad, y: by + pad + 12 }], font: { ...mono(700, 13), tracking: 0.08 }, ink: "ink-1", opacity: 1, z: "micro" });
+  const ms = metricsFor(["feels", "range", ...FAMILY_ORDER[conditionFamily(c.r)]], c.r, 4, []);
+  const half = (side - 2 * pad) / 2;
+  ms.forEach((m, i) => texts.push(...pairs(`metric-${i}`, bx + pad + (i % 2) * half, by + pad + 34 + Math.floor(i / 2) * 34, m.label, m.value)));
+  const where = [c.r.place.region, c.r.place.country && upper(c.r.place.country)].filter(Boolean).join(", ");
+  const footY = by + side - pad - 13;
+  if (where) texts.push({ id: "where", lines: [{ text: where, x: bx + pad, y: footY }], font: mono(700), ink: "ink-2", opacity: 1, z: "micro" });
+  texts.push({ id: "coords", lines: [{ text: `${lat}  ${lon}`, x: bx + pad, y: footY + 13 }], font: mono(500), ink: "ink-1", opacity: 0.9, z: "micro" });
+
+  // Up the right edge: the record's ID and its moment
+  const edgeAt: Point = [R + 16, nameBase];
+  texts.push({
+    id: "record-id",
+    lines: [{ text: `${recordId(c.r.place.name, c.r.date)}   ${formatDate(c.r.date)}  ${stamp(c.r)}`, x: edgeAt[0], y: edgeAt[1] }],
+    font: mono(500, MICRO * 0.85),
+    ink: "ink-1",
+    opacity: 0.85,
+    rotate: { deg: -90, origin: edgeAt },
+    z: "micro",
+  });
+  texts.push({ id: "credits", lines: [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: markBase }], font: mono(500, MICRO * 0.8), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
+
   return {
     city,
     texts,
-    numeralBox: [R - numW, R, nameBase - CAP * numSize, nameBase],
+    numeralBox: [numX, numX + unit * numSize, numBase - CAP * numSize, numBase],
     leader: [city, city],
     node: "dot",
-    coords: { id: "coords", lines: [], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" },
-    rules: [
-      { from: [M, headBase + 10], to: [R, headBase + 10], opacity: 0.5 },
-      { from: [M, rule], to: [R, rule], opacity: 0.5 },
-    ],
-    placeFit: `classic, ${fitted.step}, ${fitted.lines.length} line(s)`,
+    coords: { id: "city-coords", lines: [], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" },
+    rules: [],
+    placeFit: `hole, ${fitted.step}, ${fitted.lines.length} line(s)`,
     fitScore: 1,
     preferred,
-    shades: [
-      { y0: Math.min(nameTop - 120, c.bottom * 0.5), y1: c.bottom, from: 0, to: 0.85 },
-      { y0: 0, y1: headBase + 60, from: 0.6, to: 0 },
-    ],
+    cut: true,
+    boxes: [{ x: bx, y: by, w: side, h: side }],
+    wordmark: { x: M, y: markBase, size: 17 },
+    shades: [{ y0: nameBase - fitted.lines.length * sz - 60, y1: bottom, from: 0, to: 0.7 }],
   };
 }
 
@@ -540,7 +538,7 @@ export function getRecordComposition(
   const rng = mulberry32(seed);
   const c: Ctx = { r, tv, measure, word: CONDITION_WORD[family], bottom };
   const build = (city: Point, preferred: boolean) =>
-    raster ? classic(c, city, preferred) : mode === "open-atlas" ? atlas(c, city, preferred) : mode === "collision" ? collision(c, city, preferred) : field(c, city, preferred);
+    raster ? hole(c, city, preferred, BOX_SLOTS[seed % BOX_SLOTS.length]) : mode === "open-atlas" ? atlas(c, city, preferred) : mode === "collision" ? collision(c, city, preferred) : field(c, city, preferred);
 
   // The map spans the whole sheet and a little more, so its fills and lines leave by the edges
   const bleed = 20;
@@ -577,8 +575,7 @@ export function getRecordComposition(
     add({
       id: t.id,
       role: t.z,
-      // Over the site's map the place's name and the temperature are set in the temperature's colour (ink-2 there)
-      inkRole: raster && /^(place(-\d+)?|dominant|degree|temperature|minus)$/.test(t.id) ? "ink-2" : t.ink,
+      inkRole: t.ink,
       opacity: t.opacity,
       transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
       payload: {
@@ -588,6 +585,17 @@ export function getRecordComposition(
         anchor: t.anchor ?? "start",
       },
     });
+  };
+  // The home page's wordmark (`Wordmark.tsx`): "what" light, a short butter bar low like a horizon, "weather" black
+  const wordmark = ({ x, y, size }: { x: number; y: number; size: number }) => {
+    const light: FontRef = { family: "brand", wght: 300, wdth: 100, size, tracking: -0.02 };
+    const heavy: FontRef = { family: "brand", wght: 800, wdth: 100, size, tracking: -0.05 };
+    const wWhat = width(c, "what", light);
+    text({ id: "wordmark-what", lines: [{ text: "what", x, y }], font: light, ink: "ink-1", opacity: 1, z: "micro" });
+    const barX = x + wWhat + 0.08 * size;
+    const [bx0, by0] = [ref.x(barX), ref.y(y - 0.12 * size - 0.09 * size)];
+    add({ id: "wordmark-bar", role: "micro", inkRole: "brand", opacity: 1, payload: { kind: "rect", x: bx0, y: by0 / aspect, width: ref.s(0.34 * size), height: ref.s(0.09 * size) / aspect } });
+    text({ id: "wordmark-weather", lines: [{ text: "weather", x: barX + 0.42 * size, y }], font: heavy, ink: "ink-1", opacity: 1, z: "micro" });
   };
   const lines = (id: string, role: SceneLayer["role"], ink: InkRole, opacity: number, paths: Point[][], strokeRef: number, extra: Partial<PathsPayload> = {}) => {
     if (paths.length) add({ id, role, inkRole: ink, opacity, payload: { kind: "paths", paths: paths.map((l) => l.map(N)), closed: false, stroke: ref.s(strokeRef), ...extra } });
@@ -618,7 +626,7 @@ export function getRecordComposition(
   const back = plan.texts.filter((t) => t.z === "type-back");
   for (const t of back) text(t);
 
-  if (raster && !plan.shades)
+  if (raster && plan.cut)
     // THROUGH on the real map: its strongest lines (motorways, main roads, railways, rivers, shores) cut the type
     add({
       id: "map-cut",
@@ -654,7 +662,15 @@ export function getRecordComposition(
   if (plan.coords.lines.length) text(plan.coords);
 
   if (mode !== "field-record" || raster) plan.rules.forEach((r, i) => rule(i, r, "micro"));
+  // The facts' boxes: the sky's paper, nearly solid, a hairline round it
+  plan.boxes?.forEach((b, i) => {
+    const [x0, y0] = sheetPoint([b.x, b.y]);
+    const [x1, y1] = sheetPoint([b.x + b.w, b.y + b.h]);
+    add({ id: `box-${i}`, role: "micro", inkRole: "paper", opacity: 0.88, payload: { kind: "rect", x: x0, y: y0 / aspect, width: x1 - x0, height: (y1 - y0) / aspect } });
+    lines(`box-${i}-edge`, "micro", "ink-1", 0.5, [[[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]], 0.75);
+  });
   for (const t of plan.texts.filter((t) => t.z === "micro")) text(t);
+  if (plan.wordmark) wordmark(plan.wordmark);
   const id = recordId(r.place.name, r.date);
   // The vector records' notes, flat along the top; the classic poster over the map sets its own head and foot
   if (!raster) {

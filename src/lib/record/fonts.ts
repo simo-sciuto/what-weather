@@ -5,6 +5,8 @@
  */
 export const DISPLAY_FAMILY = "WW Record Display";
 export const MONO_FAMILY = "WW Record Mono";
+/** The wordmark, as on the home page (`Wordmark.tsx`): Inter Tight */
+export const BRAND_FAMILY = "WW Record Brand";
 export const FONT_DIR = "/fonts/record";
 
 const LATIN =
@@ -19,6 +21,7 @@ export const RECORD_FONT_FACES: readonly FontFaceSpec[] = [
   { family: DISPLAY_FAMILY, file: "syne-400-800-latin-ext.woff2", weight: "400 800", stretch: "100%", unicodeRange: LATIN_EXT },
   { family: MONO_FAMILY, file: "schibsted-grotesk-400-900-latin.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN },
   { family: MONO_FAMILY, file: "schibsted-grotesk-400-900-latin-ext.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN_EXT },
+  { family: BRAND_FAMILY, file: "inter-tight-100-900-latin.woff2", weight: "100 900", stretch: "100%", unicodeRange: LATIN },
 ];
 
 /** The @font-face rules, each face's source from `src` (a URL for the page, a data URI inside an exported SVG) */

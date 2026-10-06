@@ -1,4 +1,4 @@
-import { DISPLAY_FAMILY, FONT_DIR, MONO_FAMILY, RECORD_FONT_FACES, fontFaceCss } from "@/lib/record/fonts";
+import { BRAND_FAMILY, DISPLAY_FAMILY, FONT_DIR, MONO_FAMILY, RECORD_FONT_FACES, fontFaceCss } from "@/lib/record/fonts";
 import type { FontRef, Measure } from "@/lib/record/types";
 
 /** Reference size the browser measures at; widths scale linearly with the size */
@@ -18,7 +18,7 @@ export function domMeasure(): Measure {
     const key = `${f.family}|${f.wght}|${f.wdth}|${f.tracking}|${text}`;
     let w = cache.get(key);
     if (w == null) {
-      span.style.fontFamily = `"${f.family === "display" ? DISPLAY_FAMILY : MONO_FAMILY}"`;
+      span.style.fontFamily = `"${f.family === "display" ? DISPLAY_FAMILY : f.family === "brand" ? BRAND_FAMILY : MONO_FAMILY}"`;
       span.style.fontWeight = String(f.wght);
       span.style.fontStretch = `${f.wdth}%`;
       span.style.fontVariationSettings = f.family === "display" ? `'wght' ${f.wght}` : "normal";
@@ -35,7 +35,7 @@ export function domMeasure(): Measure {
 /** Waits for the faces the record sets, at the weights it sets them in */
 export async function loadRecordFonts(): Promise<void> {
   await Promise.all(
-    [`400 ${DISPLAY_FAMILY}`, `800 ${DISPLAY_FAMILY}`, `500 ${MONO_FAMILY}`, `700 ${MONO_FAMILY}`].map((spec) => {
+    [`400 ${DISPLAY_FAMILY}`, `800 ${DISPLAY_FAMILY}`, `500 ${MONO_FAMILY}`, `700 ${MONO_FAMILY}`, `300 ${BRAND_FAMILY}`, `800 ${BRAND_FAMILY}`].map((spec) => {
       const [weight, ...family] = spec.split(" ");
       // One character from each subset, so the Latin Extended file is in before anything is measured
       return document.fonts.load(`${weight} 40px "${family.join(" ")}"`, "AÁ°−0Łș");
