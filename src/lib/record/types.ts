@@ -42,6 +42,11 @@ export type RecordInput = {
   time: string;
   /** The place's offset as it is printed, "GMT+2" */
   zone: string;
+  /**
+   * A whole day, not a moment: the day's stand-in (`Frame.overview`), its time a nominal midday and its temperature
+   * the day's high. The record prints the date alone and no reading of an hour.
+   */
+  allDay?: boolean;
   condition: Condition;
   intensity: Intensity;
   temp: number;

@@ -3,7 +3,9 @@ import { buildTimeline } from "@/lib/weather/frames";
 import { fingerprintKey, fingerprintOf } from "@/lib/weather/fingerprint";
 import { frameLook } from "@/lib/weather/look";
 import { createMockProvider } from "@/lib/api/providers/mock";
-import { posterSnapshot } from "./usePosterSnapshot";
+import { getRecordComposition } from "@/lib/record/compose";
+import type { Measure } from "@/lib/record/types";
+import { posterSnapshot, recordClock, recordInputOf } from "./usePosterSnapshot";
 
 const NOW = Date.parse("2026-10-04T10:00:00Z") / 1000;
 beforeEach(() => {
@@ -38,6 +40,38 @@ describe("the poster's snapshot", () => {
     const frame = timeline.days[timeline.days.length - 1].overview;
     const look = frameLook(frame);
     expect(posterSnapshot({ place: data.place, frame, look, timeZone: data.timezone, palette: look.palette, options: [], view }).allDay).toBe(true);
+  });
+
+  it("gives the record a day's stand-in as a whole day: the date alone, the day's range, no filler readings", async () => {
+    const { data, timeline } = await sources("heavy-rain");
+    const last = timeline.days[timeline.days.length - 1];
+    const frame = last.overview;
+    const day = timeline.days.find((d) => d.key === frame.dayKey)!;
+    const r = recordInputOf({ place: data.place, frame, timeZone: data.timezone, day: { high: day.high, low: day.low } });
+    expect(r).toMatchObject({ allDay: true, date: frame.dayKey, temp: frame.temp, high: day.high, low: day.low });
+    for (const k of ["feelsLike", "windSpeed", "cloudCover", "precipitation"] as const) expect(r[k], k).toBeUndefined();
+    const measure: Measure = (text, f) => text.length * f.size * 0.6;
+    const s = getRecordComposition(r, null, measure, undefined, "raster");
+    const all = s.layers.flatMap((l) => (l.payload.kind === "text" ? l.payload.lines.map((x) => x.text) : [])).join(" | ");
+    expect(all).toContain("ALL DAY");
+    expect(all).toContain("HIGH / LOW");
+    expect(all).not.toMatch(/\d\d:\d\d|GMT|TEMP|FEELS|WIND|PRECIP|CLOUD/);
+  });
+
+  it("gives the record an hour as it is: its clock, its zone and its readings", async () => {
+    const { data, timeline } = await sources("heavy-rain");
+    const frame = timeline.frames[3];
+    const r = recordInputOf({ place: data.place, frame, timeZone: data.timezone });
+    expect(r).toMatchObject({ allDay: false, temp: frame.temp, feelsLike: frame.feelsLike, windSpeed: frame.windSpeed, precipitation: frame.precipitation });
+    expect(r.high).toBeUndefined();
+    expect(r.time).toMatch(/^\d\d:\d\d$/);
+  });
+
+  it("reads the place's clock, half-hour zones included, and falls back to GMT for an unknown zone", () => {
+    const ts = Date.parse("2026-10-05T10:00:00Z") / 1000;
+    expect(recordClock(ts, "Europe/Rome")).toEqual({ time: "12:00", zone: "GMT+2" });
+    expect(recordClock(ts, "Asia/Kolkata")).toEqual({ time: "15:30", zone: "GMT+5:30" });
+    expect(recordClock(ts, "Not/AZone")).toEqual({ time: "10:00", zone: "GMT" });
   });
 
   it("keeps its own copy of the map's layers, so a later change to the viewer's choice does not reach it", async () => {

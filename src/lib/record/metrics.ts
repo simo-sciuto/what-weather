@@ -29,6 +29,8 @@ const pad2 = (n: number) => String(Math.round(n)).padStart(2, "0");
 function metric(key: MetricKey, r: RecordInput): Metric | null {
   switch (key) {
     case "temp":
+      // A whole day's temperature is its high: the range says it, or it stands alone as the high
+      if (r.allDay) return r.high != null && r.low != null ? null : { key, label: "HIGH", value: degrees(r.temp) };
       return { key, label: "TEMP", value: degrees(r.temp) };
     case "feels":
       return r.feelsLike == null ? null : { key, label: "FEELS", value: degrees(r.feelsLike) };

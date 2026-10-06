@@ -163,7 +163,8 @@ const pairs = (id: string, x: number, y: number, label: string, value: string): 
 ];
 
 const coordsOf = (r: RecordInput) => [formatCoord(r.place.lat, "lat"), formatCoord(r.place.lon, "lon")];
-const stamp = (r: RecordInput) => `${r.time} ${r.zone}`;
+/** The moment on the place's clock; a whole day has no hour to print */
+const stamp = (r: RecordInput) => (r.allDay ? "ALL DAY" : `${r.time} ${r.zone}`);
 const conditionFont = (wght: number, wdth: number) => clampAxes({ family: "display", wght, wdth, size: 19, tracking: 3 / 19 });
 
 /** What the foot (atlas), the grid (collision) or the column (field) reports, by family, before the fallbacks */
