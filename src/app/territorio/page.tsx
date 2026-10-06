@@ -3,7 +3,8 @@ import { LocationSearch } from "@/components/location/LocationSearch";
 import { PlaceProvider } from "@/components/location/PlaceContext";
 import { SavedPlaces } from "@/components/location/SavedPlaces";
 import { AtmosphereMain, TimeProvider } from "@/components/time/TimeContext";
-import { Territory } from "@/components/weather/CityFacts";
+import { Territory } from "@/components/territory/CityFacts";
+import { TerritoryMap } from "@/components/territory/TerritoryMap";
 import { SiteFooter } from "@/components/weather/SiteFooter";
 import { Sky } from "@/components/weather/Sky";
 import { parsePlaceRef, placeHref } from "@/lib/place";
@@ -105,6 +106,9 @@ async function TerritoryView({ searchParams }: { searchParams: SearchParams }) {
                 <h1 className="display-caps text-balance text-[clamp(2.5rem,9vw,6rem)] leading-[0.95]">{place.name}</h1>
                 <p className="text-ink-muted">{placeSubtitle(place)}</p>
               </div>
+
+              {/* The land first (the page's first screen), the facts under it: they stream in while it is drawn */}
+              {MAPBOX && <TerritoryMap lat={place.lat} lon={place.lon} name={place.name} />}
 
               {MAPBOX ? (
                 <Suspense fallback={<FactsSkeleton />}>

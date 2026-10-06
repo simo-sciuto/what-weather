@@ -20,6 +20,8 @@ test("the Territorio page is of its place: its name, a way back to its weather, 
   await page.goto(territory(), { waitUntil: "commit" });
   await hydrated(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Torino");
+  // No token, no map: the page does not leave a hole where it would be
+  await expect(page.getByRole("region", { name: /mappa del territorio/i })).toHaveCount(0);
   await expect(page.getByRole("combobox", { name: "Cerca località" })).toBeVisible();
   // The way back is the weather of this place, not a city drawn at random
   const back = page.getByRole("link", { name: /Il meteo di Torino/ });

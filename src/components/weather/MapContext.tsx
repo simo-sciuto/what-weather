@@ -30,7 +30,8 @@ type MapState = {
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 let mapbox: Promise<Mapbox> | null = null;
-function loadMapbox(): Promise<Mapbox> {
+/** Mapbox GL, loaded once for every map: the Territorio's too, which has no provider around it */
+export function loadMapbox(): Promise<Mapbox> {
   mapbox ??= import("mapbox-gl").then(({ default: gl }) => {
     if (!gl.supported?.()) throw new Error("WebGL unavailable");
     return gl;

@@ -4,8 +4,8 @@ import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
 import { nearbyWeather } from "@/lib/api/sources/nearby";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Chapter } from "./Chapter";
-import { WeatherIcon } from "./WeatherIcon";
+import { Chapter } from "../weather/Chapter";
+import { WeatherIcon } from "../weather/WeatherIcon";
 
 const number = (n: number) => new Intl.NumberFormat("it-IT").format(n);
 /** Wikidata's Italian labels keep common nouns lower case ("lago di Lugano"); as a name, it starts upper case. */
