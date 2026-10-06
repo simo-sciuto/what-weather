@@ -1,6 +1,6 @@
 # APP AREAS
 
-Status: **proposal of 2026-10-06, not decided.** Written after the user's worry that the app, built on the weather, was getting confusing, and that adding routes and mountains would make it worse. The direction itself (ROADMAP.md, ADR-013) is the user's; this page only says how the surfaces could be split under it.
+Status: **proposal of 2026-10-06; decided so far (user, 2026-10-06): Territorio is a page of its own, and it must become richer than today's four short lists.** Written after the user's worry that the app, built on the weather, was getting confusing, and that adding routes and mountains would make it worse. The direction itself (ROADMAP.md, ADR-013) is the user's; this page only says how the surfaces could be split under it.
 
 ## The problem
 
@@ -31,13 +31,28 @@ The place is the common thread: it already travels in the address (`?lat&lon&nam
 2. **Peaks and lakes touchable** in Territorio: each becomes a place with its own weather. Territorio already holds their names and points (Wikidata); the rivers' points are to check.
 3. **Routes**, in Territorio and in the records (WTH-213): a line on the map and the poster. A record needs a past date, so records depend on the historical provider (WTH-168). The data is OpenStreetMap or CAI Infomont (ODbL, docs/LICENCES.md); selling a poster with Mapbox's map waits for Mapbox's answer (WTH-211).
 
+## Territorio today, and what richer could be
+
+Today (`CityFacts.tsx`, `city-facts.ts`) it is four short lists of names: the place (rank, altitude, population, capitals), the towns around, the waters (at most 4) and the peaks (at most 4, with height). No map, no distances, nothing to open.
+
+Candidates, by what they add:
+
+1. **A map of the land** as the page's first screen: relief and water around the place, peaks and lakes marked and touchable. Mapbox, already in use; a second map load per visit, to price.
+2. **More of the land:** more peaks and lakes, rivers, parks and protected areas, each with its height and its distance and direction from the place. Wikidata (CC0) and the map's own OpenStreetMap tiles. Wikidata's queries are slow: cached, streamed.
+3. **The place's character:** what the weather is usually like here at this time of year (typical temperatures, rainy days), and its records. It needs the historical data (WTH-168), a commercial Open-Meteo plan, and says "reanalysis, not measurement" (PRODUCT principle 1).
+4. **Routes** (WTH-213), once the touchable peaks and lakes exist.
+5. Left out on purpose: photographs (mixed licences, and not the poster's language) and long encyclopaedic text (Wikipedia is CC BY-SA, share-alike on adaptations).
+
+The page keeps the poster's grammar: the place's name large, a few facts, hairlines, chapters, detail on demand.
+
 ## What does not change
 
 The poster identity, the provider abstraction, the data contracts, the search's role, the weather page's reading.
 
 ## To decide
 
-- Territorio as a **page of its own** (recommended: its data is slow, routes will need their own map, a place can be shared by link) or a tab of the same page.
+- ~~Page or tab~~: decided, a page of its own.
+- What "richer" means (WTH-216): a map of the land, more of the land, the place's climate, routes. Not decided.
 - The wording and place of the one-line link on the weather page.
 - Whether saved places should remember the area last seen.
 - How the weather page offers "Crea un record" (today "Crea poster") once the records flow exists.
