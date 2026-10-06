@@ -132,12 +132,12 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
       defs.push(
         `<filter id="${fid}" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse">` +
           `<feComponentTransfer in="SourceAlpha" result="outside"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>` +
-          shadow("outside", 0.003, 0.004, 0.5, "edge") +
-          shadow("outside", 0.018, 0.016, 0.75, "depth") +
+          shadow("outside", 0.0025, 0.003, 0.35, "edge") +
+          shadow("outside", 0.012, 0.01, 0.45, "depth") +
           // The glow: light from under the map coming up through the hole, a thin halo at its edge
           (l.glow
-            ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${n(0.007 * W)}" result="halo-b"/>` +
-              `<feComponentTransfer in="halo-b" result="halo"><feFuncA type="linear" slope="0.4"/></feComponentTransfer>`
+            ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${n(0.005 * W)}" result="halo-b"/>` +
+              `<feComponentTransfer in="halo-b" result="halo"><feFuncA type="linear" slope="0.22"/></feComponentTransfer>`
             : "") +
           `<feMerge>${l.glow ? `<feMergeNode in="halo"/>` : ""}<feMergeNode in="SourceGraphic"/><feMergeNode in="depth"/><feMergeNode in="edge"/></feMerge></filter>`,
       );
