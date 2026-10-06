@@ -235,13 +235,14 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
   };
   const texts = (s: RecordScene) => s.layers.flatMap((l) => (l.payload.kind === "text" ? l.payload.lines.map((x) => x.text) : []));
 
-  it("sets the temperature across the sheet in white, under the map's strong lines with the name", () => {
+  it("sets the temperature across the sheet as a hole in the map (paper ground, inner shadow), under the strong lines", () => {
     for (const k of ["milan", "tshuru", "tokyo", "san-cristobal"]) {
       const s = raster(k);
       expect(s.metadata.placeFit).toMatch(/^hole/);
       const dom = s.layers.find((l) => l.id === "dominant")!;
-      expect(dom.inkRole).toBe("ink-1");
-      expect(s.inks["ink-1"]).toBe("#ffffff");
+      expect(dom.inkRole).toBe("hole");
+      expect(dom.inset).toBe(true);
+      expect(s.inks.hole).not.toBe("#ffffff");
       // Wider than the sheet: a decoration, not a figure
       if (dom.payload.kind === "text") expect(measure(dom.payload.lines[0].text, dom.payload.font)).toBeGreaterThan(1);
       const cut = s.layers.find((l) => l.id === "map-cut")!;
@@ -250,9 +251,9 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
     }
   });
 
-  it("puts the facts in a box on the grid, the seed choosing where, and the record's ID up the right edge", () => {
+  it("gathers the facts as a block on the grid with no fill or border, and the record's ID up the right edge", () => {
     const s = raster("tokyo", { place: { name: "Tokyo", lat: 35.68, lon: 139.77, region: "Tokyo", country: "Giappone" } });
-    expect(s.layers.some((l) => l.id === "box-0" && l.payload.kind === "rect")).toBe(true);
+    expect(s.layers.some((l) => l.id.startsWith("box-"))).toBe(false);
     const all = texts(s);
     for (const t of ["RAIN", "Tokyo, GIAPPONE", "© MAPBOX © OPENSTREETMAP"]) expect(all).toContain(t);
     const edge = s.layers.find((l) => l.id === "record-id")!;
@@ -290,6 +291,7 @@ describe("over the site's own map: the temperature as a hole, the facts in a box
     expect(svg).toContain('href="data:image/png;base64,AA=="');
     expect(svg).toContain('href="data:image/png;base64,BB=="');
     expect(svg).toContain("WW Record Brand");
+    expect(svg).toContain('tableValues="1 0"'); // the hole's inner shadow
   });
 });
 

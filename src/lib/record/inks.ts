@@ -11,6 +11,8 @@ import type { InkRole } from "./types";
  */
 export const RECORD_INK = "#141413";
 export const RECORD_ACCENT = "#E4502A";
+/** The ground a hole in the map shows: a paper white, never the screen's pure white */
+export const HOLE_GROUND = "#f2eee6";
 /** The wordmark's bar, the page's butter (`--butter` in globals.css) */
 export const BRAND_BUTTER = "#f9e8a7";
 /** The paper of cool air, warm air and haze, from the three hand-made posters (Tokyo, Tshuru, Milan) */
@@ -40,6 +42,7 @@ export function recordInks(a: AtmosphereAxes): Record<InkRole, string> {
     "ink-2": mix(WATER.dry, WATER.wet, smoothstep(0.2, 0.8, a.wetness)),
     accent: RECORD_ACCENT,
     brand: BRAND_BUTTER,
+    hole: mix(warm, PAPER.haze, 0.5),
   };
 }
 
@@ -61,5 +64,6 @@ export function mapInks(light: number, a: AtmosphereAxes, temp: number): Record<
     "ink-2": `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`,
     accent: RECORD_ACCENT,
     brand: BRAND_BUTTER,
+    hole: mix(HOLE_GROUND, p.sky2, 0.18),
   };
 }

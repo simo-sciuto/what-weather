@@ -77,6 +77,8 @@ type Text = {
   anchor?: "start" | "end";
   rotate?: { deg: number; origin: Point };
   z: SceneLayer["role"];
+  /** Drawn as a hole in the map (the temperature) */
+  inset?: boolean;
 };
 
 type Plan = {
@@ -97,8 +99,6 @@ type Plan = {
   shades?: { y0: number; y1: number; from: number; to: number }[];
   /** The map's strong lines run over the large type */
   cut?: boolean;
-  /** Boxes of the paper the facts sit in (reference units) */
-  boxes?: { x: number; y: number; w: number; h: number }[];
   /** The home page's wordmark, its baseline's left end and size (reference units) */
   wordmark?: { x: number; y: number; size: number };
 };
@@ -368,7 +368,7 @@ function hole(c: Ctx, city: Point, preferred: boolean, slot: Point): Plan {
   const numSize = (REF_W * 1.06) / unit;
   const numX = (REF_W - unit * numSize) / 2;
   const numBase = bottom * 0.56 + (CAP * numSize) / 2;
-  texts.push({ id: "dominant", lines: [{ text: num, x: numX, y: numBase }], font: { ...nf0, size: numSize }, ink: "ink-1", opacity: 1, z: "type-back" });
+  texts.push({ id: "dominant", lines: [{ text: num, x: numX, y: numBase }], font: { ...nf0, size: numSize }, ink: "hole", opacity: 1, z: "type-back", inset: true });
 
   // The name at the foot, as large as the width allows, over the wordmark
   const markBase = bottom - 26;
@@ -378,7 +378,7 @@ function hole(c: Ctx, city: Point, preferred: boolean, slot: Point): Plan {
   const lines = fitted.lines.map((text, i) => ({ text, x: M - sz * 0.03, y: nameBase - (fitted.lines.length - 1 - i) * sz * 0.92 }));
   texts.push({ id: "place", lines, font: fitted.font, ink: "ink-2", opacity: 1, z: "type-back" });
 
-  // The facts' box: the condition, four readings, the place's region and country, its coordinates
+  // The facts, gathered as a square block on the grid (no fill, no border): the condition, four readings, the place's region and country, its coordinates
   const [bx, by] = slot;
   const side = COL[2] - COL[0] - 12;
   const pad = 12;
@@ -417,7 +417,6 @@ function hole(c: Ctx, city: Point, preferred: boolean, slot: Point): Plan {
     fitScore: 1,
     preferred,
     cut: true,
-    boxes: [{ x: bx, y: by, w: side, h: side }],
     wordmark: { x: M, y: markBase, size: 17 },
     shades: [{ y0: nameBase - fitted.lines.length * sz - 60, y1: bottom, from: 0, to: 0.7 }],
   };
@@ -576,6 +575,7 @@ export function getRecordComposition(
       id: t.id,
       role: t.z,
       inkRole: t.ink,
+      inset: t.inset,
       opacity: t.opacity,
       transform: t.rotate && { rotate: t.rotate.deg, origin: P(t.rotate.origin) },
       payload: {
@@ -662,13 +662,6 @@ export function getRecordComposition(
   if (plan.coords.lines.length) text(plan.coords);
 
   if (mode !== "field-record" || raster) plan.rules.forEach((r, i) => rule(i, r, "micro"));
-  // The facts' boxes: the sky's paper, nearly solid, a hairline round it
-  plan.boxes?.forEach((b, i) => {
-    const [x0, y0] = sheetPoint([b.x, b.y]);
-    const [x1, y1] = sheetPoint([b.x + b.w, b.y + b.h]);
-    add({ id: `box-${i}`, role: "micro", inkRole: "paper", opacity: 0.88, payload: { kind: "rect", x: x0, y: y0 / aspect, width: x1 - x0, height: (y1 - y0) / aspect } });
-    lines(`box-${i}-edge`, "micro", "ink-1", 0.5, [[[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]]], 0.75);
-  });
   for (const t of plan.texts.filter((t) => t.z === "micro")) text(t);
   if (plan.wordmark) wordmark(plan.wordmark);
   const id = recordId(r.place.name, r.date);

@@ -116,6 +116,23 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
       defs.push(`<clipPath id="${cid}"><rect x="${n(r.x * W)}" y="${n(r.y * H)}" width="${n(r.width * W)}" height="${n(r.height * H)}"/></clipPath>`);
       inner = `<g clip-path="url(#${cid})">${inner}</g>`;
     }
+    // A hole: the edges of what lies around it cast a soft shadow inside, from the top left
+    if (l.inset) {
+      const fid = id(`hole-${l.id}`);
+      const blur = n(0.009 * W);
+      const off = n(0.006 * W);
+      defs.push(
+        `<filter id="${fid}" x="0" y="0" width="${W}" height="${H}" filterUnits="userSpaceOnUse">` +
+          `<feComponentTransfer in="SourceAlpha" result="outside"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>` +
+          `<feGaussianBlur in="outside" stdDeviation="${blur}" result="soft"/>` +
+          `<feOffset in="soft" dx="${off}" dy="${off}" result="cast"/>` +
+          `<feFlood flood-color="#000" flood-opacity="0.7"/>` +
+          `<feComposite in2="cast" operator="in" result="shade"/>` +
+          `<feComposite in="shade" in2="SourceAlpha" operator="in" result="inner"/>` +
+          `<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="inner"/></feMerge></filter>`,
+      );
+      inner = `<g filter="url(#${fid})">${inner}</g>`;
+    }
     return `<g data-layer="${l.id}" data-role="${l.role}"${l.opacity < 1 ? ` opacity="${l.opacity.toFixed(3)}"` : ""}>${inner}</g>`;
   });
 

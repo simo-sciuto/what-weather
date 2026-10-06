@@ -16,8 +16,8 @@ export type Dominant = "place" | "temperature";
 /** How geography and the dominant type meet: lines across the letters in the paper's colour, or water laid over them */
 export type Interplay = "through" | "interleave" | "none";
 
-/** paper, the type's two inks, the city's red mark, and the wordmark's butter bar */
-export type InkRole = "paper" | "ink-1" | "ink-2" | "accent" | "brand";
+/** paper, the type's two inks, the city's red mark, the wordmark's butter bar, and the ground seen through a hole */
+export type InkRole = "paper" | "ink-1" | "ink-2" | "accent" | "brand" | "hole";
 
 export type Point = readonly [number, number];
 /** [lon, lat] */
@@ -136,6 +136,8 @@ export type SceneLayer = {
   opacity: number;
   transform?: Transform;
   clip?: Clip;
+  /** Drawn as a hole in what lies under it: the edges cast a shadow inside the shape, down from the top left */
+  inset?: boolean;
   payload: TextPayload | PathsPayload | RectPayload | NodePayload | ImagePayload | ShadePayload;
 };
 
