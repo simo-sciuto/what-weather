@@ -239,8 +239,9 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
     for (const k of ["milan", "tshuru", "tokyo", "san-cristobal"]) {
       const s = raster(k);
       expect(s.layers.some((l) => l.id === "dominant" || l.id === "degree")).toBe(false);
-      for (const l of s.layers) if (l.payload.kind === "text" && l.payload.font.family === "display") expect(l.id).toBe("place");
+      expect(s.layers.some((l) => l.payload.kind === "text" && l.payload.font.family === "display")).toBe(false);
       const place = s.layers.find((l) => l.id === "place")!;
+      expect(place.payload.kind === "text" && place.payload.font.family).toBe("brand");
       expect(place.inkRole).toBe("ink-2");
       expect(place.inset).toBe(true);
       expect(place.glow).toBe(true);
@@ -291,6 +292,47 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
     }
     expect(seen.size).toBeGreaterThan(1);
     for (const p of seen) expect(p).toMatch(/^hole [0-4]$/);
+  });
+
+  it("keeps the name on the sheet and clear of the city on every format and every placement (WTH-200)", () => {
+    const formats = [
+      { width: 2480, height: 3508 },
+      { width: 1440, height: 2560 },
+      { width: 2400, height: 2400 },
+    ];
+    const names = ["Bo", "La Paz", "Al Ain", "Oslo", "Reggio nell'Emilia", "Llanfairpwllgwyngyll", "Paraty", "Yogyakarta"];
+    const r = byKey("oslo");
+    for (const canvas of formats) {
+      const aspect = canvas.height / canvas.width;
+      const seen = new Set<string>();
+      for (const name of names)
+        for (let d = 1; d <= 20; d++) {
+          const date = `2026-10-${String(d).padStart(2, "0")}`;
+          const s = getRecordComposition({ ...r.input, date, place: { ...r.input.place, name } }, null, measure, canvas, "raster");
+          seen.add(s.metadata.placeFit.split(",")[0]);
+          const at = `${canvas.width}x${canvas.height} ${name} ${date} ${s.metadata.placeFit}`;
+          const place = s.layers.find((l) => l.id === "place")!.payload;
+          if (place.kind !== "text") throw new Error(at);
+          // Sizes are of the width, positions of the height: the cap height and the tails in the height's terms
+          const cap = (0.72 * place.font.size) / aspect;
+          const last = place.lines.at(-1)!;
+          const tail = /[gjpqy,;]/.test(last.text) ? (0.24 * place.font.size) / aspect : 0;
+          const top = place.lines[0].y - cap;
+          const foot = last.y + tail;
+          const mark = s.layers.find((l) => l.id === "wordmark-what")!.payload;
+          if (mark.kind !== "text") throw new Error(at);
+          expect(top, at).toBeGreaterThan(0);
+          expect(foot, at).toBeLessThan(mark.lines[0].y - (0.72 * mark.font.size) / aspect);
+          // The box the legibility budget measures is where the letters are
+          expect(s.metadata.nameBox!.y, at).toBeCloseTo(top, 6);
+          expect(s.metadata.nameBox!.y + s.metadata.nameBox!.height, at).toBeCloseTo(place.lines.at(-1)!.y, 6);
+          // The city's ring, its region and its coordinates stay out of the name's band
+          const coords = s.layers.find((l) => l.id === "city-coords")!.payload;
+          if (coords.kind !== "text") throw new Error(at);
+          for (const y of [s.metadata.cityAt[1], coords.lines[0].y]) expect(y < top || y > foot, at).toBe(true);
+        }
+      expect(seen.size).toBe(5);
+    }
   });
 
   it("sets the home page's wordmark: what, a butter bar, weather", () => {

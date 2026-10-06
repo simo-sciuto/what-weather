@@ -51,14 +51,24 @@ const R = 564;
 /** The micro type: 7.5 on the reference sheet, 31 px on the print (`MICRO_SIZE`) */
 const MICRO = MICRO_SIZE * REF_W;
 const CAP = 0.72;
+/** The largest share of the sheet's height the place's name may take over the map */
+const NAME_MAX_SHARE = 0.42;
+/** How far under the baseline the small letters' tails reach, as a share of the size */
+const TAIL = 0.24;
 
 /** How wide a stretch of ground the sheet's width spans, in km, by mode; the heat tightens it a little */
 const SPAN_KM: Record<CompositionMode, number> = { "open-atlas": 170, collision: 110, "field-record": 90 };
 
 type Ref = { x: (v: number) => number; y: (v: number) => number; s: (v: number) => number };
 
-function refUnits(aspect: number): Ref {
-  return { x: (v) => v / REF_W, y: (v) => (v / REF_W) * (aspect / (REF_H / REF_W)), s: (v) => v / REF_W };
+/**
+ * "stretched": the research's sheet, 840 high whatever the format, stretched to the sheet's height (the line maps).
+ * "even": one scale both ways, so a size and a distance agree on every format; the sheet is then `REF_W * aspect` high
+ * (848 on the print, 600 on the square, 1067 on the story). The poster over the map lays out in "even" units (WTH-200).
+ */
+function refUnits(aspect: number, units: "stretched" | "even"): Ref {
+  const y = units === "even" ? 1 : aspect / (REF_H / REF_W);
+  return { x: (v) => v / REF_W, y: (v) => (v / REF_W) * y, s: (v) => v / REF_W };
 }
 
 const display = (t: TypeSetting, size: number, tracking = t.tracking): FontRef =>
@@ -413,14 +423,24 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const room = full ? REF_W - 2 * EDGE : span(placement.cols.count);
   // Inter Tight, the page's own face (the user's choice of 2026-10-06), heavy and tight, spelt as the place is (a
   // capital, then small letters), and as large as its columns allow: the sheet's space is the name's
-  const fitted = fitName(c, full ? 320 : 260, room, full ? 2 : 3, -0.045, 800, "brand", "as-written");
-  const sz = fitted.font.size;
-  const n = fitted.lines.length;
+  const fit = fitName(c, full ? 320 : 260, room, full ? 2 : 3, -0.045, 800, "brand", "as-written");
+  const n = fit.lines.length;
   // Room between lines for the small letters' tails (g, p, y)
-  const lead = sz * 0.98;
+  const LEAD = 0.98;
+  // The name takes at most this share of the sheet's height, so a short name of two words ("La Paz") on two large
+  // lines still leaves the city and its coordinates a band of their own
+  const sz = Math.min(fit.font.size, (NAME_MAX_SHARE * bottom) / (CAP + (n - 1) * LEAD));
+  const fitted = { ...fit, font: { ...fit.font, size: sz } };
+  const lead = sz * LEAD;
   const blockH = CAP * sz + (n - 1) * lead;
-  const top =
-    placement.at === "foot" ? markBase - 34 - blockH : placement.at === "head" ? 64 : row * placement.at - blockH / 2;
+  // Under the head's margin and over the foot's notes, wherever the placement asks for it; a last line with tails
+  // (g, j, p, q, y) stands higher by them, so they stop where a line without would sit
+  const tails = /[gjpqy,;]/.test(fit.lines[n - 1]) ? TAIL * sz : 0;
+  const lowest = markBase - 34 - tails - blockH;
+  const top = Math.min(
+    lowest,
+    Math.max(64, placement.at === "foot" ? lowest : placement.at === "head" ? 64 : row * placement.at - blockH / 2),
+  );
   const firstBase = top + CAP * sz;
   const left = full ? EDGE : COL[placement.cols.from];
   const lines = fitted.lines.map((text, i) => {
@@ -432,7 +452,13 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
   const nameBottom = lines[n - 1].y;
   // The city lands in the half of the sheet the name leaves free, so its mark and coordinates never meet the letters
   const nameMiddle = (top + nameBottom) / 2;
-  city = [city[0], nameMiddle < bottom * 0.45 ? bottom * 0.64 : nameMiddle > bottom * 0.55 ? bottom * 0.3 : bottom * 0.2];
+  const cityY = nameMiddle < bottom * 0.45 ? bottom * 0.64 : nameMiddle > bottom * 0.55 ? bottom * 0.3 : bottom * 0.2;
+  // The mark and its coordinates reach 30 above the city and 16 below; the letters' tails reach `TAIL` of the size under
+  // the last baseline. Should the grid's place still meet the name, the city takes the middle of the larger band
+  const [nameTop, nameFoot] = [top - 24, nameBottom + TAIL * sz + 24];
+  const meets = cityY - 30 < nameFoot && cityY + 16 > nameTop;
+  const [above, below] = [nameTop - 64, markBase - 30 - nameFoot];
+  city = [city[0], !meets ? cityY : above >= below ? (64 + nameTop) / 2 : (nameFoot + markBase - 30) / 2];
 
   // The facts, gathered as a square block on the grid (no fill, no border): the condition, the temperature and three
   // readings
@@ -588,9 +614,10 @@ export function getRecordComposition(
   const raster = map === "raster";
   if (raster) geography = null;
   const aspect = canvas.height / canvas.width;
-  const ref = refUnits(aspect);
-  // The foot in reference units: `ref.y` already stretches the 840 of the research's sheet to this sheet's height
-  const bottom = REF_H;
+  const ref = refUnits(aspect, raster ? "even" : "stretched");
+  // The foot in reference units: over the map the sheet's own height on the width's scale; for the line maps the
+  // research's 840, which `ref.y` stretches to this sheet's height
+  const bottom = raster ? REF_W * aspect : REF_H;
   const { atmosphere } = computeAtmosphere({
     light: r.light ?? 0.5,
     temp: r.temp,
@@ -623,7 +650,7 @@ export function getRecordComposition(
   // by the right edge); both are the same record's equals, neither is the weather's
   const mirrored = false;
   // Over the map the city sits a little above the middle, as on the poster before the records, clear of the foot
-  const spots: Point[] = raster ? [[REF_W / 2, REF_H * 0.4]] : citySpots(mode, c);
+  const spots: Point[] = raster ? [[REF_W / 2, bottom * 0.4]] : citySpots(mode, c);
   const tried = spots.map((spot, i) => {
     const plan = mirrored ? mirrorPlan(build(spot, i === 0), c) : build(spot, i === 0);
     const crop = { slot: sheet, center: centerFor(place, [ref.x(plan.city[0]), ref.y(plan.city[1])], sheet, spanKm), spanKm };
