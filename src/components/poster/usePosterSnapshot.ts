@@ -1,10 +1,10 @@
 "use client";
 
-import type { Place } from "@/lib/weather/types";
-import type { Frame } from "@/lib/weather/frames";
+import type { Place } from "@/types/weather";
+import type { Frame } from "@/types/timeline";
 import type { FrameLook } from "@/lib/weather/look";
 import type { MapOption } from "@/lib/map-options";
-import type { SkyPalette } from "@/lib/weather/palette";
+import type { SkyPalette } from "@/types/palette";
 import { fingerprintOf } from "@/lib/weather/fingerprint";
 import { placeParts } from "@/lib/weather/formatters";
 import { sunPosition } from "@/lib/weather/sun-position";

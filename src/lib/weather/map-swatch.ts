@@ -1,5 +1,6 @@
 import type { MapOption } from "../map-options";
-import { inkOverSky, type MapInk, type SkyPalette } from "./palette";
+import { inkOverSky } from "./palette";
+import type { MapInk, SkyPalette } from "@/types/palette";
 
 /**
  * The colour that stands for each choice of the map, as it shows over the

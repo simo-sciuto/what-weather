@@ -1,4 +1,5 @@
 "use client";
+import { ACTION_LABELS, PAGE_LABELS } from "@/constants/labels";
 
 import {
   MAP_TUNING,
@@ -22,12 +23,8 @@ import {
   type MapOption,
 } from "@/lib/map-options";
 import { optionColor } from "@/lib/weather/map-swatch";
-import {
-  mapInksFor,
-  mapTone,
-  motorwayHue,
-  type SkyPalette,
-} from "@/lib/weather/palette";
+import { mapInksFor, mapTone, motorwayHue } from "@/lib/weather/palette";
+import type { SkyPalette } from "@/types/palette";
 import {
   useEffect,
   useId,
@@ -178,7 +175,7 @@ export function MapSheet() {
   return (
     <Sheet
       name="map"
-      title="Mappa"
+      title={PAGE_LABELS.map}
       actions={
         custom && (
           <button type="button" onClick={reset} className={RESET_LINK}>
@@ -217,7 +214,7 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
             onClick={onClose}
             className="text-ink-muted transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
-            Chiudi
+            {ACTION_LABELS.close}
           </button>
         </div>
       </div>

@@ -14,10 +14,10 @@ const BASEMAP = { theme: "monochrome", lightPreset: "night" };
 const ZOOM = 8;
 
 /** A canvas laid over the map (the animated clouds), and where its corners go: [lon, lat], clockwise from top left. */
-export interface MapOverlay {
+export type MapOverlay = {
   canvas: HTMLCanvasElement;
   corners: [[number, number], [number, number], [number, number], [number, number]];
-}
+};
 
 /**
  * The region on Mapbox, with `overlay` (the clouds and rain of the moment on

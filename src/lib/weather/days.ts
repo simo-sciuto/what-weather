@@ -1,6 +1,8 @@
-import { capitalize, formatDate, localDay } from "./formatters";
+import { TIME_LABELS } from "@/constants/labels";
+import { formatDate, localDay } from "./formatters";
+import { capitalize } from "@/utils/string";
 import { darkWithoutSunTimes, hasSunTimes } from "./sun";
-import type { DailyPoint, WeatherData } from "./types";
+import type { DailyPoint, WeatherData } from "@/types/weather";
 
 /**
  * The days worth showing, shared by the week card and the day timeline.
@@ -11,7 +13,7 @@ import type { DailyPoint, WeatherData } from "./types";
 
 const MAX_DAYS = 8;
 
-export interface DayInfo {
+export type DayInfo = {
   /** Local calendar day, "YYYY-MM-DD" */
   key: string;
   point: DailyPoint;
@@ -24,7 +26,7 @@ export interface DayInfo {
   dateLabel: string;
   /** "30 set" */
   shortDate: string;
-}
+};
 
 export function visibleDays(d: WeatherData): DayInfo[] {
   const tz = d.timezone;
@@ -40,7 +42,7 @@ export function visibleDays(d: WeatherData): DayInfo[] {
     .map((point) => {
       const key = localDay(point.time, tz);
       const isToday = key === todayKey;
-      const name = isToday ? (afterSunset ? "Stasera" : "Oggi") : capitalize(formatDate(point.time, tz, { weekday: "long" }));
+      const name = isToday ? (afterSunset ? TIME_LABELS.tonight : TIME_LABELS.today) : capitalize(formatDate(point.time, tz, { weekday: "long" }));
       return {
         key,
         point,

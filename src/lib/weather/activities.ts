@@ -1,3 +1,4 @@
+import { HIGH_UV_LABEL } from "@/constants/labels";
 import {
   GENERAL,
   bestWindow,
@@ -10,7 +11,7 @@ import {
 import { visibleDays } from "./days";
 import { localDay } from "./formatters";
 import { FULL_DAY, WINDOW, hourlySamples } from "./frames";
-import type { AirQuality, WeatherData } from "./types";
+import type { AirQuality, WeatherData } from "@/types/weather";
 
 /**
  * What the next 24 hours, or a day of the week, are like for a few things
@@ -26,13 +27,13 @@ import type { AirQuality, WeatherData } from "./types";
  * says nothing of the days after.
  */
 
-interface Activity {
+type Activity = {
   key: string;
   name: string;
   profile: OutdoorProfile;
   /** How much poor air costs it, 0..1 */
   air: number;
-}
+};
 
 const ACTIVITIES: Activity[] = [
   {
@@ -88,7 +89,7 @@ const LEVELS = [0.4, 0.6, 0.8];
 /** A factor has to cost at least this much to be named as the reason. */
 const NOTABLE = 0.9;
 
-export interface ActivityOutlook {
+export type ActivityOutlook = {
   key: string;
   name: string;
   /** 1 (poor) to 4 (excellent) */
@@ -98,7 +99,7 @@ export interface ActivityOutlook {
   window: string | null;
   /** What holds it back: "fa caldo", "vento", "aria scarsa"; null when nothing does */
   reason: string | null;
-}
+};
 
 /** The factor costing an hour the most, in words; null when none costs enough to say. */
 function reason(h: OutdoorHour, a: Activity, air: number, aq: AirQuality | null): string | null {
@@ -118,7 +119,7 @@ function reason(h: OutdoorHour, a: Activity, air: number, aq: AirQuality | null)
     [f.comfort, h.feelsLike < a.profile.ideal ? "fa freddo" : "fa caldo"],
     [f.wind, "vento"],
     [f.sky, h.condition === "fog" ? "nebbia" : "cielo incerto"],
-    [f.uv, "UV alto"],
+    [f.uv, HIGH_UV_LABEL],
     [air, aq && aq.index >= 4 ? "aria inquinata" : "aria scarsa"],
   ];
   // The first of the worst: in a tie, the order above decides.

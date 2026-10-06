@@ -1,11 +1,14 @@
 import "server-only";
-import { atmosphericData } from "./atmospheric-data";
-import { GEOCODE_REVALIDATE_SECONDS, WEATHER_REVALIDATE_SECONDS, isWet } from "./constants";
-import { airIndexOf } from "./details";
-import { WeatherProviderError, loadFresh, lookupPlace, round } from "./openweather";
+import { HOUR_SECONDS, DAY_SECONDS } from "@/constants/time";
+import { atmosphericData } from "@/lib/weather/atmospheric-data";
+import { GEOCODE_REVALIDATE_SECONDS, WEATHER_REVALIDATE_SECONDS } from "@/constants/cache";
+import { isWet } from "@/lib/weather/conditions";
+import { airIndexOf } from "@/lib/weather/details";
+import { roundCoord } from "@/lib/weather/coordinates";
+import { WeatherProviderError, loadFresh, lookupPlace } from "./openweather";
 import type { WeatherProvider } from "./provider";
-import { regionName } from "./regions";
-import type { AirQuality, Condition, CurrentWeather, DailyPoint, HourlyPoint, Intensity, Place, QuarterPoint, WeatherData } from "./types";
+import { regionName } from "@/lib/weather/regions";
+import type { AirQuality, Condition, CurrentWeather, DailyPoint, HourlyPoint, Intensity, Place, QuarterPoint, WeatherData } from "@/types/weather";
 
 /**
  * Open-Meteo (https://open-meteo.com), free for non-commercial use, no key.
@@ -72,25 +75,25 @@ const POLLUTANTS = ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sul
 
 type Series<K extends string> = { time: number[] } & Record<K, (number | null)[]>;
 
-interface OMForecast {
+type OMForecast = {
   timezone: string;
   current: { time: number; interval: number } & Record<(typeof CURRENT)[number], number | null>;
   minutely_15?: Series<"precipitation" | "weather_code">;
   hourly: Series<(typeof HOURLY)[number]>;
   daily: Series<(typeof DAILY)[number]>;
-}
+};
 
-interface OMAir {
+type OMAir = {
   current?: { time: number } & Record<(typeof POLLUTANTS)[number], number | null>;
-}
+};
 
-interface OMGeoResult {
+type OMGeoResult = {
   name: string;
   latitude: number;
   longitude: number;
   country_code?: string;
   admin1?: string;
-}
+};
 
 async function get<T>(url: string, params: Record<string, string | number>, revalidate: number): Promise<T> {
   const res = await fetch(
@@ -189,7 +192,7 @@ function toCurrent(raw: OMForecast["current"]): CurrentWeather {
     cloudCover: num(raw.cloud_cover),
     visibility: atmosphere.visibility ?? 0,
     // The amount fell over the current interval (15 minutes); the model wants a rate.
-    precipitation: num(raw.precipitation) * (3600 / (raw.interval || 3600)),
+    precipitation: num(raw.precipitation) * (HOUR_SECONDS / (raw.interval || HOUR_SECONDS)),
   };
 }
 
@@ -246,7 +249,7 @@ function daySky(hourly: OMForecast["hourly"], from: number, to: number, fallback
 /** Whole calendar days in the place's time zone, today included in full. */
 function toDaily(raw: OMForecast["daily"], hourly: OMForecast["hourly"]): DailyPoint[] {
   return raw.time.map((time, i) => {
-    const { condition, intensity } = daySky(hourly, time, raw.time[i + 1] ?? time + 86400, num(raw.weather_code[i]));
+    const { condition, intensity } = daySky(hourly, time, raw.time[i + 1] ?? time + DAY_SECONDS, num(raw.weather_code[i]));
     return {
       time,
       min: num(raw.temperature_2m_min[i]),
@@ -266,7 +269,7 @@ function toDaily(raw: OMForecast["daily"], hourly: OMForecast["hourly"]): DailyP
 /** 15-minute steps from now; amounts per step become rates, the chance comes from the hour. */
 function toQuarters(raw: OMForecast["minutely_15"], hourly: HourlyPoint[], now: number): QuarterPoint[] | null {
   if (!raw?.time.length) return null;
-  const chance = (t: number) => hourly.find((h) => h.time <= t && t < h.time + 3600)?.precipProbability ?? 0;
+  const chance = (t: number) => hourly.find((h) => h.time <= t && t < h.time + HOUR_SECONDS)?.precipProbability ?? 0;
   const points = raw.time.flatMap((time, i) =>
     time < now - 900
       ? []
@@ -327,8 +330,8 @@ export const openMeteoProvider: WeatherProvider = {
   name: "open-meteo",
 
   async getByCoords(rawLat, rawLon) {
-    const lat = round(rawLat);
-    const lon = round(rawLon);
+    const lat = roundCoord(rawLat);
+    const lon = roundCoord(rawLon);
 
     const weather = (revalidate: number) =>
       get<OMForecast>(

@@ -1,4 +1,4 @@
-import type { PlaceRef } from "../place";
+import type { PlaceRef } from "@/types/place";
 
 /**
  * Where a visit to the bare address lands: a city drawn from this list, one

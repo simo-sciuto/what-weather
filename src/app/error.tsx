@@ -1,4 +1,5 @@
 "use client";
+import { ACTION_LABELS } from "@/constants/labels";
 
 import { Wordmark } from "@/components/Wordmark";
 import { useRouter } from "next/navigation";
@@ -27,7 +28,7 @@ export default function WeatherError({ retry }: { retry: () => void }) {
             onClick={() => retry()}
             className="rounded-full border border-ink/30 px-6 py-3 text-sm font-medium transition-colors hover:bg-ink hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            Riprova
+            {ACTION_LABELS.retry}
           </button>
           <button
             type="button"

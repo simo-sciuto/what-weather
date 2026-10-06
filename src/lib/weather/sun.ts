@@ -1,5 +1,7 @@
+import { DAY_SECONDS } from "@/constants/time";
+import type { SunEvent } from "@/types/sky";
 import { localDay } from "./formatters";
-import type { WeatherData } from "./types";
+import type { WeatherData } from "@/types/weather";
 
 /**
  * Near the poles there may be no sunrise or sunset today (midnight sun, polar
@@ -12,11 +14,6 @@ export function hasSunTimes(d: Pick<WeatherData, "sunrise" | "sunset">): boolean
 /** Without sun times, whether it's dark comes from the forecast's own day/night flag. */
 export function darkWithoutSunTimes(d: WeatherData): boolean {
   return d.hourly[0]?.isNight ?? false;
-}
-
-export interface SunEvent {
-  type: "sunrise" | "sunset";
-  time: number;
 }
 
 /**
@@ -40,10 +37,10 @@ function computeEvents(d: WeatherData): SunEvent[] {
   if (!hasSunTimes(d)) return [];
   const events: SunEvent[] = [];
   for (let k = -1; k <= 2; k++) {
-    const key = localDay(d.sunrise + k * 86400, d.timezone);
+    const key = localDay(d.sunrise + k * DAY_SECONDS, d.timezone);
     const day = d.daily.find((x) => localDay(x.time, d.timezone) === key);
-    events.push({ type: "sunrise", time: day?.sunrise ?? d.sunrise + k * 86400 });
-    events.push({ type: "sunset", time: day?.sunset ?? d.sunset + k * 86400 });
+    events.push({ type: "sunrise", time: day?.sunrise ?? d.sunrise + k * DAY_SECONDS });
+    events.push({ type: "sunset", time: day?.sunset ?? d.sunset + k * DAY_SECONDS });
   }
   return events.sort((a, b) => a.time - b.time);
 }

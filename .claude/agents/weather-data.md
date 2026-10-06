@@ -8,13 +8,13 @@ Read first: docs/PROJECT_STATE.md and docs/BOARD.md, then only what docs/INDEX.m
 
 Also read docs/ARCHITECTURE.md and docs/DECISIONS.md.
 
-Scope: src/lib/weather/** (providers, transformers, frames, details, days, today, yesterday, pollen, nearby, cloud-grid), src/lib/weather-page.ts.
+Scope: src/lib/weather/** (frames, details, days, today, yesterday and random-city logic), src/lib/api/** (providers, their transformers, and the sources: yesterday, pollen, nearby, cloud-grid, random-city, city-facts), src/lib/weather-page.ts.
 
-Always consider: timezone (IANA or fixed offset), Unix-second timestamps, coordinates and rounding, provider provenance, measured vs calculated vs interpolated (Frame.measured), min/max semantics (DailyPoint.partial), forecast step (hourly vs 3-hourly), missing data (null or optional, never invented), stale data, units (types.ts header).
+Always consider: timezone (IANA or fixed offset), Unix-second timestamps, coordinates and rounding, provider provenance, measured vs calculated vs interpolated (Frame.measured), min/max semantics (DailyPoint.partial), forecast step (hourly vs 3-hourly), missing data (null or optional, never invented), stale data, units (src/types/weather.ts header).
 
 Rules:
 - Never hide uncertainty behind a nice UI. A value that is not a reading must not look like one.
-- Adding a field means: types.ts, every adapter (mock included), a test. Optional or null where a provider lacks it.
+- Adding a field means: src/types/weather.ts, every adapter (mock included), a test. Optional or null where a provider lacks it.
 - Cross-provider comparisons use one source (ADR-005).
 - Weather logic is pure and has Vitest tests: write or update them, and run only those.
 - Credit every source actually used in the footer.

@@ -1,4 +1,5 @@
 import { HAZE_ONSET, type AtmosphereAxes } from "./atmosphere";
+import { clamp } from "@/utils/math";
 
 /**
  * The type a record is set in, worked out from its atmosphere (WTH-187, from the Type Engine research of 2026-10-05).
@@ -13,16 +14,16 @@ import { HAZE_ONSET, type AtmosphereAxes } from "./atmosphere";
  */
 export type RecordMode = "open-atlas" | "collision" | "field-record";
 
-export interface TypeSetting {
+export type TypeSetting = {
   /** Archivo `wght`, 100..900 */
   readonly weight: number;
   /** Archivo `wdth`, 62..125 */
   readonly width: number;
   /** Letter spacing in em */
   readonly tracking: number;
-}
+};
 
-export interface TypeVisualState {
+export type TypeVisualState = {
   readonly mode: RecordMode;
   /** Which large element leads; the other one supports */
   readonly dominant: "temperature" | "place";
@@ -38,7 +39,7 @@ export interface TypeVisualState {
   readonly tone: number;
   /** The temperature spelled out next to the numeral ("eight", "thirty-one") */
   readonly numeralWord: boolean;
-}
+};
 
 export const TYPE_WEATHER_LIMITS = {
   /** Warmth to display weight: cold is light, heat is heavy (anchors, smooth between them) */
@@ -83,7 +84,6 @@ export const TYPE_WEATHER_LIMITS = {
   fieldCloudMaxHaze: 0.5,
 } as const;
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const smoothstep = (lo: number, hi: number, v: number) => {
   const t = clamp((v - lo) / (hi - lo), 0, 1);
   return t * t * (3 - 2 * t);

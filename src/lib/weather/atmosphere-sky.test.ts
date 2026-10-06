@@ -16,12 +16,11 @@ import {
   mapInksFor,
   MAP_WEATHER_LIMITS,
   mapVisualState,
-  type MapInk,
-  type MapLayer,
   skyColors,
   skyPalette,
   solarPalette,
 } from "./palette";
+import type { MapInk, MapLayer } from "@/types/palette";
 import { computeAtmosphere } from "./visual-input";
 
 type RGB = number[];

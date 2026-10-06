@@ -3,7 +3,7 @@
 import { memo, useDeferredValue, useMemo, useState } from "react";
 import type { AtmosphereAxes, VisualForce } from "@/lib/weather/atmosphere";
 import { CALIBRATION_SCENARIOS, type CalibrationScenario } from "@/lib/weather/calibration";
-import { THRESHOLDS } from "@/lib/weather/constants";
+import { THRESHOLDS } from "@/constants/weather";
 import { TWILIGHT } from "@/lib/weather/frames";
 import {
   atmosphereDepth,
@@ -14,9 +14,10 @@ import {
   skyColors,
   skyPalette,
   stateSky,
-  type SkyPalette,
 } from "@/lib/weather/palette";
-import { skyAt, weatherState, type DayPhase } from "@/lib/weather/state";
+import type { SkyPalette } from "@/types/palette";
+import { skyAt, weatherState } from "@/lib/weather/state";
+import type { DayPhase } from "@/types/sky";
 import { computeAtmosphere } from "@/lib/weather/visual-input";
 
 /**

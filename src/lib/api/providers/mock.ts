@@ -1,7 +1,9 @@
-import { atmosphericData } from "./atmospheric-data";
+import { HOUR_SECONDS, DAY_SECONDS } from "@/constants/time";
+import { atmosphericData } from "@/lib/weather/atmospheric-data";
 import "server-only";
-import { DEFAULT_PLACE, TYPICAL_CLOUD_COVER, isWet } from "./constants";
-import { localHour } from "./formatters";
+import { DEFAULT_PLACE, TYPICAL_CLOUD_COVER } from "@/constants/weather";
+import { isWet } from "@/lib/weather/conditions";
+import { localHour } from "@/lib/weather/formatters";
 import type { WeatherProvider } from "./provider";
 import type {
   AirQuality,
@@ -11,7 +13,7 @@ import type {
   Intensity,
   MinutePoint,
   WeatherData,
-} from "./types";
+} from "@/types/weather";
 
 /**
  * Deterministic fake data for development without an API key. Each scenario
@@ -31,7 +33,7 @@ export const MOCK_SCENARIOS = [
 ] as const;
 export type MockScenario = (typeof MOCK_SCENARIOS)[number];
 
-interface Profile {
+type Profile = {
   mean: number;
   amplitude: number;
   /** Sky for each of the hours ahead */
@@ -51,7 +53,7 @@ interface Profile {
   pollen?: [number, number, number];
   /** A sample official alert, to exercise the alert component */
   alert?: { event: string; hours: number; description: string };
-}
+};
 
 const dry = (condition: Condition, pop = 0.05) => () => ({
   condition,
@@ -137,9 +139,9 @@ function build(scenario: MockScenario, lat: number, lon: number, at?: string): W
   const p = PROFILES[scenario];
   const timezone = "Europe/Rome";
   const now = mockNow(timezone, at);
-  const midnight = Math.round(now - localHour(now, timezone) * 3600);
-  const sunrise = midnight + 7.25 * 3600;
-  const sunset = midnight + 19.2 * 3600;
+  const midnight = Math.round(now - localHour(now, timezone) * HOUR_SECONDS);
+  const sunrise = midnight + 7.25 * HOUR_SECONDS;
+  const sunset = midnight + 19.2 * HOUR_SECONDS;
 
   // Diurnal curve peaking around 15:00 local.
   const tempAt = (ts: number) =>
@@ -153,10 +155,10 @@ function build(scenario: MockScenario, lat: number, lon: number, at?: string): W
     return isNightAt(ts) ? 0 : Math.max(0, p.uvMax * Math.sin(((h - 7.25) / 12) * Math.PI));
   };
 
-  const firstHour = now - (now % 3600) + 3600;
+  const firstHour = now - (now % HOUR_SECONDS) + HOUR_SECONDS;
   // Two days of hours: the next 24, and tomorrow whole, so a day picked in the week has its own.
   const hourly: HourlyPoint[] = Array.from({ length: 48 }, (_, i) => {
-    const time = firstHour + i * 3600;
+    const time = firstHour + i * HOUR_SECONDS;
     const sky = p.sky(i + 1);
     const wet = isWet(sky.condition);
     return {
@@ -185,7 +187,7 @@ function build(scenario: MockScenario, lat: number, lon: number, at?: string): W
     : null;
 
   const daily: DailyPoint[] = Array.from({ length: 8 }, (_, d) => ({
-    time: midnight + d * 86400 + 12 * 3600,
+    time: midnight + d * DAY_SECONDS + 12 * HOUR_SECONDS,
     // Today follows the hourly curve exactly, so the reading never beats its own day's range;
     // later days vary a little around it.
     min: p.mean - p.amplitude + (d === 0 ? 0 : ((d * 7) % 5) - 2),
@@ -195,12 +197,12 @@ function build(scenario: MockScenario, lat: number, lon: number, at?: string): W
     precipProbability: d === 0 ? p.sky(1).pop : d % 4 === 3 ? 0.7 : 0.1,
     uvIndex: p.uvMax,
     windGust: p.gust,
-    sunrise: sunrise + d * 86400,
-    sunset: sunset + d * 86400,
+    sunrise: sunrise + d * DAY_SECONDS,
+    sunset: sunset + d * DAY_SECONDS,
     moonPhase: (0.54 + d / 29.5) % 1,
     // The moon rises ~50 minutes later each day.
-    moonrise: midnight + d * 86400 + (18.6 + d * 0.83) * 3600,
-    moonset: midnight + d * 86400 + (6.4 + d * 0.83) * 3600,
+    moonrise: midnight + d * DAY_SECONDS + (18.6 + d * 0.83) * HOUR_SECONDS,
+    moonset: midnight + d * DAY_SECONDS + (6.4 + d * 0.83) * HOUR_SECONDS,
   }));
 
   const sky = p.sky(0);
@@ -254,8 +256,8 @@ function build(scenario: MockScenario, lat: number, lon: number, at?: string): W
             id: `sample-${scenario}`,
             event: p.alert.event,
             sender: "Sample weather service",
-            start: now - 3600,
-            end: now + p.alert.hours * 3600,
+            start: now - HOUR_SECONDS,
+            end: now + p.alert.hours * HOUR_SECONDS,
             description: p.alert.description,
           },
         ]
@@ -269,7 +271,7 @@ function mockNow(timeZone: string, at?: string): number {
   const match = at?.match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return now;
   const target = Number(match[1]) + Number(match[2]) / 60;
-  return Math.round(now + (target - localHour(now, timeZone)) * 3600);
+  return Math.round(now + (target - localHour(now, timeZone)) * HOUR_SECONDS);
 }
 
 export function isMockScenario(value: unknown): value is MockScenario {

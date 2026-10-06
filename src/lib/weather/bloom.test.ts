@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { skyPalette } from "./palette";
-import { bloomRadius, bloomStops, parseGlow } from "./bloom";
+import { bloomColor, bloomRadius, bloomStops, parseGlow } from "./bloom";
 
 describe("the sun's bloom (WTH-179)", () => {
   const stops = bloomStops();
@@ -49,5 +49,18 @@ describe("the sun's bloom (WTH-179)", () => {
     expect(parseGlow("rgba(10, 20, 30, 0.25)")).toEqual([10, 20, 30, 0.25]);
     expect(parseGlow("rgb(10 20 30)")).toEqual([10, 20, 30, 1]);
     expect(parseGlow("#ffffff")).toBeNull();
+  });
+
+  it("writes every stop as a CSS colour the canvas accepts, in the glow's channels and a scaled alpha", () => {
+    expect(bloomColor([12, 34, 56, 0.5], 0.4)).toBe("rgba(12, 34, 56, 0.2000)");
+    const glow = parseGlow("rgb(254 200 156 / 0.5)")!;
+    for (const { share } of stops) {
+      const css = bloomColor(glow, share);
+      // A function name a canvas does not know (a helper's name written into the string) is no colour at all
+      expect(css).toMatch(/^rgba\(254, 200, 156, [01]?\.?\d{1,4}\)$/);
+      const back = parseGlow(css)!;
+      expect(back.slice(0, 3)).toEqual([254, 200, 156]);
+      expect(back[3]).toBeCloseTo(0.5 * share, 4);
+    }
   });
 });

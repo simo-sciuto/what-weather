@@ -1,17 +1,16 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
-import { parsePlaceRef, type PlaceRef } from "./place";
-import { DEFAULT_PLACE, getProvider } from "./weather";
-import {
-  COORD_PRECISION,
-  MAX_DATA_AGE_SECONDS,
-  WEATHER_REVALIDATE_SECONDS,
-} from "./weather/constants";
+import { parsePlaceRef } from "./place";
+import type { PlaceRef } from "@/types/place";
+import { getProvider } from "./api/providers/get-provider";
+import { lookupPollen } from "./api/sources/pollen";
+import { sinceYesterday } from "./api/sources/yesterday";
+import { DEFAULT_PLACE } from "@/constants/weather";
+import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS, WEATHER_STALE_SECONDS } from "@/constants/cache";
+import { roundCoord } from "./weather/coordinates";
 import { buildTimeline } from "./weather/frames";
-import { lookupPollen } from "./weather/pollen";
 import { randomPlace } from "./weather/random-places";
-import { sinceYesterday } from "./weather/yesterday";
 
 export type SearchParams = Promise<
   Record<string, string | string[] | undefined>
@@ -19,7 +18,6 @@ export type SearchParams = Promise<
 
 const param = (value: string | string[] | undefined) =>
   typeof value === "string" ? value : undefined;
-const round = (n: number) => Number(n.toFixed(COORD_PRECISION));
 
 /**
  * The weather for one place, fetched and worked out (timeline, palettes,
@@ -49,7 +47,7 @@ async function load(
       revalidate: WEATHER_REVALIDATE_SECONDS,
       // After an idle hour the next visitor waits for a fresh forecast rather than an old one.
       expire: MAX_DATA_AGE_SECONDS,
-      stale: 5 * 60,
+      stale: WEATHER_STALE_SECONDS,
     });
   }
 
@@ -116,8 +114,8 @@ async function namesFor(
  */
 export function weatherFor(ref: PlaceRef, scenario?: string, at?: string) {
   return load(
-    round(ref.lat),
-    round(ref.lon),
+    roundCoord(ref.lat),
+    roundCoord(ref.lon),
     ref.name,
     ref.region,
     ref.country,

@@ -1,4 +1,5 @@
-import { parsePlaceRef, samePlace, type PlaceRef } from "./place";
+import { parsePlaceRef, samePlace } from "./place";
+import type { PlaceRef } from "@/types/place";
 
 /**
  * Saved places live in localStorage (no accounts in the MVP), exposed as an

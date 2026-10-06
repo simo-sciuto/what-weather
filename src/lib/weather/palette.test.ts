@@ -1,14 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  ALL_MAP_LAYERS,
-  MAP_SEPARATION,
-  colorDistance,
-  inkOverSky,
-  mapInksFor,
-  skyPalette,
-  type MapLayer,
-} from "./palette";
-import type { WeatherState } from "./state";
+import { ALL_MAP_LAYERS, MAP_SEPARATION, colorDistance, inkOverSky, mapInksFor, skyPalette } from "./palette";
+import type { MapLayer } from "@/types/palette";
+import type { WeatherState } from "@/types/sky";
 
 const STATES: WeatherState[] = [
   "CLEAR_DAY",

@@ -5,8 +5,8 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 ## ADR-001: Providers are normalized before reaching the UI
 - Decision: every provider implements `WeatherProvider` and returns `WeatherData`. Components never see raw payloads.
 - Reason: swap or add sources (OpenWeather, Open-Meteo, mock) without touching the UI.
-- Consequences: new data needs a field in `types.ts` plus a mapping in every adapter (null/optional when a provider lacks it).
-- Status: Accepted. Evidence: `provider.ts`, `types.ts` header.
+- Consequences: new data needs a field in `types/weather.ts` plus a mapping in every adapter (null/optional when a provider lacks it).
+- Status: Accepted. Evidence: `lib/api/providers/provider.ts`, the header of `types/weather.ts`.
 
 ## ADR-002: Provider keys never reach the client
 - Decision: provider calls are server-only (`import "server-only"`); search goes through `/api/places`.
@@ -58,7 +58,7 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 ## ADR-010: A bare address lands on a random city
 - Decision: a visit to `/` with no place in the URL draws a city from a curated list (`lib/weather/random-places.ts`), one per request (React `cache`, so the page and its metadata agree). A place in the URL always wins. Sample data (`WEATHER_PROVIDER=mock`) always lands on the default place so tests stay deterministic. The cookie `weather-place` that remembered the last place is no longer written or read.
 - Reason: every visit shows a different poster; the product's identity is the poster of a place, not a dashboard of a home city. Picking a place in search still navigates to its own URL, so reloading that page keeps it.
-- The "Città casuale" button (first in the row under the search) draws without a list: `/api/random-place` asks Open-Meteo's geocoding about a batch of random GeoNames ids, keeps the populated places and picks one at random, hamlets included (`lib/weather/random-city.ts`). The landing draw still uses the curated list, for speed.
+- The "Città casuale" button (first in the row under the search) draws without a list: `/api/random-place` asks Open-Meteo's geocoding about a batch of random GeoNames ids, keeps the populated places and picks one at random, hamlets included (the draw in `lib/api/sources/random-city.ts`, the pick in `lib/weather/random-city.ts`). The landing draw still uses the curated list, for speed.
 - Cost: a returning visitor no longer lands where they left. `AutoRefresh` on a drawn city goes to that city's own address (otherwise the 10 minute refresh would draw again).
 - Status: Accepted (user request, 2026-10-02). Supersedes the "last place in a cookie" part of ADR-008.
 
@@ -140,21 +140,27 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - Why: as a weather app the product enters a saturated, free market; as a poster maker of "now" it has no reason to be bought. Together, a record of a moment that matters, they fit the personalised-poster gift market with an edge no competitor has: real weather in a deterministic visual language.
 - Consequences: WTH-046 continues unchanged; the Records track follows it (WTH-166 to WTH-173); layout work on the live app (WTH-017, WTH-018, WTH-022, WTH-009, WTH-015) is paused. Historical weather enters as a provider behind ADR-001 and is shown as reanalysis, not measurement. ADR-010 (Italian UI) is to be revisited for the records flow only (WTH-173). No payment before licences are checked (WTH-166) and demand is validated (WTH-167).
 
-## ADR-014: The record's typeface is Climate Crisis, set to the record's year (2026-10-06)
+## ADR-014: Code conventions (2026-10-05)
+- Decided by the user, after the architect's check (WTH-186). Types are declared with `type`, never `interface` (ESLint `@typescript-eslint/consistent-type-definitions`). Types used by two or more areas live in `src/types/`, one file per area; a type used by one module stays in it; types derived from a value stay beside the value. Generic helpers live in `src/utils/`, one file per area; domain functions stay in their modules. Operational constants and UI labels live in `src/constants/`, grouped by meaning; calibration constants stay beside their algorithm (ADR-011, ADR-012). External calls: `src/lib/api/` for the browser's calls to our own endpoints, `src/lib/api/providers/` for the WeatherProvider implementations (ADR-001), `src/lib/api/sources/` for the auxiliary upstreams used whatever the provider; every server module imports `server-only` (ADR-002). `src/app/api/` stays Next's route handlers. No barrel files. ESLint enforces that `src/types` holds types only (no values, imports only from `@/types/*`).
+- Why: one place for each kind of thing, fewer duplicated helpers and strings, and the client and server boundary visible in the tree.
+- Cost: many import paths change once; behaviour does not. The `"use cache"` functions that move start with a cold cache on the first deploy.
+- Status: Accepted (user, 2026-10-05). Applied in checkpoints (WTH-186).
+
+## ADR-015: The record's typeface is Climate Crisis, set to the record's year (2026-10-06)
 - Decided by the user after several side-by-side tests (Archivo, a free Helvetica, Mona Sans, Schibsted Grotesk and others were tried and turned down as too neutral): the large type of every Visual Record (the place's name, the temperature, the condition) is set in Climate Crisis.
 - The idea behind the face: Climate Crisis was made for the Finnish newspaper Helsingin Sanomat (designers Daniel Coull and Eino Korkala) to make climate change visible in type. Its one variable axis is called YEAR and runs from 1979 to 2050: the letters lose weight and melt as the Arctic sea ice has shrunk since satellite records began, and as it is projected to shrink. The heaviest cut is the ice of 1979; the thinnest is a projection for 2050.
 - How the record uses it: the YEAR axis is set to the record's own year (clamped to 1979-2050, `YEAR_AXIS` in `src/lib/record/type-system.ts`), so a record carries its climate moment in the shape of its letters: a 1990 record is set in fuller letters than a 2026 one. It is not decoration: it is data, deterministic like the rest of the record, and it belongs to the product's premise (real weather in a deterministic visual language, ADR-013).
 - Specification: Climate Crisis, SIL Open Font License 1.1, self-hosted (`public/fonts/record/`, Latin and Latin Extended woff2 from Google Fonts), one weight, one width, axis `YEAR` 1979-2050. The small notes (readings, coordinates, record ID, credits) stay in Schibsted Grotesk (OFL), which reads at small sizes where Climate Crisis, a display face, does not.
 - Consequences: the type engine's weight and width (`typeVisualState`) no longer reach the letters, since the face has neither axis; size, bleed and tone still follow the atmosphere. The poster's screenprint (two passes off register) was tried and removed by the user on the same day.
 
-### ADR-014 update (2026-10-06): Climate Crisis on the home page too
+### ADR-015 update (2026-10-06): Climate Crisis on the home page too
 - Requested by the user: the home page's place name and large temperature are set in Climate Crisis as well, its YEAR axis on the year of the moment on show (`--climate-year`, set by `AtmosphereMain` and clamped to 1979-2050). Loaded with `next/font/google` (`Climate_Crisis`, axis `YEAR`, `--font-climate`), so it is self-hosted at build like Inter Tight.
 - The name is set in capitals (Climate Crisis's lower case is the most eroded and reads poorly), at 0.74 of the title size since the face is much wider than Inter Tight, and breaks only between words. Everything else on the page stays in Inter Tight.
 - This is a visual change to the live app, which ADR-013 pauses for layout work; the user asked for it knowingly. It is on the `claude/record-engine` branch, not merged.
 
-### ADR-014 update (2026-10-06): Syne replaces Climate Crisis
+### ADR-015 update (2026-10-06): Syne replaces Climate Crisis
 - After seeing it on the poster and the home page the user found Climate Crisis read too poorly and chose Syne (OFL, variable weight 400-800) for the large type of the record and of the home page (`next/font/google` there, self-hosted woff2 in `public/fonts/record/` for the poster's SVG). The YEAR idea above is kept as history only: nothing reads the record's year into the type any more. The notes stay in Schibsted Grotesk.
 - Same day, the poster over the map moved to the style of the poster before the records (map with veils of the sky at head and foot, region and country over a hairline, the name large at the foot with the temperature beside it, the facts on the grid's columns, the signature and credits last), keeping the record's facts; see WTH-200 for the round that follows.
 
-### ADR-014 update (2026-10-06): the place's name back in Inter Tight
+### ADR-015 update (2026-10-06): the place's name back in Inter Tight
 - The user asked for the place's name in the face it has on `main`: Inter Tight, heavy and tight. On the home page the name is styled exactly as on `main` (`.display-caps`, as typed, not in capitals); on the poster it is spelt as written (a capital, then small letters), Inter Tight 800, as large as its grid columns allow. Only the name changed: the home page's temperature stays in Syne, the poster's notes in Schibsted Grotesk.

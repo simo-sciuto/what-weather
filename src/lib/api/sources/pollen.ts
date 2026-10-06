@@ -1,6 +1,7 @@
 import "server-only";
-import { WEATHER_REVALIDATE_SECONDS } from "./constants";
-import type { Pollen } from "./types";
+import { OPTIONAL_FETCH_TIMEOUT_MS } from "@/constants/network";
+import { WEATHER_REVALIDATE_SECONDS } from "@/constants/cache";
+import type { Pollen } from "@/types/weather";
 
 /**
  * The pollen in the air right now, from Open-Meteo's air-quality service
@@ -11,8 +12,6 @@ import type { Pollen } from "./types";
 
 const AIR = "https://air-quality-api.open-meteo.com/v1/air-quality";
 const SPECIES = ["alder_pollen", "birch_pollen", "olive_pollen", "grass_pollen", "mugwort_pollen", "ragweed_pollen"] as const;
-/** A detail: a slow answer is dropped rather than waited for. */
-const TIMEOUT_MS = 4000;
 
 type Current = { time: number } & Record<(typeof SPECIES)[number], number | null>;
 
@@ -26,7 +25,7 @@ export async function lookupPollen(lat: number, lon: number): Promise<Pollen | n
     });
     const res = await fetch(`${AIR}?${q}`, {
       next: { revalidate: WEATHER_REVALIDATE_SECONDS },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(OPTIONAL_FETCH_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     const { current: c } = (await res.json()) as { current?: Current };

@@ -1,4 +1,4 @@
-import type { Condition, Intensity } from "@/lib/weather/types";
+import type { Condition, Intensity } from "@/types/weather";
 import type { ConditionFamily } from "./types";
 
 /** Wind takes over a clear or cloudy record from this speed, or this gust, in km/h */

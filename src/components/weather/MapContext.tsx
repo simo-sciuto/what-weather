@@ -1,6 +1,7 @@
 "use client";
 
-import type { CloudGrid } from "@/lib/weather/cloud-grid";
+import { fetchClouds } from "@/lib/api/clouds";
+import type { CloudGrid, Mapbox } from "@/types/map";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePlace } from "../location/PlaceContext";
 
@@ -12,9 +13,7 @@ import { usePlace } from "../location/PlaceContext";
  * from here.
  */
 
-type Mapbox = typeof import("mapbox-gl").default;
-
-interface MapState {
+type MapState = {
   /** The place the maps centre on */
   center: { lat: number; lon: number; name: string };
   timezone: string;
@@ -24,7 +23,7 @@ interface MapState {
   loadMapbox: () => Promise<Mapbox>;
   /** Clouds and rain around the place, hour by hour; null until they arrive (or when they can't) */
   clouds: CloudGrid | null;
-}
+};
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
@@ -35,22 +34,6 @@ function loadMapbox(): Promise<Mapbox> {
     return gl;
   });
   return mapbox;
-}
-
-/** One request per place, for every map that shows its clouds; forgotten after the grid's own hour. */
-const cloudRequests = new Map<string, Promise<CloudGrid | null>>();
-function loadClouds(lat: number, lon: number): Promise<CloudGrid | null> {
-  const url = `/api/clouds?lat=${lat}&lon=${lon}`;
-  let request = cloudRequests.get(url);
-  if (!request) {
-    request = fetch(url)
-      .then((res) => (res.ok ? (res.json() as Promise<CloudGrid>) : null))
-      .then((g) => (g?.times?.length ? g : null))
-      .catch(() => null);
-    cloudRequests.set(url, request);
-    setTimeout(() => cloudRequests.delete(url), 60 * 60 * 1000);
-  }
-  return request;
 }
 
 const MapContext = createContext<MapState | null>(null);
@@ -64,7 +47,7 @@ export function MapProvider({ timezone, children }: { timezone: string; children
   const [clouds, setClouds] = useState<{ key: string; grid: CloudGrid } | null>(null);
   useEffect(() => {
     let current = true;
-    void loadClouds(lat, lon).then((grid) => {
+    void fetchClouds(lat, lon).then((grid) => {
       if (current && grid) setClouds({ key, grid });
     });
     return () => {

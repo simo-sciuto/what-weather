@@ -1,5 +1,5 @@
 import { formatDate, formatTime, localDay } from "@/lib/weather/formatters";
-import type { WeatherAlert as Alert } from "@/lib/weather/types";
+import type { WeatherAlert as Alert } from "@/types/weather";
 import { Disclosure } from "./Disclosure";
 
 function when(alert: Alert, now: number, tz: string): string {

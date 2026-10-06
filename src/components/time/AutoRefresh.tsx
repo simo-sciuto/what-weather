@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useTransition } from "react";
-import { WEATHER_REVALIDATE_SECONDS } from "@/lib/weather/constants";
+import { WEATHER_REVALIDATE_SECONDS } from "@/constants/cache";
 import { useMoment } from "./TimeContext";
 
 /** Check this often while the page is on screen. */

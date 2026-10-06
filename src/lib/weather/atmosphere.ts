@@ -3,7 +3,7 @@
  * Measurement curves belong to WTH-046B; this module knows no providers,
  * cities, clock, palette or WeatherState. See docs/WEATHER_VISUAL_ENGINE.md.
  */
-export interface AtmosphereAxes {
+export type AtmosphereAxes = {
   /** Available solar light, 0..1. NOT Frame.light's -1..2 phase coordinate. */
   readonly daylight: number;
   /** Thermal influence, -1 (cold) to +1 (hot), with 0 neutral. */
@@ -20,23 +20,23 @@ export interface AtmosphereAxes {
   readonly snow: number;
   /** Solar energy, 0..daylight; UV cannot supply light at night. */
   readonly energy: number;
-}
+};
 
 export type VisualForce = "sun" | "heat" | "cold" | "cloud" | "haze" | "rain" | "snow" | "storm";
 
-export interface AtmosphereSignature {
+export type AtmosphereSignature = {
   /** Null when no force has positive strength (e.g. a neutral clear night). */
   readonly dominant: VisualForce | null;
   /** A distinct positive force, or null when fewer than two are present. */
   readonly secondary: VisualForce | null;
-}
+};
 
-export interface AtmosphereState extends AtmosphereAxes {
+export type AtmosphereState = {
   /** 1 - haze: optical depth available, independent of cloud coverage. */
   readonly clarity: number;
   /** Explanatory summary, never a categorical palette selector. */
   readonly signature: AtmosphereSignature;
-}
+} & AtmosphereAxes;
 
 // Only exact ties use this order. Strength always wins before precedence.
 const FORCE_ORDER: readonly VisualForce[] = ["storm", "snow", "rain", "haze", "cloud", "cold", "heat", "sun"];

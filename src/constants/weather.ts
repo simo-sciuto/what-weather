@@ -1,25 +1,4 @@
-/** OpenWeather refreshes One Call 4.0 every 10 minutes; we cache on the same cadence. */
-export const WEATHER_REVALIDATE_SECONDS = 600;
-
-/**
- * A cached reading older than this is not shown. After a long idle period the
- * cache serves its last entry once (stale-while-revalidate); for weather that
- * could be days old, so we bypass the cache and fetch again instead.
- */
-export const MAX_DATA_AGE_SECONDS = 60 * 60;
-
-/** Place names practically never change. */
-export const GEOCODE_REVALIDATE_SECONDS = 60 * 60 * 24 * 7;
-
-/** Coordinates are rounded to ~1 km so nearby requests share one cache entry. */
-export const COORD_PRECISION = 2;
-
-import type { Condition } from "./types";
-
-/** Skies that bring precipitation. */
-export function isWet(condition: Condition): boolean {
-  return condition === "drizzle" || condition === "rain" || condition === "thunderstorm" || condition === "snow";
-}
+import type { Condition } from "@/types/weather";
 
 /** Cloud cover (%) typical of each sky, for moments where only the condition is known. */
 export const TYPICAL_CLOUD_COVER: Record<Condition, number> = {

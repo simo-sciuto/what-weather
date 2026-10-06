@@ -1,20 +1,12 @@
+import { CACHE_CONTROL } from "@/constants/cache";
+import { API_ERRORS } from "@/constants/labels";
 import { parsePlaceRef } from "@/lib/place";
 import { weatherFor } from "@/lib/weather-page";
 import { conditionLabel } from "@/lib/weather/formatters";
 import { frameLook } from "@/lib/weather/look";
 import { tempRange } from "@/lib/weather/today";
+import type { PlaceSummary } from "@/types/place";
 import type { NextRequest } from "next/server";
-
-/** What a saved place's card shows. */
-export interface PlaceSummary {
-  temp: number;
-  high: number;
-  low: number;
-  label: string;
-  condition: string;
-  night: boolean;
-  sky: [string, string, string];
-}
 
 /**
  * A place in a few numbers, for the saved-places cards: its temperature, its
@@ -23,7 +15,7 @@ export interface PlaceSummary {
  */
 export async function GET(request: NextRequest) {
   const ref = parsePlaceRef(Object.fromEntries(request.nextUrl.searchParams));
-  if (!ref) return Response.json({ error: "Coordinate mancanti" }, { status: 400 });
+  if (!ref) return Response.json({ error: API_ERRORS.missingCoordinates }, { status: 400 });
   try {
     const { data, timeline } = await weatherFor(ref);
     const now = timeline.frames[0];
@@ -39,7 +31,7 @@ export async function GET(request: NextRequest) {
       sky: [p.sky1, p.sky2, p.sky3],
     };
     return Response.json(summary, {
-      headers: { "Cache-Control": "public, max-age=300, stale-while-revalidate=600" },
+      headers: { "Cache-Control": CACHE_CONTROL.summary },
     });
   } catch {
     return Response.json({ error: "Meteo non disponibile" }, { status: 502 });

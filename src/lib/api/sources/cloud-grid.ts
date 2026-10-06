@@ -1,6 +1,8 @@
 import "server-only";
+import { CLOUD_GRID_REVALIDATE_SECONDS, CLOUD_GRID_EXPIRE_SECONDS } from "@/constants/cache";
 import { cacheLife } from "next/cache";
-import { WeatherProviderError } from "./openweather";
+import { WeatherProviderError } from "@/lib/api/providers/openweather";
+import type { CloudGrid } from "@/types/map";
 
 /**
  * Cloud cover and precipitation, hour by hour, on a grid of points around a
@@ -8,19 +10,6 @@ import { WeatherProviderError } from "./openweather";
  * at once. The grid sits on a fixed lattice (steps of LAT_STEP × LON_STEP
  * degrees), so nearby places share one grid, and one cache entry, per hour.
  */
-
-export interface CloudGrid {
-  /** Latitudes of the rows, north to south */
-  lats: number[];
-  /** Longitudes of the columns, west to east */
-  lons: number[];
-  /** Unix seconds of each hourly frame, from the current hour on */
-  times: number[];
-  /** Per frame, cloud cover (%) of every point, row by row */
-  cloud: number[][];
-  /** Per frame, precipitation (mm/h) of every point, row by row */
-  precip: number[][];
-}
 
 const ROWS = 7;
 const COLS = 7;
@@ -33,9 +22,9 @@ export const CLOUD_HOURS = 12;
 const snap = (v: number, step: number) => Math.round(v / step) * step;
 const fixed = (v: number) => Number(v.toFixed(3));
 
-interface OMPoint {
+type OMPoint = {
   hourly: { time: number[]; cloud_cover: (number | null)[]; precipitation: (number | null)[] };
-}
+};
 
 export async function cloudGrid(lat: number, lon: number): Promise<CloudGrid> {
   const cLat = snap(lat, LAT_STEP);
@@ -46,7 +35,7 @@ export async function cloudGrid(lat: number, lon: number): Promise<CloudGrid> {
 async function loadGrid(cLat: number, cLon: number): Promise<CloudGrid> {
   "use cache";
   // Open-Meteo runs its models hourly; each request counts as one call per point, so keep it for the hour.
-  cacheLife({ revalidate: 60 * 60, expire: 2 * 60 * 60 });
+  cacheLife({ revalidate: CLOUD_GRID_REVALIDATE_SECONDS, expire: CLOUD_GRID_EXPIRE_SECONDS });
 
   const lats = Array.from({ length: ROWS }, (_, r) => fixed(Math.min(89, Math.max(-89, cLat + (Math.floor(ROWS / 2) - r) * LAT_STEP))));
   const lons = Array.from({ length: COLS }, (_, c) => fixed(cLon + (c - Math.floor(COLS / 2)) * LON_STEP));

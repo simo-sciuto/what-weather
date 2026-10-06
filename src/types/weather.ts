@@ -18,7 +18,7 @@ export type Condition =
 
 export type Intensity = "light" | "moderate" | "heavy";
 
-export interface Place {
+export type Place = {
   name: string;
   /** State / region / province, when known */
   region?: string;
@@ -26,12 +26,12 @@ export interface Place {
   country: string;
   lat: number;
   lon: number;
-}
+};
 
 export type AtmosphericField = "humidity" | "visibility" | "dewPoint";
 /** Origin, not temporal sampling: Frame.measured separately marks interpolation. */
 export type AtmosphericSource = "provider" | "estimated" | "mock" | "unknown" | "unavailable";
-export interface AtmosphericMeasurements {
+export type AtmosphericMeasurements = {
   /** Percent; absent is not zero. */
   humidity?: number;
   /** km; absent is not zero. */
@@ -39,9 +39,9 @@ export interface AtmosphericMeasurements {
   /** Degrees C; estimates are labelled in atmosphericSources. */
   dewPoint?: number;
   atmosphericSources?: Partial<Record<AtmosphericField, AtmosphericSource>>;
-}
+};
 
-export interface CurrentWeather extends AtmosphericMeasurements {
+export type CurrentWeather = {
   time: number;
   temp: number;
   feelsLike: number;
@@ -62,22 +62,22 @@ export interface CurrentWeather extends AtmosphericMeasurements {
   cloudCover: number;
   visibility: number;
   precipitation: number;
-}
+} & AtmosphericMeasurements;
 
-export interface MinutePoint {
+export type MinutePoint = {
   time: number;
   precipitation: number;
-}
+};
 
 /** A 15-minute step; used to time near-term precipitation precisely. */
-export interface QuarterPoint {
+export type QuarterPoint = {
   time: number;
   condition: Condition;
   precipProbability: number;
   precipitation: number;
-}
+};
 
-export interface HourlyPoint extends AtmosphericMeasurements {
+export type HourlyPoint = {
   time: number;
   temp: number;
   feelsLike: number;
@@ -92,9 +92,9 @@ export interface HourlyPoint extends AtmosphericMeasurements {
   pressure: number;
   /** % of sky covered */
   cloudCover: number;
-}
+} & AtmosphericMeasurements;
 
-export interface DailyPoint {
+export type DailyPoint = {
   time: number;
   min: number;
   max: number;
@@ -111,47 +111,47 @@ export interface DailyPoint {
   moonset?: number;
   /** 0 and 1 = new moon, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter */
   moonPhase?: number;
-}
+};
 
 /** Pollutant concentrations in μg/m³ */
-export interface Pollutants {
+export type Pollutants = {
   pm2_5: number;
   pm10: number;
   o3: number;
   no2: number;
   so2: number;
   co: number;
-}
+};
 
-export interface AirQuality {
+export type AirQuality = {
   time: number;
   /** 1 = Good … 5 = Very poor (OpenWeather's scale, after the European CAQI bands); labelled from 3 up as poor (see AQI_LABELS) */
   index: 1 | 2 | 3 | 4 | 5;
   pollutants: Pollutants;
-}
+};
 
 /**
  * Pollen in the air, in grains/m³, by family: trees (alder, birch, olive),
  * grasses, weeds (mugwort, ragweed). A family out of season is 0.
  */
-export interface Pollen {
+export type Pollen = {
   time: number;
   tree: number;
   grass: number;
   weed: number;
-}
+};
 
 /** An official warning, as issued by a national weather agency. */
-export interface WeatherAlert {
+export type WeatherAlert = {
   id: string;
   event: string;
   sender: string;
   start: number;
   end: number;
   description: string;
-}
+};
 
-export interface WeatherData {
+export type WeatherData = {
   place: Place;
   /** IANA zone ("Europe/Rome") or fixed UTC offset ("+02:00") of the place */
   timezone: string;
@@ -171,4 +171,4 @@ export interface WeatherData {
   alerts: WeatherAlert[];
   /** Looked up apart from the provider (see pollen.ts); null or absent where there is no pollen data */
   pollen?: Pollen | null;
-}
+};

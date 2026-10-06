@@ -4,7 +4,7 @@
  * Space: every position is normalized, x over the sheet's width and y over its height (0..1). Every length
  * (a type size, a stroke, a radius) is a fraction of the sheet's width, so a scene draws at any resolution.
  */
-import type { Condition, Intensity } from "@/lib/weather/types";
+import type { Condition, Intensity } from "@/types/weather";
 
 export type ConditionFamily = "CLEAR" | "CLOUD" | "FOG" | "RAIN" | "STORM" | "SNOW" | "WIND";
 

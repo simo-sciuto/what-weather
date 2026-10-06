@@ -5,9 +5,9 @@ import {
   loadFresh,
   lookupAirQuality,
   lookupPlace,
-  round,
   searchPlaces,
 } from "./openweather";
+import { roundCoord } from "@/lib/weather/coordinates";
 import type { WeatherProvider } from "./provider";
 import {
   offsetToZone,
@@ -16,9 +16,9 @@ import {
   toForecastPoints,
   type OW25Current,
   type OW25Forecast,
-} from "./transformers";
-import { localDay } from "./formatters";
-import type { CurrentWeather, DailyPoint, WeatherData } from "./types";
+} from "./openweather-transformers";
+import { localDay } from "@/lib/weather/formatters";
+import type { CurrentWeather, DailyPoint, WeatherData } from "@/types/weather";
 
 /** The forecast starts at the next 3-hour slot; fold the current reading into today. */
 function includeNow(days: DailyPoint[], now: CurrentWeather, timeZone: string): DailyPoint[] {
@@ -38,8 +38,8 @@ export const openWeatherFreeProvider: WeatherProvider = {
   name: "openweather-free",
 
   async getByCoords(rawLat, rawLon) {
-    const lat = round(rawLat);
-    const lon = round(rawLon);
+    const lat = roundCoord(rawLat);
+    const lon = roundCoord(rawLon);
     const params = { lat, lon, units: "metric", lang: "en" };
 
     const weather = (revalidate: number) =>

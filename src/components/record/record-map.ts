@@ -1,11 +1,11 @@
 import type { Map as MapboxMap } from "mapbox-gl";
 import type { MapOption } from "@/lib/map-options";
-import { inkOverSky, type MapLayer, type SkyPalette } from "@/lib/weather/palette";
+import { inkOverSky } from "@/lib/weather/palette";
 import type { SunPosition } from "@/lib/weather/sun-position";
+import type { Mapbox } from "@/types/map";
+import type { MapLayer, SkyPalette } from "@/types/palette";
 import { STYLE, syncMap } from "../weather/map-style";
 import { BASE_ZOOM } from "../weather/map-view";
-
-type Mapbox = typeof import("mapbox-gl").default;
 
 /**
  * The record's map (WTH-187): the site's own map, its style and colours read as they are (`STYLE`, `syncMap`, never

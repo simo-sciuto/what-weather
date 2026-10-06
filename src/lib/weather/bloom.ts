@@ -7,12 +7,12 @@
  * moves (a fade to transparent black would darken a ring round the light).
  */
 
-export interface BloomStop {
+export type BloomStop = {
   /** 0 at the light, 1 at the rim */
   offset: number;
   /** The share of the glow's own alpha, 0..strength */
   share: number;
-}
+};
 
 /** How tightly the light gathers round its source: higher is a smaller, quieter core in the same rim */
 const TIGHTNESS = 3.2;
@@ -31,6 +31,11 @@ export function bloomStops(steps = 14): BloomStop[] {
 export function bloomRadius(W: number, H: number, x: number, y: number): number {
   const far = Math.max(Math.hypot(x, y), Math.hypot(W - x, y), Math.hypot(x, H - y), Math.hypot(W - x, H - y));
   return far * 0.42;
+}
+
+/** One stop's CSS colour: the glow's own channels, its alpha scaled by the stop's share. */
+export function bloomColor([r, g, b, a]: [number, number, number, number], share: number): string {
+  return `rgba(${r}, ${g}, ${b}, ${(a * share).toFixed(4)})`;
 }
 
 /** The channels of a palette's glow, `rgb(r g b / a)`; null if it is some other form. */

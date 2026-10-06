@@ -1,20 +1,7 @@
+import type { DayPhase, WeatherState } from "@/types/sky";
 import { hasSunTimes } from "./sun";
-import { THRESHOLDS } from "./constants";
-import type { CurrentWeather } from "./types";
-
-/** The visual mood of the page. Drives palette, background and accents. */
-export type WeatherState =
-  | "CLEAR_DAY"
-  | "CLEAR_NIGHT"
-  | "PARTLY_CLOUDY"
-  | "CLOUDY"
-  | "FOG"
-  | "RAIN"
-  | "HEAVY_RAIN"
-  | "STORM"
-  | "SNOW";
-
-export type DayPhase = "dawn" | "day" | "dusk" | "night";
+import { THRESHOLDS } from "@/constants/weather";
+import type { CurrentWeather } from "@/types/weather";
 
 export function dayPhase(now: number, sunrise: number, sunset: number, darkFallback = false): DayPhase {
   if (!hasSunTimes({ sunrise, sunset })) return darkFallback ? "night" : "day";
@@ -54,7 +41,7 @@ export function skyAt(light: number, phase: DayPhase): SkyPosition {
   };
 }
 
-export interface SkyPosition {
+export type SkyPosition = {
   body: "sun" | "moon";
   /**
    * Height above the horizon: 1 at solar noon, 0 at sunrise/sunset, slightly
@@ -63,4 +50,4 @@ export interface SkyPosition {
   elevation: number;
   /** How far through the day, 0 at sunrise to 1 at sunset (clamped) */
   progress: number;
-}
+};

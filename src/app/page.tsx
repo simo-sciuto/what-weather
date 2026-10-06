@@ -1,3 +1,4 @@
+import { PAGE_LABELS } from "@/constants/labels";
 import { Wordmark } from "@/components/Wordmark";
 import { LocationSearch } from "@/components/location/LocationSearch";
 import { PlaceProvider } from "@/components/location/PlaceContext";
@@ -202,7 +203,7 @@ export default async function Home({
                 </div>
 
                 {/* On a phone the weather data are a sheet that rises over the map; on a computer the right column */}
-                <Sheet name="data" title="Meteo" desktop="contents">
+                <Sheet name="data" title={PAGE_LABELS.weather} desktop="contents">
                   {/* The hours ahead: under the reading on a phone, at the top of the right column on a computer */}
                   <div className="data-col data-col-first relative pb-2.5 pt-2 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
                     <TimeScrubber />
@@ -259,7 +260,7 @@ export default async function Home({
                     {MAPBOX && (
                       <Chapter
                         id="chapter-map"
-                        title="Mappa"
+                        title={PAGE_LABELS.map}
                         note="Nuvole e pioggia nelle prossime ore"
                       >
                         <MapView />

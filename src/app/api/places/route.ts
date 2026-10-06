@@ -1,12 +1,12 @@
-import { getProvider } from "@/lib/weather";
-import { GEOCODE_REVALIDATE_SECONDS } from "@/lib/weather/constants";
+import { getProvider } from "@/lib/api/providers/get-provider";
+import { GEOCODE_REVALIDATE_SECONDS, PLACES_REVALIDATE_SECONDS, CACHE_CONTROL } from "@/constants/cache";
 import { cacheLife } from "next/cache";
 import type { NextRequest } from "next/server";
 
 /** Place names barely change: one geocoding call per query, shared by everyone typing it. */
 async function search(q: string) {
   "use cache";
-  cacheLife({ revalidate: 60 * 60 * 24, expire: GEOCODE_REVALIDATE_SECONDS });
+  cacheLife({ revalidate: PLACES_REVALIDATE_SECONDS, expire: GEOCODE_REVALIDATE_SECONDS });
   return getProvider().searchPlaces(q);
 }
 
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     return Response.json(
       { places },
       // Place names barely change: let the browser and any CDN reuse answers.
-      { headers: { "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400" } },
+      { headers: { "Cache-Control": CACHE_CONTROL.places } },
     );
   } catch {
     return Response.json({ error: "Search is unavailable right now." }, { status: 502 });

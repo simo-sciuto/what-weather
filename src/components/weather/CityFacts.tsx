@@ -1,7 +1,7 @@
-import { cityFacts } from "@/lib/city-facts";
+import { cityFacts } from "@/lib/api/sources/city-facts";
 import { placeHref } from "@/lib/place";
 import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
-import { nearbyWeather } from "@/lib/weather/nearby";
+import { nearbyWeather } from "@/lib/api/sources/nearby";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Chapter } from "./Chapter";

@@ -1,6 +1,7 @@
 "use client";
+import { CONDITION_NAMES, WIND_LABELS } from "@/constants/labels";
 
-import { isWet } from "@/lib/weather/constants";
+import { isWet, precipNoun } from "@/lib/weather/conditions";
 import { formatTemp } from "@/lib/weather/formatters";
 import { useMoment } from "./TimeContext";
 
@@ -12,7 +13,7 @@ import { useMoment } from "./TimeContext";
  */
 export function MomentFacts() {
   const { frame } = useMoment();
-  const noun = frame.condition === "snow" ? "Neve" : "Pioggia";
+  const noun = precipNoun(frame.condition === "snow");
   const facts = [
     isWet(frame.condition)
       ? {
@@ -23,12 +24,12 @@ export function MomentFacts() {
               : "Debole",
         }
       : {
-          label: "Pioggia",
+          label: CONDITION_NAMES.rain,
           value: `${Math.round(frame.precipProbability * 100)}%`,
         },
     {
-      label: "Vento",
-      value: frame.windSpeed ? `${Math.round(frame.windSpeed)} km/h` : "Calma",
+      label: WIND_LABELS.wind,
+      value: frame.windSpeed ? `${Math.round(frame.windSpeed)} km/h` : WIND_LABELS.calm,
     },
     { label: "Percepita", value: formatTemp(frame.feelsLike) },
   ];

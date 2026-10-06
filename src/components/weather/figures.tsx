@@ -1,6 +1,7 @@
+import { TIME_LABELS, ACTION_LABELS } from "@/constants/labels";
 import { AQI_LABELS, POLLUTANT_NAMES } from "@/lib/weather/details";
 import { POLLUTANT_INFO, POLLUTANT_SOURCES } from "@/lib/weather/pollutants";
-import type { Pollutants } from "@/lib/weather/types";
+import type { Pollutants } from "@/types/weather";
 
 /**
  * Small data figures shared by the almanac rows and the promoted cards.
@@ -141,7 +142,7 @@ export function PollutantRow({ k, value, band, position }: { k: keyof Pollutants
             type="button"
             popoverTarget={id}
             popoverTargetAction="hide"
-            aria-label="Chiudi"
+            aria-label={ACTION_LABELS.close}
             className="-mr-2 -mt-1 rounded-full px-2 text-xl leading-none text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-accent"
           >
             ×
@@ -153,7 +154,7 @@ export function PollutantRow({ k, value, band, position }: { k: keyof Pollutants
         <p className="mt-1.5 text-sm leading-relaxed">{info.harm}</p>
 
         <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1.5 rounded-xl bg-white/6 px-4 py-3 text-sm">
-          <dt className="text-ink-muted">Adesso</dt>
+          <dt className="text-ink-muted">{TIME_LABELS.now}</dt>
           <dd className="tabular-nums">
             {concentration(value)} µg/m³ · {AQI_LABELS[band - 1].toLowerCase()}
           </dd>

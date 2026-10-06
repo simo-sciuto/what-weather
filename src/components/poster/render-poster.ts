@@ -1,14 +1,13 @@
 import type { MapOption } from "@/lib/map-options";
-import type { SkyPalette } from "@/lib/weather/palette";
+import type { SkyPalette } from "@/types/palette";
 import type { WeatherFingerprint } from "@/lib/weather/fingerprint";
 import type { SunPosition } from "@/lib/weather/sun-position";
+import type { Mapbox } from "@/types/map";
 import { getRecordComposition } from "@/lib/record/compose";
 import { renderSvg } from "@/lib/record/render-svg";
 import type { RecordInput } from "@/lib/record/types";
 import { domMeasure, embeddedFontCss, loadRecordFonts, pageFontCss, svgToPng } from "../record/browser";
 import { drawRecordMap } from "../record/record-map";
-
-type Mapbox = typeof import("mapbox-gl").default;
 
 export type PosterFormat = "print" | "story" | "square";
 
@@ -26,7 +25,7 @@ export const POSTER_FORMATS: Record<
   square: { label: "Quadrato", width: 2400, height: 2400 },
 };
 
-export interface PosterInput {
+export type PosterInput = {
   format: PosterFormat;
   /** The place, with its region and country in Italian (either may be empty) */
   place: {
@@ -55,7 +54,7 @@ export interface PosterInput {
   record: RecordInput;
   token: string;
   loadMapbox: () => Promise<Mapbox>;
-}
+};
 
 /**
  * The poster, drawn in the browser as a Visual Record (WTH-187): the record engine composes the sheet from the

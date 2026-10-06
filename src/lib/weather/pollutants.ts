@@ -1,4 +1,4 @@
-import type { Pollutants } from "./types";
+import type { Pollutants } from "@/types/weather";
 
 /**
  * What each pollutant is and why it matters, for the explanations behind the
@@ -7,14 +7,14 @@ import type { Pollutants } from "./types";
  * hourly reading rather than judge it.
  */
 
-export interface PollutantInfo {
+export type PollutantInfo = {
   /** What it is and where it comes from */
   what: string;
   /** Why it is harmful */
   harm: string;
   /** WHO guideline, as a phrase */
   guideline: string;
-}
+};
 
 export const POLLUTANT_INFO: Record<keyof Pollutants, PollutantInfo> = {
   pm2_5: {

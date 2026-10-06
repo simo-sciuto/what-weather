@@ -1,3 +1,7 @@
+import "server-only";
+import { MAP_API_TIMEOUT_MS, WIKIDATA_TIMEOUT_MS } from "@/constants/network";
+import { CITY_FACTS_REVALIDATE_SECONDS, CITY_FACTS_EXPIRE_SECONDS } from "@/constants/cache";
+import { toRadians } from "@/utils/math";
 import { cacheLife } from "next/cache";
 
 /**
@@ -17,13 +21,13 @@ import { cacheLife } from "next/cache";
  * Every fact is optional: whatever can't be had is simply left out.
  */
 /** A place known by its name and point */
-export interface Town {
+export type Town = {
   name: string;
   lat: number;
   lon: number;
-}
+};
 
-export interface CityFacts {
+export type CityFacts = {
   /** "Capoluogo di provincia", "Capitale", "Città", "Paese"… */
   rank?: string;
   /** Metres above sea level: the municipality's official figure, else the terrain's 10-metre contours */
@@ -38,7 +42,7 @@ export interface CityFacts {
   nearby?: { name: string; lat: number; lon: number }[];
   /** The capital of the place's country, and of its region (its first-level division) where it has one, each with its point */
   capitals?: { country?: Town; region?: Town; regionName?: string };
-}
+};
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 /**
@@ -56,10 +60,6 @@ const WIKIMEDIA = {
   "User-Agent": `what-weather/1.0 (${SITE})`,
   Accept: "application/json",
 };
-
-/** Places don't move: a month between checks, a year before a fact is dropped. */
-const REVALIDATE = 60 * 60 * 24 * 30;
-const EXPIRE = 60 * 60 * 24 * 365;
 
 /**
  * How far around to look, in km: a lake's point on Wikidata is its middle,
@@ -109,12 +109,12 @@ async function cachedJson(
   headers: Record<string, string>,
 ): Promise<unknown> {
   "use cache";
-  cacheLife({ revalidate: REVALIDATE, expire: EXPIRE });
+  cacheLife({ revalidate: CITY_FACTS_REVALIDATE_SECONDS, expire: CITY_FACTS_EXPIRE_SECONDS });
   // Wikidata's queries over an area take a while; a map API answers at once.
   const res = await fetch(url, {
     headers,
     signal: AbortSignal.timeout(
-      url.includes("query.wikidata.org") ? 15_000 : 8_000,
+      url.includes("query.wikidata.org") ? WIKIDATA_TIMEOUT_MS : MAP_API_TIMEOUT_MS,
     ),
   });
   if (!res.ok) throw new Error(`${res.status}`);
@@ -269,7 +269,7 @@ async function entities(
     WIKIMEDIA,
   );
   return res?.entities ?? {};
-}
+};
 
 const current = <V>(claims: Claim<V>[] = []) => {
   const live = claims.filter(
@@ -375,12 +375,11 @@ function distanceKm(
   a: { lat: number; lon: number },
   b: { lat: number; lon: number },
 ): number {
-  const rad = (deg: number) => (deg * Math.PI) / 180;
   const h =
-    Math.sin(rad(b.lat - a.lat) / 2) ** 2 +
-    Math.cos(rad(a.lat)) *
-      Math.cos(rad(b.lat)) *
-      Math.sin(rad(b.lon - a.lon) / 2) ** 2;
+    Math.sin(toRadians(b.lat - a.lat) / 2) ** 2 +
+    Math.cos(toRadians(a.lat)) *
+      Math.cos(toRadians(b.lat)) *
+      Math.sin(toRadians(b.lon - a.lon) / 2) ** 2;
   return 2 * EARTH_KM * Math.asin(Math.sqrt(h));
 }
 

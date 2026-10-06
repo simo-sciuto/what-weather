@@ -1,6 +1,7 @@
 import type { AtmosphereAxes } from "@/lib/weather/atmosphere";
 import { atmospherePalette } from "@/lib/weather/palette";
 import { HAZE_ONSET } from "@/lib/weather/atmosphere";
+import { clamp } from "@/utils/math";
 import type { InkRole } from "./types";
 
 /**
@@ -19,7 +20,6 @@ export const PAPER = { cool: "#E3E6E7", warm: "#ECE2CF", haze: "#E8E9E5" } as co
 /** Water: cobalt, a touch deeper and bluer in the wet */
 export const WATER = { dry: "#2445B0", wet: "#2A3DCC" } as const;
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const smoothstep = (lo: number, hi: number, v: number) => {
   const t = clamp((v - lo) / (hi - lo), 0, 1);
   return t * t * (3 - 2 * t);

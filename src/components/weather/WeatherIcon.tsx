@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Condition } from "@/lib/weather/types";
+import type { Condition } from "@/types/weather";
 
 /**
  * Weather glyphs on a 32-unit grid, decorative: the condition is always also

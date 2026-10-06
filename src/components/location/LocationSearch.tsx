@@ -1,10 +1,12 @@
 "use client";
 
-import { placeHref, samePlace, type PlaceRef } from "@/lib/place";
+import { fetchPlaces } from "@/lib/api/places";
+import { placeHref, samePlace } from "@/lib/place";
+import type { PlaceRef } from "@/types/place";
 import { clearRecent } from "@/lib/recent-places";
 import { removeSaved } from "@/lib/saved-places";
 import { placeSubtitle } from "@/lib/weather/formatters";
-import type { Place } from "@/lib/weather/types";
+import type { Place } from "@/types/weather";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -178,12 +180,8 @@ export function LocationSearch() {
     const timer = setTimeout(async () => {
       setResults({ status: "loading" });
       try {
-        const res = await fetch(`/api/places?q=${encodeURIComponent(q)}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error(String(res.status));
-        const body = (await res.json()) as { places: Place[] };
-        setResults({ status: "done", places: dedupe(body.places) });
+        const places = await fetchPlaces(q, controller.signal);
+        setResults({ status: "done", places: dedupe(places) });
         setActive(-1);
       } catch {
         if (!controller.signal.aborted) setResults({ status: "error" });

@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { DEFAULT_PLACE } from "./constants";
-import { createMockProvider } from "./mock";
+import { DEFAULT_PLACE } from "@/constants/weather";
+import { createMockProvider } from "@/lib/api/providers/mock";
 import { precipOutlook } from "./precipitation";
-import type { QuarterPoint, WeatherData } from "./types";
+import type { QuarterPoint, WeatherData } from "@/types/weather";
 
 /**
  * The rain card from 15-minute amounts (Open-Meteo gives those, but its

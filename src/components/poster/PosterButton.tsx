@@ -1,4 +1,6 @@
 "use client";
+import { ACTION_LABELS } from "@/constants/labels";
+import { slug } from "@/utils/string";
 
 import { placeHref } from "@/lib/place";
 import { useEffect, useId, useRef, useState } from "react";
@@ -22,13 +24,6 @@ function revokeAll(drawn: Partial<Record<PosterFormat, Drawn>>) {
 
 /** A file name without accents or spaces: "what-weather-reykjavik-stampa-a.png". */
 function fileName(place: string, format: PosterFormat) {
-  const slug = (s: string) =>
-    s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
   return `what-weather-${slug(place)}-${slug(POSTER_FORMATS[format].label)}.png`;
 }
 
@@ -186,7 +181,7 @@ export function PosterButton({
           <button
             type="button"
             onClick={close}
-            aria-label="Chiudi"
+            aria-label={ACTION_LABELS.close}
             className="-mr-2 -mt-1 rounded-full px-2 text-2xl leading-none text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-accent"
           >
             ×
@@ -269,7 +264,7 @@ export function PosterButton({
               onClick={() => snapshot && draw(format, snapshot)}
               className={`${action} bg-accent text-[#0c0f25] hover:bg-accent/85`}
             >
-              Riprova
+              {ACTION_LABELS.retry}
             </button>
           ) : (
             <span

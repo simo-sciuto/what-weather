@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildTimeline } from "@/lib/weather/frames";
 import { fingerprintKey, fingerprintOf } from "@/lib/weather/fingerprint";
 import { frameLook } from "@/lib/weather/look";
-import { createMockProvider } from "@/lib/weather/mock";
+import { createMockProvider } from "@/lib/api/providers/mock";
 import { posterSnapshot } from "./usePosterSnapshot";
 
 const NOW = Date.parse("2026-10-04T10:00:00Z") / 1000;

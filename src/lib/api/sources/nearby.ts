@@ -1,8 +1,9 @@
 import "server-only";
+import { NEARBY_FETCH_TIMEOUT_MS } from "@/constants/network";
 import { cacheLife } from "next/cache";
-import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS } from "./constants";
-import { mapCode } from "./openmeteo";
-import type { Condition } from "./types";
+import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS, WEATHER_STALE_SECONDS } from "@/constants/cache";
+import { mapCode } from "@/lib/api/providers/openmeteo";
+import type { Condition } from "@/types/weather";
 
 /**
  * The weather right now in a handful of places at once, for the towns around
@@ -13,20 +14,20 @@ import type { Condition } from "./types";
 
 const FORECAST = "https://api.open-meteo.com/v1/forecast";
 
-export interface NearbyReading {
+export type NearbyReading = {
   temp: number;
   condition: Condition;
   night: boolean;
-}
+};
 
 type Current = { temperature_2m: number | null; weather_code: number | null; is_day: number | null };
 
 /** Keyed on the coordinate lists; a failure throws, and a throw is never cached. */
 async function readings(latitudes: string, longitudes: string): Promise<(NearbyReading | null)[]> {
   "use cache";
-  cacheLife({ revalidate: WEATHER_REVALIDATE_SECONDS, expire: MAX_DATA_AGE_SECONDS, stale: 5 * 60 });
+  cacheLife({ revalidate: WEATHER_REVALIDATE_SECONDS, expire: MAX_DATA_AGE_SECONDS, stale: WEATHER_STALE_SECONDS });
   const q = new URLSearchParams({ latitude: latitudes, longitude: longitudes, current: "temperature_2m,weather_code,is_day" });
-  const res = await fetch(`${FORECAST}?${q}`, { signal: AbortSignal.timeout(6000) });
+  const res = await fetch(`${FORECAST}?${q}`, { signal: AbortSignal.timeout(NEARBY_FETCH_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`${res.status}`);
   // One place comes back as an object, several as a list in the order asked.
   const raw = (await res.json()) as { current?: Current } | { current?: Current }[];

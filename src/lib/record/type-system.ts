@@ -1,7 +1,5 @@
+import { clamp } from "@/utils/math";
 import type { FontRef } from "./types";
-
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-
 
 /** Syne's real axes: weight 400-800, one width */
 export const DISPLAY_AXES = { wght: [400, 800], wdth: [100, 100] } as const;

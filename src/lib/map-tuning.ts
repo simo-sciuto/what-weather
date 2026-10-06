@@ -5,14 +5,14 @@
  * and exposed the same way, as an external store; every access is guarded.
  */
 
-export interface MapTuning {
+export type MapTuning = {
   /** Degrees round the wheel from the page's own colours (opposite the sky), 0 to 359 */
   hue: number;
   /** 0 (white lines) to 100 (as vivid as they get); 50 is the page's own pastel */
   vivid: number;
   /** 0 (barely there) to 100 (as strong as the sky allows); 50 is the page's own */
   contrast: number;
-}
+};
 
 export const MAP_TUNING: MapTuning = { hue: 0, vivid: 50, contrast: 50 };
 

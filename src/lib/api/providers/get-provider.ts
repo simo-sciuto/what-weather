@@ -24,5 +24,3 @@ export function getProvider(scenario?: string, at?: string): WeatherProvider {
   if (name === "mock") return createMockProvider(isMockScenario(scenario) ? scenario : undefined, at);
   throw new Error(`Unknown WEATHER_PROVIDER "${name}"`);
 }
-
-export { DEFAULT_PLACE } from "./constants";

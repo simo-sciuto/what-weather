@@ -1,8 +1,10 @@
-import { THRESHOLDS } from "./constants";
+import { HOUR_SECONDS, DAY_SECONDS } from "@/constants/time";
+import { CONDITION_NAMES, WIND_LABELS, MOON_LABELS, HIGH_UV_LABEL, LEVEL_LABELS } from "@/constants/labels";
+import { THRESHOLDS } from "@/constants/weather";
 import { localDay } from "./formatters";
 import { illumination, moonPhaseAt, phaseName, secondsUntilPhase } from "./moon";
 import { hasSunTimes } from "./sun";
-import type { AirQuality, Pollen, Pollutants, WeatherData } from "./types";
+import type { AirQuality, Pollen, Pollutants, WeatherData } from "@/types/weather";
 
 /**
  * Derived readings for the detail modules, plus the rules deciding which
@@ -23,7 +25,7 @@ function compassPoint(deg: number): string {
 /** Beaufort description for a wind speed in km/h. */
 function beaufort(kmh: number): string {
   const scale: [number, string][] = [
-    [1, "Calma"], [6, "Bava di vento"], [12, "Brezza leggera"], [20, "Brezza tesa"], [29, "Vento moderato"],
+    [1, WIND_LABELS.calm], [6, "Bava di vento"], [12, "Brezza leggera"], [20, "Brezza tesa"], [29, "Vento moderato"],
     [39, "Vento teso"], [50, "Vento fresco"], [62, "Vento forte"], [75, "Burrasca"], [89, "Burrasca forte"],
     [103, "Tempesta"],
   ];
@@ -71,10 +73,10 @@ type PressureTrend = "rising" | "steady" | "falling";
  */
 export function pressureTrend(d: WeatherData): { trend: PressureTrend; change: number; series: { time: number; pressure: number }[] } | null {
   const now = d.current.time;
-  const ahead = d.hourly.filter((h) => h.time > now - 1800 && h.time <= now + 24 * 3600);
+  const ahead = d.hourly.filter((h) => h.time > now - 1800 && h.time <= now + 24 * HOUR_SECONDS);
   if (ahead.length < 2) return null;
   const base = ahead[0];
-  const later = ahead.find((h) => h.time >= base.time + 6 * 3600 - 1800);
+  const later = ahead.find((h) => h.time >= base.time + 6 * HOUR_SECONDS - 1800);
   if (!later) return null;
   const change = later.pressure - base.pressure;
   const trend: PressureTrend = change >= 2 ? "rising" : change <= -2 ? "falling" : "steady";
@@ -84,17 +86,17 @@ export function pressureTrend(d: WeatherData): { trend: PressureTrend; change: n
 /* ---------- Visibility ---------- */
 
 export function visibilityInfo(km: number) {
-  const description = km < 1 ? "Nebbia" : km < 4 ? "Foschia" : km < 10 ? "Buona" : "Ottima";
+  const description = km < 1 ? CONDITION_NAMES.fog : km < 4 ? "Foschia" : km < 10 ? "Buona" : "Ottima";
   return { km, description, capped: km >= 10, poor: km < 1 };
 }
 
 /* ---------- UV ---------- */
 
 function uvCategory(uv: number): string {
-  if (uv < 3) return "Basso";
-  if (uv < 6) return "Moderato";
-  if (uv < 8) return "Alto";
-  if (uv < 11) return "Molto alto";
+  if (uv < 3) return LEVEL_LABELS[0];
+  if (uv < 6) return LEVEL_LABELS[1];
+  if (uv < 8) return LEVEL_LABELS[2];
+  if (uv < 11) return LEVEL_LABELS[3];
   return "Estremo";
 }
 
@@ -186,8 +188,6 @@ export function airInfo(aq: AirQuality) {
 
 /* ---------- Pollen ---------- */
 
-export const POLLEN_LABELS = ["Basso", "Moderato", "Alto", "Molto alto"] as const;
-
 /**
  * Lower bounds in grains/m³ of Moderate, High and Very high for each family,
  * after the bands of the US National Allergy Bureau (AAAAI). Those are for a
@@ -208,12 +208,12 @@ export function pollenInfo(p: Pollen) {
     .filter((k) => p[k] >= 1)
     .map((k) => {
       const band = 1 + POLLEN_BANDS[k].filter((x) => p[k] >= x).length;
-      return { key: k, name: POLLEN_NAMES[k], grains: p[k], band, label: POLLEN_LABELS[band - 1] };
+      return { key: k, name: POLLEN_NAMES[k], grains: p[k], band, label: LEVEL_LABELS[band - 1] };
     })
     .sort((a, b) => b.band - a.band || b.grains - a.grains);
   if (!families.length) return null;
   const band = families[0].band;
-  return { band, label: POLLEN_LABELS[band - 1], high: band >= 3, families };
+  return { band, label: LEVEL_LABELS[band - 1], high: band >= 3, families };
 }
 
 /* ---------- Sun ---------- */
@@ -224,7 +224,7 @@ export function sunInfo(d: WeatherData) {
   const now = d.current.time;
   const day = d.sunset - d.sunrise;
   const tomorrowRise =
-    d.daily.find((x) => x.sunrise && x.sunrise > now)?.sunrise ?? d.sunrise + 86400;
+    d.daily.find((x) => x.sunrise && x.sunrise > now)?.sunrise ?? d.sunrise + DAY_SECONDS;
   const isDay = now >= d.sunrise && now <= d.sunset;
   const next = now < d.sunrise
     ? { type: "sunrise" as const, time: d.sunrise }
@@ -246,11 +246,11 @@ export function sunInfo(d: WeatherData) {
 /* ---------- Moon ---------- */
 
 function upcomingPhase(phase: number): string | null {
-  const full = secondsUntilPhase(phase, 0.5) / 86400;
-  const fresh = secondsUntilPhase(phase, 0) / 86400;
+  const full = secondsUntilPhase(phase, 0.5) / DAY_SECONDS;
+  const fresh = secondsUntilPhase(phase, 0) / DAY_SECONDS;
   const days = Math.round(Math.min(full, fresh));
   if (days === 0) return null;
-  return `${full <= fresh ? "Luna piena" : "Luna nuova"} tra ${days} ${days === 1 ? "giorno" : "giorni"}`;
+  return `${full <= fresh ? MOON_LABELS.fullMoon : MOON_LABELS.newMoon} tra ${days} ${days === 1 ? "giorno" : "giorni"}`;
 }
 
 export function moonInfo(d: WeatherData) {
@@ -274,14 +274,14 @@ export function moonInfo(d: WeatherData) {
 
 export type DetailKey = "wind" | "humidity" | "uv" | "air" | "pollen" | "sun" | "moon" | "pressure" | "visibility";
 
-export interface DetailModule {
+export type DetailModule = {
   key: DetailKey;
   /** Promoted modules move to the front and take more room */
   promoted: boolean;
   /** The weather made it urgent: an accent outline and a note saying why */
   alert: boolean;
   note?: string;
-}
+};
 
 /**
  * Calm weather: a quiet, fixed order (secondary before tertiary). Notable
@@ -300,7 +300,7 @@ export function detailModules(d: WeatherData): DetailModule[] {
   const modules: (Omit<DetailModule, "alert"> & { severity: number })[] = [
     { key: "wind", promoted: wind.strong, note: wind.strong ? "Vento forte" : undefined, severity: 3 },
     { key: "humidity", promoted: false, severity: 0 },
-    ...(uv ? [{ key: "uv" as const, promoted: uv.high, note: uv.high ? "UV alto" : undefined, severity: 2 }] : []),
+    ...(uv ? [{ key: "uv" as const, promoted: uv.high, note: uv.high ? HIGH_UV_LABEL : undefined, severity: 2 }] : []),
     ...(air
       ? [{ key: "air" as const, promoted: true, note: air.poor ? `Aria ${air.label.toLowerCase()}` : undefined, severity: air.poor ? 2 : 0 }]
       : []),

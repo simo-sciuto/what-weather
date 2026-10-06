@@ -3,7 +3,7 @@ import { Inter_Tight, Syne } from "next/font/google";
 import "./globals.css";
 
 /** The one family of the page, many weights: the place's name heavy and tight, the temperature light, the small print in between. */
-/** The place's name and the temperature (ADR-014): Syne, wide and heavy */
+/** The place's name and the temperature (ADR-015): Syne, wide and heavy */
 const display = Syne({
   variable: "--font-display-face",
   subsets: ["latin", "latin-ext"],

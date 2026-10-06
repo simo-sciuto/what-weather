@@ -1,3 +1,4 @@
+import { WIND_LABELS } from "@/constants/labels";
 import {
   airInfo,
   comfort,
@@ -11,7 +12,7 @@ import {
   type DetailKey,
 } from "@/lib/weather/details";
 import { formatDuration, formatSigned, formatTemp, formatTime } from "@/lib/weather/formatters";
-import type { WeatherData } from "@/lib/weather/types";
+import type { WeatherData } from "@/types/weather";
 import type { ReactNode } from "react";
 import { Disclosure } from "./Disclosure";
 import { BAND_COLORS, Compass, PollutantRow, Scale, Sparkline, SunArc } from "./figures";
@@ -25,14 +26,14 @@ import { MoonGlyph } from "./MoonGlyph";
 
 export type FigureSize = "sm" | "lg";
 
-export interface DetailContent {
+export type DetailContent = {
   name: string;
   value: ReactNode;
   note: string;
   figure?: (size: FigureSize) => ReactNode;
   /** Extra detail behind a disclosure */
   more?: ReactNode;
-}
+};
 
 const Unit = ({ children }: { children: ReactNode }) => (
   <span className="ml-1 text-[0.45em] font-normal tracking-normal text-ink-muted">{children}</span>
@@ -49,7 +50,7 @@ export function detailContent(key: DetailKey, d: WeatherData): DetailContent | n
       const w = windInfo(d);
       const gust = w.gust != null && w.gust > w.speed + 3 ? ` · raffiche ${Math.round(w.gust)} km/h` : "";
       return {
-        name: "Vento",
+        name: WIND_LABELS.wind,
         value: (
           <>
             {Math.round(w.speed)}

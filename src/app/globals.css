@@ -200,7 +200,7 @@ body {
   line-height: 0.86;
 }
 
-/* The temperature, in the same face as the name (ADR-014) */
+/* The temperature, in the same face as the name (ADR-015) */
 .display-figure {
   font-family: var(--font-display-face), var(--font-poster);
   font-weight: 500;

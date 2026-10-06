@@ -1,3 +1,4 @@
+import { TIME_LABELS } from "@/constants/labels";
 import {
   conditionLabel,
   formatCoords,
@@ -6,7 +7,7 @@ import {
 } from "@/lib/weather/formatters";
 import type { TempRange } from "@/lib/weather/today";
 import { yesterdayWords } from "@/lib/weather/yesterday";
-import type { CurrentWeather, Place } from "@/lib/weather/types";
+import type { CurrentWeather, Place } from "@/types/weather";
 import { LocationControl } from "../location/LocationControl";
 import {
   HeroActions,
@@ -164,7 +165,7 @@ export function WeatherHero({
       </div>
 
       <p className="sr-only">
-        Adesso {formatTemp(current.temp)}, {label.toLowerCase()}, percepita{" "}
+        {TIME_LABELS.now} {formatTemp(current.temp)}, {label.toLowerCase()}, percepita{" "}
         {formatTemp(current.feelsLike)}. Massima {formatTemp(range.max)}, minima{" "}
         {formatTemp(range.min)}
         {range.note ? ` (${range.note})` : " oggi"}.
