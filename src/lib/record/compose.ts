@@ -450,11 +450,6 @@ function hole(c: Ctx, city: Point, preferred: boolean, seed: number): Plan {
     preferred,
     cut: true,
     wordmark: { x: M, y: markBase, size: 17 },
-    // A veil of the sky behind the name, fading in above it and out below it, so it reads on any street
-    shades: [
-      { y0: Math.max(0, top - 90), y1: (top + nameBottom) / 2, from: 0, to: 0.5 },
-      { y0: (top + nameBottom) / 2, y1: Math.min(bottom, nameBottom + 90), from: 0.5, to: 0 },
-    ],
   };
 }
 

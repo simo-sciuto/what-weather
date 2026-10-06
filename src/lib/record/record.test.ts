@@ -249,6 +249,8 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
       const cut = s.layers.find((l) => l.id === "map-cut")!;
       expect(cut.clip?.glyphsOf).toEqual(["place"]);
       expect(cut.z).toBeGreaterThan(place.z);
+      // No veil behind the name: it read as a band of light over a dark sea
+      expect(s.layers.some((l) => l.payload.kind === "shade")).toBe(false);
     }
   });
 
