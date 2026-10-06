@@ -22,7 +22,7 @@ export function HeroTemp({
   return (
     <p
       aria-hidden="true"
-      className={`climate tracking-[-0.03em] whitespace-nowrap tabular-nums transition-colors duration-700 ${
+      className={`display-figure tracking-[-0.03em] whitespace-nowrap tabular-nums transition-colors duration-700 ${
         size === "phone"
           ? "text-[clamp(5.5rem,27vw,7.25rem)] leading-[0.76]"
           : "mt-[0.165em] text-[1.9em] leading-[0.727]"

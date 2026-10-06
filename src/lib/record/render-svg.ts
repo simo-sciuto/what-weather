@@ -35,7 +35,7 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
 
   const fontAttrs = (f: FontRef) => {
     const family = f.family === "display" ? DISPLAY_FAMILY : MONO_FAMILY;
-    const variation = f.family === "display" && f.year != null ? `font-variation-settings:'YEAR' ${f.year};` : "";
+    const variation = f.family === "display" ? `font-variation-settings:'wght' ${f.wght};` : "";
     return `font-family="${family}" font-size="${n(f.size * W)}" style="font-weight:${f.wght};${variation}letter-spacing:${n(f.tracking * f.size * W)}px;font-kerning:normal"`;
   };
 
@@ -65,7 +65,13 @@ export function renderSvg(scene: RecordScene, style: RenderStyle = "swiss-flat",
     if (p.kind === "rect")
       inner = `<rect x="${n(p.x * W)}" y="${n(p.y * H)}" width="${n(p.width * W)}" height="${n(p.height * H)}" fill="${ink(l)}"/>`;
     else if (p.kind === "text") inner = textOf(l, ink(l));
-    else if (p.kind === "image") {
+    else if (p.kind === "shade") {
+      const gid = id(`shade-${l.id}`);
+      defs.push(
+        `<linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ink(l)}" stop-opacity="${p.from}"/><stop offset="1" stop-color="${ink(l)}" stop-opacity="${p.to}"/></linearGradient>`,
+      );
+      inner = `<rect x="${n(p.x * W)}" y="${n(p.y * H)}" width="${n(p.width * W)}" height="${n(p.height * H)}" fill="url(#${gid})"/>`;
+    } else if (p.kind === "image") {
       const href = o.images?.[p.key];
       inner = href
         ? `<image href="${esc(href)}" x="${n(p.x * W)}" y="${n(p.y * H)}" width="${n(p.width * W)}" height="${n(p.height * H)}" preserveAspectRatio="none"/>`

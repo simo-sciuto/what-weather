@@ -1,7 +1,7 @@
 /**
- * The record's faces, self-hosted in public/fonts/record (SIL Open Font License 1.1): Climate Crisis for the large
- * type (the user's choice of 2026-10-06), whose YEAR axis (1979-2050) melts the letters with the Arctic sea ice, set
- * to the record's year; Schibsted Grotesk for the small notes (`mono`, a role, not a monospace).
+ * The record's faces, self-hosted in public/fonts/record (SIL Open Font License 1.1): Syne for the large type (the
+ * user's choice of 2026-10-06, after Climate Crisis read too poorly), variable on weight (400-800); Schibsted
+ * Grotesk for the small notes (`mono`, a role, not a monospace).
  */
 export const DISPLAY_FAMILY = "WW Record Display";
 export const MONO_FAMILY = "WW Record Mono";
@@ -15,8 +15,8 @@ const LATIN_EXT =
 export type FontFaceSpec = { family: string; file: string; weight: string; stretch: string; unicodeRange: string };
 
 export const RECORD_FONT_FACES: readonly FontFaceSpec[] = [
-  { family: DISPLAY_FAMILY, file: "climate-crisis-latin.woff2", weight: "400", stretch: "100%", unicodeRange: LATIN },
-  { family: DISPLAY_FAMILY, file: "climate-crisis-latin-ext.woff2", weight: "400", stretch: "100%", unicodeRange: LATIN_EXT },
+  { family: DISPLAY_FAMILY, file: "syne-400-800-latin.woff2", weight: "400 800", stretch: "100%", unicodeRange: LATIN },
+  { family: DISPLAY_FAMILY, file: "syne-400-800-latin-ext.woff2", weight: "400 800", stretch: "100%", unicodeRange: LATIN_EXT },
   { family: MONO_FAMILY, file: "schibsted-grotesk-400-900-latin.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN },
   { family: MONO_FAMILY, file: "schibsted-grotesk-400-900-latin-ext.woff2", weight: "400 900", stretch: "100%", unicodeRange: LATIN_EXT },
 ];

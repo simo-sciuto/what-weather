@@ -15,13 +15,13 @@ export function domMeasure(): Measure {
   document.body.append(span);
   const cache = new Map<string, number>();
   return (text: string, f: FontRef) => {
-    const key = `${f.family}|${f.wght}|${f.wdth}|${f.year ?? ""}|${f.tracking}|${text}`;
+    const key = `${f.family}|${f.wght}|${f.wdth}|${f.tracking}|${text}`;
     let w = cache.get(key);
     if (w == null) {
       span.style.fontFamily = `"${f.family === "display" ? DISPLAY_FAMILY : MONO_FAMILY}"`;
       span.style.fontWeight = String(f.wght);
       span.style.fontStretch = `${f.wdth}%`;
-      span.style.fontVariationSettings = f.family === "display" && f.year != null ? `'YEAR' ${f.year}` : "normal";
+      span.style.fontVariationSettings = f.family === "display" ? `'wght' ${f.wght}` : "normal";
       span.style.letterSpacing = `${f.tracking * REF}px`;
       span.textContent = text;
       // The tracking after the last letter is not part of the line
@@ -35,7 +35,7 @@ export function domMeasure(): Measure {
 /** Waits for the faces the record sets, at the weights it sets them in */
 export async function loadRecordFonts(): Promise<void> {
   await Promise.all(
-    [`400 ${DISPLAY_FAMILY}`, `500 ${MONO_FAMILY}`, `700 ${MONO_FAMILY}`].map((spec) => {
+    [`400 ${DISPLAY_FAMILY}`, `800 ${DISPLAY_FAMILY}`, `500 ${MONO_FAMILY}`, `700 ${MONO_FAMILY}`].map((spec) => {
       const [weight, ...family] = spec.split(" ");
       // One character from each subset, so the Latin Extended file is in before anything is measured
       return document.fonts.load(`${weight} 40px "${family.join(" ")}"`, "AÁ°−0Łș");

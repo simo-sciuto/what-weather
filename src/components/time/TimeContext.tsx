@@ -178,10 +178,8 @@ export function AtmosphereMain({ className, children }: { className?: string; ch
         "--glow": p.glow,
         "--sun": p.sun,
         "--cloud": p.cloud,
-        // The year of the moment on show, for Climate Crisis's YEAR axis (ADR-014), held to the face's range
-        "--climate-year": String(Math.min(2050, Math.max(1979, new Date(frame.time * 1000).getUTCFullYear()))),
       }) as CSSProperties,
-    [p, frame.time],
+    [p],
   );
   return (
     <main data-state={frame.state} data-phase={frame.phase} className={className} style={vars}>

@@ -17,9 +17,9 @@ import {
 import { NarrativeText } from "../time/NarrativeText";
 import { HeroCondition, HeroGlyph, HeroTemp } from "../time/HeroTemp";
 
-/** The width of a capital of the name and of a figure of the temperature, in the title's em (Climate Crisis) */
-const NAME_EM = 0.98 * 0.74;
-const TEMP_EM = 0.82;
+/** The width of a capital of the name and of a figure of the temperature, in the title's em (Syne, ADR-014) */
+const NAME_EM = 1.1 * 0.74;
+const TEMP_EM = 0.72;
 
 /**
  * The reading as a Swiss typographic poster, on a six-column grid, flush left
@@ -61,8 +61,8 @@ export function WeatherHero({
     ...[current.temp, range.min, range.max].map((t) => formatTemp(t).length),
   );
   // The whole width is 100 units, 96 of them kept for the line, so no word ever breaks onto a second
-  // line. Climate Crisis (ADR-014) is wide: a capital runs about 0.98em, set at 0.74 of the title (NAME_EM),
-  // a figure about 0.82em at 1.9 times it (TEMP_EM).
+  // line. Syne (ADR-014) is wide: a heavy capital runs up to 1.1em, set at 0.74 of the title (NAME_EM),
+  // a figure about 0.72em at 1.9 times it (TEMP_EM).
   const titleSize = Math.min(
     15,
     96 / (NAME_EM * longest + TEMP_EM * 1.9 * widestTemp + 0.1),

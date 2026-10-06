@@ -150,7 +150,7 @@ describe("place fitting", () => {
 describe("font axes", () => {
   it("clamps every axis to the font's real range", () => {
     const f = clampAxes({ family: "display", wght: 1200, wdth: 40, size: 0.1, tracking: 0 });
-    expect(f.wght).toBe(400);
+    expect(f.wght).toBe(800);
     expect(f.wdth).toBe(100); // Schibsted has one width
     expect(clampAxes({ family: "mono", wght: 700, wdth: 80, size: 0.1, tracking: 0 })).toMatchObject({ wght: 700, wdth: 100 });
   });
@@ -228,72 +228,60 @@ describe("the city and the inks", () => {
   });
 });
 
-describe("over the site's own map (raster)", () => {
-  const raster = (k: string) => {
+describe("over the site's own map: the classic poster with the record's facts", () => {
+  const raster = (k: string, patch: Partial<RecordInput> = {}) => {
     const r = byKey(k);
-    return getRecordComposition(r.input, r.geography, measure, undefined, "raster");
+    return getRecordComposition({ ...r.input, ...patch }, r.geography, measure, undefined, "raster");
   };
+  const texts = (s: RecordScene) => s.layers.flatMap((l) => (l.payload.kind === "text" ? l.payload.lines.map((x) => x.text) : []));
 
-  it("hands the map and its cut to the renderer, the cut inside the large type only", () => {
-    for (const k of ["milan", "tshuru", "tokyo"]) {
+  it("lays the whole map under veils of the sky at the head and the foot, with no cut through the type", () => {
+    for (const k of ["milan", "tshuru", "tokyo", "san-cristobal"]) {
       const s = raster(k);
-      const map = s.layers.find((l) => l.id === "map")!;
-      const cut = s.layers.find((l) => l.id === "map-cut")!;
-      expect(map.payload).toMatchObject({ kind: "image", key: "map" });
-      expect(cut.payload).toMatchObject({ kind: "image", key: "map-cut" });
-      expect(cut.inkRole).toBe("paper");
-      // The cut follows the first impression's letters, not the second one's
-      const back = s.layers.filter((l) => l.role === "type-back" && !l.id.endsWith("-second")).map((l) => l.id);
-      expect(cut.clip?.glyphsOf).toEqual(back);
-      expect(map.z).toBeLessThan(Math.min(...s.layers.filter((l) => l.role === "type-back").map((l) => l.z)));
-      expect(cut.z).toBeGreaterThan(Math.max(...s.layers.filter((l) => l.role === "type-back").map((l) => l.z)));
-      // The engine's own line geography is not drawn over a real map
-      expect(s.layers.some((l) => l.payload.kind === "paths" && ["water", "coast", "river", "border"].includes(l.id))).toBe(false);
-    }
-  });
-
-  it("lays the map over the whole sheet, with no head or foot band", () => {
-    for (const k of ["milan", "tshuru", "tokyo"]) {
-      const s = raster(k);
-      expect(s.layers.find((l) => l.id === "map")!.clip!.rect).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
-      expect(s.layers.some((l) => l.id.startsWith("rule-") && l.role === "micro")).toBe(false);
-      // Nothing upright: the notes run flat along the top
+      expect(s.metadata.placeFit).toMatch(/^classic/);
+      expect(s.layers.find((l) => l.id === "map")!.payload).toMatchObject({ kind: "image", key: "map" });
+      expect(s.layers.filter((l) => l.payload.kind === "shade")).toHaveLength(2);
+      expect(s.layers.some((l) => l.id === "map-cut")).toBe(false);
       expect(s.layers.filter((l) => l.transform?.rotate)).toEqual([]);
-      const sig = s.layers.find((l) => l.id === "signature")!;
-      expect(sig.payload.kind === "text" && sig.payload.lines.map((l) => l.text).join(" ")).toContain("© MAPBOX © OPENSTREETMAP");
     }
   });
 
-  it("takes the Tshuru structure for every weather over the map, mirrored or not by the seed", () => {
-    for (const k of ["milan", "tokyo", "reykjavik", "oslo"]) expect(raster(k).metadata.mode).toBe("collision");
+  it("sets the head (region, country) and the foot (name, temperature, facts, signature, credits)", () => {
+    const s = raster("tokyo", { place: { name: "Tokyo", lat: 35.68, lon: 139.77, region: "Tokyo", country: "Giappone" } });
+    const all = texts(s);
+    expect(all).toContain("GIAPPONE");
+    expect(all).toContain("TOKYO");
+    expect(all).toContain("18°");
+    expect(all).toContain("RAIN");
+    expect(all).toContain("© MAPBOX © OPENSTREETMAP");
+    expect(all).toContain("WW / 2026 / 278 / TOKYO");
+    // The name and the temperature share the last baseline, the temperature flush right
+    const place = s.layers.find((l) => l.id === "place")!.payload;
+    const num = s.layers.find((l) => l.id === "dominant")!.payload;
+    if (place.kind === "text" && num.kind === "text") expect(num.lines[0].y).toBeCloseTo(place.lines[place.lines.length - 1].y, 6);
   });
 
   it("takes its colours from the app's colour study: the sky, the page's white, the temperature's absolute colour", () => {
-    const night = raster("tokyo");
-    expect(night.inks.accent).toBe(RECORD_ACCENT);
-    expect(night.inks["ink-1"]).toBe("#ffffff");
-    expect(night.inks["ink-2"]).toBe("#b3e9c4"); // tempColor(18): rgb(179 233 196)
-    expect(night.layers.find((l) => l.id === "dominant")!.inkRole).toBe("ink-2");
-    expect(night.layers.find((l) => l.id === "place")!.inkRole).toBe("ink-2");
-    expect(night.layers.some((l) => l.id.endsWith("-second"))).toBe(false);
-  });
-
-  it("sets the large type on the record's year, along Climate Crisis's YEAR axis", () => {
     const s = raster("tokyo");
-    const dom = s.layers.find((l) => l.id === "dominant")!;
-    expect(dom.payload.kind === "text" && dom.payload.font.year).toBe(2026);
-    const old = getRecordComposition({ ...byKey("tokyo").input, date: "1950-05-01" }, null, measure, undefined, "raster");
-    const d = old.layers.find((l) => l.id === "dominant")!;
-    expect(d.payload.kind === "text" && d.payload.font.year).toBe(1979);
-    expect(renderSvg(s, "swiss-flat", { width: 620, height: 877 })).toContain("'YEAR' 2026");
+    expect(s.inks.accent).toBe(RECORD_ACCENT);
+    expect(s.inks["ink-1"]).toBe("#ffffff");
+    expect(s.inks["ink-2"]).toBe("#b3e9c4"); // tempColor(18): rgb(179 233 196)
+    expect(s.layers.find((l) => l.id === "dominant")!.inkRole).toBe("ink-2");
+    expect(s.layers.find((l) => l.id === "place")!.inkRole).toBe("ink-2");
   });
 
-  it("puts the pictures it is given into the SVG", () => {
+  it("fits a long name on two lines beside the temperature", () => {
+    const s = raster("san-cristobal");
+    const place = s.layers.find((l) => l.id === "place")!.payload;
+    expect(place.kind === "text" && place.lines.length).toBeLessThanOrEqual(2);
+    expect(place.kind === "text" && place.lines.map((l) => l.text).join(" ")).toBe("SAN CRISTOBAL DE LAS CASAS");
+  });
+
+  it("puts the pictures it is given into the SVG, with the veils as gradients", () => {
     const svg = renderSvg(raster("oslo"), "swiss-flat", { width: 620, height: 877, images: { map: "data:image/png;base64,AA==", "map-cut": "data:image/png;base64,BB==" } });
     expect(svg).toContain('href="data:image/png;base64,AA=="');
-    expect(svg).toContain('href="data:image/png;base64,BB=="');
+    expect(svg).toContain("<linearGradient");
     expect(svg).not.toContain("<feTurbulence");
-    expect(svg).not.toContain("mix-blend-mode");
   });
 });
 

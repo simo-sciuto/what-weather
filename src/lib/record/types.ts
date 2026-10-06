@@ -33,7 +33,8 @@ export type Geography = {
 
 /** One record's facts, in the project's units (°C, km/h, km, %, mm/h, hPa). Absent is not zero. */
 export type RecordInput = {
-  place: { name: string; lat: number; lon: number };
+  /** The region and country, in Italian, when known (either may be empty) */
+  place: { name: string; lat: number; lon: number; region?: string; country?: string };
   /** The place's local calendar day, "2026-10-05" */
   date: string;
   /** The place's local clock, "12:00" */
@@ -69,8 +70,6 @@ export type FontRef = {
   size: number;
   /** In em */
   tracking: number;
-  /** Climate Crisis's YEAR axis (1979-2050): the record's year, its letters melting with the Arctic ice */
-  year?: number;
 };
 
 /** Measures a line set in `font`, as a fraction of the sheet's width; injected, so the engine stays pure */
@@ -86,6 +85,9 @@ export type TextPayload = {
   /** A thin outline in this ink under the letters, so small type reads over a busy map (cartography's halo) */
   halo?: InkRole;
 };
+
+/** A veil of one ink down a rectangle, its opacity running from `from` at the top to `to` at the bottom */
+export type ShadePayload = { kind: "shade"; x: number; y: number; width: number; height: number; from: number; to: number };
 
 /** A picture the renderer is handed by key (a map drawn elsewhere), stretched over a rectangle */
 export type ImagePayload = { kind: "image"; key: string; x: number; y: number; width: number; height: number };
@@ -132,7 +134,7 @@ export type SceneLayer = {
   opacity: number;
   transform?: Transform;
   clip?: Clip;
-  payload: TextPayload | PathsPayload | RectPayload | NodePayload | ImagePayload;
+  payload: TextPayload | PathsPayload | RectPayload | NodePayload | ImagePayload | ShadePayload;
 };
 
 export type RecordScene = {

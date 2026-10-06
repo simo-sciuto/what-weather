@@ -55,7 +55,7 @@ export function recordClock(ts: number, timeZone: string): { time: string; zone:
  */
 export function recordInputOf({ place, frame, timeZone, day }: Pick<PosterSources, "place" | "frame" | "timeZone" | "day">): RecordInput {
   return {
-    place: { name: place.name, lat: place.lat, lon: place.lon },
+    place: { name: place.name, lat: place.lat, lon: place.lon, ...placeParts(place) },
     date: frame.dayKey,
     ...recordClock(frame.time, timeZone),
     condition: frame.condition,

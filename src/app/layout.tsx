@@ -1,16 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Climate_Crisis, Inter_Tight } from "next/font/google";
+import { Inter_Tight, Syne } from "next/font/google";
 import "./globals.css";
 
 /** The one family of the page, many weights: the place's name heavy and tight, the temperature light, the small print in between. */
-/**
- * The place's name and the temperature (ADR-014): Climate Crisis, whose YEAR axis melts the letters with the Arctic
- * sea ice, set to the year of the moment on show (`--climate-year`, from AtmosphereMain).
- */
-const climate = Climate_Crisis({
-  variable: "--font-climate",
+/** The place's name and the temperature (ADR-014): Syne, wide and heavy */
+const display = Syne({
+  variable: "--font-display-face",
   subsets: ["latin", "latin-ext"],
-  axes: ["YEAR"],
 });
 
 const poster = Inter_Tight({
@@ -43,7 +39,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="it" className={`${poster.variable} ${climate.variable} h-full antialiased`}>
+    <html lang="it" className={`${poster.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

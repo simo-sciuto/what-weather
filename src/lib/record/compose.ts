@@ -93,6 +93,8 @@ type Plan = {
   fitScore: number;
   /** The hand-made poster's spot for the city */
   preferred: boolean;
+  /** Veils of the paper over the map, so the type reads on any street (reference units) */
+  shades?: { y0: number; y1: number; from: number; to: number }[];
 };
 
 type Ctx = {
@@ -107,9 +109,9 @@ type Ctx = {
 /** Widths in reference units: the engine's measure works in sheet units */
 const width = (c: Ctx, text: string, f: FontRef) => c.measure(text, { ...f, size: f.size / REF_W }) * REF_W;
 
-function fitName(c: Ctx, size: number, maxWidth: number, maxLines: number, tracking: number): Fitted {
+function fitName(c: Ctx, size: number, maxWidth: number, maxLines: number, tracking: number, weight?: number): Fitted {
   const fitted = fitPlace(upper(c.r.place.name), {
-    font: display(c.tv.support, size / REF_W, tracking),
+    font: display(weight == null ? c.tv.support : { ...c.tv.support, weight }, size / REF_W, tracking),
     wdthMin: 62,
     maxWidth: maxWidth / REF_W,
     minSize: (size * 0.4) / REF_W,
@@ -334,6 +336,95 @@ function field(c: Ctx, city: Point, preferred: boolean): Plan {
   };
 }
 
+/* ---------- CLASSIC: the poster as it was (map, name at the foot, hairlines), with the record's facts ---------- */
+
+/**
+ * The poster's own style before the records (the user's choice of 2026-10-06), over the site's map: the region and
+ * the country at the head over a hairline, the record's ID and moment under it; at the foot the place's name, large,
+ * with the temperature beside it as on the home page, then a hairline and the record's facts on the grid's columns
+ * (coordinates, day and hour, the condition and its readings), the signature and the map's credits last.
+ */
+function classic(c: Ctx, city: Point, preferred: boolean): Plan {
+  const texts: Text[] = [];
+  const small = MICRO;
+  // Head
+  const headBase = 46;
+  if (c.r.place.region)
+    texts.push({ id: "region", lines: [{ text: c.r.place.region, x: M, y: headBase }], font: mono(500, small * 1.3), ink: "ink-1", opacity: 0.95, z: "micro" });
+  if (c.r.place.country)
+    texts.push({
+      id: "country",
+      lines: [{ text: upper(c.r.place.country), x: c.r.place.region ? R : M, y: headBase }],
+      font: { ...mono(700, small * 1.3), tracking: 0.08 },
+      ink: "ink-2",
+      opacity: 1,
+      anchor: c.r.place.region ? "end" : "start",
+      z: "micro",
+    });
+  texts.push({ id: "record-id", lines: [{ text: recordId(c.r.place.name, c.r.date), x: M, y: headBase + 26 }], font: mono(500, small * 0.9), ink: "ink-1", opacity: 0.8, z: "micro" });
+  texts.push({ id: "moment", lines: [{ text: `${formatDate(c.r.date)}  ${stamp(c.r)}`, x: R, y: headBase + 26 }], font: mono(500, small * 0.9), ink: "ink-1", opacity: 0.8, anchor: "end", z: "micro" });
+
+  // Foot, from the bottom up: credits and signature, two rows of facts, the hairline, the name and the temperature
+  const signBase = c.bottom - 24;
+  texts.push({ id: "signature", lines: [{ text: "what weather", x: M, y: signBase }], font: display({ weight: 800, width: 100, tracking: -0.02 }, 15, -0.02), ink: "ink-1", opacity: 0.9, z: "micro" });
+  texts.push({ id: "credits", lines: [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: signBase }], font: mono(500, small * 0.8), ink: "ink-1", opacity: 0.6, anchor: "end", z: "micro" });
+  const rowB = signBase - 34;
+  const rowA = rowB - 40;
+  const [lat, lon] = coordsOf(c.r);
+  texts.push(...pairs("lat", COL[0], rowA, "LAT", lat), ...pairs("lon", COL[1], rowA, "LON", lon));
+  texts.push(...pairs("date", COL[0], rowB, "DAY", formatDate(c.r.date)), ...pairs("time", COL[1], rowB, "TIME", stamp(c.r)));
+  texts.push({ id: "condition", lines: [{ text: c.word, x: COL[3], y: rowA + 12 }], font: { ...conditionFont(700, 100), size: 13, tracking: 0.04 }, ink: "ink-1", opacity: 1, z: "micro" });
+  const ms = metricsFor(["feels", "range", ...FAMILY_ORDER[conditionFamily(c.r)]], c.r, 5, []);
+  const slots: Point[] = [
+    [COL[4], rowA],
+    [COL[5], rowA],
+    [COL[3], rowB],
+    [COL[4], rowB],
+    [COL[5], rowB],
+  ];
+  ms.forEach((m, i) => texts.push(...pairs(`metric-${i}`, slots[i][0], slots[i][1], m.label, m.value)));
+  const rule = rowA - 26;
+
+  // The temperature at the right, on the name's last baseline; the name takes what the line leaves
+  const num = degrees(c.r.temp);
+  const nameBase = rule - 18;
+  const numFont = display({ weight: 600, width: 100, tracking: -0.03 }, 1, -0.03);
+  const numUnit = width(c, num, numFont);
+  // The temperature is 1.35 times the name's size, never more than the room kept for it at the name's largest
+  const NAME_MAX = 96;
+  const numMax = NAME_MAX * 1.35;
+  const fitted = fitName(c, NAME_MAX, R - M - numUnit * numMax - 16, 2, -0.02, 800);
+  const s = fitted.font.size;
+  // As large as the line leaves it, up to 1.9 times the name (as on the home page)
+  const numSize = Math.max(s * 1.35 > numMax ? numMax : s * 1.35, Math.min((R - M - fitted.width - 20) / numUnit, s * 1.9, 170));
+  const nf = { ...numFont, size: numSize };
+  const numW = width(c, num, nf);
+  const nameFont = fitted.font;
+  const lines = fitted.lines.map((text, i) => ({ text, x: M - s * 0.03, y: nameBase - (fitted.lines.length - 1 - i) * s * 0.92 }));
+  texts.push({ id: "place", lines, font: nameFont, ink: "ink-2", opacity: 1, z: "type-back" });
+  texts.push({ id: "dominant", lines: [{ text: num, x: R - numW, y: nameBase }], font: nf, ink: "ink-2", opacity: 1, z: "type-back" });
+  const nameTop = lines[0].y - CAP * s;
+  return {
+    city,
+    texts,
+    numeralBox: [R - numW, R, nameBase - CAP * numSize, nameBase],
+    leader: [city, city],
+    node: "dot",
+    coords: { id: "coords", lines: [], font: mono(500), ink: "ink-1", opacity: 1, z: "micro" },
+    rules: [
+      { from: [M, headBase + 10], to: [R, headBase + 10], opacity: 0.5 },
+      { from: [M, rule], to: [R, rule], opacity: 0.5 },
+    ],
+    placeFit: `classic, ${fitted.step}, ${fitted.lines.length} line(s)`,
+    fitScore: 1,
+    preferred,
+    shades: [
+      { y0: Math.min(nameTop - 120, c.bottom * 0.5), y1: c.bottom, from: 0, to: 0.85 },
+      { y0: 0, y1: headBase + 60, from: 0.6, to: 0 },
+    ],
+  };
+}
+
 /* ---------- Where the city lands ---------- */
 
 /** The grid positions the city may take in each mode; the first is the hand-made poster's */
@@ -443,13 +534,13 @@ export function getRecordComposition(
   const tv = typeVisualState(atmosphere);
   // Over the site's map every record takes the Tshuru structure (the user's choice, 2026-10-06): the name heavy at
   // the head, the temperature huge at the foot; the atmosphere moves its type, scale, bleed and tone
-  const mode = raster ? "collision" : tv.mode;
+  const mode = tv.mode;
   const family = conditionFamily(r);
   const seed = recordSeed(r.place.name, r.date, family);
   const rng = mulberry32(seed);
   const c: Ctx = { r, tv, measure, word: CONDITION_WORD[family], bottom };
   const build = (city: Point, preferred: boolean) =>
-    mode === "open-atlas" ? atlas(c, city, preferred) : mode === "collision" ? collision(c, city, preferred) : field(c, city, preferred);
+    raster ? classic(c, city, preferred) : mode === "open-atlas" ? atlas(c, city, preferred) : mode === "collision" ? collision(c, city, preferred) : field(c, city, preferred);
 
   // The map spans the whole sheet and a little more, so its fills and lines leave by the edges
   const bleed = 20;
@@ -459,8 +550,10 @@ export function getRecordComposition(
   const place: Point = [r.place.lon, r.place.lat];
   // The seed's one choice over the map: the structure as drawn, or mirrored (name flush right, the number leaving
   // by the right edge); both are the same record's equals, neither is the weather's
-  const mirrored = raster && (seed & 1) === 1;
-  const tried = citySpots(mode, c).map((spot, i) => {
+  const mirrored = false;
+  // Over the map the city sits a little above the middle, as on the poster before the records, clear of the foot
+  const spots: Point[] = raster ? [[REF_W / 2, REF_H * 0.4]] : citySpots(mode, c);
+  const tried = spots.map((spot, i) => {
     const plan = mirrored ? mirrorPlan(build(spot, i === 0), c) : build(spot, i === 0);
     const crop = { slot: sheet, center: centerFor(place, [ref.x(plan.city[0]), ref.y(plan.city[1])], sheet, spanKm), spanKm };
     const placed = geography ? placeGeography(geography, crop) : null;
@@ -480,8 +573,6 @@ export function getRecordComposition(
   const N = (p: Point): Point => [p[0], p[1] / aspect];
   const P = (p: Point): Point => N([ref.x(p[0]), ref.y(p[1])]);
   const inks = raster ? mapInks(r.light ?? 0.5, atmosphere, r.temp) : recordInks(atmosphere);
-  // The record's year on Climate Crisis's YEAR axis: its letters melt as the Arctic ice did that year
-  const year = Number(r.date.slice(0, 4));
   const text = (t: Text) => {
     add({
       id: t.id,
@@ -493,7 +584,7 @@ export function getRecordComposition(
       payload: {
         kind: "text",
         lines: t.lines.map((l) => ({ ...l, x: ref.x(l.x), y: ref.y(l.y) / aspect })),
-        font: clampAxes({ ...t.font, size: ref.s(t.font.size), ...(t.font.family === "display" ? { year } : {}) }),
+        font: clampAxes({ ...t.font, size: ref.s(t.font.size) }),
         anchor: t.anchor ?? "start",
       },
     });
@@ -507,6 +598,10 @@ export function getRecordComposition(
   // The poster's own map: the whole sheet, no head or foot band
   const band = { kind: "rect" as const, x: 0, y: 0, width: 1, height: 1 };
   if (raster) add({ id: "map", role: "terrain", inkRole: "ink-1", opacity: 1, clip: { rect: band }, payload: { kind: "image", key: "map", x: 0, y: 0, width: 1, height: 1 } });
+  // The classic poster's veils of the sky over the map, under the head and at the foot
+  plan.shades?.forEach((v, i) =>
+    add({ id: `shade-${i}`, role: "terrain", inkRole: "paper", opacity: 1, payload: { kind: "shade", x: 0, y: ref.y(v.y0) / aspect, width: 1, height: (ref.y(v.y1) - ref.y(v.y0)) / aspect, from: v.from, to: v.to } }),
+  );
 
   if (mode !== "open-atlas" && placed) {
     // Cobalt water under everything, rivers faint under the type
@@ -523,7 +618,7 @@ export function getRecordComposition(
   const back = plan.texts.filter((t) => t.z === "type-back");
   for (const t of back) text(t);
 
-  if (raster)
+  if (raster && !plan.shades)
     // THROUGH on the real map: its strongest lines (motorways, main roads, railways, rivers, shores) cut the type
     add({
       id: "map-cut",
@@ -553,39 +648,30 @@ export function getRecordComposition(
   for (const t of plan.texts.filter((t) => t.z === "type-front")) text(t);
 
   // The city: the record's one accent, tied to the name by a hairline
-  lines("leader", "nodes", "ink-1", 1, [[sheetPoint(plan.leader[0]), sheetPoint(plan.leader[1])]], 0.75);
+  const [l0, l1] = plan.leader;
+  if (l0[0] !== l1[0] || l0[1] !== l1[1]) lines("leader", "nodes", "ink-1", 1, [[sheetPoint(l0), sheetPoint(l1)]], 0.75);
   add({ id: "node-city", role: "nodes", inkRole: "accent", opacity: 1, payload: { kind: "node", shape: plan.node, at: P(plan.city), r: ref.s(plan.node === "dot" ? 4.2 : 6) } });
-  text(plan.coords);
+  if (plan.coords.lines.length) text(plan.coords);
 
-  if (mode !== "field-record") plan.rules.forEach((r, i) => rule(i, r, "micro"));
+  if (mode !== "field-record" || raster) plan.rules.forEach((r, i) => rule(i, r, "micro"));
   for (const t of plan.texts.filter((t) => t.z === "micro")) text(t);
-  // No head or foot band and nothing set upright: the record's ID and moment on one small line at the top left,
-  // the signature and the map's credits at the top right, straight on the map
   const id = recordId(r.place.name, r.date);
-  const noteFont = mono(400, MICRO * 0.85);
-  text({
-    id: "record-id",
-    lines: [
-      { text: id, x: M, y: 30 },
-      { text: `${formatDate(r.date)}  ${stamp(r)}`, x: M, y: 42 },
-    ],
-    font: noteFont,
-    ink: "ink-1",
-    opacity: 1,
-    z: "micro",
-  });
-  text({
-    id: "signature",
-    lines: [
-      { text: "WHAT WEATHER", x: R, y: 30 },
-      ...(raster ? [{ text: "© MAPBOX © OPENSTREETMAP", x: R, y: 42 }] : []),
-    ],
-    font: noteFont,
-    ink: "ink-1",
-    opacity: 0.85,
-    anchor: "end",
-    z: "micro",
-  });
+  // The vector records' notes, flat along the top; the classic poster over the map sets its own head and foot
+  if (!raster) {
+    const noteFont = mono(400, MICRO * 0.85);
+    text({
+      id: "record-id",
+      lines: [
+        { text: id, x: M, y: 30 },
+        { text: `${formatDate(r.date)}  ${stamp(r)}`, x: M, y: 42 },
+      ],
+      font: noteFont,
+      ink: "ink-1",
+      opacity: 1,
+      z: "micro",
+    });
+    text({ id: "signature", lines: [{ text: "WHAT WEATHER", x: R, y: 30 }], font: noteFont, ink: "ink-1", opacity: 0.85, anchor: "end", z: "micro" });
+  }
 
   return {
     canvas: { width: canvas.width, height: canvas.height },
