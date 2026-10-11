@@ -7,7 +7,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { usePlace } from "../location/PlaceContext";
 import { useMap } from "../weather/MapContext";
 import { BarTab, GLASS, ICONS, usePhoneNav } from "../layout/PhoneNav";
-import { readoutDescription } from "./readout";
 import { POSTER_FORMATS, renderPoster, type PosterFormat } from "./render-poster";
 import { usePosterSnapshot, type PosterSnapshot } from "./usePosterSnapshot";
 
@@ -222,9 +221,7 @@ export function PosterButton({
               // eslint-disable-next-line @next/next/no-img-element -- a local blob, nothing for next/image to optimise
               <img
                 src={current.url}
-                alt={`Poster di ${place.name}, formato ${POSTER_FORMATS[format].label}. ${
-                  snapshot ? readoutDescription(snapshot.fingerprint, snapshot.time, snapshot.timeZone, { allDay: snapshot.allDay }) : ""
-                }`}
+                alt={`Poster di ${place.name}, formato ${POSTER_FORMATS[format].label}`}
                 className="size-full object-contain"
               />
             ) : (

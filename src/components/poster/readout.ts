@@ -60,22 +60,6 @@ export function readoutRows(fp: WeatherFingerprint, { allDay = false }: { allDay
 }
 
 /**
- * The readout in words for screen readers (WTH-184): the stamp, then each bar as its label and its value in
- * percent, a stand-in marked as such. The poster's image carries the same rows as bars, with no figures.
- */
-export function readoutDescription(
-  fp: WeatherFingerprint,
-  ts: number,
-  timeZone: string,
-  { allDay = false }: { allDay?: boolean } = {},
-): string {
-  const bars = readoutRows(fp, { allDay }).map(
-    (r) => `${r.label} ${Math.round(r.value * 100)}%${r.estimated ? " (stimato)" : ""}`,
-  );
-  return `Momento ${readoutStamp(ts, timeZone, { allDay })}. Lettura del cielo: ${bars.join(", ")}.`;
-}
-
-/**
  * "03.10.2026 · 18:42 CEST": the moment of the record at the place, in its own time zone and with the zone's
  * name, so a record read anywhere says which clock it is on. Numbers only, read the same in any language.
  * A whole day (`allDay`) is its date alone: its frame's time is a nominal instant, not the moment shown.
