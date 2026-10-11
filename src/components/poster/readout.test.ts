@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fingerprintOf, parseFingerprint } from "@/lib/weather/fingerprint";
 import { computeAtmosphere } from "@/lib/weather/visual-input";
-import { daylightOf, readoutRows, readoutStamp } from "./readout";
+import { daylightOf, readoutDescription, readoutRows, readoutStamp } from "./readout";
 
 const fp = (key: string) => parseFingerprint(key)!;
 
@@ -93,5 +93,18 @@ describe("the readout's stamp", () => {
 
   it("gives a whole day its date alone", () => {
     expect(readoutStamp(ts, "Europe/Rome", { allDay: true })).toBe("03.10.2026");
+  });
+});
+
+describe("the readout in words (WTH-184)", () => {
+  const ts = Date.UTC(2026, 9, 3, 16, 42) / 1000;
+
+  it("names each bar with its value and marks a stand-in", () => {
+    const text = readoutDescription(fp("wf1/p50/w30/c80/h20/r40/s0/v10/e60~tchvdpu"), ts, "UTC");
+    expect(text.startsWith("Momento 03.10.2026 · 16:42 UTC. Lettura del cielo: Light 100%, Warmth 30%, Cloud 80%")).toBe(true);
+    // Without its basis or a rate, a value rests on a stand-in and is marked as one
+    const bare = readoutDescription(fp("wf1/p-50/w-90/c0/h0/r0/s70/v0/e0~"), ts, "UTC");
+    expect(bare).toContain("Warmth -90% (stimato)");
+    expect(bare).toContain("Snow 70% (stimato)");
   });
 });
