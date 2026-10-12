@@ -4,6 +4,7 @@ import type { WeatherFingerprint } from "@/lib/weather/fingerprint";
 import type { SunPosition } from "@/lib/weather/sun-position";
 import type { Mapbox } from "@/types/map";
 import { getRecordComposition } from "@/lib/record/compose";
+import { FONT_DIR, sceneFamilies } from "@/lib/record/fonts";
 import { renderSvg } from "@/lib/record/render-svg";
 import type { RecordInput } from "@/lib/record/types";
 import { domMeasure, embeddedFontCss, loadRecordFonts, pageFontCss, svgToPng } from "../record/browser";
@@ -71,14 +72,19 @@ export async function renderPoster({ format, record, palette, options, sun, view
     return { ...composed, inks: { ...composed.inks, paper: palette.sky2 } };
   };
   let scene = compose();
-  const [images, fontCss] = await Promise.all([
+  // Only the faces the scene sets its text in travel inside the SVG (WTH-206)
+  const families = sceneFamilies(scene);
+  const [images, firstFontCss] = await Promise.all([
     drawRecordMap({ width, height, place: record.place, palette, options, sun, view, cityAt: scene.metadata.cityAt, nameBox: scene.metadata.nameBox, token, loadMapbox }),
-    embeddedFontCss(),
+    embeddedFontCss(FONT_DIR, families),
   ]);
   // The facts go where the drawn map is calmest (the sea, a park), measured on the map itself: the same map, the same
   // choice. The city's spot does not depend on it, so the map need not be drawn again.
   const calmest = await calmestSlot(images.map, scene.metadata.factsSlots ?? []);
   if (calmest > 0) scene = compose(calmest);
+  // The calmer placement sets the same faces; if it ever reached another one, that face is embedded too
+  const later = sceneFamilies(scene);
+  const fontCss = [...later].every((f) => families.has(f)) ? firstFontCss : await embeddedFontCss(FONT_DIR, later);
   return svgToPng(renderSvg(scene, "swiss-flat", { fontCss, images, title: scene.metadata.recordId }), width, height);
 }
 

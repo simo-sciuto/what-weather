@@ -3,6 +3,9 @@
  * user's choice of 2026-10-06, after Climate Crisis read too poorly), variable on weight (400-800); Schibsted
  * Grotesk for the small notes (`mono`, a role, not a monospace).
  */
+
+import type { FontRef, RecordScene } from "./types";
+
 export const DISPLAY_FAMILY = "WW Record Display";
 export const MONO_FAMILY = "WW Record Mono";
 /** The wordmark, as on the home page (`Wordmark.tsx`): Inter Tight */
@@ -25,9 +28,21 @@ export const RECORD_FONT_FACES: readonly FontFaceSpec[] = [
   { family: BRAND_FAMILY, file: "inter-tight-100-900-latin-ext.woff2", weight: "100 900", stretch: "100%", unicodeRange: LATIN_EXT },
 ];
 
-/** The @font-face rules, each face's source from `src` (a URL for the page, a data URI inside an exported SVG) */
-export function fontFaceCss(src: (file: string) => string): string {
-  return RECORD_FONT_FACES.map(
+const FAMILY_NAME: Record<FontRef["family"], string> = { display: DISPLAY_FAMILY, mono: MONO_FAMILY, brand: BRAND_FAMILY };
+
+/** The family names the scene's text is set in: an exported SVG carries only those faces (WTH-206) */
+export function sceneFamilies(scene: RecordScene): Set<string> {
+  const out = new Set<string>();
+  for (const l of scene.layers) if (l.payload.kind === "text") out.add(FAMILY_NAME[l.payload.font.family]);
+  return out;
+}
+
+/**
+ * The @font-face rules, each face's source from `src` (a URL for the page, a data URI inside an exported SVG).
+ * `families` keeps only those family names; absent, every face.
+ */
+export function fontFaceCss(src: (file: string) => string, families?: ReadonlySet<string>): string {
+  return RECORD_FONT_FACES.filter((f) => !families || families.has(f.family)).map(
     (f) =>
       `@font-face{font-family:"${f.family}";src:url("${src(f.file)}") format("${f.file.endsWith(".otf") ? "opentype" : "woff2"}");font-weight:${f.weight};font-stretch:${f.stretch};font-style:normal;unicode-range:${f.unicodeRange};font-display:block}`,
   ).join("\n");
