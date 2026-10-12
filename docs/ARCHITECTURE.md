@@ -36,7 +36,7 @@ Rules that hold today:
 | `openmeteo.ts` | Open-Meteo forecast + air-quality | hourly, 8 days, UV, 15-minute precipitation; AQ index is computed here |
 | `mock.ts` | deterministic scenarios | default with no key; `?mock=<scenario>&at=HH:MM`; also forced in dev when a valid scenario is in the URL |
 
-`get-provider.ts` is the factory: `WEATHER_PROVIDER` picks explicitly. `provider.ts` is the `WeatherProvider` contract, `openweather-transformers.ts` holds the OpenWeather raw -> normalized mapping (private to the adapters, ADR-001). `openmeteo.ts` and `openweather-free.ts` reuse helpers of `openweather.ts` (`loadFresh`, `round`, `WeatherProviderError`) and `openmeteo.ts` its reverse geocoding (`lookupPlace`): see WTH-188.
+`get-provider.ts` is the factory: `WEATHER_PROVIDER` picks explicitly. `provider.ts` is the `WeatherProvider` contract, `openweather-transformers.ts` holds the OpenWeather raw -> normalized mapping (private to the adapters, ADR-001). `openmeteo.ts` and `openweather-free.ts` reuse helpers of `openweather.ts` (`loadFresh`, `WeatherProviderError`; the rounding is `roundCoord`, `coordinates.ts`) and `openmeteo.ts` its reverse geocoding (`lookupPlace`): see WTH-188.
 
 ## Sources and calls (`src/lib/api/`)
 
