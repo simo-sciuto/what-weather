@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { airIndexOf, airInfo, AQI_LABELS } from "./details";
-import { toAirQuality, type OWAirPollution } from "./transformers";
-import type { Pollutants } from "./types";
+import { toAirQuality, type OWAirPollution } from "@/lib/api/providers/openweather-transformers";
+import type { Pollutants } from "@/types/weather";
 
 /*
  * WTH-001: the page's 1-5 air index has two origins. OpenWeather gives its own `main.aqi`; Open-Meteo gives only

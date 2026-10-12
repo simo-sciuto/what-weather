@@ -34,14 +34,14 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Not verified: market figures and licence terms are assumptions until WTH-166 and WTH-167.
 - Next: unchanged, the user looks at the lab and K closes.
 
-## 2026-10-04 (phone search)
-- Worked on: WTH-165, the user's pick ("si") with the merge to `main` to follow.
-- Found: the flash is the phone being a script's guess (`useSyncExternalStore` with a server snapshot of `false`): the HTML is born with the whole bar. For the iPhone text I found no certain cause; I changed what WebKit is known to handle badly (the field changing place and size at the instant of focus, a scale animation under the rising keyboard) and gave the text its own colour: a hypothesis, said so to the user.
-- Mistake caught before it shipped: I built the phone's Tailwind classes by joining strings at run time, which Tailwind never sees; written out whole instead.
-- Checked: six tests on the server's HTML (five fail on the old component); tsc and ESLint. Not verified on a phone, which is the user's.
-- Reviewer: no critical problems; the computer's docked classes made `lg:`-only (no clash with the phone's on a narrowed window), the hidden clear button out of the tab order, wording of the changelog made prudent. Not checked by anyone: a narrowed window at 700 px after scrolling, and an iPhone.
-- Merged into `main` (`a4eacf0`, no-ff, as the earlier feature branches): `main` had no commits the branch lacked, the production build passed first (`next build` exit 0, the lab a 404 in the build). Not pushed: the user did not ask for it.
-- Next: the user's pick (push, WTH-182, data audits, the Records track).
+## 2026-10-05 (historical provider)
+- Worked on: WTH-168, after the user's "si" to the architecture and to merging the audits (merged: `9628b22`; the user had pushed `main` meanwhile).
+- Done: asked the real archive before writing the adapter: ERA5-Land alone lacks cloud, rain, wind and weather code (not usable); every model returns visibility and UV empty; `best_match` is the IFS for recent dates; ERA5 snaps the place to a 25 km cell (about 7 km from Milan). Hence the model named by date, `missing` computed from the data, and a recorded real answer as the fixture. Confidence by age from ECMWF's notes on ERA5, stated as an initial rule.
+- Not done: air quality for a past date; the label of a record's first frame ("Adesso"), left for WTH-169.
+- Reviewer: no critical problems; two important, both mine and both fixed: nulls became silent zeros (a missing cloud cover read as a clear sky) while `missing` only watched visibility and UV, now every quantity with a hole is listed and an hour with no weather code is dropped; and the IFS is not a reanalysis (checked on Open-Meteo's page: four operational runs a day, assembled by them), so the record's kind now says `forecast-archive` and the IFS credit is an open question (WTH-222).
+- Then, trying the first candidate records, two faults of the archive that the summer fixture could not show: it cuts days at today's offset (Berlin in November 1989 was +1, it said +2), and `is_day` was zero for a whole day in Washington 1963. Both corrected from the hours and the sun's times, with two more recorded answers as fixtures; and a reminder that a reconstruction is not the documented weather (Apollo 11: drizzle where NASA reports perfect weather).
+- Second review: no critical problems; applied the nearest-instant choice (a real Mumbai answer has its hours at :30 UTC, Kathmandu's at :15: every record there would have failed), an alignment guard for zones with a huge historical offset, the sun's height as the fallback for day and night, and a timeout on a slow test. The Apia case is a synthetic test, not a real answer.
+- The user then chose the direction of the validation page: five historical facts in places as significant, the Berlin Wall as the example. The user then said to change the events and not to spend long on it: Apollo 11 and the Madrid final replaced by the Beatles' roof (London 1969) and the Tokyo Olympics opening (1964), five records settled and listed in `docs/RECORDS_SAMPLES.md` with what each agrees with. Next: the records themselves, the page, the form.
 
 ## 2026-10-04 (the atmosphere becomes the palette)
 - Worked on: closing WTH-046L after the user said "perfetto molto belli" and "ok" to making it the default.
@@ -49,3 +49,9 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Chosen by me: `skyPalette` stays (the lab's "Oggi" and the tests need it) rather than being deleted as I had said I would: I told the user so.
 - The test run caught an old pipeline test that asserted the palette equals `skyPalette` (WTH-046C's contract, now intentionally changed): rewritten to the new contract (the palette is the atmosphere's, fog and a clear hour paint different skies). Reviewer: no critical or important problems; one doc sentence corrected.
 - Next: the user's next pick.
+## 2026-10-04 (licences)
+- Worked on: WTH-166, the first step of the Records track, while the reviewer read the audits.
+- Found: the Mapbox terms were behind a PDF that the page fetcher could not read; extracted its text by hand (the PDF's fonts map glyph ids to characters through ToUnicode tables) and read clauses 1.4, 1.7 and 2.8.1 as written, instead of relying on the help pages' summary. The important finding is not only about the future: the free "Crea poster" download is a static digital copy of the Mapbox map, which the print clause restricts.
+- Said honestly in the doc: what the pages say and what they leave unsettled (Open-Meteo's prices, OpenWeather's free historical access, visibility in the archive); this is not legal advice.
+- Next: the user's word on WTH-219 and WTH-220; then WTH-168 (architect checkpoint) if the Records track goes on.
+

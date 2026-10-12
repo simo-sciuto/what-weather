@@ -28,8 +28,8 @@ Verdict: **records cannot be sold yet.** Two things stand in the way, and the se
 - 1.4.1 Mandatory attribution: the Mapbox logo, "© Mapbox" and "© OpenStreetMap" (with links; on print "except for the requirement to include the URL links where that is not feasible", per 1.7). The help pages say: on prints where links cannot be included, the logo and "© Mapbox, © OpenStreetMap"; for prints sold online, the attribution and live links on the product page.
 - The help pages add that printing of static images is permitted only for personal non-commercial use, and that commercial print needs contacting Mapbox (sales).
 - **Consequence.** A poster sold with the Mapbox map in it (a file or a print) needs print rights bought from Mapbox under an Order: contact Mapbox sales for the terms and the price. Without them, selling it breaks 1.7 and 2.8.1.
-- **Also, today.** The app's own "Crea poster" gives the user a PNG of the poster with the map drawn in it, which is a static digital copy of Licensed Map Content. Whether that is covered by the terms today (1.7.1 only covers promoting the application, and only incidentally) is not something the text settles: to ask Mapbox, and to decide with the user whether to keep it as it is meanwhile (WTH-186).
-- **Way out, if the price or the answer is no.** Draw the poster's map from OpenStreetMap data with our own style (ODbL: credit "© OpenStreetMap contributors", share-alike applies to the database, not to a rendering) from a tile source whose terms allow print and sale (self-hosted vector tiles, or a provider whose terms say so), keeping Mapbox for the live page only. That is an architect decision before WTH-170 (WTH-185); the poster's style is already generated from the palette, not taken from Mapbox's, which makes it feasible.
+- **Also, today.** The app's own "Crea poster" gives the user a PNG of the poster with the map drawn in it, which is a static digital copy of Licensed Map Content. Whether that is covered by the terms today (1.7.1 only covers promoting the application, and only incidentally) is not something the text settles: to ask Mapbox, and to decide with the user whether to keep it as it is meanwhile (WTH-220).
+- **Way out, if the price or the answer is no.** Draw the poster's map from OpenStreetMap data with our own style (ODbL: credit "© OpenStreetMap contributors", share-alike applies to the database, not to a rendering) from a tile source whose terms allow print and sale (self-hosted vector tiles, or a provider whose terms say so), keeping Mapbox for the live page only. That is an architect decision before WTH-170 (WTH-219); the poster's style is already generated from the palette, not taken from Mapbox's, which makes it feasible.
 
 ## OpenWeather
 
@@ -44,8 +44,8 @@ Verdict: **records cannot be sold yet.** Two things stand in the way, and the se
 
 ## What this decides, and what it needs from the user
 
-1. **Mapbox print rights or another map for the poster** (WTH-185): ask Mapbox sales what the rights cost for the volumes expected; decide against drawing the poster's map from open data. This is the blocking item.
-2. **The present poster download** (WTH-186): ask Mapbox if "Crea poster" is covered; meanwhile the user decides whether it stays.
+1. **Mapbox print rights or another map for the poster** (WTH-219): ask Mapbox sales what the rights cost for the volumes expected; decide against drawing the poster's map from open data. This is the blocking item.
+2. **The present poster download** (WTH-220): ask Mapbox if "Crea poster" is covered; meanwhile the user decides whether it stays.
 3. **An Open-Meteo paid plan** from the first sale: look up the price; treat the whole site as commercial.
 4. **Credits** for ERA5 and Open-Meteo in the records flow and on the poster itself (the print carries attribution, not only the page's footer).
 5. Nothing is to be built for payment (WTH-172) before 1 and 3 are answered, as ADR-013 says.

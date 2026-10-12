@@ -23,4 +23,4 @@ All five fall before 2017, so the model is ERA5 (`reanalysis`); confidence by ag
 2. Rows 1, 3 and 5: look for a documented source of the weather at the hour (the figures above are the day's), or accept and state the difference.
 3. The poster says what the weather is: a reconstruction by ERA5 (25 km, `confidence` low or medium), never a measurement of the place: the model's grid cell, not the point, is what the numbers describe.
 4. Credit "Generated using Copernicus Climate Change Service information" and Open-Meteo, on the poster as well as on the page (docs/RECORDS_LICENCES.md).
-5. Nothing is sold before the Mapbox question (WTH-185) and Open-Meteo's commercial plan are settled.
+5. Nothing is sold before the Mapbox question (WTH-219) and Open-Meteo's commercial plan are settled.

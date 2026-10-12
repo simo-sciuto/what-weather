@@ -3,7 +3,8 @@ import { createMockProvider, isMockScenario } from "./mock";
 import { openWeatherProvider } from "./openweather";
 import { openWeatherFreeProvider } from "./openweather-free";
 import { openMeteoProvider } from "./openmeteo";
-import type { WeatherProvider } from "./provider";
+import { openMeteoArchiveProvider } from "./openmeteo-archive";
+import type { HistoricalProvider, WeatherProvider } from "./provider";
 
 /**
  * OpenWeather One Call 4.0 when a key is configured, otherwise mock data.
@@ -23,4 +24,12 @@ export function getProvider(scenario?: string, at?: string): WeatherProvider {
   if (name === "open-meteo") return openMeteoProvider;
   if (name === "mock") return createMockProvider(isMockScenario(scenario) ? scenario : undefined, at);
   throw new Error(`Unknown WEATHER_PROVIDER "${name}"`);
+}
+
+/**
+ * The weather of a place at a past moment (WTH-168, the Records track): a reanalysis from Open-Meteo's archive,
+ * for dates at least `MIN_AGE_DAYS` old. One source for now; the live providers above do not know the past.
+ */
+export function getHistoricalProvider(): HistoricalProvider {
+  return openMeteoArchiveProvider;
 }

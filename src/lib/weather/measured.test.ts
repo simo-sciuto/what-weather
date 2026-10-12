@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildTimeline } from "./frames";
-import { createMockProvider } from "./mock";
-import type { WeatherData } from "./types";
+import { createMockProvider } from "@/lib/api/providers/mock";
+import type { WeatherData } from "@/types/weather";
 
 /*
  * WTH-002: which frames of the timeline are a provider's own point and which are an hour worked out between two.

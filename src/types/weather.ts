@@ -151,6 +151,30 @@ export type WeatherAlert = {
   description: string;
 };
 
+/** How far a reconstruction is to be trusted, by the age of the date: see `reconstructionConfidence` */
+export type ReconstructionConfidence = "high" | "medium" | "low";
+
+/**
+ * What a record's weather is when it is not a forecast or a reading (WTH-168): a model's account of the past,
+ * never an observation of the place. `reanalysis` is a model re-run over the past with the observations of the
+ * time folded in (ERA5); `forecast-archive` is the operational model's own runs, kept (ECMWF's IFS as Open-Meteo
+ * assembles it from 2017: four simulation runs a day), not re-run and not corrected by later observations. It
+ * says which model, how coarse, how far to trust it, and what it does not carry, so nothing built on it can pass
+ * for a measurement (rule 7).
+ */
+export type Reconstruction = {
+  kind: "reanalysis" | "forecast-archive";
+  /** The model the numbers come from, as its provider names it ("era5", "ecmwf_ifs") */
+  model: string;
+  /** Size of a grid cell, km: the place is the cell it falls in, not the point */
+  resolutionKm: number;
+  confidence: ReconstructionConfidence;
+  /** The moment asked for, Unix seconds; `current.time` is the hour the reconstruction is of */
+  requestedAt: number;
+  /** Quantities the model has no value for in the hours of the record (some or all), so the record is silent on them: "visibility", "uvIndex", "cloudCover", ..., "airQuality" */
+  missing: string[];
+};
+
 export type WeatherData = {
   place: Place;
   /** IANA zone ("Europe/Rome") or fixed UTC offset ("+02:00") of the place */
@@ -171,4 +195,6 @@ export type WeatherData = {
   alerts: WeatherAlert[];
   /** Looked up apart from the provider (see pollen.ts); null or absent where there is no pollen data */
   pollen?: Pollen | null;
+  /** Present only for the weather of a past moment (WTH-168): says it is a reconstruction, by which model */
+  reconstruction?: Reconstruction;
 };

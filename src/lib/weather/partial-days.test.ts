@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dateFormat, localDay } from "./formatters";
-import { toDailyFromForecast, type OW25ForecastItem } from "./transformers";
+import { toDailyFromForecast, type OW25ForecastItem } from "@/lib/api/providers/openweather-transformers";
 
 /*
  * WTH-003: which days of a three-hourly forecast are whole. A day is partial when the forecast does not cover it

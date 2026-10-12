@@ -1,10 +1,11 @@
 import "server-only";
-import { localDayBounds } from "./formatters";
-import { sunPosition } from "./sun-position";
+import { localDayBounds } from "@/lib/weather/formatters";
+import { sunPosition } from "@/lib/weather/sun-position";
 import { get, toCurrent, toDaily, toHourly, type OMForecast } from "./openmeteo";
-import { WeatherProviderError, lookupPlace, round } from "./openweather";
+import { WeatherProviderError, lookupPlace } from "./openweather";
+import { roundCoord } from "@/lib/weather/coordinates";
 import type { HistoricalProvider } from "./provider";
-import type { Place, Reconstruction, ReconstructionConfidence, WeatherData } from "./types";
+import type { Place, Reconstruction, ReconstructionConfidence, WeatherData } from "@/types/weather";
 
 /**
  * The weather of a past moment from Open-Meteo's historical API (https://open-meteo.com/en/docs/historical-weather-api):
@@ -67,7 +68,7 @@ const QUANTITY: Record<(typeof HOURLY)[number], string> = {
 const DAILY = ["weather_code", "temperature_2m_max", "temperature_2m_min", "sunrise", "sunset", "wind_gusts_10m_max", "uv_index_max"] as const;
 
 type Series<K extends string> = { time: number[] } & Record<K, (number | null)[]>;
-interface OMArchive {
+type OMArchive = {
   timezone: string;
   hourly: Series<(typeof HOURLY)[number]>;
   daily: Series<(typeof DAILY)[number]>;
@@ -116,8 +117,8 @@ export const openMeteoArchiveProvider: HistoricalProvider = {
   async getAt(rawLat, rawLon, at, known?: Place): Promise<WeatherData> {
     const now = Date.now() / 1000;
     const hour = recordHour(at, now);
-    const lat = round(rawLat);
-    const lon = round(rawLon);
+    const lat = roundCoord(rawLat);
+    const lon = roundCoord(rawLon);
     const { model, resolutionKm, kind } = archiveModel(hour);
 
     const raw = await get<OMArchive>(

@@ -18,6 +18,8 @@ URL (?lat&lon&name..), else a random city (src/lib/weather/random-places.ts); sa
        -> provider.getByCoords()  ->  WeatherData  (src/types/weather.ts)
        + sinceYesterday()  (src/lib/api/sources/yesterday.ts: Open-Meteo, any provider)
        + lookupPollen()    (src/lib/api/sources/pollen.ts: Open-Meteo air-quality, any provider, Europe only)
+          (a past moment, for the Records track: getHistoricalProvider().getAt() -> the same WeatherData
+           with `reconstruction`, see "Historical weather" below)
        -> buildTimeline(data)  (frames.ts)  ->  Timeline / Frame[]
   -> src/app/page.tsx (server component) -> client providers -> UI
 ```
@@ -34,9 +36,14 @@ Rules that hold today:
 | `openweather.ts` | One Call 4.0 (paid) + Air Pollution API | default when `OPENWEATHER_API_KEY` is set |
 | `openweather-free.ts` | Current Weather + 5 day / 3 h forecast | coarser: 3-hourly points; daily is built from them, edge days flagged `partial` |
 | `openmeteo.ts` | Open-Meteo forecast + air-quality | hourly, 8 days, UV, 15-minute precipitation; AQ index is computed here |
+| `openmeteo-archive.ts` | Open-Meteo historical API (reanalysis: ECMWF IFS from 2017, ERA5 before) | the weather of a past moment, as a reconstruction (`HistoricalProvider`, `getHistoricalProvider()`); for the Records track, not the page |
 | `mock.ts` | deterministic scenarios | default with no key; `?mock=<scenario>&at=HH:MM`; also forced in dev when a valid scenario is in the URL |
 
 `get-provider.ts` is the factory: `WEATHER_PROVIDER` picks explicitly. `provider.ts` is the `WeatherProvider` contract, `openweather-transformers.ts` holds the OpenWeather raw -> normalized mapping (private to the adapters, ADR-001). `openmeteo.ts` and `openweather-free.ts` reuse helpers of `openweather.ts` (`loadFresh`, `round`, `WeatherProviderError`) and `openmeteo.ts` its reverse geocoding (`lookupPlace`): see WTH-188.
+
+### Historical weather (WTH-168)
+
+`HistoricalProvider.getAt(lat, lon, at, place?)` (`provider.ts`), implemented by `openmeteo-archive.ts` over Open-Meteo's historical API, returns the same `WeatherData` the timeline takes: `current` is the hour asked for (the nearest whole hour), `hourly` the 48 hours after it, `daily` the days round it, with `sunrise`/`sunset` of the day that holds the hour. The timeline is anchored on `d.current.time`, not on the clock, so `buildTimeline`, `frameLook` and the fingerprint work on a record unchanged. What is new is `WeatherData.reconstruction` (`kind` `reanalysis` for ERA5 or `forecast-archive` for the IFS, the model, its resolution in km, a confidence by the date's age, the moment asked for and every quantity the model has no value for in the hours kept): a record's weather is a model's account of a grid cell, never a measurement of the place, and anything built on it says so (rule 7). The model is chosen by date and named, not left to the provider: ECMWF IFS (9 km, the operational model's own runs as Open-Meteo assembles them, 4 a day) from 2017, ERA5 (25 km, a reanalysis) before (ERA5-Land alone lacks cloud, rain and wind). An hour with no temperature or no weather code is left out and the timeline interpolates over it. Two faults of the archive are corrected here, both found on real answers for other dates than summer 2003: its days are cut at a fixed offset from UTC, the one in force today (`utc_offset_seconds` was 7200 for Berlin in November 1989, when it was 3600), so the days, minima, maxima and gusts are taken from the hours, cut by the clock the place kept (`localDayBounds`), with a day the hours do not cover whole marked `partial`; and its `is_day` can be wrong for a whole day (all 120 hours of Washington, 28 August 1963 were 0), so day and night come from the sun's own times, which are right. Moments less than 10 days old are refused (the data has not settled; the forecast has them). Cache: a year for dates older than 100 days, a day for the rest. No chance of rain (a reanalysis has none): 0 or 1 from the amount. No air quality, alerts, minutely or 15-minute data; visibility and UV come back empty from every model, so haze for a record rests on humidity and dew point alone. Free for non-commercial use only: see `docs/RECORDS_LICENCES.md`.
 
 ## Sources and calls (`src/lib/api/`)
 

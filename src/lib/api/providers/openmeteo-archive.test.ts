@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import fixture from "../../../test/fixtures/archive-milano-2003-08.json";
-import berlin from "../../../test/fixtures/archive-berlin-1989-11.json";
-import washington from "../../../test/fixtures/archive-washington-1963-08.json";
-import mumbai from "../../../test/fixtures/archive-mumbai-2003-08.json";
-import { fingerprintOf } from "./fingerprint";
-import { buildTimeline } from "./frames";
-import { frameLook } from "./look";
+import fixture from "../../../../test/fixtures/archive-milano-2003-08.json";
+import berlin from "../../../../test/fixtures/archive-berlin-1989-11.json";
+import washington from "../../../../test/fixtures/archive-washington-1963-08.json";
+import mumbai from "../../../../test/fixtures/archive-mumbai-2003-08.json";
+import { fingerprintOf } from "@/lib/weather/fingerprint";
+import { buildTimeline } from "@/lib/weather/frames";
+import { frameLook } from "@/lib/weather/look";
 import { MIN_AGE_DAYS, archiveModel, openMeteoArchiveProvider, reconstructionConfidence } from "./openmeteo-archive";
 import { WeatherProviderError } from "./openweather";
-import type { Place } from "./types";
+import type { Place } from "@/types/weather";
 
 /*
  * WTH-168. The fixture is a real answer of Open-Meteo's historical API (ERA5) for Milan, 10 to 14 August 2003,

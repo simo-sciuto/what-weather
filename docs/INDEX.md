@@ -14,6 +14,8 @@ CLAUDE.md (loaded automatically), docs/PROJECT_STATE.md, docs/BOARD.md
 | Weather Visual Engine: V1 plan, subtask scope, atmospheric grammar | WEATHER_VISUAL_ENGINE.md, DECISIONS.md |
 | The app's areas (Meteo, Territorio, Record), where a new feature goes | APP_AREAS.md, ROADMAP.md |
 | Selling records: data, map and hosting licences | LICENCES.md, ROADMAP.md |
+| Selling records, licences, providers' terms (ADR-013, WTH-166) | RECORDS_LICENCES.md, DECISIONS.md |
+| The validation page and its sample records (WTH-167) | RECORDS_SAMPLES.md, RECORDS_LICENCES.md |
 | Planning, "what next" | ROADMAP.md, BOARD.md |
 | "What did we do" | CHANGELOG.md, SESSION_LOG.md |
 
