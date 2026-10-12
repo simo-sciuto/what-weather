@@ -52,6 +52,14 @@ Smaller gap: OpenWeather's share-alike wording needs a written answer. (The post
 
 - The Hobby plan is for personal, non-commercial use. Commercial use (requesting or processing payment, advertising the sale of a product, ads) needs Pro (20 USD per user per month) or Enterprise. A free site with a "buy a record" button already counts as advertising a sale. Move to Pro before the first sale, or before the shop window opens.
 
+### Historical data (ERA5 and the IFS archive, WTH-168)
+
+- **Used for:** the weather of a past moment in a record (`src/lib/api/providers/openmeteo-archive.ts`, Open-Meteo's historical API). Not on the site yet.
+- **Models by date:** ERA5 (about 25 km, 1940 to now, five days' delay) and ERA5-Land (about 11 km, 1950 to now) before 2017; from 2017 ECMWF's IFS as Open-Meteo assembles it (about 9 km), from archived operational runs, not a reanalysis.
+- **Attribution:** "Generated using Copernicus Climate Change Service information" for ERA5, plus the Open-Meteo credit. For the IFS from 2017 the page gives no ECMWF credit, only Open-Meteo's: confirm with Open-Meteo and ECMWF's open-data terms before selling any record from 2017 on.
+- **Visibility:** not in the archive's hourly list as read, so a record's haze rests on humidity and dew point alone. The record must say so (rule 7).
+- **Consequence:** the historical records need a paid Open-Meteo plan that includes archive data (Professional, per the summaries above), not only the Standard plan.
+
 ### Already clear
 
 - **Fonts:** Syne, Inter Tight, Schibsted Grotesk are SIL OFL 1.1, self-hosted with the licence text (WTH-197). Selling the poster that uses them is allowed; the font files themselves are not sold.

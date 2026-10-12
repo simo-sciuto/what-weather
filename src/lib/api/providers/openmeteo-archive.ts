@@ -13,7 +13,7 @@ import type { Place, Reconstruction, ReconstructionConfidence, WeatherData } fro
  * 2017; from 2017 ECMWF's IFS as Open-Meteo assembles it from the operational model's own runs at 0, 6, 12 and
  * 18 UTC, a forecast archive, not a reanalysis. Either way it is a model's account of a grid cell, not a
  * measurement of the place, and the record says so (`WeatherData.reconstruction`). Free for non-commercial use
- * only: selling records needs a paid plan, see docs/RECORDS_LICENCES.md. Credit: Open-Meteo; for ERA5 also
+ * only: selling records needs a paid plan, see docs/LICENCES.md. Credit: Open-Meteo; for ERA5 also
  * "Generated using Copernicus Climate Change Service information"; for the IFS the page names no credit of
  * ECMWF's, to confirm with Open-Meteo before any sale.
  */

@@ -1,7 +1,7 @@
 import type { Place, WeatherData } from "@/types/weather";
 
 /**
- * The weather of a place at a past moment, as a model's reconstruction (WTH-168, ADR-013). Its `WeatherData` is
+ * The weather of a place at a past moment, as a model's reconstruction (WTH-168, ADR-016). Its `WeatherData` is
  * the same one the timeline takes: `current` is the hour asked for, `hourly` the hours after it, and
  * `reconstruction` says what it is. Apart from `WeatherProvider`: it does not know the present.
  */

@@ -41,6 +41,8 @@ Board tooling limitation: `scripts/board/board-md.mjs` recognizes numeric IDs on
 - [ ] WTH-221 `Frame.measured` means "a provider's own point, not interpolated", not "a measurement": for a record every known frame says `measured: true` though it is a model's reconstruction. Whoever shows "misurato" or a measured mark in the Records flow must read `WeatherData.reconstruction`; consider renaming the field. From the WTH-168 review.
 - [ ] WTH-222 IFS credit for records from 2017: Open-Meteo's page gives no ECMWF credit for the IFS, only Open-Meteo's; ask Open-Meteo (and read ECMWF's open-data terms) what to print on a poster. Before any record from 2017 on is sold. From WTH-168 and WTH-166.
 - [ ] WTH-223 Historical zones the archive cuts oddly: the guard keeps the archive's own days (all partial) where its offset of today is half a day or more from the one then (Samoa before 2011, Kwajalein before 1993, Kiritimati before 1995); for such a place a record's days are approximate, and the day skipped in Samoa (30 Dec 2011) was not tried. Found by the second review of WTH-168; rare, to look at if a record is wanted there.
+- [ ] WTH-224 `docs/ARCHITECTURE.md` still lists `round` among the helpers of `openweather.ts`; it was replaced by `roundCoord` (`src/lib/weather/coordinates.ts`). Found by the reviewer of the WTH-168 port; already on main.
+- [ ] WTH-225 `docs/BOARD.md` lists WTH-187 as a task line twice (on main too). Remove the duplicate line, keeping the one with the correct status. Found by the reviewer of the WTH-168 port.
 
 ## NEXT
 
