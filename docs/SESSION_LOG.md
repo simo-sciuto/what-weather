@@ -2,6 +2,13 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-12 (new direction, ADR-018)
+- Worked on: the user pasted a startup-style assessment and asked to take it as the direction. Flagged four conflicts with ADR-013 and the roadmap (layout pause, past date as centre, print first, English tagline); the user accepted the recommendations. Wrote ROADMAP update, ADR-018, board Priority 0 (WTH-225 to WTH-231), WTH-169, 170, 173 and 214 adjusted, PROJECT_STATE.
+- Not done: no code, no checkpoint started. The assessment's market claims are unverified (WTH-231).
+- Then: WTH-231 done (docs/COMPETITORS.md); WTH-225 steps 1 to 3 done on `claude/explore-create-seam`, uncommitted, each reviewed (DetailsBand, `/crea`, the Dettagli disclosure, the tagline, the Crea link). Create's map view fixed to the base view (user's choice).
+- Not verified: the real look, a real phone, the poster dialog on `/crea` with a Mapbox token.
+- Next: the user's look and a commit; step 4 (WTH-226 events).
+
 ## 2026-10-12 (open branches closed)
 - Worked on: closing the open work. Merged the historical-provider port and WTH-185 into `main`; resolved the board conflict and the reused ids; merged WTH-206, WTH-189 and WTH-224.
 - Decided, as asked: ADR-001 and ADR-013 updated, `getAt` keeps the `WeatherData` shape (ADR-016 note). Deleted the six branches of the session on origin.

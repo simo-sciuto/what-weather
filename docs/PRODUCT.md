@@ -32,4 +32,4 @@ Generic dashboard, card walls, information overload, decorative UI with no funct
 
 ## Features today
 
-Poster hero, live sky, Mapbox backdrop, 24 h timeline (drag to explore, whole page follows), week with day picker, "what the weather is good for" (activities, best window), rain/cloud map animation, details (air quality, pollen, UV, wind, humidity, sun, moon, alerts), outlook sentence (read out and in the share image only), places (search, saved, recent, last place remembered), "Territorio" chapter, share URL + generated preview image, downloadable poster, installable PWA, tunable map colours and layers.
+Poster hero, live sky, Mapbox backdrop, 24 h timeline (drag to explore, whole page follows), week with day picker, "what the weather is good for" (activities, best window), rain/cloud map animation, details (air quality, pollen, UV, wind, humidity, sun, moon, alerts), outlook sentence (read out and in the share image only), places (search, saved, recent, last place remembered), "Territorio" chapter, share URL + generated preview image, downloadable poster (made on the Create page, `/crea`), installable PWA, tunable map colours and layers.

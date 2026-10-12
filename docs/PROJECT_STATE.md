@@ -1,12 +1,15 @@
 # PROJECT STATE
 
-Last updated: 2026-10-12 (open branches merged; WTH-185, WTH-189, WTH-206, WTH-224 done; historical provider on main)
+Last updated: 2026-10-12 (new direction ADR-018: Explore and Create; open branches merged; historical provider on main)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
 
 ## Direction
 Set by the user 2026-10-04 (ROADMAP.md, ADR-013): Visual Weather Records. Free daily app as shop window, records of meaningful moments as the paid product. Live-app layout work paused.
+
+## Direction update (2026-10-12, ADR-018)
+Set by the user: "Weather, worth looking at". Explore (free, the way in) and Create (first paid product, the digital record). Priority 0 on the board (WTH-225 to WTH-231): validate with people, redesign Explore with an architect checkpoint, measure, then the Create MVP. The layout pause is lifted for the Explore and Create homepage only. Print waits for the first digital sale. Step 1 of WTH-225 done on branch `claude/explore-create-seam` (the details band extracted, no visible change, not committed); step 2 done too: the `/crea` route (the poster for the place in the URL, beside the existing button; uncommitted). Step 3 done too (uncommitted, awaiting the user's look): the Dettagli disclosure, the tagline, the Crea link. Step 4 done as a placeholder (`lib/analytics`, events named and placed, no service connected, no return metric): WTH-225 is complete except the user's look and a commit; WTH-226 waits for the choice of service.
 
 ## Phase
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
@@ -46,4 +49,5 @@ WTH-046G, the meteorological map hierarchy: `mapVisualState(axes): MapVisualStat
 `src/lib/weather/{atmosphere,atmospheric-data,visual-input,frames,look,palette,state}.ts`, `src/types/*.ts`, `src/lib/api/providers/{openweather-transformers,openmeteo,mock}.ts`, `src/lib/weather/{atmosphere,visual-input,atmospheric-pipeline,atmosphere-sky}.test.ts`, `src/lib/weather/calibration.ts`, `src/components/lab/AtmosphereLab.tsx`, `src/app/lab/atmosfera/page.tsx`, `docs/WEATHER_VISUAL_ENGINE.md`.
 
 ## Next checkpoint
+Per ADR-018, first: WTH-231 (competitor study, research) and the architect checkpoint for WTH-225 (Explore and Create homepage), both waiting for the user's go; WTH-227 (conversations) is the user's. WTH-169 below is now fed by WTH-228. Earlier note:
 WTH-169 (records flow), at its checkpoint: the timeline's relative labels ("Oggi", "Domani", "Adesso") read `current.time`, so a past moment would say "Oggi"; the cache lifetime of `getAt` under cacheComponents, to check with a build before the first caller; every record view reads `reconstruction`. Then WTH-167, the validation page.
