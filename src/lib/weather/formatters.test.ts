@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conditionLabel, placeSubtitle, spokenTime, tempDigits, type Preposition } from "./formatters";
+import { conditionLabel, formatTime, localDay, localDayBounds, placeSubtitle, spokenTime, tempDigits, type Preposition } from "./formatters";
 import { regionName } from "./regions";
 import { offsetToZone } from "@/lib/api/providers/openweather-transformers";
 
@@ -67,5 +67,56 @@ describe("offsetToZone", () => {
   });
   it("keeps half hours as an offset", () => {
     expect(offsetToZone(19800)).toBe("+05:30");
+  });
+});
+
+describe("localDayBounds (WTH-003)", () => {
+  const at = (iso: string) => Date.parse(iso) / 1000;
+  const hours = ([a, b]: [number, number]) => (b - a) / 3600;
+
+  it("is 24 hours for an ordinary day, and its start reads midnight on the clock of the place", () => {
+    const [start, end] = localDayBounds(at("2026-07-15T10:00:00Z"), "Europe/Rome");
+    expect(hours([start, end])).toBe(24);
+    expect(formatTime(start, "Europe/Rome")).toBe("00:00");
+    expect(localDay(start, "Europe/Rome")).toBe("2026-07-15");
+    expect(localDay(start - 1, "Europe/Rome")).toBe("2026-07-14");
+    expect(localDay(end, "Europe/Rome")).toBe("2026-07-16");
+  });
+
+  it("is 23 hours the day the clocks go forward and 25 the day they go back, in any hemisphere", () => {
+    for (const [tz, day, length] of [
+      ["Europe/Rome", "2026-03-29T12:00:00Z", 23],
+      ["Europe/Rome", "2026-10-25T12:00:00Z", 25],
+      ["America/Denver", "2026-03-08T18:00:00Z", 23],
+      ["America/New_York", "2026-11-01T18:00:00Z", 25],
+      ["Australia/Sydney", "2026-10-04T05:00:00Z", 23],
+      ["Australia/Sydney", "2026-04-05T05:00:00Z", 25],
+    ] as const) expect(hours(localDayBounds(at(day), tz)), `${tz} ${day}`).toBe(length);
+  });
+
+  it("is half an hour off in the zone that changes by half an hour, and whole days elsewhere in it", () => {
+    expect(hours(localDayBounds(at("2026-10-04T12:00:00Z"), "Australia/Lord_Howe"))).toBe(23.5);
+    expect(hours(localDayBounds(at("2026-04-05T12:00:00Z"), "Australia/Lord_Howe"))).toBe(24.5);
+    expect(hours(localDayBounds(at("2026-07-01T12:00:00Z"), "Asia/Kolkata"))).toBe(24);
+  });
+
+  it("holds the day whole where the clocks change at midnight itself: the repeated midnight does not shorten the day before", () => {
+    // Azores: at 01:00 UTC on 25 October the clocks go back to 00:00, so the midnight comes twice; 24 October ends at the first
+    const [start, end] = localDayBounds(at("2026-10-24T12:00:00Z"), "Atlantic/Azores");
+    expect(start).toBe(at("2026-10-24T00:00:00Z"));
+    expect(end).toBe(at("2026-10-25T00:00:00Z"));
+  });
+
+  it("makes days that follow each other: one's end is the next one's start, for every day of a year, in zones with and without changes", { timeout: 60_000 }, () => {
+    for (const tz of ["Europe/Rome", "America/Denver", "Atlantic/Azores", "Australia/Lord_Howe", "Asia/Kolkata", "UTC", "America/Havana"]) {
+      let t = at("2026-01-01T12:00:00Z");
+      let [, end] = localDayBounds(t, tz);
+      for (let d = 0; d < 365; d++) {
+        t = end + 12 * 3600;
+        const [nextStart, nextEnd] = localDayBounds(t, tz);
+        expect(nextStart, `${tz} day ${d}`).toBe(end);
+        end = nextEnd;
+      }
+    }
   });
 });

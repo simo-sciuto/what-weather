@@ -1,7 +1,7 @@
 import "server-only";
 import { HOUR_SECONDS } from "@/constants/time";
 import { atmosphericData, estimatedDewPoint } from "@/lib/weather/atmospheric-data";
-import { localDay } from "@/lib/weather/formatters";
+import { localDay, localDayBounds } from "@/lib/weather/formatters";
 import { regionName } from "@/lib/weather/regions";
 import { isWet } from "@/lib/weather/conditions";
 import type {
@@ -338,6 +338,25 @@ export function toForecastPoints(raw: OW25ForecastItem[]): HourlyPoint[] {
 }
 
 
+/** The length of a forecast step, in hours */
+const STEP_HOURS = 3;
+
+/**
+ * A day the forecast covers whole: it starts in the day's first step and ends in its last, by the time elapsed
+ * at the place. Counting the steps cannot tell: the day the clocks go forward has 23 hours and 7 steps, the day they go
+ * back 25 and 9, and a full day was taken for a partial one (and dropped from the week) in 34 zone-days of 2026
+ * (America/Denver on 8 March, Africa/Cairo on 24 April, ...).
+ */
+function coversDay(items: OW25ForecastItem[], timeZone: string): boolean {
+  const step = STEP_HOURS * 3600;
+  const [first, last] = [items[0].dt, items[items.length - 1].dt];
+  // The steps of a day come in order and every three hours: a day with a step missing is not whole either
+  if (items.length !== Math.round((last - first) / step) + 1) return false;
+  const [start, end] = localDayBounds(first, timeZone);
+  // By elapsed time, not by the clock: a step on the jump (02:00 becoming 03:00) reads 3 on the clock and is 2 hours in
+  return first - start < step && end - last <= step;
+}
+
 /**
  * Daily summaries built from 3-hour steps. Days the forecast only partly
  * covers (today, and the last day) are flagged `partial`.
@@ -373,7 +392,7 @@ export function toDailyFromForecast(raw: OW25ForecastItem[], timeZone: string): 
       intensity: sky.intensity,
       precipProbability: Math.max(...points.map((p) => p.precipProbability)),
       windGust: gusts.length ? Math.max(...gusts) : undefined,
-      partial: items.length < 8,
+      partial: !coversDay(items, timeZone),
     };
   });
 }

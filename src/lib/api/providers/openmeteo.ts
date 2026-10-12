@@ -75,7 +75,7 @@ const POLLUTANTS = ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sul
 
 type Series<K extends string> = { time: number[] } & Record<K, (number | null)[]>;
 
-type OMForecast = {
+export type OMForecast = {
   timezone: string;
   current: { time: number; interval: number } & Record<(typeof CURRENT)[number], number | null>;
   minutely_15?: Series<"precipitation" | "weather_code">;
@@ -95,7 +95,7 @@ type OMGeoResult = {
   admin1?: string;
 };
 
-async function get<T>(url: string, params: Record<string, string | number>, revalidate: number): Promise<T> {
+export async function get<T>(url: string, params: Record<string, string | number>, revalidate: number): Promise<T> {
   const res = await fetch(
     `${url}?${new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))}`,
     revalidate > 0 ? { next: { revalidate } } : { cache: "no-store" },
@@ -171,7 +171,7 @@ export function mapCode(code: number): { condition: Condition; intensity: Intens
 const num = (v: number | null | undefined, fallback = 0) => (v == null ? fallback : v);
 const optional = (v: number | null | undefined) => (v == null ? undefined : v);
 
-function toCurrent(raw: OMForecast["current"]): CurrentWeather {
+export function toCurrent(raw: OMForecast["current"]): CurrentWeather {
   const { condition, intensity, description } = mapCode(num(raw.weather_code));
   const atmosphere = atmosphericData({ humidity: raw.relative_humidity_2m, dewPoint: raw.dew_point_2m, visibility: raw.visibility == null ? undefined : raw.visibility / 1000 }, "provider");
   return {
@@ -197,7 +197,7 @@ function toCurrent(raw: OMForecast["current"]): CurrentWeather {
 }
 
 /** Hours from the current one on (the series starts at midnight). */
-function toHourly(raw: OMForecast["hourly"], now: number): HourlyPoint[] {
+export function toHourly(raw: OMForecast["hourly"], now: number): HourlyPoint[] {
   return raw.time.flatMap((time, i) => {
     if (time <= now - 1800) return [];
     const { condition, intensity } = mapCode(num(raw.weather_code[i]));
@@ -247,7 +247,7 @@ function daySky(hourly: OMForecast["hourly"], from: number, to: number, fallback
 }
 
 /** Whole calendar days in the place's time zone, today included in full. */
-function toDaily(raw: OMForecast["daily"], hourly: OMForecast["hourly"]): DailyPoint[] {
+export function toDaily(raw: OMForecast["daily"], hourly: OMForecast["hourly"]): DailyPoint[] {
   return raw.time.map((time, i) => {
     const { condition, intensity } = daySky(hourly, time, raw.time[i + 1] ?? time + DAY_SECONDS, num(raw.weather_code[i]));
     return {
