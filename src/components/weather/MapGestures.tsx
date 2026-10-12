@@ -3,6 +3,7 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { usePhoneNav } from "../layout/PhoneNav";
 import { isPhone, phoneMap } from "./map-view";
+import { clamp01 } from "@/utils/math";
 
 /** How far the finger travels to go all the way down into the city, in pixels: a short, light gesture */
 const DESCENT_PX = 260;
@@ -78,7 +79,7 @@ export function MapGestures() {
         // The finger going up takes the map down into the city, as scrolling down does
         phoneMap.set({
           ...now,
-          progress: Math.min(1, Math.max(0, start.progress - dy / DESCENT_PX)),
+          progress: clamp01(start.progress - dy / DESCENT_PX),
         });
       } else {
         phoneMap.set({ ...now, bearing: start.bearing - dx * TURN_PER_PX });

@@ -4,6 +4,7 @@ import { conditionLabel, formatTemp } from "@/lib/weather/formatters";
 import { tempColor, tempGradient } from "@/lib/weather/temp-color";
 import { WeatherIcon } from "../weather/WeatherIcon";
 import { useMoment, useView } from "./TimeContext";
+import { clamp01 } from "@/utils/math";
 
 /**
  * The temperature of the moment on show, at the right edge of the title: 1.9 times the name's size, light,
@@ -84,7 +85,7 @@ export function HeroGlyph({
   const span = range ? range.high - range.low : 0;
   const at =
     range && span > 0
-      ? Math.min(1, Math.max(0, (frame.temp - range.low) / span))
+      ? clamp01((frame.temp - range.low) / span)
       : 0.5;
 
   return (

@@ -47,18 +47,22 @@ export async function loadRecordFonts(): Promise<void> {
 /** The page's @font-face rules, from the self-hosted files */
 export const pageFontCss = (base = FONT_DIR) => fontFaceCss((file) => `${base}/${file}`);
 
-/** The same rules with every file inlined, for an SVG drawn as an image (it cannot load anything) */
-export async function embeddedFontCss(base = FONT_DIR): Promise<string> {
+/**
+ * The same rules with every file inlined, for an SVG drawn as an image (it cannot load anything). `families`
+ * limits it to those family names; absent, every face (WTH-206).
+ */
+export async function embeddedFontCss(base = FONT_DIR, families?: ReadonlySet<string>): Promise<string> {
   const data = new Map<string, string>();
+  const faces = RECORD_FONT_FACES.filter((f) => !families || families.has(f.family));
   await Promise.all(
-    RECORD_FONT_FACES.map(async ({ file }) => {
+    faces.map(async ({ file }) => {
       const buf = new Uint8Array(await (await fetch(`${base}/${file}`)).arrayBuffer());
       let bin = "";
       for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
       data.set(file, `data:font/woff2;base64,${btoa(bin)}`);
     }),
   );
-  return fontFaceCss((file) => data.get(file) ?? "");
+  return fontFaceCss((file) => data.get(file) ?? "", families);
 }
 
 /** The export: the SVG (fonts inside) drawn onto a canvas at its full size, as a PNG */

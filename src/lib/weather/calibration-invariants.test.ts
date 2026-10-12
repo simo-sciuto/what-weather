@@ -3,6 +3,7 @@ import type { AtmosphereAxes } from "./atmosphere";
 import { CALIBRATION_SCENARIOS, type CalibrationScenario } from "./calibration";
 import { atmosphereDepth, atmospherePalette, atmosphereSky, inkOverSky, skyColors } from "./palette";
 import { computeAtmosphere } from "./visual-input";
+import { hexToRgb } from "@/utils/color";
 
 /* WTH-046K: the invariants that need a scenario, a timeline or a pair of forces. The per-axis rules are in atmosphere-sky.test.ts. */
 
@@ -11,7 +12,7 @@ const lin = (v: number) => {
   const s = v / 255;
   return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
 };
-const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const rgb = hexToRgb;
 function oklab(c: number[]): [number, number, number] {
   const [r, g, b] = c.map(lin);
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);

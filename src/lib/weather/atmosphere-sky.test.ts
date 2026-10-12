@@ -22,6 +22,7 @@ import {
 } from "./palette";
 import type { MapInk, MapLayer } from "@/types/palette";
 import { computeAtmosphere } from "./visual-input";
+import { hexToRgb } from "@/utils/color";
 
 type RGB = number[];
 
@@ -50,7 +51,7 @@ const distance = (x: RGB, y: RGB) => {
 };
 const hueGap = (a: number, b: number) =>
   Math.abs((((a - b + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) - Math.PI);
-const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const rgb = hexToRgb;
 function luminance(c: RGB) {
   const [r, g, b] = c.map((v) => {
     const s = v / 255;
