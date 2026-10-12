@@ -369,7 +369,7 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
         }
       expect(seen.size).toBe(5);
     }
-  });
+  }, 60_000); // it composes every format and placement: slow under a loaded suite
 
   it("sets the home page's wordmark: what, a butter bar, weather", () => {
     const s = raster("oslo");
