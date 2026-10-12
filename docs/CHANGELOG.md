@@ -2,6 +2,15 @@
 
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
+## 2026-10-12
+- The open branches are on `main`: the historical-provider port (WTH-166 licences, WTH-001/002/003 audits, WTH-167 sample records, WTH-168 `HistoricalProvider`), and WTH-185.
+- WTH-206: the poster's SVG embeds only the faces its scene sets text in (Inter Tight and Schibsted Grotesk, not Syne); `sceneFamilies`, filtered `fontFaceCss` and `embeddedFontCss`.
+- WTH-189: `clamp01`, `toRadians` and `hexToRgb` replace the repeated formulas (values unchanged).
+- WTH-185: the random-city decision is ADR-017 (the second ADR-010); its references follow it.
+- WTH-224: the stale `round` reference in ARCHITECTURE is fixed; the reused WTH-187 docs item is renumbered.
+- Decisions: ADR-001 and ADR-013 updated (the past has its own contract; from 2017 the IFS archive, shown as a reconstruction); `getAt` keeps `WeatherData` with `reconstruction` (ADR-016 note). One licence file, `LICENCES.md`.
+- A slow WTH-200 test in `record.test.ts` gets a longer timeout; its assertions are unchanged.
+
 ## 2026-10-06
 - WTH-212 (the credit): the poster and its exports credit the weather data's source on the credits line, "WEATHER DATA OPEN-METEO.COM" or "WEATHER DATA OPENWEATHER" by the provider in use, none for sample data; Open-Meteo's CC BY 4.0 and OpenWeather's licence ask for it.
 - WTH-196: the poster's facts say where they come from (ADR-006): an hour between two of the provider's points prints its figures as "~17°", and a partial day's range or an estimated humidity or visibility is not printed (another reading takes its place).

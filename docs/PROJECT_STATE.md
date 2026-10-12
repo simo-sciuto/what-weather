@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-06 (poster approved; WTH-204 and WTH-196 done)
+Last updated: 2026-10-12 (open branches merged; WTH-185, WTH-189, WTH-206, WTH-224 done; historical provider on main)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -12,7 +12,7 @@ Set by the user 2026-10-04 (ROADMAP.md, ADR-013): Visual Weather Records. Free d
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-None in progress. The Visual Record poster (WTH-187, WTH-199, WTH-200) is merged into `main` and closed: the user saw real Mapbox exports on 2026-10-06 (Torino print in two lights, El Paso square on two lines) and approved them. Faces in use (ADR-015 and its updates): the place's name on the poster in Inter Tight 800 (`BRAND_FAMILY`), the notes in Schibsted Grotesk (`MONO_FAMILY`), the home page's temperature in Syne; the poster no longer draws Syne (WTH-206). The merge's last checks are done: WTH-203 closed (print and square exports on an iPhone, Bergamo's descender whole). WTH-204 (the sea in one flood, `sea-grid.ts`) and WTH-196 (the record's provenance) done the same day, reviewed. WTH-166 (licences) researched: docs/LICENCES.md, not sellable yet, waits for the user's written questions to Mapbox and OpenWeather (WTH-211) and the source choice (WTH-212). Other candidates: WTH-166's actions above, WTH-194 (geography source), WTH-198 (record language), the poster clean-ups WTH-205 to WTH-208, WTH-210. The branch review's history is in CHANGELOG.md and SESSION_LOG.md. `claude/record-engine` and `claude/code-conventions` can be deleted.
+None in progress. Merged into `main` on 2026-10-12: the historical-provider port (WTH-166 licences, WTH-001/002/003 audits, WTH-167 sample records, WTH-168 provider), WTH-185 (the random-city decision is ADR-017), WTH-206 (the poster embeds only its faces), WTH-189 (shared helpers), WTH-224 (docs). Decisions taken 2026-10-12: ADR-001 and ADR-013 updated (the past has its own contract; from 2017 it is the IFS archive, not a reanalysis); `getAt` keeps returning `WeatherData` with the optional `reconstruction` (ADR-016 note). Open for the user: WTH-211 and WTH-212 (Mapbox and OpenWeather answers, weather source for sale), WTH-219 and WTH-220 (poster map rights). The branches of this session are deleted on origin; `main-local-backup-2026-10-12` is kept locally.
 
 ## Last checkpoint
 WTH-168 (the historical provider, branch `rebase-local-unpushed-2026-10-12` on `main`, reviewed, committed with this note): `openmeteo-archive.ts`, `HistoricalProvider`, `WeatherData.reconstruction` (ADR-016; `reanalysis` for ERA5, `forecast-archive` for the IFS from 2017), 21 tests on a real recorded answer. Next on the Records track: WTH-167 (the validation page, which needs sample records made with this provider and Open-Meteo's commercial plan before any promotion), WTH-169 onwards only if 167 says people want records; WTH-219 and WTH-220 (Mapbox) are the user's.
@@ -46,4 +46,4 @@ WTH-046G, the meteorological map hierarchy: `mapVisualState(axes): MapVisualStat
 `src/lib/weather/{atmosphere,atmospheric-data,visual-input,frames,look,palette,state}.ts`, `src/types/*.ts`, `src/lib/api/providers/{openweather-transformers,openmeteo,mock}.ts`, `src/lib/weather/{atmosphere,visual-input,atmospheric-pipeline,atmosphere-sky}.test.ts`, `src/lib/weather/calibration.ts`, `src/components/lab/AtmosphereLab.tsx`, `src/app/lab/atmosfera/page.tsx`, `docs/WEATHER_VISUAL_ENGINE.md`.
 
 ## Next checkpoint
-The reviewer on WTH-168, then commit and, when the user says so, merge. Then WTH-167, the validation page, in pieces: sample records of five or six famous or meaningful dates through `getHistoricalProvider()` (checking each against what happened, rule 7), the positioning line, a "prenota il tuo" form; the campaign and the plan with Open-Meteo are the user's. Nothing for payment (WTH-172) before WTH-219 and the plan.
+WTH-169 (records flow), at its checkpoint: the timeline's relative labels ("Oggi", "Domani", "Adesso") read `current.time`, so a past moment would say "Oggi"; the cache lifetime of `getAt` under cacheComponents, to check with a build before the first caller; every record view reads `reconstruction`. Then WTH-167, the validation page.
