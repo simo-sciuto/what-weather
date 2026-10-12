@@ -1,3 +1,5 @@
+import { clamp01 } from "@/utils/math";
+
 /**
  * Canonical normalized atmosphere for the Weather Visual Engine (WTH-046A).
  * Measurement curves belong to WTH-046B; this module knows no providers,
@@ -64,7 +66,7 @@ const FORCE_WEIGHT: Readonly<Record<VisualForce, number>> = {
 };
 
 const hazeActing = (haze: number) => {
-  const t = Math.min(1, Math.max(0, (haze - HAZE_ONSET) / (1 - HAZE_ONSET)));
+  const t = clamp01((haze - HAZE_ONSET) / (1 - HAZE_ONSET));
   return t * t * (3 - 2 * t);
 };
 

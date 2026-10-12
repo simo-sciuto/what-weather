@@ -7,6 +7,7 @@ import type { BestWindow, Frame, Timeline } from "@/types/timeline";
 import { useCallback, useMemo, useRef, useState, type PointerEvent } from "react";
 import { WeatherIcon } from "../weather/WeatherIcon";
 import { useMoment, useTimeline, useView } from "./TimeContext";
+import { clamp01 } from "@/utils/math";
 
 /** Vertical band (0..1 of the plot) the curve may occupy; the top is room for labels. */
 const TOP = 0.4;
@@ -125,7 +126,7 @@ export function TimeScrubber() {
     (clientX: number) => {
       const r = plot.current?.getBoundingClientRect();
       if (!r) return;
-      const t = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+      const t = clamp01((clientX - r.left) / r.width);
       setIndex(Math.round(t * (n - 1)));
     },
     [n, setIndex],

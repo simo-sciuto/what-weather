@@ -11,6 +11,7 @@ import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS, WEATHER_STALE_SECONDS
 import { roundCoord } from "./weather/coordinates";
 import { buildTimeline } from "./weather/frames";
 import { randomPlace } from "./weather/random-places";
+import { toRadians } from "@/utils/math";
 
 export type SearchParams = Promise<
   Record<string, string | string[] | undefined>
@@ -96,7 +97,7 @@ async function namesFor(
     const km = (p: { lat: number; lon: number }) =>
       Math.hypot(
         (p.lat - lat) * 111,
-        (p.lon - lon) * 111 * Math.cos((lat * Math.PI) / 180),
+        (p.lon - lon) * 111 * Math.cos(toRadians(lat)),
       );
     const near = found
       .filter((p) => km(p) < 30)
