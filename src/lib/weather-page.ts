@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
-import { parsePlaceRef } from "./place";
+import { createPlaceRef, parsePlaceRef } from "./place";
 import type { PlaceRef } from "@/types/place";
 import { getProvider } from "./api/providers/get-provider";
 import { lookupPollen } from "./api/sources/pollen";
@@ -152,4 +152,16 @@ export async function loadWeatherPage(searchParams: SearchParams) {
     landed,
     renderedAt: Math.floor(Date.now() / 1000),
   };
+}
+
+/**
+ * The weather behind the Create page: the place in the URL (else the default place, never a random one), through the
+ * same cached unit as the weather page (ADR-003).
+ */
+export async function loadCreatePage(searchParams: SearchParams) {
+  const params = await searchParams;
+  const scenario = param(params.mock);
+  const at = param(params.at);
+  const loaded = await weatherFor(createPlaceRef(params), scenario, at);
+  return { ...loaded, scenario, at };
 }

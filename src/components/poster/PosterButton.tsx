@@ -2,6 +2,7 @@
 import { ACTION_LABELS } from "@/constants/labels";
 import { slug } from "@/utils/string";
 
+import { track } from "@/lib/analytics/analytics";
 import { placeHref } from "@/lib/place";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePlace } from "../location/PlaceContext";
@@ -28,7 +29,7 @@ function fileName(place: string, format: PosterFormat) {
 }
 
 /**
- * "Crea poster", under the reading: a dialog that draws the place as a Swiss
+ * "Crea poster", on the Create page (`/crea`): a dialog that draws the place as a Swiss
  * poster (the map in the colours of the moment on show; its name, region and
  * country; its coordinates; the moment's weather as a readout) in three formats, with a preview, a download and, where the
  * device can, a share. The colours are those of the moment when it opens, so
@@ -70,12 +71,13 @@ export function PosterButton({
     if (!token) return;
     setDrawn((d) => ({ ...d, [f]: { status: "drawing" } }));
     renderPoster({ ...taken, format: f, token, loadMapbox })
-      .then((blob) =>
+      .then((blob) => {
+        track("preview_done", { format: f });
         setDrawn((d) => ({
           ...d,
           [f]: { status: "done", url: URL.createObjectURL(blob), blob },
-        })),
-      )
+        }));
+      })
       .catch(() => setDrawn((d) => ({ ...d, [f]: { status: "error" } })));
   }
 

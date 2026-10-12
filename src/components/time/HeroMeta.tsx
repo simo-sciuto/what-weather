@@ -3,7 +3,7 @@ import { PAGE_LABELS } from "@/constants/labels";
 
 import { dayOfYear } from "@/lib/weather/formatters";
 import { tempAccent } from "@/lib/weather/temp-color";
-import { PosterButton } from "../poster/PosterButton";
+import { CreateLink, CreateTab } from "../poster/CreateLink";
 import { LocalClock } from "../weather/LocalClock";
 import { MapControls } from "../weather/MapControls";
 import { useRef, type CSSProperties } from "react";
@@ -21,7 +21,7 @@ import { useMoment, useView } from "./TimeContext";
 export function HeroActions() {
   return (
     <div className="flex h-12 items-center justify-between gap-4 max-lg:hidden">
-      <PosterButton />
+      <CreateLink />
       <MapCompass />
       <MapControls />
     </div>
@@ -34,7 +34,7 @@ export function HeroActions() {
  * lies behind it gives it its colour), with an
  * icon and a name for each (the weather, the map, the poster) and a drop of glass on the page you are on, which travels
  * to the next as you go (see useLens). It stays in view while a sheet is open (the sheet stops above it),
- * so the page you are on is always marked. On the poster, its icon makes one; away from it, it goes back.
+ * so the page you are on is always marked. On the poster, its icon goes to Create; away from it, it goes back.
  */
 export function PhoneBar() {
   const { page, go } = usePhoneNav();
@@ -72,7 +72,7 @@ export function PhoneBar() {
           {ICONS.map}
         </BarTab>
       )}
-      <PosterButton tabRef={(el) => void (tabs.current[2] = el)} />
+      <CreateTab tabRef={(el) => void (tabs.current[2] = el)} />
     </nav>
   );
 }

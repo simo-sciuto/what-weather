@@ -1,4 +1,4 @@
-import { PAGE_LABELS } from "@/constants/labels";
+import { PAGE_LABELS, TAGLINE } from "@/constants/labels";
 import { Wordmark } from "@/components/Wordmark";
 import { LocationSearch } from "@/components/location/LocationSearch";
 import { PlaceProvider } from "@/components/location/PlaceContext";
@@ -9,30 +9,22 @@ import { PhoneBar } from "@/components/time/HeroMeta";
 import { MomentFacts } from "@/components/time/MomentFacts";
 import { AtmosphereMain, TimeProvider } from "@/components/time/TimeContext";
 import { TimeScrubber } from "@/components/time/TimeScrubber";
-import { Activities } from "@/components/weather/Activities";
-import { Almanac } from "@/components/weather/Almanac";
-import { Chapter } from "@/components/weather/Chapter";
-import { DailyForecast } from "@/components/weather/DailyForecast";
 import { PrecipitationTimeline } from "@/components/weather/PrecipitationTimeline";
 import { MapBackdropGL } from "@/components/weather/MapBackdropGL";
 import { MapProvider } from "@/components/weather/MapContext";
 import { weatherCredit } from "@/lib/record/credits";
-import { MapView } from "@/components/weather/MapView";
 import { MapSheet } from "@/components/weather/MapControls";
 import { MapCompass } from "@/components/weather/MapCompass";
 import { MapGestures } from "@/components/weather/MapGestures";
+import { Chapter } from "@/components/weather/Chapter";
+import { DetailsBand } from "@/components/weather/DetailsBand";
 import { Territory } from "@/components/weather/CityFacts";
-import { SiteFooter } from "@/components/weather/SiteFooter";
 import { Sky } from "@/components/weather/Sky";
 import { WeatherAlerts } from "@/components/weather/WeatherAlert";
 import { PromotedDetails } from "@/components/weather/WeatherDetails";
 import { WeatherHero } from "@/components/weather/WeatherHero";
 import { placeHref } from "@/lib/place";
 import { loadWeatherPage, type SearchParams } from "@/lib/weather-page";
-import {
-  activityOutlook,
-  dailyActivityOutlooks,
-} from "@/lib/weather/activities";
 import { detailModules, moonInfo } from "@/lib/weather/details";
 import {
   conditionLabel,
@@ -164,12 +156,18 @@ export default async function Home({
                 <header className="relative z-30 pt-[max(1rem,env(safe-area-inset-top))] lg:col-span-7 lg:col-start-6 lg:row-start-1 lg:pt-[3.5vh] xl:col-span-6 xl:col-start-7">
                   {/* The name, then the search: on one line from a tablet up, the name above on a phone */}
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-                    <Link
-                      href="/"
-                      className="on-sky shrink-0 self-start rounded-sm sm:self-auto focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-                    >
-                      <Wordmark className="text-[1.375rem]" />
-                    </Link>
+                    <div className="flex shrink-0 flex-col gap-1 self-start sm:self-auto">
+                      <Link
+                        href="/"
+                        className="on-sky self-start rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                      >
+                        <Wordmark className="text-[1.375rem]" />
+                      </Link>
+                      {/* The promise (ADR-018), in English over the Italian page */}
+                      <p lang="en" className="on-sky text-caption text-ink-muted">
+                        {TAGLINE}
+                      </p>
+                    </div>
                     <div className="min-w-0 flex-1">
                       <LocationSearch />
                     </div>
@@ -243,41 +241,11 @@ export default async function Home({
                       </Chapter>
                     )}
 
-                    {/* The next 24 hours, or the day picked in the week below */}
-                    <Activities
-                      next={activityOutlook(data)}
-                      days={dailyActivityOutlooks(data)}
-                    />
-
-                    <Chapter
-                      id="chapter-week"
-                      title="Settimana"
-                      note="Scegli un giorno per esplorarlo"
-                    >
-                      <DailyForecast data={data} />
-                    </Chapter>
-
-                    {/* The maps are Mapbox's; without a token there is no map chapter */}
-                    {MAPBOX && (
-                      <Chapter
-                        id="chapter-map"
-                        title={PAGE_LABELS.map}
-                        note="Nuvole e pioggia nelle prossime ore"
-                      >
-                        <MapView />
-                      </Chapter>
-                    )}
-
-                    <Chapter id="chapter-almanac" title="Dettagli" bare>
-                      <Almanac data={data} modules={modules} />
-                    </Chapter>
-
-                    <SiteFooter
+                    <DetailsBand
+                      data={data}
+                      modules={modules}
                       provider={provider}
-                      openWeatherKey={Boolean(process.env.OPENWEATHER_API_KEY)}
                       maps={MAPBOX}
-                      updatedAt={data.current.time}
-                      timezone={data.timezone}
                       scenario={scenario}
                       at={at}
                     />

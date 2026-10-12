@@ -34,6 +34,9 @@ export const ACTION_LABELS = {
   retry: "Riprova",
 } as const;
 
+/** The product's promise (ADR-018): English over the Italian UI */
+export const TAGLINE = "Weather, worth looking at";
+
 /** The pages of the phone's bar and their sheets. */
 export const PAGE_LABELS = {
   weather: "Meteo",

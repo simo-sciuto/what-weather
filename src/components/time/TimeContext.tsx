@@ -1,6 +1,7 @@
 "use client";
 
 import type { DayLabel, DayTimeline, Frame, Timeline } from "@/types/timeline";
+import { trackOnce } from "@/lib/analytics/analytics";
 import { frameLook, type FrameLook } from "@/lib/weather/look";
 import {
   createContext,
@@ -74,6 +75,7 @@ export function TimeProvider({ timeline, moon, children }: { timeline: Timeline;
 
   const selectDay = useCallback(
     (key: string) => {
+      trackOnce("explore", { source: "day" });
       const target = timeline.days.find((d) => d.key === key);
       if (!target || target.isToday) {
         setView({ kind: "now" });
@@ -86,6 +88,12 @@ export function TimeProvider({ timeline, moon, children }: { timeline: Timeline;
     },
     [timeline],
   );
+
+  /** The timeline moved by the viewer */
+  const scrub = useCallback((i: number) => {
+    trackOnce("explore", { source: "scrub" });
+    setIndex(i);
+  }, []);
 
   const backToNow = useCallback(() => {
     setView({ kind: "now" });
@@ -113,9 +121,9 @@ export function TimeProvider({ timeline, moon, children }: { timeline: Timeline;
       look: frameLook(frame),
       dayLabel: timeline.dayLabels[frame.dayKey],
       isLive: !day && index === 0,
-      setIndex,
+      setIndex: scrub,
     };
-  }, [timeline, frames, day, index]);
+  }, [timeline, frames, day, index, scrub]);
 
   return (
     <TimelineContext.Provider value={timelineState}>
