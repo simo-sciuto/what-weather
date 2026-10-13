@@ -178,8 +178,8 @@ export function PosterButton({
               Poster di {place.name}
             </h2>
             <p className="mt-1 text-sm text-ink-muted">
-              La città nei colori del cielo di questo momento, come la vedi
-              nella mappa.
+              La città nei colori del cielo di questo momento, sempre dalla
+              stessa vista: dall’alto, con il nord in alto.
             </p>
           </div>
           <button
