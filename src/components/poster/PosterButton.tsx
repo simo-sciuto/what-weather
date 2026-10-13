@@ -4,6 +4,7 @@ import { slug } from "@/utils/string";
 
 import { track } from "@/lib/analytics/analytics";
 import { createView } from "@/lib/record/create-record";
+import { POSTER_MESSAGES, posterFailureOf, type PosterFailure } from "@/lib/record/poster-errors";
 import { placeHref } from "@/lib/place";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePlace } from "../location/PlaceContext";
@@ -15,7 +16,7 @@ import { usePosterSnapshot, type PosterSnapshot } from "./usePosterSnapshot";
 type Drawn =
   | { status: "drawing" }
   | { status: "done"; url: string; blob: Blob }
-  | { status: "error" };
+  | { status: "error"; failure: PosterFailure };
 
 const FORMATS = Object.keys(POSTER_FORMATS) as PosterFormat[];
 
@@ -80,7 +81,7 @@ export function PosterButton({
           [f]: { status: "done", url: URL.createObjectURL(blob), blob },
         }));
       })
-      .catch(() => setDrawn((d) => ({ ...d, [f]: { status: "error" } })));
+      .catch((cause) => setDrawn((d) => ({ ...d, [f]: { status: "error", failure: posterFailureOf(cause) } })));
   }
 
   function open() {
@@ -231,9 +232,7 @@ export function PosterButton({
             ) : (
               <div className="skeleton absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-ink-muted">
                 <p role="status">
-                  {current?.status === "error"
-                    ? "Non sono riuscito a disegnare il poster. Riprova tra poco."
-                    : "Sto disegnando il poster…"}
+                  {current?.status === "error" ? POSTER_MESSAGES[current.failure].message : "Sto disegnando il poster…"}
                 </p>
               </div>
             )}
@@ -268,13 +267,16 @@ export function PosterButton({
               Scarica
             </a>
           ) : current?.status === "error" ? (
-            <button
-              type="button"
-              onClick={() => snapshot && draw(format, snapshot)}
-              className={`${action} bg-accent text-[#0c0f25] hover:bg-accent/85`}
-            >
-              {ACTION_LABELS.retry}
-            </button>
+            // Retry only where a retry can help (WTH-235): not for a refused map or a device without WebGL
+            POSTER_MESSAGES[current.failure].retry && (
+              <button
+                type="button"
+                onClick={() => snapshot && draw(format, snapshot)}
+                className={`${action} bg-accent text-[#0c0f25] hover:bg-accent/85`}
+              >
+                {ACTION_LABELS.retry}
+              </button>
+            )
           ) : (
             <span
               aria-disabled="true"
