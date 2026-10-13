@@ -2,6 +2,10 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-13 (WTH-227 protocol prepared, not run)
+- Worked on: wrote `docs/UX_VALIDATION_PROTOCOL.md`: three hypotheses, five new participants, a 20-minute session, scripted wording, hint ladder, observation sheet, outcome categories, problem log, synthesis template, decision thresholds, and nine decisions for the user before recruitment. No code, no UI, no data changed. No result exists.
+- Next: the user's decisions in section 12 of the protocol (devices, live or sample data, whether a download may be pressed while WTH-220 is open, price question, recruitment, recording, moderator, where the sheets live, thresholds).
+
 ## 2026-10-13 (merge to main, WTH-241, WTH-243, WTH-247 decided)
 - Worked on: fixed the map's descent on the screen (WTH-241, 1.5 screens, calibrated on the closed page) and Create's poster independent of Explore's stored choices (WTH-243, poster bytes identical). Checked with Mapbox and the e2e suite. Merged `claude/create-record` into `main` as a fast-forward (`de8f3f4`, after the user's approval); no squash, no deploy. WTH-247: the week to a secondary section (ADR-018 update), not implemented.
 - Verified after the merge: typecheck, lint, 433 unit tests. Not verified: the visual checks (descent with Dettagli, the dialog and preview by eye, a real phone).
@@ -27,9 +31,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Decided, as asked: ADR-001 and ADR-013 updated, `getAt` keeps the `WeatherData` shape (ADR-016 note). Deleted the six branches of the session on origin.
 - Found on the way: a slow WTH-200 test timed out under parallel load; only its timeout changed. The poster was not checked visually.
 - Next: WTH-169 checkpoint (labels "Oggi"/"Domani" for past moments, cache lifetime of `getAt`), then WTH-167.
-
-## 2026-10-06 (poster closed, sea and provenance)
-- Closed with the user's look at real exports (Torino, El Paso, Bergamo; iPhone): WTH-187, WTH-199, WTH-200, WTH-203.
-- Done and reviewed: WTH-204 (`seaGrid`, one flood, identical output, 3.6 s to 26 ms on a long harbour), WTH-196 (`RecordInput.provenance`; "~" on an interpolated hour, no partial range or estimated air printed).
-- Mistake owned: at the start the poster's name was said to be in Syne; it is Inter Tight (ADR-015 update).
-- Next: WTH-166 (licences) or the poster clean-ups.
