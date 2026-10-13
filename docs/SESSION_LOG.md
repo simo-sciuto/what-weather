@@ -2,6 +2,10 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-13 (WTH-227 environment check, protocol v1.1)
+- Worked on: checked the version to validate. Production serves `4591712` (Create answers 404); the code to validate is `87b87ea` (= `de8f3f4`), built locally: Explore with live data, Create with Mapbox, and the provider-failure message. Protocol v1.1 before the pilot: section 0 (the check), the pilot kept apart, the «Riprova» rule, decisions 10 to 12. No deploy, no push, no recruitment.
+- Blocked for the phone sessions: a reachable address (needs authorization); the preview and WTH-220; the free API's licence for research.
+
 ## 2026-10-13 (WTH-227 protocol v1.0, decisions recorded)
 - Worked on: applied the user's nine decisions to `docs/UX_VALIDATION_PROTOCOL.md` (v1.0, frozen for the sessions): three computer and two phone sessions, live weather with failure handling, no download or sharing until WTH-220, the price question last, indirect recruitment, notes only, the user as moderator, private sheets, orientative thresholds. Added the five separate synthesis groups, the consent draft in Italian, and the operational checklist. No code, no UI, no data changed. No result exists.
 - Open for the user: whether session 1, the pilot, counts among the five.
@@ -22,10 +26,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Fixed WTH-241 (the descent is measured on the screen, 1.5 screens, not on the page's height) and WTH-243 (Create's poster colours and layers are the canonical ones, not Explore's stored choices; the PNG is byte-identical with and without them). WTH-245 kept as it is. Checked with Mapbox: the dialog draws A4 and story, and Dettagli opens without moving the page at the same scroll.
 - Not verified: the map's zoom and pitch by eye (the user's look), and a real phone.
 - Next: the user's look, then the merge decision; then the validation of Create (WTH-227, WTH-167).
-
-## 2026-10-12 (new direction, ADR-018)
-- Worked on: the user pasted a startup-style assessment and asked to take it as the direction. Flagged four conflicts with ADR-013 and the roadmap (layout pause, past date as centre, print first, English tagline); the user accepted the recommendations. Wrote ROADMAP update, ADR-018, board Priority 0 (WTH-225 to WTH-231), WTH-169, 170, 173 and 214 adjusted, PROJECT_STATE.
-- Not done: no code, no checkpoint started. The assessment's market claims are unverified (WTH-231).
-- Then: WTH-231 done (docs/COMPETITORS.md); WTH-225 steps 1 to 3 done on `claude/explore-create-seam`, uncommitted, each reviewed (DetailsBand, `/crea`, the Dettagli disclosure, the tagline, the Crea link). Create's map view fixed to the base view (user's choice).
-- Not verified: the real look, a real phone, the poster dialog on `/crea` with a Mapbox token.
-- Next: the user's look and a commit; step 4 (WTH-226 events).

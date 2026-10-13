@@ -1,10 +1,32 @@
 # UX VALIDATION PROTOCOL (WTH-227)
 
-Version: 1.0. Status: PREPARED, NOT RUN. No session has taken place and no result exists. Nothing in this file is a finding.
+Version: 1.1 (changed before the pilot, see section 15). Status: PREPARED, NOT RUN. No session has taken place and no result exists. Nothing in this file is a finding.
 
 Frozen for the sessions. The wording, the blocks and the thresholds do not change between participants. A change is allowed only after session 1 (the pilot, section 3.1), and then it is a new version recorded in section 15.
 
 Purpose: test whether What Weather is understood without explanation (H1), whether people find Create and understand what it does (H2), and whether the poster it makes seems worth keeping, sharing or paying for (H3), as ADR-018 requires before more is built. The question is behaviour, not taste: what people do, where they hesitate, and what they say unprompted.
+
+## 0. Preliminary environment check (2026-10-13, before any recruitment)
+
+Version to validate: `main` at `87b87ea`. Its code is the code of `de8f3f4`; the later commits are documentation only.
+
+| Check | Result |
+|---|---|
+| Commit in production (Vercel, project `what-weather`, latest production deployment) | `4591712`, from before Explore and Create. `/crea` answers 404. **Production is not the version to validate.** |
+| Commit on `origin/main` | `4591712`. Local `main` is 14 commits ahead and not pushed. |
+| Local build of `main` from a clean tree | Built without errors. |
+| Explore with live data (Open-Meteo, the provider in `.env.local`) | Shows the time of the reading, the tagline, the link to Create and the Dettagli section. No console errors. |
+| Create with Mapbox | The preview is drawn: PNG 2480 × 3508, about 13 s on the desktop build. No error message. The download control is present and was not pressed. |
+| Provider failure (OpenWeather One Call, answered 401) | The page shows «Impossibile caricare il meteo ... Riprova». A clear message, not a blank page. |
+| Mapbox token | The style endpoint answers 200. |
+| Actions blocked by WTH-220 | The tasks need no download and no sharing. The preview draws the same image on screen: see the open decision below. |
+
+Environment to use: a local production build of `main` (`npm run build`, then `npm start`) on the test machine. Nothing is deployed, and no deploy was made.
+
+Blockers before recruitment:
+- **Phone sessions need a reachable address.** Production does not serve the version. A deploy, or a push of `main` that triggers one, needs the user's authorization. Local alternative: a phone on the same Wi-Fi reaching the test machine. Not checked. The Mapbox token may restrict the origins it accepts.
+- **The preview and WTH-220.** WTH-220 concerns the PNG with the Mapbox map. The preview draws that same PNG in the browser, so the block on downloads does not cover it. The user decides whether the preview may be shown during the sessions.
+- **The free weather API.** The site uses Open-Meteo's free API, which LICENCES.md marks as non-commercial. The sessions sell nothing, but the user should confirm that this use is acceptable for research.
 
 ## 1. Research goals and hypotheses
 
@@ -46,8 +68,10 @@ The moderator reads only the scripted lines in quotation marks. Anything else is
 
 Only the moderator speaks. A silent observer (decision 7, optional) writes timestamps and does not speak to the participant.
 
-### 3.1 Session 1 is a pilot of the protocol
-Session 1 checks whether the instructions are clear, whether 20 minutes is enough, and whether the observation of the step from Explore to Create can be made without suggesting it. Its results about the product are recorded as provisional, and its sheet is marked "pilot". Whether session 1 counts among the five is decided by the user before recruitment (section 14). After session 1, the only changes allowed are fixes to wording the moderator cannot say as written, or to timing. Each change is recorded in section 15.
+### 3.1 The pilot
+One pilot session comes before the five. It checks whether the instructions are clear, whether 20 minutes is enough, and whether the step from Explore to Create can be observed without suggesting it. The pilot does not count among the five valid sessions (section 14). Its sheet is marked "pilot" and is kept apart from the five (section 13).
+
+After the pilot, only methodological problems may be corrected, and each correction is recorded in section 15. During the five valid sessions the protocol does not change.
 
 ### Setup (before each session)
 - Computer sessions: browser at 1440 × 900, the live site.
@@ -218,6 +242,7 @@ During a session:
 - If the weather stops loading or shows an error: say «Un attimo», note the time, and wait up to 2 minutes.
 - If it recovers within 2 minutes, continue from the start of the block that was interrupted, and note the interruption in the sheet. The session is kept.
 - If it does not recover within 2 minutes, end the session as a **technical interruption**. It is not counted in any outcome. Repeat it with another participant, or with the same one at a later date.
+- If the page shows «Impossibile caricare il meteo», the participant may press «Riprova» once. Let them. The press is noted, and the wait above starts from it.
 - If the map does not load, the poster cannot be drawn, because the poster is made with the map. A map failure that stops Block C is a technical interruption.
 - If the page shows only part of the data (some chapters missing, or an old time), note what is missing and whether the participant noticed. This is a product observation, recorded in the problem log, with the severity it causes.
 
@@ -231,6 +256,7 @@ Each session sheet records the date and the time shown by the site, because the 
 
 - The observation sheets, the recruitment list and the consent forms are kept in a private folder, outside this repository (decision 8). They hold the participants' words and contacts.
 - Do not commit any sheet, note, or contact to the repository.
+- The pilot's observations are kept in their own folder, labelled "pilota". They are not merged into the synthesis of the five valid sessions, and the synthesis template does not include them.
 - The repository keeps this protocol, and, after the sessions, a synthesis with no names, only the P-codes, the counts and the verbatim phrases that carry no personal detail.
 
 ## 14. Decisions taken (recorded, 2026-10-13)
@@ -245,13 +271,16 @@ Each session sheet records the date and the time shown by the site, because the 
 8. **Sheets:** stored privately, outside the repository.
 9. **Thresholds:** kept as orientative criteria, not as representative results.
 
-Open for the user, before recruitment: whether session 1, the pilot (section 3.1), counts among the five. The protocol assumes it does not count, which means five further sessions are needed. Confirm or change.
+10. **The pilot** (section 3.1) does not count among the five valid sessions. Total: one pilot and five participants. Decided 2026-10-13.
+11. **Changes after the pilot** are methodological only, and each is documented in section 15. The protocol is frozen during the five valid sessions. Decided 2026-10-13.
+12. **Environment check** (section 0) is done before any recruitment. Recruitment and deploy wait for the user's authorization.
 
 ## 15. Change log
 
 | Version | Date | Change |
 |---|---|---|
-| 1.0 | 2026-10-13 | First version, with the decisions of section 14. Frozen for the sessions. |
+| 1.0 | 2026-10-13 | First version, with the decisions of section 14. |
+| 1.1 | 2026-10-13 | Before the pilot: section 0 (environment check, recorded), section 3.1 (the pilot is not among the five), the «Riprova» rule in section 11, the separation of the pilot's material in section 13, decisions 10 to 12 in section 14. No change to the questions, the blocks or the thresholds. |
 
 ## 16. Consent (Italian draft, for the user's review)
 
@@ -280,11 +309,11 @@ Notes for the moderator, not read aloud: confirm the consent verbally before the
 ## 17. Operational checklist for the first session
 
 Before the session:
-- [ ] Section 14 open point answered: does session 1 count among the five?
+- [ ] Environment check (section 0) repeated on the morning of the pilot, with the commit that is served and the provider reading.
 - [ ] Consent text (section 16) reviewed by the user.
 - [ ] A participant recruited by the agreed channel, not knowing the product.
 - [ ] Device ready: a computer at 1440 × 900, or the phone, with the live site opened once.
-- [ ] Provider check (section 11) passed on the same day.
+- [ ] Provider check (section 11) passed on the same day, and the user has decided the open points of section 0 (phone address, the preview).
 - [ ] Observation sheet printed or open, marked "pilot" for session 1, with the protocol version.
 - [ ] Timer ready, visible only to the moderator.
 - [ ] Private folder ready (section 13).
