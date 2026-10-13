@@ -2,6 +2,10 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-13 (WTH-227 protocol v1.0, decisions recorded)
+- Worked on: applied the user's nine decisions to `docs/UX_VALIDATION_PROTOCOL.md` (v1.0, frozen for the sessions): three computer and two phone sessions, live weather with failure handling, no download or sharing until WTH-220, the price question last, indirect recruitment, notes only, the user as moderator, private sheets, orientative thresholds. Added the five separate synthesis groups, the consent draft in Italian, and the operational checklist. No code, no UI, no data changed. No result exists.
+- Open for the user: whether session 1, the pilot, counts among the five.
+
 ## 2026-10-13 (WTH-227 protocol prepared, not run)
 - Worked on: wrote `docs/UX_VALIDATION_PROTOCOL.md`: three hypotheses, five new participants, a 20-minute session, scripted wording, hint ladder, observation sheet, outcome categories, problem log, synthesis template, decision thresholds, and nine decisions for the user before recruitment. No code, no UI, no data changed. No result exists.
 - Next: the user's decisions in section 12 of the protocol (devices, live or sample data, whether a download may be pressed while WTH-220 is open, price question, recruitment, recording, moderator, where the sheets live, thresholds).
@@ -25,9 +29,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Then: WTH-231 done (docs/COMPETITORS.md); WTH-225 steps 1 to 3 done on `claude/explore-create-seam`, uncommitted, each reviewed (DetailsBand, `/crea`, the Dettagli disclosure, the tagline, the Crea link). Create's map view fixed to the base view (user's choice).
 - Not verified: the real look, a real phone, the poster dialog on `/crea` with a Mapbox token.
 - Next: the user's look and a commit; step 4 (WTH-226 events).
-
-## 2026-10-12 (open branches closed)
-- Worked on: closing the open work. Merged the historical-provider port and WTH-185 into `main`; resolved the board conflict and the reused ids; merged WTH-206, WTH-189 and WTH-224.
-- Decided, as asked: ADR-001 and ADR-013 updated, `getAt` keeps the `WeatherData` shape (ADR-016 note). Deleted the six branches of the session on origin.
-- Found on the way: a slow WTH-200 test timed out under parallel load; only its timeout changed. The poster was not checked visually.
-- Next: WTH-169 checkpoint (labels "Oggi"/"Domani" for past moments, cache lifetime of `getAt`), then WTH-167.

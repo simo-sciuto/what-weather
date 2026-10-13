@@ -1,8 +1,10 @@
 # UX VALIDATION PROTOCOL (WTH-227)
 
-Status: PREPARED, NOT RUN. No session has taken place and no result exists yet. Nothing in this file is a finding. Recruitment and the decisions in section 12 wait for the user.
+Version: 1.0. Status: PREPARED, NOT RUN. No session has taken place and no result exists. Nothing in this file is a finding.
 
-Purpose: test whether What Weather is understood without explanation (H1), whether people find Create and understand what it does (H2), and whether the poster it makes is something they want to keep, share or pay for (H3), as ADR-018 requires before more is built. The question is behaviour, not taste: what people do, where they hesitate, and what they say unprompted.
+Frozen for the sessions. The wording, the blocks and the thresholds do not change between participants. A change is allowed only after session 1 (the pilot, section 3.1), and then it is a new version recorded in section 15.
+
+Purpose: test whether What Weather is understood without explanation (H1), whether people find Create and understand what it does (H2), and whether the poster it makes seems worth keeping, sharing or paying for (H3), as ADR-018 requires before more is built. The question is behaviour, not taste: what people do, where they hesitate, and what they say unprompted.
 
 ## 1. Research goals and hypotheses
 
@@ -10,28 +12,30 @@ Purpose: test whether What Weather is understood without explanation (H1), wheth
 |---|---|---|
 | H1 Comprehension | People understand what What Weather offers without an explanation. | Their first description, in their own words, names more than a weather forecast (a place, a sky, a poster, a visual experience), or at least does not describe it as only a weather app. |
 | H2 Discoverability | People find Create without help and understand what it lets them do. | They reach a poster on their own, and describe Create as something that makes an image of a place. |
-| H3 Desirability | The poster seems worth keeping, sharing or paying for. | They ask to save or share it, or say what they would do with it and what they would change, without being asked to rate it. |
+| H3 Desirability | The poster seems worth keeping, sharing or paying for. | They say they would keep, share or pay for it, and their unprompted behaviour points the same way (section 8, the last two groups). |
 
-Limits, stated up front: five people give no market size and no conversion rate. They show recurring problems of understanding and use. Willingness to pay is not measured here (section 9).
+Limits, stated up front: five people give no market size and no conversion rate. They show recurring problems of understanding and use, and the first signs of what people want. They do not decide whether the product works commercially. Willingness to pay is only stated, never measured (section 9).
 
 ## 2. Participants
 
 Who: five people who have never used What Weather and do not know the project.
 
+Sample: three on a computer, two on a smartphone (decision 1). The phone sessions use the same browser and the same tasks, on a real phone.
+
 Criteria:
 - Italian speakers, comfortable with the Italian interface.
-- Not people who work on this project, on design for this project, or who have seen its screens before.
-- Mix of devices as set in section 12: at least one who usually uses a phone for weather, and at least one who usually uses a computer.
-- Mix of design interest: at least two who say they buy or make visual objects for their home or as gifts (the first audience in ADR-018), and at least two who do not.
-- Exclude anyone who has received a reward tied to the outcome, or who knows the moderator well (they will hold back).
+- Recruited through indirect acquaintances and word of mouth (decision 5): people the moderator knows only slightly, or through someone else. Not close friends or family, because they will hold back.
+- Excluded: anyone who has seen the site or its screens, read about the project, or worked on any part of it, and anyone who receives a reward tied to what they say.
+- Mix of design interest: at least two who say they buy or make visual objects for their home or as gifts (the first audience in ADR-018), and at least two who do not. Record each participant's answer to this as a recruitment fact, not a result.
+- Record how each person was recruited (the channel), not who they are.
 
-Not recorded: names, contact details, precise location, face or voice in the results. Notes refer to participants as P1 to P5. Recording (screen or audio) only with written consent, and deleted after the synthesis.
+Not recorded: names, contact details, precise location, face or voice. Notes refer to participants as P1 to P5 (section 6). The moderator needs a contact to arrange the session. That list is kept separately from the notes, and deleted when the synthesis is written (consent, section 16).
 
 ## 3. Session structure (about 20 minutes)
 
 | Block | Time | Purpose |
 |---|---|---|
-| Welcome and consent | 2 min | Set the frame, get consent for notes (and recording if agreed). |
+| Welcome and consent | 2 min | Set the frame, read the consent (section 16), take the answer. |
 | A. First impression | 3 min | H1 |
 | B. Free exploration | 6 min | H1, the Explore experience |
 | C. Discovering Create | 6 min | H2 |
@@ -40,23 +44,29 @@ Not recorded: names, contact details, precise location, face or voice in the res
 
 The moderator reads only the scripted lines in quotation marks. Anything else is a note, not a question.
 
+Only the moderator speaks. A silent observer (decision 7, optional) writes timestamps and does not speak to the participant.
+
+### 3.1 Session 1 is a pilot of the protocol
+Session 1 checks whether the instructions are clear, whether 20 minutes is enough, and whether the observation of the step from Explore to Create can be made without suggesting it. Its results about the product are recorded as provisional, and its sheet is marked "pilot". Whether session 1 counts among the five is decided by the user before recruitment (section 14). After session 1, the only changes allowed are fixes to wording the moderator cannot say as written, or to timing. Each change is recorded in section 15.
+
 ### Setup (before each session)
-- Browser at 1440 × 900 for a computer session; a real phone, same browser, for a phone session.
-- The live site, opened on the default place with no query string, so participants see what a stranger sees. (Decision needed, section 12: live data or sample weather.)
-- Nothing open but the site.
-- Notes sheet (section 6) and a timer visible to the moderator only.
+- Computer sessions: browser at 1440 × 900, the live site.
+- Phone sessions: a real phone, the same browser, the live site.
+- The live site, opened on the default place with no query string, so the participant sees what a stranger sees.
+- Nothing open but the site. Notes sheet (section 6) and a timer visible only to the moderator.
+- Run the provider check in section 11 before the session starts.
 
 ### Block A: first impression (3 min)
 Show the homepage. Do not explain the project, the name, the tagline, or what the poster is.
 
 Ask, in these words: «Secondo te, che cos'è questo sito e a cosa serve?»
 
-Record the words they use, in order, verbatim. Ask nothing else in this block, even if they are unsure. If they ask what the site is, answer: «Dimmi cosa pensi tu, non c'è una risposta sbagliata.»
+Record the words used, in order, verbatim. Ask nothing else in this block, even if they are unsure. If they ask what the site is, answer: «Dimmi cosa pensi tu, non c'è una risposta sbagliata.»
 
 ### Block B: free exploration (6 min)
 Task: «Cerca una città che ti interessa e guarda come cambierà il tempo nelle prossime ore.»
 
-Use the town they choose. If they ask for a hint: «Fai come se fosse il sito che usi di solito.» Do not name any feature, control, or section.
+Use the place they choose. If they ask for a hint: «Fai come se fosse il sito che usi di solito.» Do not name any feature, control, or section.
 
 Observe, do not interrupt: scroll behaviour, the map (touches, drags), the timeline, which controls they try, what they read aloud, where they hesitate, the information they look for and whether they find it. Stop at 6 minutes or when they say they are done.
 
@@ -69,7 +79,7 @@ Then wait. Do not name any section. Observe whether they find the way to Create 
 
 Once the poster is on screen, do not explain it. Ask: «Cosa vedi qui?» and record the answer.
 
-If they reach the poster, let them change the format if they want, and ask nothing about the result yet.
+If they reach the poster, they may look at the formats and the preview. Nothing else is pressed: see the rule on downloads and sharing in section 4. Ask nothing about the result yet.
 
 ### Block D: perceived value (5 min)
 Ask, in order, and let them answer fully before the next:
@@ -78,9 +88,9 @@ Ask, in order, and let them answer fully before the next:
 3. «La terresti? Perché?»
 4. «La condivideresti con qualcuno? Con chi?»
 
-Do not ask for a score, a rating, or «ti piace?». Do not show prices in this block.
+Do not ask for a score, a rating, or «ti piace?». Do not show prices or a price list in this block, at any point.
 
-Only at the very end, if the block was reached with time to spare, ask: «Pagheresti per averla? Quanto, a parole tue?» Record the answer as a stated figure, never as a purchase. Do not follow up with a price list. (Decision needed on whether to ask at all, section 12.)
+Only at the very end, if the block was reached with time to spare, ask: «Pagheresti per averla? Quanto, a parole tue?» Record the answer as a stated figure, never as a purchase. Do not suggest a figure, and do not show any price. (Decision 4.)
 
 ### Close (1 min)
 «Grazie. C'è qualcosa che non ti ho chiesto e che avresti voluto dirmi?»
@@ -90,12 +100,13 @@ Do not explain the project, its direction, or what it is for. If they ask, say: 
 ## 4. Rules for the moderator
 
 - Never say that What Weather is becoming a creative platform, an editor, a studio, or a product for designers. Participants must discover what the product is from the product itself. If they describe it as only a weather app, record it as the result.
-- Never say the word Create, nor name the poster, the editor or the download before the participant does.
+- Never say the word Create, nor name the poster, the editor, the download or the sharing before the participant does.
+- **No download and no sharing, in any session** (decision 3, and the same rule applied to «Condividi»). On a phone, «Condividi» sends a copy of the image out of the page, which is the same question as the download (WTH-220). If a participant presses «Scarica» or «Condividi», the moderator says: «In questa prova l'immagine resta sullo schermo: non la salviamo né la inviamo.» The attempt is recorded: it is a sign of desirability, not a failure of the task.
 - Never point at, touch or open anything for the participant.
 - Never explain a control or a message. Record the confusion.
 - Never react to an opinion with praise or doubt. Say «Capito» or «Dimmi di più».
 - Do not repeat the participant's answer back as a question that leads.
-- If something breaks (a blank screen, an error), note it, say «Un attimo», and restart the task from the beginning with a fresh page.
+- If something breaks, follow section 11 (provider and map failures), not improvisation.
 
 ## 5. Hint ladder (for stuck participants only)
 
@@ -112,23 +123,28 @@ Step 3 never names Create or shows where it is.
 
 ## 6. Observation sheet (one per participant)
 
-Fill in during the session; add the synthesis afterwards.
+Fill in during the session in keywords; complete it within 10 minutes of the end. Store it privately (section 13).
 
 ```
-Participant: P_  Date: __  Device: computer / phone  Design interest: yes / no
+Protocol version: 1.0 (or later)   Pilot (session 1): yes / no
+Participant: P_   Date: __   Time shown on the site (the first reading): __
+Device: computer / phone   Design interest: yes / no   Recruited by: channel only
+Place chosen in Block B:
 Block A, their words, verbatim:
 Block A, understood the product? (describes more than a weather app: yes / partly / no)
-Block B: town chosen, what they looked at, hesitations (timestamp):
+Block B: what they looked at, hesitations (timestamp):
 Block B: controls tried, in order:
 Block C: time to find the way to Create (seconds):
 Block C: how they found it: alone / after hint 1 / after hint 2 / not found
 Block C: time to a poster on screen (seconds):
-Block C: format changed? yes / no
+Block C: formats looked at:
+Block C: attempt to download or share (Scarica / Condividi): yes / no, when:
 Block D, stated uses, verbatim:
 Block D, would keep it? yes / no / unsure, why:
 Block D, would share it? yes / no / unsure, with whom:
 Block D, stated price, verbatim (if asked):
-Outcome for Create: autonomous success / assisted success / failure
+Spontaneous signals (before Block D's questions, unprompted): 
+Outcome for Create: autonomous success / assisted success / failure / technical interruption
 Problems (use the log in section 7):
 Anything unexpected they said or did:
 ```
@@ -139,8 +155,10 @@ Anything unexpected they said or did:
 - **Autonomous success:** reached a poster on screen without any hint.
 - **Assisted success:** reached a poster after hint 1 or hint 2.
 - **Failure:** did not reach a poster by the end of the hint ladder, or gave up.
+- **Technical interruption:** the provider or the map failed (section 11) before the task could be completed. Not counted as a success or a failure. Recorded with its cause, and the session is repeated with another participant or later.
 
-Record separately for H1 (did they describe the product as more than a weather app without help?) and H3 (did they say they would keep or share it, unprompted?). H3 answers are "unprompted" only if they came before the question «La terresti?».
+### What counts as "unprompted"
+An answer is unprompted when it comes before the question that asks for it. For example, a participant who says «la terrei» during Block C has given an unprompted signal. For H1, the question is the first answer to Block A.
 
 ### Problem log
 Each problem is recorded once, with an ID (U1, U2, ...), and then counted across sessions.
@@ -155,75 +173,138 @@ Each problem is recorded once, with an ID (U1, U2, ...), and then counted across
 
 A problem found in one session is recorded as a candidate. It is counted as recurring only when at least two participants meet it.
 
-## 8. Synthesis template (after the five sessions)
+## 8. What the synthesis reports, in five separate groups
 
-```
-Sessions completed: _ of 5. Dates: __.   Recruitment: __ (see section 12).
+Keep these five groups apart. Never add them into one score.
 
-H1 Comprehension: described more than a weather app without help: _ of 5.
-   Their words, most used: 
-H2 Discoverability: autonomous _ / assisted _ / failure _ (Create).
-   Median time to a poster (autonomous only): _ s.
-H3 Desirability: would keep: _ of 5; would share: _ of 5 (unprompted before the question: _).
-   Stated uses: 
-Recurring problems (at least 2 of 5), by severity:
-   U_: where, frequency, severity, evidence
-Problems met by one participant only (candidates, not conclusions):
-Things that surprised the moderator:
-Caveats: five people, not a sample of the market. Participants recruited by __.
-```
-
-Do not write the synthesis from memory. Fill it from the sheets, and keep the sheets.
+1. **Comprensione del prodotto (H1).** What they said the product is, in Block A, without help: the number who described more than a weather app, and their words, most used.
+2. **Successo nell'utilizzo (H2).** Outcome for Create: autonomous, assisted, failure, technical interruption. Time to a poster on screen, for autonomous successes only. Grouped by device.
+3. **Interesse dichiarato.** What they said in Block D when asked: would keep, would share, what they would change, what they would do with it. Stated, not observed.
+4. **Comportamento spontaneo che indica desiderabilità.** Observed, unprompted, before Block D's questions: an attempt to download or share; asking where the image is kept; describing a use without being asked; staying on the poster or returning to it; changing a format to see another. Count each sign once per participant.
+5. **Disponibilità dichiarata a pagare.** Only the answer to the last question, as a stated figure, verbatim, with the number who gave one. Never a purchase. Never an average presented as a price.
 
 ## 9. What this does and does not test
 
-- It tests understanding, discoverability and perceived value through behaviour and unprompted speech.
-- It does not test willingness to pay. A stated price is a claim, not a purchase. A real purchase test, with a declared test checkout, is a separate later experiment (WTH-172, after WTH-166, 211, 212, 219 and 220 are settled).
+- It tests understanding, the success of the task, stated interest, and unprompted behaviour.
+- It does not test willingness to pay. A stated figure is a claim, not a purchase. A real purchase test, with a declared test checkout, is a separate later experiment (WTH-172, after WTH-166, 211, 212, 219 and 220 are settled).
 - It does not test print. Print comes after the first digital sale (ADR-018).
-- It does not test the past dates (WTH-169), since the first sessions use today's weather.
+- It does not test past dates (WTH-169), since the sessions use the weather of the day.
+- It does not test the download or the sharing (WTH-220).
+- Results depend on the day: the weather shown is live, so each sheet records the time shown on the site.
 
 ## 10. Decision criteria
 
-These are working thresholds, set before the sessions and to be questioned after them. They are not benchmarks. They decide what to do next, not what is true about the market.
+These are working thresholds, kept from the earlier version as orientative criteria (decision 9). They are set before the sessions and questioned after them. They are not benchmarks, and five people are not a representative sample. They decide what to look at next, not what is true about the market.
 
 | Result | Reading | Next step |
 |---|---|---|
 | H1 at least 4 of 5, H2 autonomous or assisted in at least 4 of 5, H3 keep or share in at least 3 of 5 | The value is clear and the way to Create works. | Proceed with Create V1 as the specification says (WTH-228, after the user's decision on the gates of ADR-018). |
 | H1 at most 2 of 5, but H3 at least 3 of 5 | The poster is wanted, the site does not explain itself. | Simplify Explore: the first screen says what it is, before the weather. Build nothing in Create until that is tested again. |
 | H2 failure in at least 3 of 5 | Create is not found. | Make the way to Create clearer on the existing screen, then test again before building Create's flow further. |
-| H3 at most 2 of 5 keep or share, with H1 at least 4 of 5 | The product is understood as a weather app, and the poster is not wanted. | Revisit the positioning in the documents and the interface before more building (the user's own question: the strategy may be clearer in the documents than in the product). |
+| H3 at most 2 of 5 keep or share, with H1 at least 4 of 5 | The product is understood as a weather app, and the poster is not wanted. | Revisit the positioning in the documents and the interface before more building. |
 | Mixed results | Not enough to choose. | Run a second round of five with the one change that the problem log points to. |
 
 Problems of severity 4 are reported to the user at once, whatever the counts.
 
-## 11. What the user must see before anything is recorded
+## 11. Provider and map failures (live data)
 
-- The live site in the state it is today, not a demo.
-- Every session in the same order and with the same wording, from this file.
-- The sheets, not a summary, kept with the consent forms.
+The site shows live weather, so it can fail on the day. Failures are handled the same way in every session.
 
-## 12. Decisions that need the user before recruitment
+Before each session (the provider check):
+- Open the site on the place and the time of the protocol, and wait for the first reading.
+- If the reading does not appear within 30 seconds, or the page shows an error, do not start. Reschedule the session.
 
-1. **Devices.** Computer, phone, or both? Proposal: three computer sessions and two phone sessions, since the first screen is different on a phone.
-2. **Data on the site.** Live weather for the chosen town, or the sample weather (`mock`, a fixed sky)? Proposal: live, since a sample sky is not what a stranger sees. The results then depend on the day.
-3. **The download and Mapbox.** The poster dialog offers a download, and WTH-220 is still open: whether a download of the map is covered by Mapbox's terms. Proposal: the sessions stop at the preview, and the moderator does not offer the download, until WTH-220 is answered. Decision: may a participant press «Scarica»?
-4. **The price question.** Ask it at all, in Block D, as a stated figure? Proposal: yes, last, without a price list. Alternative: drop it, since the protocol does not measure it.
-5. **Recruitment.** Who finds the five people, through what channel, and whether they are paid or given a gift. Each choice changes who the sample is.
-6. **Recording.** Notes only, or screen and audio with written consent? Proposal: notes only, unless the participant agrees otherwise.
-7. **Moderator and note-taker.** Who moderates? A second person for the notes helps: the moderator should not write while speaking.
-8. **Where the sheets live.** Proposal: outside the repository, in a private folder, since they hold participants' words. Only the synthesis template, with the results, goes in `docs/`.
-9. **The thresholds in section 10.** Accept them as they are, or change them before the sessions? They are easier to change now than after.
+During a session:
+- If the weather stops loading or shows an error: say «Un attimo», note the time, and wait up to 2 minutes.
+- If it recovers within 2 minutes, continue from the start of the block that was interrupted, and note the interruption in the sheet. The session is kept.
+- If it does not recover within 2 minutes, end the session as a **technical interruption**. It is not counted in any outcome. Repeat it with another participant, or with the same one at a later date.
+- If the map does not load, the poster cannot be drawn, because the poster is made with the map. A map failure that stops Block C is a technical interruption.
+- If the page shows only part of the data (some chapters missing, or an old time), note what is missing and whether the participant noticed. This is a product observation, recorded in the problem log, with the severity it causes.
 
-## 13. Preparation checklist (done before the first session)
+Never explain the failure to the participant beyond «Un attimo». Never describe it as a bug of the test.
 
-- [ ] Decisions 1 to 9 answered.
-- [ ] Consent text written (in Italian), reviewed by the user.
-- [ ] Sheets printed or copied, one per participant.
-- [ ] A dry run with someone who is not a participant, to time the blocks. The dry run is practice, not data, and its notes are discarded.
-- [ ] Live site checked the same morning as the sessions (it is deployed, so nothing is changed for the test).
+## 12. The record of the day
 
-## 14. Related
+Each session sheet records the date and the time shown by the site, because the results depend on the day (section 9). A session on a day of severe weather and a session on a calm day are not comparable as the same experience. Note it, and do not correct for it.
+
+## 13. Where the material lives
+
+- The observation sheets, the recruitment list and the consent forms are kept in a private folder, outside this repository (decision 8). They hold the participants' words and contacts.
+- Do not commit any sheet, note, or contact to the repository.
+- The repository keeps this protocol, and, after the sessions, a synthesis with no names, only the P-codes, the counts and the verbatim phrases that carry no personal detail.
+
+## 14. Decisions taken (recorded, 2026-10-13)
+
+1. **Devices:** three computer sessions, two smartphone sessions.
+2. **Data:** live weather, with the failure handling in section 11.
+3. **Downloads:** none during the tests until WTH-220 is resolved. This also covers «Condividi» (section 4).
+4. **Price question:** only at the end, without a suggested price or a price list.
+5. **Recruitment:** through indirect acquaintances and word of mouth, excluding anyone who knows the product.
+6. **Material:** notes only, no audio or video recording.
+7. **Moderator:** the user. A second observer is optional and silent.
+8. **Sheets:** stored privately, outside the repository.
+9. **Thresholds:** kept as orientative criteria, not as representative results.
+
+Open for the user, before recruitment: whether session 1, the pilot (section 3.1), counts among the five. The protocol assumes it does not count, which means five further sessions are needed. Confirm or change.
+
+## 15. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 1.0 | 2026-10-13 | First version, with the decisions of section 14. Frozen for the sessions. |
+
+## 16. Consent (Italian draft, for the user's review)
+
+Draft. To be reviewed by the user before use. It is a plain statement, not legal advice; if the user needs a formal privacy notice, it must be checked for the country it is used in.
+
+> **Ricerca sull'esperienza di un sito web: consenso a partecipare**
+>
+> Grazie per il tempo che dedichi a questa conversazione. Stiamo osservando come le persone usano un sito web in fase di sviluppo, un servizio meteo con una parte dedicata a immagini di luoghi. Non stiamo valutando te: stiamo valutando il sito.
+>
+> La partecipazione è volontaria. Puoi interrompere in qualsiasi momento, senza doverne spiegare il motivo, e puoi chiedere che le tue risposte non vengano usate.
+>
+> Durante la sessione chi conduce la prova prende appunti a mano. Gli appunti non riportano il tuo nome né i tuoi contatti: sei indicato con un codice, ad esempio "P1". Il nome e il contatto servono solo a organizzare la sessione: vengono conservati separatamente dagli appunti e cancellati quando la ricerca è conclusa.
+>
+> Non registriamo audio né video. Non ti chiediamo di acquistare nulla e non scarichiamo né condividiamo alcuna immagine durante la prova.
+>
+> Useremo gli appunti solo per questa ricerca, e nei risultati scriveremo solo frasi senza dati personali.
+>
+> Ti chiediamo di confermare, con una risposta sì o no, di aver letto questo testo e di voler partecipare.
+>
+> Nome del partecipante (solo per l'organizzazione, non negli appunti): __________
+> Data: __________   Risposta: sì / no
+> Firma o conferma verbale annotata dal moderatore: __________
+
+Notes for the moderator, not read aloud: confirm the consent verbally before the first question, and write «sì» or «no» on the sheet. If the answer is «no», end the session politely and record nothing about the person beyond the fact of the refusal.
+
+## 17. Operational checklist for the first session
+
+Before the session:
+- [ ] Section 14 open point answered: does session 1 count among the five?
+- [ ] Consent text (section 16) reviewed by the user.
+- [ ] A participant recruited by the agreed channel, not knowing the product.
+- [ ] Device ready: a computer at 1440 × 900, or the phone, with the live site opened once.
+- [ ] Provider check (section 11) passed on the same day.
+- [ ] Observation sheet printed or open, marked "pilot" for session 1, with the protocol version.
+- [ ] Timer ready, visible only to the moderator.
+- [ ] Private folder ready (section 13).
+
+During the session:
+- [ ] Consent read and answered (Block welcome).
+- [ ] Block A: the exact question, verbatim notes.
+- [ ] Block B: the task, one hint at most at a time, the scroll and the map observed.
+- [ ] Block C: the task, the hint ladder if stuck, the attempt to download or share recorded if it happens.
+- [ ] Block D: the four questions in order, the price question last and only if there is time.
+- [ ] Close: the closing question.
+
+After the session:
+- [ ] Sheet completed within 10 minutes, keywords expanded.
+- [ ] Outcome, the five groups of section 8, and the problem log updated.
+- [ ] Session 1 only: note the points the protocol could not support (wording, timing), in section 15 as candidate changes. Do not change the protocol until the pilot is reviewed.
+- [ ] Sheet stored in the private folder, nothing committed.
+
+## Related
 
 - ADR-018 and `docs/ROADMAP.md` (the direction, not to be explained to participants).
-- `docs/CREATE_SPEC.md` (what Create is meant to do, for the synthesis, not for the moderator).
-- WTH-227 (this study), WTH-172, WTH-166, WTH-211, WTH-212, WTH-219, WTH-220 (conditions before any purchase test).
+- `docs/CREATE_SPEC.md` (what Create is meant to do; for the synthesis, not for the moderator).
+- WTH-227 (this study), WTH-172, WTH-166, WTH-211, WTH-212, WTH-219, WTH-220 (conditions before any purchase test and before any download).
