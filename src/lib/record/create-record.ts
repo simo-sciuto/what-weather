@@ -48,6 +48,14 @@ export type RecordView = { zoom: number; pitch: number; bearing: number };
 /** The base view: the whole city, flat, north up; centred on the place by the map's drawing */
 export const BASE_VIEW: Readonly<RecordView> = Object.freeze({ zoom: BASE_ZOOM, pitch: 0, bearing: 0 });
 
+/**
+ * The view Create's poster is drawn from: always the base view, whatever the weather page's map was left at, so the
+ * same place and moment give the same poster however `/crea` was reached (ADR-018).
+ */
+export function createView(): RecordView {
+  return { ...BASE_VIEW };
+}
+
 export type CreateDesign = {
   treatment: Treatment;
   format: CreateFormat;

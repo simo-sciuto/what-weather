@@ -3,13 +3,14 @@ import { createMockProvider } from "@/lib/api/providers/mock";
 import { buildTimeline } from "@/lib/weather/frames";
 import { frameLook } from "@/lib/weather/look";
 import { posterSnapshot } from "@/components/poster/usePosterSnapshot";
-import { BASE_ZOOM } from "@/components/weather/map-view";
+import { BASE_ZOOM, END_PITCH, END_ZOOM, currentView, phoneMap } from "@/components/weather/map-view";
 import type { Reconstruction } from "@/types/weather";
 import {
   BASE_VIEW,
   CREATE_RECORD_VERSION,
   DEFAULT_DESIGN,
   createRecordOf,
+  createView,
   parseCreateRecord,
   serializeCreateRecord,
   sourceOf,
@@ -245,4 +246,44 @@ describe("CreateRecord v1", () => {
     });
   });
 
+  describe("Create's poster view (ADR-018)", () => {
+    /** The page as the view reads it: a phone or a computer, scrolled this far (of 4000 px) */
+    const stubPage = (phone: boolean, scrollY = 0) => {
+      vi.stubGlobal("window", { matchMedia: (q: string) => ({ matches: phone && q.includes("64rem") }), scrollY, innerHeight: 800 });
+      vi.stubGlobal("document", { documentElement: { scrollHeight: 4800 } });
+    };
+    afterEach(() => {
+      phoneMap.set({ progress: 0, bearing: 0 });
+      vi.unstubAllGlobals();
+    });
+
+    it("is the same on a direct visit and after the weather page's map was moved, on a phone and a computer", () => {
+      for (const phone of [true, false]) {
+        stubPage(phone);
+        const direct = createView();
+        // On the weather page the finger (phone) or the scroll (computer) took the map into the streets and turned it
+        phoneMap.set({ progress: 1, bearing: 90 });
+        stubPage(phone, 4000);
+        expect(currentView()).toEqual({ zoom: END_ZOOM, pitch: END_PITCH, bearing: 90 });
+        expect(createView()).toEqual(direct);
+        expect(direct).toEqual({ zoom: BASE_ZOOM, pitch: 0, bearing: 0 });
+        phoneMap.set({ progress: 0, bearing: 0 });
+      }
+    });
+
+    it("leaves the weather page's view as it was", () => {
+      stubPage(true);
+      phoneMap.set({ progress: 0.5, bearing: 45 });
+      const before = currentView();
+      createView();
+      expect(phoneMap.get()).toEqual({ progress: 0.5, bearing: 45 });
+      expect(currentView()).toEqual(before);
+    });
+
+    it("is a copy: changing it changes neither the base view nor the next poster's", () => {
+      const v = createView();
+      v.zoom = 16;
+      expect(createView()).toEqual(BASE_VIEW);
+    });
+  });
 });

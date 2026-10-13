@@ -3,6 +3,7 @@ import { ACTION_LABELS } from "@/constants/labels";
 import { slug } from "@/utils/string";
 
 import { track } from "@/lib/analytics/analytics";
+import { createView } from "@/lib/record/create-record";
 import { placeHref } from "@/lib/place";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePlace } from "../location/PlaceContext";
@@ -48,7 +49,8 @@ export function PosterButton({
   const { place } = usePlace();
   const { token, loadMapbox } = useMap();
   // Everything the poster is drawn from, frozen when the dialog opens
-  const takeSnapshot = usePosterSnapshot();
+  // Drawn from Create's fixed view, never from where the weather page's map was left (ADR-018)
+  const takeSnapshot = usePosterSnapshot(createView);
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [snapshot, setSnapshot] = useState<PosterSnapshot | null>(null);

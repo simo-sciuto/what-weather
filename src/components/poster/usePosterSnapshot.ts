@@ -12,7 +12,6 @@ import { usePlace } from "../location/PlaceContext";
 import { useMoment, useTimeline } from "../time/TimeContext";
 import { useMapOptions, useMapPalette } from "../weather/MapControls";
 import { useMap } from "../weather/MapContext";
-import { currentView } from "../weather/map-view";
 import type { RecordInput, RecordProvenance } from "@/lib/record/types";
 import type { PosterInput } from "./render-poster";
 
@@ -117,9 +116,10 @@ export function posterSnapshot({ place, frame, look, timeZone, palette, options,
 /**
  * The poster's sources, read where the page keeps them (place, moment, map), and `take()` to freeze them into a
  * snapshot when a poster is asked for. A hook, not a context: only the poster reads this, and only on demand, so
- * nothing re-renders for it while the timeline is scrubbed (ADR-008).
+ * nothing re-renders for it while the timeline is scrubbed (ADR-008). `viewOf` gives the map's view at that
+ * instant: Create passes its fixed view (`createView`), never the weather page's (`currentView`).
  */
-export function usePosterSnapshot(): () => PosterSnapshot {
+export function usePosterSnapshot(viewOf: () => PosterInput["view"]): () => PosterSnapshot {
   const { place } = usePlace();
   const { timezone, weatherCredit } = useMap();
   const { frame, look } = useMoment();
@@ -128,5 +128,5 @@ export function usePosterSnapshot(): () => PosterSnapshot {
   const { timeline } = useTimeline();
   const day = timeline.days.find((d) => d.key === frame.dayKey);
   return () =>
-    posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: currentView(), credit: weatherCredit, day: day && { high: day.high, low: day.low, partial: day.partial } });
+    posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: viewOf(), credit: weatherCredit, day: day && { high: day.high, low: day.low, partial: day.partial } });
 }
