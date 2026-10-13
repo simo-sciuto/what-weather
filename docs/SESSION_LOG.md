@@ -6,8 +6,9 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Worked on: a read-only audit of the user's Create brief, conflicts with DECISIONS flagged; the user decided (three treatments, fixed view, preparation only). Reviewed `claude/explore-create-seam` (one important finding: the poster on `/crea` read the weather page's view). Then, authorised: the spec and board (WTH-232 to 240), `CreateRecord` v1 (WTH-233), the fixed-view fix, the A4 label (WTH-239), the WTH-234 design (no code). Four commits on `claude/create-record`.
 - Verified: tsc, ESLint, the record, poster and map-view unit tests (94); e2e create, details, reading, timeline, week, activities, places, phone 24 of 24 (one flaky start seen earlier, 9 of 9 on rerun). Each code commit typechecked on its own.
 - Not verified: the poster dialog with a Mapbox token, a real phone, the new A4 note's look.
-- Final review of the chain (read-only): one important regression, the map's descent on desktop after Dettagli (WTH-241); fixed two claims I had written wrongly (the copy on /crea that said the place is seen on the map, and stale commit notes).
-- Next: the user's look at WTH-241 and the poster dialog with a token, then the merge decision; then the validation of Create (WTH-227, WTH-167).
+- Fixed WTH-241 (the descent is measured on the screen, 1.5 screens, not on the page's height) and WTH-243 (Create's poster colours and layers are the canonical ones, not Explore's stored choices; the PNG is byte-identical with and without them). WTH-245 kept as it is. Checked with Mapbox: the dialog draws A4 and story, and Dettagli opens without moving the page at the same scroll.
+- Not verified: the map's zoom and pitch by eye (the user's look), and a real phone.
+- Next: the user's look, then the merge decision; then the validation of Create (WTH-227, WTH-167).
 
 ## 2026-10-12 (new direction, ADR-018)
 - Worked on: the user pasted a startup-style assessment and asked to take it as the direction. Flagged four conflicts with ADR-013 and the roadmap (layout pause, past date as centre, print first, English tagline); the user accepted the recommendations. Wrote ROADMAP update, ADR-018, board Priority 0 (WTH-225 to WTH-231), WTH-169, 170, 173 and 214 adjusted, PROJECT_STATE.
