@@ -2,6 +2,11 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-13 (desktop pilot readiness, WTH-248 approved)
+- Worked on: WTH-248 approved; the desktop pilot's readiness checked on commit `1ae9724` (application code of `05965b5`): live Explore, `/crea` at 200, the Mapbox preview drawn at 2480 × 3508 px, `/lab/atmosfera` at 404, no blocking error. The build was made from that tree and the server runs on localhost:3300 for the user's session. No participant, no simulation, no result.
+- To confirm: the protocol file is v1.2, while the request named v1.1.
+- Not done: no push, no deploy, no smartphone session, no change to Explore, Create or the poster system.
+
 ## 2026-10-13 (WTH-248 fixed, phone checklist, Mapbox token checked)
 - Worked on: WTH-248: the cause is the prerendered static shell (cacheComponents), where the guard inside the page ran at build time and the shell was sent with status 200. Fixed with a proxy and one tested rule (`05965b5`, separate commit). The full e2e suite passed 26 of 26. The Mapbox token in the client was checked in code and in a build: only the public `pk.` token reaches the browser. The phone checklist is in the feasibility document, section 8, for the user to run on real devices.
 - Not done: no push, no deploy, no participant, no UX session, no real phone. The pilot needs the user's confirmation of the new commit. WTH-227 stays open.
@@ -18,7 +23,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 ## 2026-10-13 (WTH-227 environment check, protocol v1.1)
 - Worked on: checked the version to validate. Production serves `4591712` (Create answers 404); the code to validate is `87b87ea` (= `de8f3f4`), built locally: Explore with live data, Create with Mapbox, and the provider-failure message. Protocol v1.1 before the pilot: section 0 (the check), the pilot kept apart, the «Riprova» rule, decisions 10 to 12. No deploy, no push, no recruitment.
 - Blocked for the phone sessions: a reachable address (needs authorization); the preview and WTH-220; the free API's licence for research.
-
-## 2026-10-13 (WTH-227 protocol v1.0, decisions recorded)
-- Worked on: applied the user's nine decisions to `docs/UX_VALIDATION_PROTOCOL.md` (v1.0, frozen for the sessions): three computer and two phone sessions, live weather with failure handling, no download or sharing until WTH-220, the price question last, indirect recruitment, notes only, the user as moderator, private sheets, orientative thresholds. Added the five separate synthesis groups, the consent draft in Italian, and the operational checklist. No code, no UI, no data changed. No result exists.
-- Open for the user: whether session 1, the pilot, counts among the five.
