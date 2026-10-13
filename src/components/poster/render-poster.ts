@@ -14,16 +14,25 @@ export type PosterFormat = "print" | "story" | "square";
 
 /**
  * The sizes, in pixels. Each stays within 4096 on its long side, which most
- * graphics cards can draw in one go: the print size is A4 at 300 dpi (A3 at
+ * graphics cards can draw in one go: the A4 size is A4 at 300 dpi (A3 at
  * about 210), the story a phone's 9:16, the square a social post.
+ * `label` names the format in the picker and the file; `name` says what the file is under the preview; `note`
+ * says what it is not, where it could be taken for more (WTH-239: no file is called ready for print before its
+ * print characteristics are verified). The `print` key stays until `CreateRecord` is wired in (WTH-234).
  */
 export const POSTER_FORMATS: Record<
   PosterFormat,
-  { label: string; width: number; height: number }
+  { label: string; name: string; note?: string; width: number; height: number }
 > = {
-  print: { label: "Stampa A", width: 2480, height: 3508 },
-  story: { label: "Storia 9:16", width: 1440, height: 2560 },
-  square: { label: "Quadrato", width: 2400, height: 2400 },
+  print: {
+    label: "A4",
+    name: "A4 · PNG ad alta risoluzione",
+    note: "Le misure di un A4 a 300 dpi, senza abbondanza né profilo colore per la stampa professionale.",
+    width: 2480,
+    height: 3508,
+  },
+  story: { label: "Storia 9:16", name: "Storia 9:16 · PNG", width: 1440, height: 2560 },
+  square: { label: "Quadrato", name: "Quadrato · PNG", width: 2400, height: 2400 },
 };
 
 export type PosterInput = {

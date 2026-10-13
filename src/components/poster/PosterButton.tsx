@@ -24,7 +24,7 @@ function revokeAll(drawn: Partial<Record<PosterFormat, Drawn>>) {
     if (d?.status === "done") URL.revokeObjectURL(d.url);
 }
 
-/** A file name without accents or spaces: "what-weather-reykjavik-stampa-a.png". */
+/** A file name without accents or spaces: "what-weather-reykjavik-a4.png". */
 function fileName(place: string, format: PosterFormat) {
   return `what-weather-${slug(place)}-${slug(POSTER_FORMATS[format].label)}.png`;
 }
@@ -131,7 +131,7 @@ export function PosterButton({
     await navigator.share(data).catch(() => undefined);
   }
 
-  const { width, height } = POSTER_FORMATS[format];
+  const { width, height, name, note } = POSTER_FORMATS[format];
   const action =
     "inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
@@ -225,7 +225,7 @@ export function PosterButton({
               // eslint-disable-next-line @next/next/no-img-element -- a local blob, nothing for next/image to optimise
               <img
                 src={current.url}
-                alt={`Poster di ${place.name}, formato ${POSTER_FORMATS[format].label}`}
+                alt={`Poster di ${place.name}, formato ${name}`}
                 className="size-full object-contain"
               />
             ) : (
@@ -241,8 +241,13 @@ export function PosterButton({
         </div>
 
         <p className="mt-3 text-center text-xs tabular-nums text-ink-muted">
-          PNG · {width} × {height} px
+          {name} · {width} × {height} px
         </p>
+        {note && (
+          <p className="mx-auto mt-1 max-w-[26rem] text-center text-xs text-ink-muted">
+            {note}
+          </p>
+        )}
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           {canShare && current?.status === "done" && (
