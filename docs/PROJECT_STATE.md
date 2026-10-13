@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-13 (`claude/create-record` merged into `main`, fast-forward to de8f3f4; WTH-241, WTH-243 done; WTH-247 decided)
+Last updated: 2026-10-13 (reliability and temporal consistency: WTH-235 errors told apart, WTH-236 Explore's moment carried to Create, WTH-249 day names at request time; WTH-248 and the lab routes fixed; the desktop pilot is suspended until the environment is verified again)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -15,6 +15,8 @@ Set by the user: "Weather, worth looking at". Explore (free, the way in) and Cre
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
+Reliability and consistency pass (2026-10-13, the user's triage). Done, each in its own commit on local `main` (not pushed, not deployed): `8c34a8a` WTH-235 (the poster's failures told apart: map unreachable, map refused, no WebGL, timeout, export; Riprova only where it helps); `9ec764d` WTH-249 (the day names of the cached timeline worked out per request, midnight covered); `3b68f9a` WTH-236 (Explore's moment reaches Create by its instant; a forecast is marked on the record and on the poster; a missing moment is said so). Verified: typecheck, lint, 463 unit tests, 29 e2e (including the new Explore-to-Create cases), the live Explore-to-Create path, the poster export at its sizes for Torino and Lisbona, and the failure messages in the browser. Open: WTH-250 (Mapbox CSS on `/crea`, to verify); the reviewer's own poster failure is not explained (needs their browser); the refused-map case is covered by a unit test only. The desktop pilot is suspended: the application code changed, so the user must confirm the new commit before it runs. WTH-227 stays open.
+
 None in development. Stopped on purpose: the next phase is product validation (ADR-018), not features.
 
 Merged into `main` on 2026-10-13 (fast-forward, `de8f3f4`): Explore and Create (WTH-225 steps 1 to 4), the Create spec and board (WTH-232 to 240), `CreateRecord` v1 (WTH-233), the fixed view of Create's poster, the A4 label (WTH-239), the map's descent measured on the screen (WTH-241), and Create's poster independent of Explore's stored map choices (WTH-243). WTH-247 decided (ADR-018 update: the week moves to a secondary section; not implemented).

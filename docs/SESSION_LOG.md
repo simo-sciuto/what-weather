@@ -2,6 +2,11 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-13 (reliability pass: WTH-235, WTH-236, WTH-249)
+- Worked on: the poster's failures told apart and their retry limited to the causes it can help (WTH-235, `8c34a8a`); the day names worked out per request, outside the cache (WTH-249, `9ec764d`); Explore's moment carried to Create by its instant, marked as a forecast on the record and the poster, and said so when it is no longer held (WTH-236, `3b68f9a`). Board updated; WTH-250 (Mapbox CSS on /crea) registered to verify.
+- Verified: typecheck, lint, 463 unit tests, 29 e2e; live Explore-to-Create; exports at 2480 × 3508, 1440 × 2560, 2400 × 2400 for Torino and Lisbona; the failure messages in the browser. Simulated, not real services: the causes of failure (blocked map, WebGL off, slow map). Not reproduced: the reviewer's own failure, and the refusal (401/403) in the browser.
+- Not done: no push, no deploy, no participant, no redesign, no change to Editorial, Monochrome or Chromatic, no WTH-234, no WTH-247. The desktop pilot is suspended until the user confirms the new commit. WTH-227 stays open.
+
 ## 2026-10-13 (desktop pilot readiness, WTH-248 approved)
 - Worked on: WTH-248 approved; the desktop pilot's readiness checked on commit `1ae9724` (application code of `05965b5`): live Explore, `/crea` at 200, the Mapbox preview drawn at 2480 × 3508 px, `/lab/atmosfera` at 404, no blocking error. The build was made from that tree and the server runs on localhost:3300 for the user's session. No participant, no simulation, no result.
 - To confirm: the protocol file is v1.2, while the request named v1.1.
@@ -19,7 +24,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 ## 2026-10-13 (WTH-227 pilot authorised, protocol v1.2)
 - Worked on: the morning checks on the local build (commit served, Open-Meteo reading, Mapbox and its attributions on Explore and on the poster, /crea, the preview, no blocking error): all passed. Protocol v1.2 before the pilot: section 0.1 with the authorisations and their limits, the no-demo rules, the spontaneous reaction to the poster in the sheet. Board: WTH-227 authorised for one desktop pilot, not complete; WTH-220 stays open.
 - No push, merge, deploy or recruitment by the assistant. The pilot's material is kept apart from the five.
-
-## 2026-10-13 (WTH-227 environment check, protocol v1.1)
-- Worked on: checked the version to validate. Production serves `4591712` (Create answers 404); the code to validate is `87b87ea` (= `de8f3f4`), built locally: Explore with live data, Create with Mapbox, and the provider-failure message. Protocol v1.1 before the pilot: section 0 (the check), the pilot kept apart, the «Riprova» rule, decisions 10 to 12. No deploy, no push, no recruitment.
-- Blocked for the phone sessions: a reachable address (needs authorization); the preview and WTH-220; the free API's licence for research.
