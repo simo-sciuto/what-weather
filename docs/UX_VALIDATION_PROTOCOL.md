@@ -39,7 +39,7 @@ Blockers before recruitment:
 
 Morning check (before the pilot), all must pass, otherwise the pilot does not run: the commit served, Open-Meteo reading, Mapbox working, Explore reachable, /crea reachable, preview generated, no blocking error. The check of 2026-10-13 passed on all of them, and the morning check must be repeated.
 
-Note on freshness: the page keeps a reading for up to about ten minutes (revalidation of the weather cache). The sheet records the time the site shows, not the time of the session.
+Note on freshness: the weather cache lets the page show a reading up to one hour old while it refreshes in the background (checked 2026-10-13: pages showed "dati di 43 min fa" and "47 min fa"), and the poster's "Adesso" line takes the same reading. The sheet records the time the site shows and the age the page states ("dati di … fa"), not the time of the session.
 
 ## 1. Research goals and hypotheses
 
