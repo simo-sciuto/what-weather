@@ -1,6 +1,6 @@
 # UX VALIDATION PROTOCOL (WTH-227)
 
-Version: 1.1 (changed before the pilot, see section 15). Status: PREPARED, NOT RUN. No session has taken place and no result exists. Nothing in this file is a finding.
+Version: 1.2 (changed before the pilot, see section 15). Status: PREPARED, NOT RUN. No session has taken place and no result exists. Nothing in this file is a finding.
 
 Frozen for the sessions. The wording, the blocks and the thresholds do not change between participants. A change is allowed only after session 1 (the pilot, section 3.1), and then it is a new version recorded in section 15.
 
@@ -27,6 +27,19 @@ Blockers before recruitment:
 - **Phone sessions need a reachable address.** Production does not serve the version. A deploy, or a push of `main` that triggers one, needs the user's authorization. Local alternative: a phone on the same Wi-Fi reaching the test machine. Not checked. The Mapbox token may restrict the origins it accepts.
 - **The preview and WTH-220.** WTH-220 concerns the PNG with the Mapbox map. The preview draws that same PNG in the browser, so the block on downloads does not cover it. The user decides whether the preview may be shown during the sessions.
 - **The free weather API.** The site uses Open-Meteo's free API, which LICENCES.md marks as non-commercial. The sessions sell nothing, but the user should confirm that this use is acceptable for research.
+
+## 0.1 Conditions for the desktop pilot (decided 2026-10-13)
+
+- **Scope:** one desktop pilot, in the local build of `main`, with one person who does not know What Weather. It is not one of the five valid sessions, and it is used to check the protocol, not to draw conclusions about the product.
+- **Version:** the code served is the code of `87b87ea`. The later commit `d1dfd69` is documentation only, and the check of section 0 confirms that the application code is unchanged. The HEAD actually served is recorded in the pilot sheet.
+- **Mapbox (operational authorisation, not a legal certification):** the preview may be shown on screen during the pilot, with the required attributions. The attributions are present: the Explore footer reads «Mappe: © Mapbox, © OpenStreetMap», the Mapbox logo of the background map is in the DOM and visible, and the poster image carries «© MAPBOX © OPENSTREETMAP» on its credits line (from the drawing code). Not authorised: downloading, sharing, printing or selling any image. WTH-220 stays open. Before any distribution or sale of exported images, the specific use must be checked against Mapbox's terms, which cover static copies and prints separately.
+- **Open-Meteo (research use, documented assumption):** the free API is used for this non-commercial research pilot, without sale, advertising or promotion. Its free terms distinguish some kinds of commercial research and require an appropriate plan for them. Before the results are used for any commercial or promotional activity, the classification of this use must be re-evaluated, and clarified with the provider or a suitable plan chosen.
+- **Recruitment:** one person for the pilot. Recruited by the user. Nobody is recruited by the assistant.
+- **No deploy, no push, no merge.** The local build is used as it is.
+
+Morning check (before the pilot), all must pass, otherwise the pilot does not run: the commit served, Open-Meteo reading, Mapbox working, Explore reachable, /crea reachable, preview generated, no blocking error. The check of 2026-10-13 passed on all of them, and the morning check must be repeated.
+
+Note on freshness: the page keeps a reading for up to about ten minutes (revalidation of the weather cache). The sheet records the time the site shows, not the time of the session.
 
 ## 1. Research goals and hypotheses
 
@@ -126,6 +139,7 @@ Do not explain the project, its direction, or what it is for. If they ask, say: 
 - Never say that What Weather is becoming a creative platform, an editor, a studio, or a product for designers. Participants must discover what the product is from the product itself. If they describe it as only a weather app, record it as the result.
 - Never say the word Create, nor name the poster, the editor, the download or the sharing before the participant does.
 - **No download and no sharing, in any session** (decision 3, and the same rule applied to «Condividi»). On a phone, «Condividi» sends a copy of the image out of the page, which is the same question as the download (WTH-220). If a participant presses «Scarica» or «Condividi», the moderator says: «In questa prova l'immagine resta sullo schermo: non la salviamo né la inviamo.» The attempt is recorded: it is a sign of desirability, not a failure of the task.
+- The session must not look like a demo. No explanation of What Weather's vision at the start or during the session. No suggestion of where Create is. No comment on the graphic quality of the poster, positive or negative. No description of a feature before the participant has found it. The point is to learn whether the product works without its creator guiding it.
 - Never point at, touch or open anything for the participant.
 - Never explain a control or a message. Record the confusion.
 - Never react to an opinion with praise or doubt. Say «Capito» or «Dimmi di più».
@@ -167,6 +181,10 @@ Block D, stated uses, verbatim:
 Block D, would keep it? yes / no / unsure, why:
 Block D, would share it? yes / no / unsure, with whom:
 Block D, stated price, verbatim (if asked):
+Reaction to the poster, spontaneous, before any question of Block D (tick all that happen, in order, with timestamps):
+  [ ] looks at it and moves on     [ ] tries to change it (what, where):
+  [ ] tries to save or share it (Scarica / Condividi pressed or looked for; the moderator says the image stays on screen)
+  [ ] asks what it is for     [ ] other, verbatim:
 Spontaneous signals (before Block D's questions, unprompted): 
 Outcome for Create: autonomous success / assisted success / failure / technical interruption
 Problems (use the log in section 7):
@@ -281,6 +299,7 @@ Each session sheet records the date and the time shown by the site, because the 
 |---|---|---|
 | 1.0 | 2026-10-13 | First version, with the decisions of section 14. |
 | 1.1 | 2026-10-13 | Before the pilot: section 0 (environment check, recorded), section 3.1 (the pilot is not among the five), the «Riprova» rule in section 11, the separation of the pilot's material in section 13, decisions 10 to 12 in section 14. No change to the questions, the blocks or the thresholds. |
+| 1.2 | 2026-10-13 | Before the pilot: section 0.1 (desktop pilot conditions, the Mapbox and Open-Meteo authorisations and their limits, the morning check, the freshness of the reading); the no-demo rules in section 4; the spontaneous reaction to the poster in the sheet (section 6). No change to the questions, the blocks, the hint ladder or the thresholds. |
 
 ## 16. Consent (Italian draft, for the user's review)
 
