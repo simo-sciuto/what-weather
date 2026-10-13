@@ -19,10 +19,19 @@ export const END_ZOOM = 16;
  */
 const ZOOM_EASE = 2.2;
 
-/** How far down the page is, 0 at the top to 1 at the bottom. */
+/**
+ * How far the page has to scroll for the map to reach the streets, in screens. The descent is measured on the
+ * screen, not on the page's length: the page grows and shrinks with what is open (the details, the week), and a
+ * descent that depended on its length would move the map when a disclosure opened (WTH-241). 1.5 keeps the pace a
+ * closed desktop page has, which is what the viewer sees first: once settled, that page is 2181 px (Torino) and
+ * 2279 px (Milano, rain) tall on a 900 px screen, so its old descent ended after 1.42 and 1.53 screens.
+ */
+export const DESCENT_SCREENS = 1.5;
+
+/** How far down the descent the page is, 0 at the top to 1 once the map has reached the streets, and resting there. */
 export function scrollProgress(): number {
-  const max = document.documentElement.scrollHeight - window.innerHeight;
-  return max > 0 ? Math.min(Math.max(window.scrollY / max, 0), 1) : 0;
+  const range = window.innerHeight * DESCENT_SCREENS;
+  return range > 0 ? Math.min(Math.max(window.scrollY / range, 0), 1) : 0;
 }
 
 /** How far the map tips over at the bottom of the page, in degrees, and where in the scroll it starts to. */

@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   BASE_ZOOM,
+  DESCENT_SCREENS,
+  currentView,
+  phoneMap,
+  scrollProgress,
   END_PITCH,
   END_ZOOM,
   bearingName,
@@ -63,3 +67,71 @@ describe("bearingPoint", () => {
     expect(bearingName(45)).toBe("Nord-Est");
   });
 });
+
+/** A page as the view reads it: a computer or a phone, scrolled to `scrollY`, of `scrollHeight` px on a `innerHeight` screen */
+function stubPage({ scrollY, scrollHeight, innerHeight = 900, phone = false }: { scrollY: number; scrollHeight: number; innerHeight?: number; phone?: boolean }) {
+  vi.stubGlobal("window", {
+    scrollY,
+    innerHeight,
+    matchMedia: (q: string) => ({ matches: phone && q.includes("64rem") }),
+  });
+  vi.stubGlobal("document", { documentElement: { scrollHeight } });
+}
+
+describe("scrollProgress (WTH-241)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    phoneMap.set({ progress: 0, bearing: 0 });
+  });
+
+  it("does not depend on the page's length: opening Dettagli leaves the view where it was at the same scroll", () => {
+    // The closed page, then the same scroll with the details open and the page far longer
+    stubPage({ scrollY: 300, scrollHeight: 1627 });
+    const closed = currentView();
+    stubPage({ scrollY: 300, scrollHeight: 2568 });
+    expect(currentView()).toEqual(closed);
+    stubPage({ scrollY: 300, scrollHeight: 9000 });
+    expect(currentView()).toEqual(closed);
+  });
+
+  it("is continuous and monotone with the scroll, and rests at the streets once the descent is done", () => {
+    const ys = Array.from({ length: 41 }, (_, i) => i * 40);
+    const ps = ys.map((y) => {
+      stubPage({ scrollY: y, scrollHeight: 2568 });
+      return scrollProgress();
+    });
+    for (let i = 1; i < ps.length; i++) {
+      expect(ps[i]).toBeGreaterThanOrEqual(ps[i - 1]);
+      // No step is larger than the scroll between two samples over the range
+      expect(ps[i] - ps[i - 1]).toBeLessThanOrEqual(40 / (900 * DESCENT_SCREENS) + 1e-9);
+    }
+    expect(ps[0]).toBe(0);
+    expect(ps[ps.length - 1]).toBe(1);
+  });
+
+  it("reaches the streets within the screen it is measured on, with the closed page's pace kept", () => {
+    stubPage({ scrollY: DESCENT_SCREENS * 900, scrollHeight: 2181 });
+    expect(scrollProgress()).toBeCloseTo(1, 10);
+    // The closed pages measured: the descent of the old page ended after 1.42 (Torino) and 1.53 (Milano) screens
+    for (const screens of [1.42, 1.53]) {
+      stubPage({ scrollY: screens * 900, scrollHeight: 2181 });
+      expect(scrollProgress()).toBeCloseTo(Math.min(1, screens / DESCENT_SCREENS), 2);
+    }
+  });
+
+  it("follows the screen, not the page, when the window is resized", () => {
+    stubPage({ scrollY: 360, scrollHeight: 2000, innerHeight: 900 });
+    const onSmall = scrollProgress();
+    stubPage({ scrollY: 360, scrollHeight: 2000, innerHeight: 450 });
+    expect(scrollProgress()).toBeGreaterThan(onSmall);
+  });
+
+  it("leaves the phone alone: its map is moved by the finger, not the scroll", () => {
+    stubPage({ scrollY: 0, scrollHeight: 900, phone: true });
+    phoneMap.set({ progress: 0.5, bearing: 30 });
+    const view = currentView();
+    stubPage({ scrollY: 5000, scrollHeight: 9000, phone: true });
+    expect(currentView()).toEqual(view);
+  });
+});
+
