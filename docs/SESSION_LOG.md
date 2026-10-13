@@ -2,6 +2,13 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-13 (Create brief: audit, spec, CreateRecord v1, consolidation)
+- Worked on: a read-only audit of the user's Create brief, conflicts with DECISIONS flagged; the user decided (three treatments, fixed view, preparation only). Reviewed `claude/explore-create-seam` (one important finding: the poster on `/crea` read the weather page's view). Then, authorised: the spec and board (WTH-232 to 240), `CreateRecord` v1 (WTH-233), the fixed-view fix, the A4 label (WTH-239), the WTH-234 design (no code). Four commits on `claude/create-record`.
+- Verified: tsc, ESLint, the record, poster and map-view unit tests (94); e2e create, details, reading, timeline, week, activities, places, phone 24 of 24 (one flaky start seen earlier, 9 of 9 on rerun). Each code commit typechecked on its own.
+- Not verified: the poster dialog with a Mapbox token, a real phone, the new A4 note's look.
+- Final review of the chain (read-only): one important regression, the map's descent on desktop after Dettagli (WTH-241); fixed two claims I had written wrongly (the copy on /crea that said the place is seen on the map, and stale commit notes).
+- Next: the user's look at WTH-241 and the poster dialog with a token, then the merge decision; then the validation of Create (WTH-227, WTH-167).
+
 ## 2026-10-12 (new direction, ADR-018)
 - Worked on: the user pasted a startup-style assessment and asked to take it as the direction. Flagged four conflicts with ADR-013 and the roadmap (layout pause, past date as centre, print first, English tagline); the user accepted the recommendations. Wrote ROADMAP update, ADR-018, board Priority 0 (WTH-225 to WTH-231), WTH-169, 170, 173 and 214 adjusted, PROJECT_STATE.
 - Not done: no code, no checkpoint started. The assessment's market claims are unverified (WTH-231).
@@ -27,16 +34,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Mistakes owned: a separate lab page instead of the poster at first; the zoom changed without being asked; board and state not kept up during the iterations (caught up on 2026-10-06).
 - Not verified: a real Mapbox export (headless WebGL stalls here); the user is the one who has seen real posters. Reviewer pass pending on the whole branch.
 - 2026-10-06: `claude/code-conventions` merged into `main`, then `main` merged into this branch and the record code brought to the conventions (`type`, `@/types/*` imports, the shared `clamp`); the typeface's ADR renumbered ADR-015, since ADR-014 is the conventions.
-
-## 2026-10-05 (code conventions, WTH-186)
-- Worked on: the conventions the user asked for (types not interfaces, shared types in one place, constants and labels in a file, utils, api folder), as ADR-014, after the architect's check; four checkpoints on `claude/code-conventions`, each reviewed.
-- Found: the `rgba(` to `hexToRgba(` rename also hit a CSS string in the poster's glow, which no test, golden run or e2e draws (the poster needs the Mapbox token); the reviewer saw it. Fixed with `bloomColor` and a test, and from then on the poster is checked by a real render through a harness with a fake map, pixel by pixel.
-- Not verified: the poster on screen with the map. Optional leftovers in WTH-189; WTH-188 (providers and sources depend on each other).
-- Next: the merge into `main`, as the user decides.
-
-## 2026-10-05 (poster readout)
-- Worked on: WTH-183, the poster's foot as a readout of the Weather Fingerprint, on the user's proposal; the user chose English labels, the compass kept, no figures, the block small on the right.
-- Reviewed: no critical problems; stand-in zeros made visible (dashed track), the whole day's stamp without an hour, the stand-in mapping made exact, the time zone taken into the snapshot. WTH-184 and WTH-185 added from the review.
-- Decided by the user: stand-in marking stays as it is; `usePosterSnapshot()` instead of a context provider (a provider would rerender on every scrub). Merged into `main`.
-- Not verified: the poster with the map on screen (no Mapbox token in the cloud container; a render with a fake map was shown).
-
