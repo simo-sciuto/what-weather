@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-13 (Create spec, CreateRecord v1, review of the Explore and Create branch)
+Last updated: 2026-10-13 (`claude/create-record` merged into `main`, fast-forward to de8f3f4; WTH-241, WTH-243 done; WTH-247 decided)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -15,6 +15,15 @@ Set by the user: "Weather, worth looking at". Explore (free, the way in) and Cre
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
+None in development. Stopped on purpose: the next phase is product validation (ADR-018), not features.
+
+Merged into `main` on 2026-10-13 (fast-forward, `de8f3f4`): Explore and Create (WTH-225 steps 1 to 4), the Create spec and board (WTH-232 to 240), `CreateRecord` v1 (WTH-233), the fixed view of Create's poster, the A4 label (WTH-239), the map's descent measured on the screen (WTH-241), and Create's poster independent of Explore's stored map choices (WTH-243). WTH-247 decided (ADR-018 update: the week moves to a secondary section; not implemented).
+
+Checked: typecheck, full lint, 433 unit tests, Explore and Create e2e 24 of 24 (on the code before the merge), the Create dialog with Mapbox (A4 2480 × 3508 and story 1440 × 2560 PNGs), the poster's bytes identical with and without Explore's stored choices, and the page's scroll unchanged when Dettagli opens and closes.
+
+Not yet verified (open, the user's eye and devices): the map's descent on desktop with Dettagli open and closed; the Create dialog and preview by eye; Create and Explore on a real phone. Not declared done until then.
+
+Next (the user's): validate with people (WTH-227): three questions, does Explore say what What Weather is; is the step Explore → Create understood; would someone keep the poster. Five people who have never used it, observed, without leading questions.
 2026-10-13, the user's decisions on the Create brief (in CREATE_SPEC.md): three treatments (Editorial, Monochrome, Chromatic) of the existing engine, no A/B/C layouts, Bold as art direction with today's faces and `atmospherePalette`, the fixed map view, no paid export before the licences. Committed on `claude/create-record` (on top of `claude/explore-create-seam`; neither merged nor pushed, the merge waits for the user): `f2cd6e3` the spec (WTH-232) and board WTH-232 to 240; `c38650d` `CreateRecord` v1 (WTH-233, reviewed, 19 tests; `BASE_ZOOM` in `src/constants/map.ts`); `ce9ee99` the fix from the seam review (the poster on `/crea` always uses `createView()`, Explore's `phoneMap` untouched); `aae9cb7` WTH-239 (the A4 format named honestly). WTH-234: technical design only, in CREATE_SPEC.md; the benchmark is described, not run. Merging `main` with `claude/create-record` is a fast-forward (main is the base). Final review of the chain (read-only, 2026-10-13): no critical problems; WTH-241 (the map's descent on desktop, after Dettagli) and WTH-243 (Create read Explore's stored map choices) were fixed on 2026-10-13, see below. The other findings are on the board as WTH-242 and WTH-244 to WTH-247.
 
 None in progress. Merged into `main` on 2026-10-12: the historical-provider port (WTH-166 licences, WTH-001/002/003 audits, WTH-167 sample records, WTH-168 provider), WTH-185 (the random-city decision is ADR-017), WTH-206 (the poster embeds only its faces), WTH-189 (shared helpers), WTH-224 (docs). Decisions taken 2026-10-12: ADR-001 and ADR-013 updated (the past has its own contract; from 2017 it is the IFS archive, not a reanalysis); `getAt` keeps returning `WeatherData` with the optional `reconstruction` (ADR-016 note). Open for the user: WTH-211 and WTH-212 (Mapbox and OpenWeather answers, weather source for sale), WTH-219 and WTH-220 (poster map rights). The branches of this session are deleted on origin; `main-local-backup-2026-10-12` is kept locally.
@@ -51,5 +60,6 @@ WTH-046G, the meteorological map hierarchy: `mapVisualState(axes): MapVisualStat
 `src/lib/weather/{atmosphere,atmospheric-data,visual-input,frames,look,palette,state}.ts`, `src/types/*.ts`, `src/lib/api/providers/{openweather-transformers,openmeteo,mock}.ts`, `src/lib/weather/{atmosphere,visual-input,atmospheric-pipeline,atmosphere-sky}.test.ts`, `src/lib/weather/calibration.ts`, `src/components/lab/AtmosphereLab.tsx`, `src/app/lab/atmosfera/page.tsx`, `docs/WEATHER_VISUAL_ENGINE.md`.
 
 ## Next checkpoint
+The product validation (WTH-227, five people, observed). Then the visual checks above, then WTH-247 (the week's section) after them. Earlier note:
 Per ADR-018, first: WTH-231 (competitor study, research) and the architect checkpoint for WTH-225 (Explore and Create homepage), both waiting for the user's go; WTH-227 (conversations) is the user's. WTH-169 below is now fed by WTH-228. Earlier note:
 WTH-169 (records flow), at its checkpoint: the timeline's relative labels ("Oggi", "Domani", "Adesso") read `current.time`, so a past moment would say "Oggi"; the cache lifetime of `getAt` under cacheComponents, to check with a build before the first caller; every record view reads `reconstruction`. Then WTH-167, the validation page.

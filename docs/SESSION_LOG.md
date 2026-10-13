@@ -2,6 +2,11 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-13 (merge to main, WTH-241, WTH-243, WTH-247 decided)
+- Worked on: fixed the map's descent on the screen (WTH-241, 1.5 screens, calibrated on the closed page) and Create's poster independent of Explore's stored choices (WTH-243, poster bytes identical). Checked with Mapbox and the e2e suite. Merged `claude/create-record` into `main` as a fast-forward (`de8f3f4`, after the user's approval); no squash, no deploy. WTH-247: the week to a secondary section (ADR-018 update), not implemented.
+- Verified after the merge: typecheck, lint, 433 unit tests. Not verified: the visual checks (descent with Dettagli, the dialog and preview by eye, a real phone).
+- Next: product validation with five people (WTH-227), three questions: does Explore say what it is, is Explore → Create clear, would someone keep the poster. No features until then.
+
 ## 2026-10-13 (Create brief: audit, spec, CreateRecord v1, consolidation)
 - Worked on: a read-only audit of the user's Create brief, conflicts with DECISIONS flagged; the user decided (three treatments, fixed view, preparation only). Reviewed `claude/explore-create-seam` (one important finding: the poster on `/crea` read the weather page's view). Then, authorised: the spec and board (WTH-232 to 240), `CreateRecord` v1 (WTH-233), the fixed-view fix, the A4 label (WTH-239), the WTH-234 design (no code). Four commits on `claude/create-record`.
 - Verified: tsc, ESLint, the record, poster and map-view unit tests (94); e2e create, details, reading, timeline, week, activities, places, phone 24 of 24 (one flaky start seen earlier, 9 of 9 on rerun). Each code commit typechecked on its own.
@@ -28,10 +33,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Done and reviewed: WTH-204 (`seaGrid`, one flood, identical output, 3.6 s to 26 ms on a long harbour), WTH-196 (`RecordInput.provenance`; "~" on an interpolated hour, no partial range or estimated air printed).
 - Mistake owned: at the start the poster's name was said to be in Syne; it is Inter Tight (ADR-015 update).
 - Next: WTH-166 (licences) or the poster clean-ups.
-
-## 2026-10-05/06 (Visual Record poster)
-- Worked on: WTH-187, the brief V3.1 (inspect, propose, spike), then the user's Type Engine research, then the "Crea poster" button on the record engine over the site's own map, iterated many times with the user (layouts, screenprint, typefaces, colours); WTH-199 the home page's name and temperature in the record's face. ADR-015 for the typeface.
-- Decided by the user: the Tshuru structure, then the old poster's style with the record's facts; Syne (after Archivo, a free Helvetica, Mona Sans, Schibsted, Climate Crisis); no screenprint; colours from the app's colour study.
-- Mistakes owned: a separate lab page instead of the poster at first; the zoom changed without being asked; board and state not kept up during the iterations (caught up on 2026-10-06).
-- Not verified: a real Mapbox export (headless WebGL stalls here); the user is the one who has seen real posters. Reviewer pass pending on the whole branch.
-- 2026-10-06: `claude/code-conventions` merged into `main`, then `main` merged into this branch and the record code brought to the conventions (`type`, `@/types/*` imports, the shared `clamp`); the typeface's ADR renumbered ADR-015, since ADR-014 is the conventions.

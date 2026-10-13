@@ -189,3 +189,6 @@ Reconstructed from the code and commit history (2026-10-01). Status "Accepted" m
 - Unchanged: ADR-001 (the provider abstraction and `WeatherData`), ADR-002, ADR-006 (measured vs interpolated), ADR-016; the licence conditions before taking money (WTH-166, 211, 212, 219, 220).
 - Not verified: the assessment's market and price claims come from search summaries, and it could not open the live site; WTH-231 checks them.
 - Decision on Create's map view (2026-10-12): `/crea` draws the poster from the fixed base view (zoom 11, flat, north up), so a place and a moment always give the same poster; a view set by the user inside Create waits for evidence that people want it.
+
+### ADR-018 update (2026-10-13): the week goes one level deeper
+- Confirmed by the user on 2026-10-13 (WTH-247). On Explore, the current weather and the next hours stay in view; the weekly forecast moves into a secondary section that opens on request (a clear, recognisable entry). The map's descent is not affected by it (WTH-241). Not implemented yet: taken up separately, after the visual validation.
