@@ -4,8 +4,10 @@
  * poster that is made from it can't disagree about what the viewer is looking at.
  */
 
+import { BASE_ZOOM } from "@/constants/map";
+
 /** The zoom at the top of the page, the whole city in view */
-export const BASE_ZOOM = 11;
+export { BASE_ZOOM };
 
 /** Where the page's whole scroll ends: down among the streets */
 export const END_ZOOM = 16;
