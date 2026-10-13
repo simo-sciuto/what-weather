@@ -2,6 +2,10 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-13 (WTH-248 fixed, phone checklist, Mapbox token checked)
+- Worked on: WTH-248: the cause is the prerendered static shell (cacheComponents), where the guard inside the page ran at build time and the shell was sent with status 200. Fixed with a proxy and one tested rule (`05965b5`, separate commit). The full e2e suite passed 26 of 26. The Mapbox token in the client was checked in code and in a build: only the public `pk.` token reaches the browser. The phone checklist is in the feasibility document, section 8, for the user to run on real devices.
+- Not done: no push, no deploy, no participant, no UX session, no real phone. The pilot needs the user's confirmation of the new commit. WTH-227 stays open.
+
 ## 2026-10-13 (phone feasibility on the local network, WTH-248 found)
 - Worked on: documented the feasibility of phone tests on the local Wi-Fi (`docs/PHONE_LOCAL_TEST.md`): the build served on the LAN with a command-line flag; plain HTTP limits (location and sharing differ, checked in an emulated Pixel 7, not a phone); provider calls stay on the server; the Mapbox token answered from every origin tested, to be checked in the account; the preview's risks on a phone. No project file changed, no push, no deploy, no participant. The server was stopped after the checks.
 - Found: the development labs `/lab/atmosfera` and `/lab/record` answer 200 in production and locally (WTH-248).
@@ -18,7 +22,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 ## 2026-10-13 (WTH-227 protocol v1.0, decisions recorded)
 - Worked on: applied the user's nine decisions to `docs/UX_VALIDATION_PROTOCOL.md` (v1.0, frozen for the sessions): three computer and two phone sessions, live weather with failure handling, no download or sharing until WTH-220, the price question last, indirect recruitment, notes only, the user as moderator, private sheets, orientative thresholds. Added the five separate synthesis groups, the consent draft in Italian, and the operational checklist. No code, no UI, no data changed. No result exists.
 - Open for the user: whether session 1, the pilot, counts among the five.
-
-## 2026-10-13 (WTH-227 protocol prepared, not run)
-- Worked on: wrote `docs/UX_VALIDATION_PROTOCOL.md`: three hypotheses, five new participants, a 20-minute session, scripted wording, hint ladder, observation sheet, outcome categories, problem log, synthesis template, decision thresholds, and nine decisions for the user before recruitment. No code, no UI, no data changed. No result exists.
-- Next: the user's decisions in section 12 of the protocol (devices, live or sample data, whether a download may be pressed while WTH-220 is open, price question, recruitment, recording, moderator, where the sheets live, thresholds).

@@ -58,19 +58,39 @@ The phone sessions of WTH-227 stay not authorised until the physical checks in s
 
 - The desktop pilot runs on `localhost`, a secure origin. The phone runs on plain HTTP. The location control and the sharing control behave differently (section 2). The desktop session's notes do not describe the phone.
 
-## 8. Physical checks to do (by the user, on real devices)
+## 8. Physical checks on real devices (by the user)
 
-Do them on at least one iPhone with Safari and one Android with Chrome, on the same Wi-Fi as the test machine, with the server started as in section 1.
+Two devices, on the same Wi-Fi as the test machine, with the server started as in section 1 (`npx next start -H 0.0.0.0 -p 3300`, from the existing build). Nothing here is verified until it is done on a real device; the emulator is not a substitute.
 
-1. The phone reaches `http://<LAN address>:3300/` and the reading appears on Explore.
-2. The phone bar's «Poster» tab opens `/crea`, and the preview is drawn: note the time and whether it succeeds.
-3. The preview's attributions are visible: «© MAPBOX © OPENSTREETMAP» on the poster, and the Mapbox logo and the footer on Explore.
-4. Open the preview several times in a row and watch for a blank page or a reload (memory).
-5. Turn on the phone's battery saver and repeat step 2 (slower, and some devices limit background work).
-6. Press «Trova la mia posizione» and record the message shown (section 2).
-7. Confirm that no «Condividi» appears, and that no download starts.
-8. Check the Mapbox token's URL restrictions in the account (section 3) before the session.
-9. Stop the server after the test.
+Before the first device: the server runs; the address is read on the day; the Mapbox token's URL restrictions are checked in the account (user, section 3); the phone is on the same Wi-Fi with client isolation off.
+
+For each device, record:
+
+```
+Device model:                  Browser and version:
+Explore reachable (yes/no):    Live weather shown (yes/no, time shown):
+Preview generation time, 1st:  2nd:  3rd:          (seconds, from the press to the image)
+Three consecutive generations: all succeeded / which failed:
+Crashes or reloads (when):
+Battery saver ON: generation time and result:
+Poster legibility (observed on the phone, not judged for looks):
+Attributions visible (poster credits line; Explore map logo and footer): yes/no
+Location control: the message shown:
+Sharing control: offered? (expected: no, over plain HTTP)
+Downloads started? (expected: no)
+Notes (keywords only):
+```
+
+Steps, in order, for each device:
+1. The phone opens `http://<LAN address>:3300/` and the live reading appears on Explore.
+2. The «Poster» tab opens `/crea`; the preview is drawn three times in a row, each time from a fresh press; the times are recorded.
+3. Watch for a blank page or a reload between the presses.
+4. Repeat step 2 with battery saver on.
+5. Press «Trova la mia posizione» once and record the message.
+6. Check the attributions and the legibility as above.
+7. Do not press «Scarica». Stop the server at the end of the session.
+
+The results are not compared with the emulator's (section 6). A device that fails any step is recorded as a finding, not as a test problem.
 
 ## 9. Decisions still needed from the user
 
@@ -79,6 +99,13 @@ Do them on at least one iPhone with Safari and one Android with Chrome, on the s
 - Decide the Mapbox token's URL restrictions, after checking them in the account.
 - Decide the fate of the development routes found reachable (section 10).
 
-## 10. Finding outside the phone tests
+## 10. Finding outside the phone tests (fixed, WTH-248)
 
-- `/lab/atmosfera` and `/lab/record` answer 200 on the local production build, and also on the production site (`what-weather-theta.vercel.app`). The code says these pages are for development only (`notFound()` when `NODE_ENV` is `production`), but the check in the built app does not take effect. What they expose was not checked in detail (they appear to use calibration scenarios, not the live data); the pages are public and not meant to be. Tracked on the board as WTH-248. Not corrected here, since no code changes were authorised.
+- `/lab/atmosfera` and `/lab/record` answered 200 on the local production build and on the production site, although the code said they are for development. Cause: both pages are prerendered in the static shell (cacheComponents), so the guard inside the page ran at build time and the shell was sent with status 200. Fixed in commit `05965b5`: a proxy answers 404 for these routes in production (the record lab stays available on Vercel's preview deployments), and the same rule is in one tested function. Development is unchanged. It is committed on local `main`, not pushed, and the production site is not redeployed.
+- Consequence for the pilot: the application code changed with `05965b5`. The desktop pilot's authorisation covered identical application code, so the pilot needs the user's confirmation of the new commit before it runs.
+
+## 11. Mapbox token in the client (checked in code and in the build, 2026-10-13)
+
+- The only public variable in the code is `NEXT_PUBLIC_MAPBOX_TOKEN`, a `pk.` token, which the browser needs by design.
+- No privileged credential is referenced by client code. `OPENWEATHER_API_KEY` is read only on the server; a scan of the client bundle of the token build found neither its value, nor any `sk.` secret token, and it found the public `pk.` token, as expected.
+- The URL restrictions of the token are a manual check in the Mapbox account (user). This document does not decide them.
