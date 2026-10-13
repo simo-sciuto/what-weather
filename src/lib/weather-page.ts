@@ -9,7 +9,7 @@ import { sinceYesterday } from "./api/sources/yesterday";
 import { DEFAULT_PLACE } from "@/constants/weather";
 import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS, WEATHER_STALE_SECONDS } from "@/constants/cache";
 import { roundCoord } from "./weather/coordinates";
-import { buildTimeline } from "./weather/frames";
+import { buildTimeline, relabelDays } from "./weather/frames";
 import { randomPlace } from "./weather/random-places";
 import { toRadians } from "@/utils/math";
 
@@ -145,12 +145,15 @@ export async function loadWeatherPage(searchParams: SearchParams) {
   const landed = !linked && getProvider(scenario, at).name !== "mock";
   const ref = linked ?? (landed ? landingPlace() : DEFAULT_PLACE);
   const loaded = await weatherFor(ref, scenario, at);
+  const renderedAt = Math.floor(Date.now() / 1000);
   return {
     ...loaded,
+    // The day names are worked out now, not when the weather was cached (WTH-249)
+    timeline: relabelDays(loaded.timeline, loaded.data.timezone, renderedAt),
     scenario,
     at,
     landed,
-    renderedAt: Math.floor(Date.now() / 1000),
+    renderedAt,
   };
 }
 
@@ -163,5 +166,6 @@ export async function loadCreatePage(searchParams: SearchParams) {
   const scenario = param(params.mock);
   const at = param(params.at);
   const loaded = await weatherFor(createPlaceRef(params), scenario, at);
-  return { ...loaded, scenario, at };
+  const renderedAt = Math.floor(Date.now() / 1000);
+  return { ...loaded, timeline: relabelDays(loaded.timeline, loaded.data.timezone, renderedAt), scenario, at };
 }

@@ -249,3 +249,20 @@ export function buildTimeline(d: WeatherData): Timeline {
   const best = next && { ...next, label: windowLabel(next, tz, from) };
   return { frames, days: dayTimelines, best, dayLabels, sun: { events, nights: nightSpans(d, from, to) } };
 }
+
+/**
+ * The day names of a timeline as of `now` (WTH-249). The timeline is cached with the weather, so its "Oggi" and
+ * "Domani" were true when it was built, and after midnight they would name the wrong days for up to the cache's
+ * lifetime. The names and the day-is-today flag are worked out again when the page is served; the frames keep their
+ * dates, and the cached timeline is not changed (the result is a new object).
+ */
+export function relabelDays(timeline: Timeline, timeZone: string, now: number): Timeline {
+  const today = localDay(now, timeZone);
+  const tomorrow = localDay(now + DAY_SECONDS, timeZone);
+  const relative = (key: string) => (key === today ? TIME_LABELS.today : key === tomorrow ? TIME_LABELS.tomorrow : null);
+  return {
+    ...timeline,
+    dayLabels: Object.fromEntries(Object.entries(timeline.dayLabels).map(([key, label]) => [key, { ...label, relative: relative(key) }])),
+    days: timeline.days.map((day) => ({ ...day, isToday: day.key === today })),
+  };
+}
