@@ -10,10 +10,10 @@ import { placeParts } from "@/lib/weather/formatters";
 import { sunPosition } from "@/lib/weather/sun-position";
 import { usePlace } from "../location/PlaceContext";
 import { useMoment, useTimeline } from "../time/TimeContext";
-import { useMapOptions, useMapPalette } from "../weather/MapControls";
 import { useMap } from "../weather/MapContext";
 import type { RecordInput, RecordProvenance } from "@/lib/record/types";
 import type { PosterInput } from "./render-poster";
+import { POSTER_MAP_OPTIONS, posterMapPalette } from "./canonical-map";
 
 /**
  * Everything a poster is drawn from but its format and Mapbox: the place, the moment and its fingerprint, the sky,
@@ -123,10 +123,9 @@ export function usePosterSnapshot(viewOf: () => PosterInput["view"]): () => Post
   const { place } = usePlace();
   const { timezone, weatherCredit } = useMap();
   const { frame, look } = useMoment();
-  const palette = useMapPalette();
-  const options = useMapOptions();
   const { timeline } = useTimeline();
   const day = timeline.days.find((d) => d.key === frame.dayKey);
+  // The poster's own colours and layers, never the ones Explore keeps in the browser (WTH-243)
   return () =>
-    posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: viewOf(), credit: weatherCredit, day: day && { high: day.high, low: day.low, partial: day.partial } });
+    posterSnapshot({ place, frame, look, timeZone: timezone, palette: posterMapPalette(look.palette), options: POSTER_MAP_OPTIONS, view: viewOf(), credit: weatherCredit, day: day && { high: day.high, low: day.low, partial: day.partial } });
 }
