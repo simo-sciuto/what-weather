@@ -3,6 +3,7 @@
 import type { DayLabel, DayTimeline, Frame, Timeline } from "@/types/timeline";
 import { trackOnce } from "@/lib/analytics/analytics";
 import { frameLook, type FrameLook } from "@/lib/weather/look";
+import type { MomentStart } from "@/lib/weather/moment";
 import {
   createContext,
   useCallback,
@@ -69,9 +70,13 @@ const TimelineContext = createContext<TimelineState | null>(null);
 const ViewContext = createContext<ViewState | null>(null);
 const MomentContext = createContext<MomentState | null>(null);
 
-export function TimeProvider({ timeline, moon, children }: { timeline: Timeline; moon: Moon; children: ReactNode }) {
-  const [view, setView] = useState<View>({ kind: "now" });
-  const [index, setIndex] = useState(0);
+/**
+ * `start`: the moment the page opens on, when it is not the current one (Create, WTH-236). Absent, the page opens on
+ * the current conditions, as Explore always has.
+ */
+export function TimeProvider({ timeline, moon, start, children }: { timeline: Timeline; moon: Moon; start?: MomentStart | null; children: ReactNode }) {
+  const [view, setView] = useState<View>(() => (start?.day ? { kind: "day", key: start.day } : { kind: "now" }));
+  const [index, setIndex] = useState(() => start?.index ?? 0);
 
   const selectDay = useCallback(
     (key: string) => {

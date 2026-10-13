@@ -44,9 +44,13 @@ export function placeHref(p: PlaceRef): string {
   return `/?${placeQuery(p)}`;
 }
 
-/** The Create page for a place (`/crea`, ADR-018) */
-export function createHref(p: PlaceRef): string {
-  return `/crea?${placeQuery(p)}`;
+/**
+ * The Create page for a place (`/crea`, ADR-018), and the moment on show when it is not the current one (WTH-236):
+ * `t` is that moment's instant, Unix seconds. Absent, Create takes the current conditions.
+ */
+export function createHref(p: PlaceRef, t?: number): string {
+  const q = placeQuery(p);
+  return `/crea?${t === undefined ? q : `${q}&t=${t}`}`;
 }
 
 /** Two references point at the same place when they agree to ~1 km. */

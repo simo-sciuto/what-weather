@@ -4,6 +4,7 @@ import { createHref } from "@/lib/place";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePlace } from "../location/PlaceContext";
+import { useMoment } from "../time/TimeContext";
 import { BarTab, ICONS, usePhoneNav } from "../layout/PhoneNav";
 
 /**
@@ -12,9 +13,10 @@ import { BarTab, ICONS, usePhoneNav } from "../layout/PhoneNav";
  */
 export function CreateLink({ className = "" }: { className?: string }) {
   const { place } = usePlace();
+  const href = createHref(place, useCreateMoment());
   return (
     <Link
-      href={createHref(place)}
+      href={href}
       className={`group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-accent ${className}`}
     >
       Crea poster
@@ -32,6 +34,7 @@ export function CreateLink({ className = "" }: { className?: string }) {
 export function CreateTab({ tabRef }: { tabRef: (el: HTMLButtonElement | null) => void }) {
   const nav = usePhoneNav();
   const { place } = usePlace();
+  const moment = useCreateMoment();
   const router = useRouter();
   return (
     <BarTab
@@ -39,9 +42,18 @@ export function CreateTab({ tabRef }: { tabRef: (el: HTMLButtonElement | null) =
       hint={nav.page === "poster" ? "Poster: vai a Crea" : undefined}
       current={nav.page === "poster"}
       tabRef={tabRef}
-      onClick={() => (nav.page === "poster" ? router.push(createHref(place)) : nav.go("poster"))}
+      onClick={() => (nav.page === "poster" ? router.push(createHref(place, moment)) : nav.go("poster"))}
     >
       {ICONS.poster}
     </BarTab>
   );
+}
+
+/**
+ * The moment on show, for Create (WTH-236): its instant when it is a forecast, nothing when it is the current
+ * conditions (Create then opens on the current conditions too).
+ */
+function useCreateMoment(): number | undefined {
+  const { frame, isLive } = useMoment();
+  return isLive ? undefined : frame.time;
 }

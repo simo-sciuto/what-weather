@@ -7,7 +7,9 @@ import { AtmosphereMain, TimeProvider } from "@/components/time/TimeContext";
 import { MapProvider } from "@/components/weather/MapContext";
 import { Sky } from "@/components/weather/Sky";
 import { weatherCredit } from "@/lib/record/credits";
-import { placeHref } from "@/lib/place";
+import { createHref, placeHref } from "@/lib/place";
+import { formatTime } from "@/lib/weather/formatters";
+import { momentFrame } from "@/lib/weather/moment";
 import { loadCreatePage, type SearchParams } from "@/lib/weather-page";
 import { moonInfo } from "@/lib/weather/details";
 import type { Metadata } from "next";
@@ -67,14 +69,24 @@ function CreateSkeleton() {
 }
 
 async function CreateFor({ searchParams }: { searchParams: SearchParams }) {
-  const { data, timeline, provider } = await loadCreatePage(searchParams);
+  const { data, timeline, provider, moment } = await loadCreatePage(searchParams);
   const moon = moonInfo(data);
+  // The moment on show: now, or a forecast chosen on Explore (WTH-236). Said in words, so it is never taken for now.
+  // Without a moment chosen, it is the first frame of the timeline: the current conditions. A moment that is not
+  // available is shown as unavailable, never in place of another (WTH-236).
+  const frame = !moment.available ? null : moment.start ? momentFrame(timeline, moment.start) : timeline.frames[0];
+  const live = !moment.start || moment.start.live;
+  const dayLabel = frame ? timeline.dayLabels[frame.dayKey] : null;
+  const when = frame && dayLabel
+    ? `${dayLabel.weekday} ${dayLabel.date}, ${frame.overview ? "tutto il giorno" : formatTime(frame.time, data.timezone)}`
+    : null;
 
   return (
     <TimeProvider
       key={`${data.place.lat},${data.place.lon}`}
       timeline={timeline}
       moon={{ phase: moon.phase, southern: moon.southern }}
+      start={moment.available ? moment.start : null}
     >
       <PlaceProvider place={data.place}>
         <MapProvider
@@ -107,11 +119,30 @@ async function CreateFor({ searchParams }: { searchParams: SearchParams }) {
                   <h1 className="on-sky font-display text-[clamp(2.5rem,9vw,5.5rem)] font-semibold leading-[0.95] tracking-[-0.03em]">
                     {data.place.name}
                   </h1>
+                  {when && (
+                    <p className="on-sky text-sm">
+                      {live ? "Adesso" : "Previsione"} · {when}
+                    </p>
+                  )}
                   <p className="on-sky max-w-[34rem] text-base">
-                    Il cielo e la mappa di questo luogo, in questo momento,
-                    come un poster.
+                    {live
+                      ? "Il cielo e la mappa di questo luogo, in questo momento, come un poster."
+                      : "Il cielo previsto per questo luogo a quel momento, come un poster."}
                   </p>
-                  {MAPBOX ? (
+                  {!moment.available ? (
+                    <div className="flex flex-col gap-3">
+                      <p role="status" className="on-sky max-w-[34rem] text-sm">
+                        Il momento scelto non è più disponibile: il meteo cambia e l’ora può essere passata. Scegline un altro
+                        in Explore, oppure crea il poster per il momento attuale.
+                      </p>
+                      <Link
+                        href={createHref(data.place)}
+                        className="on-sky text-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                      >
+                        Crea per il momento attuale
+                      </Link>
+                    </div>
+                  ) : MAPBOX ? (
                     <PosterButton />
                   ) : (
                     <p className="on-sky text-sm">
