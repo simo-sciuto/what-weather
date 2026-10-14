@@ -23,6 +23,10 @@ What this means for the work:
 - Layout work on the live app that does not serve records is paused (BOARD LATER).
 - Data honesty stays a selling point: historical weather is a reanalysis and the poster says so (PRODUCT principle 1).
 
+## Hypothesis under study (the user, 2026-10-14, ADR-018)
+
+The map itself may be the product: an interactive atmospheric atlas to explore (cities, Alps, coast, valleys, rivers, lakes, mountain paths), in the identity already built; posters become a complementary function. Not a pivot: first freeze the Create redesign (WTH-225), study a freely explorable map whose weather updates on selection, not on movement (WTH-226), and test with more people what draws them (WTH-227). The Records track above stays as it is until the user decides.
+
 ## Earlier phases (bootstrap audit)
 
 - Phase 1: Foundation (done). Provider abstraction, normalized WeatherData, timeline, outlook sentence, caching, mock provider, unit and e2e tests.

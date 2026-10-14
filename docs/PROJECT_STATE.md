@@ -8,6 +8,8 @@ what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / Reac
 ## Direction
 Set by the user 2026-10-04 (ROADMAP.md, ADR-013): Visual Weather Records. Free daily app as shop window, records of meaningful moments as the paid product. Live-app layout work paused.
 
+Hypothesis added by the user 2026-10-14 (ADR-018): the map itself may be the product (an interactive atmospheric atlas), posters a complementary function. Under study and to be tested with more people (WTH-225 to WTH-227); the Create redesign is frozen on its own branch, outside `main`.
+
 ## Phase
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
