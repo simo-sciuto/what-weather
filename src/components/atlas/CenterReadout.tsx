@@ -17,18 +17,21 @@ export function CenterReadout({ port }: { port: CameraPort | null }) {
 
   useEffect(() => {
     if (!port) return;
+    const say = (lng: number, lat: number) => {
+      if (spoken.current) spoken.current.textContent = `Centro della mappa: ${formatCenter(lng, lat)}`;
+    };
     const show = () => {
       const { lng, lat } = port.get();
       if (line.current) line.current.textContent = formatCenter(lng, lat);
     };
     show();
+    // Said once at the start, so a screen reader finds the centre before any movement
+    say(port.get().lng, port.get().lat);
     return port.subscribe(
       (e) => {
         show();
-        if (e.type === "moveend" && spoken.current) {
-          const { lng, lat } = e.camera;
-          spoken.current.textContent = `Centro della mappa: ${formatCenter(lng, lat)}`;
-        }
+        // Only the person's own movements are announced, not the code's
+        if (e.type === "moveend" && e.origin === "user") say(e.camera.lng, e.camera.lat);
       },
       { frames: true },
     );

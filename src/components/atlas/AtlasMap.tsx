@@ -74,7 +74,7 @@ export function AtlasMap({ onPort }: { onPort: (port: MapboxCameraPort | null) =
         if (cancelled) return;
         map = new gl.Map({
           container: el,
-          accessToken: TOKEN ?? "pk.atlas-test-map-no-service",
+          accessToken: TOKEN || "pk.atlas-test-map-no-service",
           style: TOKEN ? STYLE : BLANK_STYLE,
           center: [ATLAS_START.lng, ATLAS_START.lat],
           zoom: ATLAS_START.zoom,
