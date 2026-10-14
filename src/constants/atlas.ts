@@ -1,3 +1,5 @@
+import type { Camera, CameraPadding } from "@/types/atlas";
+
 /**
  * How long the map must stay still, after a movement ends, before the point it rests on is asked for, in
  * milliseconds. Provisional (the user, 2026-10-14): a starting value to be tuned with people (spike S10), not a UX
@@ -7,3 +9,18 @@ export const QUIET_MS = 800;
 
 /** The key the camera port adds to the event data of its own commands, to tell them from a person's moves */
 export const CAMERA_ORIGIN_KEY = "atlasOrigin";
+
+/**
+ * Where the Atlas opens: Torino and the Alps behind it, a view of a region and not of a street. Free, from here on;
+ * the product sets no limit to where the map goes (the engine's own remain).
+ */
+export const ATLAS_START: Camera = { lng: 7.687, lat: 45.07, zoom: 8, pitch: 0, bearing: 0 };
+
+/**
+ * The sky the Atlas wears until a point's weather colours it (M5, phase A): a clear sky at the middle of the day,
+ * `atmospherePalette` over the existing solar scale (0 is sunrise, 1 sunset). Nothing here is the weather of anywhere.
+ */
+export const ATLAS_LIGHT = 0.5;
+
+/** Padding around the map's viewport; none in M3, so the map's centre is the centre of the screen */
+export const ATLAS_PADDING: Required<CameraPadding> = { top: 0, right: 0, bottom: 0, left: 0 };

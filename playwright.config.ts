@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
  * weather (WEATHER_PROVIDER=mock), so every run sees the same skies whatever
  * the real ones do. `?mock=<scenario>&at=HH:MM` picks the weather and the hour.
  * It is built without the Mapbox token, so there are no maps and no
- * "Territorio" chapter: nothing the tests touch waits on a service outside
+ * "Territorio" chapter (the Atlas, /atlas, draws its map over an empty style: NEXT_PUBLIC_ATLAS_BLANK_MAP): nothing the tests touch waits on a service outside
  * (the build replaces the one in .next: run `npm run build` again for a full one).
  * They drive the Chrome installed on the machine, so there is no browser to
  * download. A server already up on the port is reused (not on CI).
@@ -37,6 +37,6 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
     // An empty value still wins over .env.local, which only fills what isn't set.
-    env: { WEATHER_PROVIDER: "mock", NEXT_PUBLIC_MAPBOX_TOKEN: "" },
+    env: { WEATHER_PROVIDER: "mock", NEXT_PUBLIC_MAPBOX_TOKEN: "", NEXT_PUBLIC_ATLAS_BLANK_MAP: "1" },
   },
 });

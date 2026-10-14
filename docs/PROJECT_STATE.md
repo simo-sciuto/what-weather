@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-14 (Atlas foundation M1 and M2 done on `claude/atlas-foundation`, not merged; `main` as on 2026-10-12)
+Last updated: 2026-10-14 (Atlas foundation M1, M2 and M3 done on `claude/atlas-foundation`, not merged; `main` as on 2026-10-12)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.
@@ -14,7 +14,7 @@ Hypothesis added by the user 2026-10-14 (ADR-018): the map itself may be the pro
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-WTH-226, the Atlas foundation: M0, M1 (ADR-019) and M2 (ADR-020) done on the local branch `claude/atlas-foundation` (derived from `docs/atlas-direction`), awaiting the user's decision on M3. Not authorized: M3 (the `/atlas` route and its layout shell), M4 (the commit pipeline, with the cache strategy of R2 still open), anything on the home. Before that, from 2026-10-12: none in progress. Merged into `main` on 2026-10-12: the historical-provider port (WTH-166 licences, WTH-001/002/003 audits, WTH-167 sample records, WTH-168 provider), WTH-185 (the random-city decision is ADR-017), WTH-206 (the poster embeds only its faces), WTH-189 (shared helpers), WTH-224 (docs). Decisions taken 2026-10-12: ADR-001 and ADR-013 updated (the past has its own contract; from 2017 it is the IFS archive, not a reanalysis); `getAt` keeps returning `WeatherData` with the optional `reconstruction` (ADR-016 note). Open for the user: WTH-211 and WTH-212 (Mapbox and OpenWeather answers, weather source for sale), WTH-219 and WTH-220 (poster map rights). The branches of this session are deleted on origin; `main-local-backup-2026-10-12` is kept locally.
+WTH-226, the Atlas foundation: M0, M1 (ADR-019), M2 (ADR-020) and M3 (ADR-021, the `/atlas` route and its persistent shell) done on the local branch `claude/atlas-foundation`, awaiting the user\'s review of M3. Not authorized: M4 (the commit pipeline, with the cache strategy of R2 still open). Not verified: the real Mapbox drawing and a real phone (no token, no device).
 
 ## Last checkpoint
 WTH-168 (the historical provider, branch `rebase-local-unpushed-2026-10-12` on `main`, reviewed, committed with this note): `openmeteo-archive.ts`, `HistoricalProvider`, `WeatherData.reconstruction` (ADR-016; `reanalysis` for ERA5, `forecast-archive` for the IFS from 2017), 21 tests on a real recorded answer. Next on the Records track: WTH-167 (the validation page, which needs sample records made with this provider and Open-Meteo's commercial plan before any promotion), WTH-169 onwards only if 167 says people want records; WTH-219 and WTH-220 (Mapbox) are the user's.

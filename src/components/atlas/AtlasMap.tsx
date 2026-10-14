@@ -1,0 +1,155 @@
+"use client";
+
+import "mapbox-gl/dist/mapbox-gl.css";
+import { ATLAS_PADDING, ATLAS_START } from "@/constants/atlas";
+import { createMapboxCameraPort, type MapboxCameraPort } from "@/lib/atlas/mapbox-camera-port";
+import { sunPosition } from "@/lib/weather/sun-position";
+import type { CameraEvent } from "@/types/atlas";
+import type { Mapbox } from "@/types/map";
+import type { Map as MapboxMap, StyleSpecification } from "mapbox-gl";
+import { useEffect, useRef, useState } from "react";
+import { STYLE, syncMap } from "../weather/map-style";
+import { useAtlasMapLook } from "./atlas-look";
+import { ATLAS_TEST_MAP, countRender } from "./atlas-test";
+
+const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+/** The map of a build made for the tests: nothing to draw, no service to ask (see atlas-test.ts) */
+const BLANK_STYLE: StyleSpecification = {
+  version: 8,
+  // A source with an attribution and a layer that uses it, so the attribution control has something to show, as it
+  // does over Mapbox's own data
+  sources: { test: { type: "geojson", data: { type: "FeatureCollection", features: [] }, attribution: "© Mapbox, test map" } },
+  layers: [
+    { id: "background", type: "background", paint: { "background-color": "#27406b" } },
+    { id: "test-lines", type: "line", source: "test" },
+  ],
+};
+
+let mapbox: Promise<Mapbox> | null = null;
+/** Mapbox GL, loaded once; rejects without WebGL */
+function loadMapbox(): Promise<Mapbox> {
+  mapbox ??= import("mapbox-gl").then(({ default: gl }) => {
+    if (!gl.supported?.()) throw new Error("WebGL unavailable");
+    return gl;
+  });
+  return mapbox;
+}
+
+/** How many maps this page has made: more than one is a map made again, which the Atlas never does */
+let creations = 0;
+
+type Probe = { map?: MapboxMap; port?: MapboxCameraPort; events?: CameraEvent[] };
+
+/**
+ * The Atlas's one map (ADR-020, M3). It is made once, when the shell is first shown, and lives as long as the shell: the
+ * effect has no dependency that a navigation, a place or the weather can change, so the content of the route comes and
+ * goes round it. The camera is the map's own: free for the hands (drag, wheel, pinch, rotation, tilt, the keyboard), and
+ * moved by the code only through the camera port. Nothing here renders for a frame of a movement, and nothing here asks
+ * for any weather. The drawing is the home page's own (`STYLE`, `syncMap`, the viewer's layers and tuning), over the sky
+ * of the shell; Mapbox's attribution and logo stay where its control puts them.
+ */
+export function AtlasMap({ onPort }: { onPort: (port: MapboxCameraPort | null) => void }) {
+  countRender("map");
+  const box = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MapboxMap | null>(null);
+  const portRef = useRef(onPort);
+  const [state, setState] = useState<"loading" | "ready" | "none" | "failed">(TOKEN || ATLAS_TEST_MAP ? "loading" : "none");
+  const { inks, options } = useAtlasMapLook();
+
+  useEffect(() => {
+    portRef.current = onPort;
+  });
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el || (!TOKEN && !ATLAS_TEST_MAP)) return;
+    let cancelled = false;
+    let map: MapboxMap | undefined;
+    let port: MapboxCameraPort | undefined;
+
+    (async () => {
+      try {
+        const gl = await loadMapbox();
+        if (cancelled) return;
+        map = new gl.Map({
+          container: el,
+          accessToken: TOKEN ?? "pk.atlas-test-map-no-service",
+          style: TOKEN ? STYLE : BLANK_STYLE,
+          center: [ATLAS_START.lng, ATLAS_START.lat],
+          zoom: ATLAS_START.zoom,
+          pitch: ATLAS_START.pitch,
+          bearing: ATLAS_START.bearing,
+          // Free: drag, wheel, pinch, rotation, tilt and the keyboard are all Mapbox's own and on; the attribution
+          // control and the logo are on too, as Mapbox requires. No limit is set beyond the engine's.
+          interactive: true,
+          attributionControl: true,
+          fadeDuration: 0,
+        });
+        mapRef.current = map;
+        creations += 1;
+        el.dataset.mapCreations = String(creations);
+        el.dataset.mapInstance = String(creations);
+        map.getCanvas().setAttribute("aria-label", "Mappa libera. Trascina per spostarti, rotella o più e meno per lo zoom.");
+
+        port = createMapboxCameraPort(map);
+        const { top, right, bottom, left } = ATLAS_PADDING;
+        if (top || right || bottom || left) port.setPadding(ATLAS_PADDING);
+
+        if (ATLAS_TEST_MAP) {
+          const probe = window as unknown as { __atlas?: Probe };
+          const events: CameraEvent[] = [];
+          port.subscribe((e) => events.push(e));
+          probe.__atlas = { map, port, events };
+        }
+
+        portRef.current(port);
+        map.once("idle", () => {
+          if (!cancelled) setState("ready");
+        });
+        // A style that fails to load falls back; a stray tile error once it is drawn does not
+        map.on("error", () => {
+          if (!cancelled && !map?.loaded()) setState("failed");
+        });
+      } catch {
+        if (!cancelled) setState("failed");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      port?.dispose();
+      map?.remove();
+      mapRef.current = null;
+      portRef.current(null);
+      if (ATLAS_TEST_MAP) delete (window as unknown as { __atlas?: Probe }).__atlas;
+    };
+  }, []);
+
+  // The colours of the home page's map, once the style is drawn and again when the viewer retunes them
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || state !== "ready" || ATLAS_TEST_MAP) return;
+    const sun = sunPosition(Date.now() / 1000, ATLAS_START.lat, ATLAS_START.lng);
+    syncMap(map, { inks, options, sun, lat: ATLAS_START.lat });
+  }, [inks, options, state]);
+
+  return (
+    <>
+      {/* Mapbox's own stylesheet makes the container it is given `position: relative`, so it gets a box of its own to fill */}
+      <div className="absolute inset-0 touch-none overscroll-none">
+        <div ref={box} data-atlas-map data-state={state} role="application" aria-label="Mappa libera" className="h-full w-full" />
+      </div>
+      {state === "none" && (
+        <p className="absolute inset-0 grid place-items-center px-6 text-center text-caption text-ink-muted">
+          La mappa si disegna con Mapbox e qui manca il token.
+        </p>
+      )}
+      {state === "failed" && (
+        <p role="status" className="absolute inset-0 grid place-items-center px-6 text-center text-caption text-ink-muted">
+          La mappa non si può disegnare su questo dispositivo.
+        </p>
+      )}
+    </>
+  );
+}
