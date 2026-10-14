@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-Last updated: 2026-10-14 (Atlas foundation M1, M2 and M3 done on `claude/atlas-foundation`, not merged; `main` as on 2026-10-12)
+Last updated: 2026-10-15 (Atlas foundation M1, M2 and M3 done on `claude/atlas-foundation`, not merged; `main` as on 2026-10-12)
 
 ## Project
 what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / React 19 / Tailwind 4 / Mapbox. Live on Vercel. See PRODUCT.md and ARCHITECTURE.md.

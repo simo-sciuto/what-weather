@@ -2,6 +2,11 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-15 (Atlas M3 validation gate)
+- Worked on: the gate on the user's Mac: full unit, lint, typecheck, e2e (36), the public-build check of `persistence-check`, a real-token smoke test (no screenshots), the board id check. Details in `docs/ATLAS_M3_REVIEW.md`.
+- Found: the branch had been pushed to origin by a stop hook, not authorized, and Vercel built a protected preview of `50b2903`; board ids 234 to 236 (and 225 to 233, ADR-018) collide with `main`: mine renumbered to 262 to 264, the rest is WTH-265.
+- Not verified: how the map looks (the user's eyes), Safari, a real phone, screen readers.
+
 ## 2026-10-14 (Atlas M3)
 - Worked on: the pre-M3 check of an interrupted programmatic flight (passed, 3 regression tests, an antimeridian fix in `cellOf`), then M3: `/atlas`, the shell, the single map, crosshair, readout, e2e (desktop and emulated phone).
 - Found: mapbox-gl.css makes the container `position: relative` (the map collapsed until given an outer box); the blank test style had no attribution until a source carried one.
