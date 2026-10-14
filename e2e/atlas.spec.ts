@@ -212,6 +212,36 @@ test("the point the crosshair marks is the map's centre, with and without paddin
   }
 });
 
+test("the keyboard reaches the map first, then Mapbox's own links and the way back, each with a visible ring", async ({ page }) => {
+  await openAtlas(page);
+  const focused = () =>
+    page.evaluate(() => {
+      const a = document.activeElement as HTMLElement;
+      const cs = getComputedStyle(a);
+      return { tag: a.tagName, style: cs.outlineStyle, width: parseFloat(cs.outlineWidth), color: cs.outlineColor, visible: a.matches(":focus-visible") };
+    });
+  await page.keyboard.press("Tab");
+  const canvas = await focused();
+  expect(canvas.tag).toBe("CANVAS");
+  expect(canvas.visible).toBe(true);
+  expect(canvas.style).toBe("solid");
+  expect(canvas.width).toBeGreaterThanOrEqual(2);
+  // not the browser's near-black default
+  expect(canvas.color).not.toBe("rgb(16, 16, 16)");
+  let wordmark = false;
+  for (let i = 0; i < 4 && !wordmark; i++) {
+    await page.keyboard.press("Tab");
+    const f = await focused();
+    if (f.tag === "A") {
+      expect(f.style).toBe("solid");
+      expect(f.width).toBeGreaterThanOrEqual(2);
+      expect(f.color).not.toBe("rgb(16, 16, 16)");
+    }
+    wordmark = await page.evaluate(() => document.activeElement?.getAttribute("href") === "/");
+  }
+  expect(wordmark).toBe(true);
+});
+
 test("the home page is not the Atlas, and the Atlas is not offered to search engines", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-atlas]")).toHaveCount(0);

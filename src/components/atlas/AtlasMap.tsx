@@ -137,7 +137,8 @@ export function AtlasMap({ onPort }: { onPort: (port: MapboxCameraPort | null) =
   return (
     <>
       {/* Mapbox's own stylesheet makes the container it is given `position: relative`, so it gets a box of its own to fill */}
-      <div className="absolute inset-0 touch-none overscroll-none">
+      {/* The browser's own focus ring is near black, lost on the map: the page's ring (accent), inset since the map fills the screen */}
+      <div className="absolute inset-0 touch-none overscroll-none [&_a:focus-visible]:outline-2 [&_a:focus-visible]:outline-accent [&_canvas:focus-visible]:outline-2 [&_canvas:focus-visible]:-outline-offset-2 [&_canvas:focus-visible]:outline-accent">
         <div ref={box} data-atlas-map data-state={state} role="application" aria-label="Mappa libera" className="h-full w-full" />
       </div>
       {state === "none" && (

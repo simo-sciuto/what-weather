@@ -28,7 +28,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       <Crosshair port={port} />
       <Link
         href="/"
-        className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1rem,env(safe-area-inset-top))] z-10 text-xl text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+        className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1rem,env(safe-area-inset-top))] z-10 text-[1.375rem] text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
       >
         <Wordmark />
       </Link>
