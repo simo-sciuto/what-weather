@@ -14,7 +14,7 @@ Hypothesis added by the user 2026-10-14 (ADR-018): the map itself may be the pro
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-WTH-226, the Atlas foundation: M0, M1 (ADR-019), M2 (ADR-020) and M3 (ADR-021, the `/atlas` route and its persistent shell) done on the local branch `claude/atlas-foundation`, awaiting the user\'s review of M3. Not authorized: M4 (the commit pipeline, with the cache strategy of R2 still open). Not verified: the real Mapbox drawing and a real phone (no token, no device).
+WTH-226, the Atlas foundation: M0, M1 (ADR-019), M2 (ADR-020) and M3 (ADR-021, the `/atlas` route and its persistent shell) done on the local branch `claude/atlas-foundation`, M3 approved as a technical base, not yet visually validated: the validation gate is done and `/atlas` waits for the user's manual review with the real token (`docs/ATLAS_M3_REVIEW.md`). No push (the Vercel Git integration may deploy). Not authorized: M4 (the commit pipeline, with the cache strategy of R2 still open). Not verified: the real Mapbox drawing and a real phone (no token, no device).
 
 ## Last checkpoint
 WTH-168 (the historical provider, branch `rebase-local-unpushed-2026-10-12` on `main`, reviewed, committed with this note): `openmeteo-archive.ts`, `HistoricalProvider`, `WeatherData.reconstruction` (ADR-016; `reanalysis` for ERA5, `forecast-archive` for the IFS from 2017), 21 tests on a real recorded answer. Next on the Records track: WTH-167 (the validation page, which needs sample records made with this provider and Open-Meteo's commercial plan before any promotion), WTH-169 onwards only if 167 says people want records; WTH-219 and WTH-220 (Mapbox) are the user's.

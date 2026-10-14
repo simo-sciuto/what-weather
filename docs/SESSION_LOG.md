@@ -6,7 +6,8 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Worked on: the pre-M3 check of an interrupted programmatic flight (passed, 3 regression tests, an antimeridian fix in `cellOf`), then M3: `/atlas`, the shell, the single map, crosshair, readout, e2e (desktop and emulated phone).
 - Found: mapbox-gl.css makes the container `position: relative` (the map collapsed until given an outer box); the blank test style had no attribution until a source carried one.
 - Not verified: the real Mapbox drawing, a real phone, the design (not approved by automated tests).
-- Next: the user's review; M4 not started.
+- Validation gate: full suites re-run (517 unit, 36 e2e), public build checked for diagnostics, soft 404 analysed, focus ring and crosshair padding covered, board ids 234 to 236 confirmed unused, review sheet written. No push, to avoid a Vercel preview.
+- Next: the user's manual review of /atlas with the real token; M4 not started.
 
 ## 2026-10-14 (Atlas direction and foundation, WTH-226)
 - Worked on: the Atlas hypothesis (the map as the product): five product decisions with the user (place, colour, geography, time, cards), the architect's plan (`docs/ATLAS_PLAN.md`), the M0 spikes (`docs/atlas-spikes/REPORT.md`), then M1 (absolute time, ADR-019) and M2 (camera port and settle controller, ADR-020) on `claude/atlas-foundation`, each reviewed by the `reviewer` (no blocking findings; the important ones fixed). The artifact of the session holds the decisions, the Move / Explore / Keep proposals and the design system trials.
