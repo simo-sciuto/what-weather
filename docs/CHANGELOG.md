@@ -2,6 +2,11 @@
 
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
+## 2026-10-14
+- Atlas foundation (WTH-226), branch `claude/atlas-foundation`, not merged, the home page unchanged. M0: technical spikes in scratch directories (`docs/atlas-spikes/REPORT.md`). M1 (`fb0c4a7`, ADR-019): the moment as an absolute instant: `TimeSelection`, `resolveInstant` over the provider's real frames (an unavailable instant has no frame, a day's overview is no hour), `momentLabels` at the place, a minute clock for "Adesso"; `TimeProvider` holds a selection and derives the indices its components have always used, so `useMoment()` is unchanged (it gains `selection`). The home does not call `resolveInstant` yet: that, the clock and the labels are the foundation for the Atlas route (M6).
+- M2 (`e181f13`, ADR-020): the camera port and settle controller in `src/lib/atlas/`: the camera, the candidate and the loaded point as three states; the weather is asked for only after the quiet (800 ms, provisional) from `moveend`; stale answers by sequence id and `AbortSignal`; a manual retry; the code's own moves told from the person's by event data. Not connected to the weather, the router or the home. `npm run atlas:camera-harness` checks it on the real mapbox-gl in a browser with no service.
+- Tests: 398 to 505 unit tests (M1 45, M2 61, one more in M1's review); typecheck, lint and the 20 e2e unchanged.
+
 ## 2026-10-12
 - The open branches are on `main`: the historical-provider port (WTH-166 licences, WTH-001/002/003 audits, WTH-167 sample records, WTH-168 `HistoricalProvider`), and WTH-185.
 - WTH-206: the poster's SVG embeds only the faces its scene sets text in (Inter Tight and Schibsted Grotesk, not Syne); `sceneFamilies`, filtered `fontFaceCss` and `embeddedFontCss`.

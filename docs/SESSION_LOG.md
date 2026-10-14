@@ -2,6 +2,12 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-14 (Atlas direction and foundation, WTH-226)
+- Worked on: the Atlas hypothesis (the map as the product): five product decisions with the user (place, colour, geography, time, cards), the architect's plan (`docs/ATLAS_PLAN.md`), the M0 spikes (`docs/atlas-spikes/REPORT.md`), then M1 (absolute time, ADR-019) and M2 (camera port and settle controller, ADR-020) on `claude/atlas-foundation`, each reviewed by the `reviewer` (no blocking findings; the important ones fixed). The artifact of the session holds the decisions, the Move / Explore / Keep proposals and the design system trials.
+- Decided by the user: the route `/atlas` ("Esplora la mappa"), free points keep their coordinates and no borrowed city name, URL replace after a stop and push for search, natural map gestures on a phone, R1 to R9 accepted. M3 and M4 not authorized.
+- Found on the way: the Next docs say serverless `use cache` entries do not persist across requests (R2 open); a wheel zoom carries no `originalEvent`; `tsc` needs `next typegen` first (`LayoutProps`). The code branch is local only: the user excluded an application push.
+- Next: the user's decision on M3 (the `/atlas` shell in a layout, error boundary that resets) and on the cache strategy for M4.
+
 ## 2026-10-12 (open branches closed)
 - Worked on: closing the open work. Merged the historical-provider port and WTH-185 into `main`; resolved the board conflict and the reused ids; merged WTH-206, WTH-189 and WTH-224.
 - Decided, as asked: ADR-001 and ADR-013 updated, `getAt` keeps the `WeatherData` shape (ADR-016 note). Deleted the six branches of the session on origin.
@@ -26,10 +32,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Found: the `rgba(` to `hexToRgba(` rename also hit a CSS string in the poster's glow, which no test, golden run or e2e draws (the poster needs the Mapbox token); the reviewer saw it. Fixed with `bloomColor` and a test, and from then on the poster is checked by a real render through a harness with a fake map, pixel by pixel.
 - Not verified: the poster on screen with the map. Optional leftovers in WTH-189; WTH-188 (providers and sources depend on each other).
 - Next: the merge into `main`, as the user decides.
-
-## 2026-10-05 (poster readout)
-- Worked on: WTH-183, the poster's foot as a readout of the Weather Fingerprint, on the user's proposal; the user chose English labels, the compass kept, no figures, the block small on the right.
-- Reviewed: no critical problems; stand-in zeros made visible (dashed track), the whole day's stamp without an hour, the stand-in mapping made exact, the time zone taken into the snapshot. WTH-184 and WTH-185 added from the review.
-- Decided by the user: stand-in marking stays as it is; `usePosterSnapshot()` instead of a context provider (a provider would rerender on every scrub). Merged into `main`.
-- Not verified: the poster with the map on screen (no Mapbox token in the cloud container; a render with a fake map was shown).
-
