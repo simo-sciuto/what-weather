@@ -1,0 +1,19 @@
+// a process-wide counter of real upstream "fetches" per cell, to see what the cache absorbs
+import { appendFileSync, readFileSync, existsSync } from "node:fs";
+const LOG = process.env.CALLS_LOG ?? "/tmp/s3-calls.log";
+export function readCalls(): Record<string, number> {
+  const r: Record<string, number> = {};
+  if (!existsSync(LOG)) return r;
+  for (const l of readFileSync(LOG, "utf8").split("\n").filter(Boolean)) r[l] = (r[l] ?? 0) + 1;
+  return r;
+}
+export async function slowLoad(lat: number, lon: number, delay: number, fail: boolean) {
+  "use cache";
+  const key = `${lat},${lon}`;
+  appendFileSync(LOG, key + "\n");
+  await new Promise((r) => setTimeout(r, delay));
+  if (fail) throw new Error("upstream down");
+  // a synthetic timeline, to see the order of magnitude of a payload
+  const frames = Array.from({ length: 192 }, (_, i) => ({ t: 1_700_000_000 + i * 3600, temp: 10 + (i % 24) * 0.37, wind: i % 17, cond: "clear", hum: 50 + (i % 40) }));
+  return { lat, lon, builtAt: Date.now(), frames };
+}

@@ -1,0 +1,10 @@
+"use client";
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+// the boundary stays in the error state across navigations; clear it when the URL moves on
+export default function AtlasError({ error, reset }: { error: Error; reset: () => void }) {
+  const sp = useSearchParams().toString();
+  const first = useRef(sp);
+  useEffect(() => { if (sp !== first.current) reset(); }, [sp, reset]);
+  return <div id="atlas-error" role="alert">ATLAS-ERROR {error.message.slice(0, 30)}</div>;
+}

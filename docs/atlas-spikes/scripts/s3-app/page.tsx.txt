@@ -1,0 +1,19 @@
+import { slowLoad } from "./calls";
+import { Controls } from "./Controls";
+
+type SP = Promise<Record<string, string | string[] | undefined>>;
+const one = (v: string | string[] | undefined, d: string) => (Array.isArray(v) ? v[0] : v) ?? d;
+
+// same shape as the real page: async, awaits searchParams, loads through the cache
+export default async function Home({ searchParams }: { searchParams: SP }) {
+  const p = await searchParams;
+  const lat = Number(one(p.lat, "45.07")), lon = Number(one(p.lon, "7.69"));
+  const delay = Number(one(p.delay, "50")), fail = one(p.fail, "") === "1";
+  const data = await slowLoad(Number(lat.toFixed(2)), Number(lon.toFixed(2)), delay, fail);
+  return (
+    <main>
+      <div id="content" data-lat={data.lat} data-lon={data.lon} data-built={data.builtAt}>CONTENT {data.lat},{data.lon}</div>
+      <Controls frames={p.big ? data.frames : []} />
+    </main>
+  );
+}

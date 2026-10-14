@@ -1,0 +1,30 @@
+// S7 supplement: does eventData tag programmatic moves, and does a wheel/touch-style user move carry originalEvent
+import { createRequire } from "node:module";
+import path from "node:path";
+const root = path.resolve(process.argv[2] ?? ".");
+const require = createRequire(path.join(root, "noop.js"));
+const { chromium } = require("playwright-core");
+const gl = path.join(root, "node_modules/mapbox-gl/dist");
+const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-sandbox", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
+const page = await browser.newPage({ viewport: { width: 800, height: 600 }, hasTouch: true });
+await page.route("https://spike.local/**", (r) => r.fulfill({ contentType: "text/html", body: `<!doctype html><body style="margin:0"><div id="map" style="width:800px;height:600px"></div>` }));
+await page.goto("https://spike.local/");
+await page.addStyleTag({ path: path.join(gl, "mapbox-gl.css") });
+await page.addScriptTag({ path: path.join(gl, "mapbox-gl.js") });
+const out = await page.evaluate(async () => {
+  const style = { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#345" } }] };
+  const map = new mapboxgl.Map({ container: "map", style, center: [7.687, 45.07], zoom: 8, accessToken: "pk.unused", attributionControl: false });
+  await new Promise((r) => map.once("load", r));
+  const res = {}; let log = [];
+  ["movestart", "moveend"].forEach((n) => map.on(n, (e) => log.push({ n, tag: e.tagged ?? null, orig: !!e.originalEvent })));
+  const run = async (name, fn, wait) => { log = []; fn(); await new Promise((r) => setTimeout(r, wait)); res[name] = log.slice(); };
+  await run("jumpTo_tagged", () => map.jumpTo({ center: [7.5, 45.1] }, { tagged: "program" }), 100);
+  await run("easeTo_tagged", () => map.easeTo({ center: [7.6, 45.1], duration: 200 }, { tagged: "program" }), 500);
+  await run("flyTo_tagged", () => map.flyTo({ center: [7.7, 45.1], duration: 300 }, { tagged: "program" }), 800);
+  await run("setPadding_tagged", () => map.setPadding({ bottom: 50 }, { tagged: "program" }), 100);
+  await run("jumpTo_untagged", () => map.jumpTo({ center: [7.8, 45.1] }), 100);
+  res.eventDataSurvivesToEnd = res.flyTo_tagged.every((e) => e.tag === "program");
+  return res;
+});
+console.log(JSON.stringify(out));
+await browser.close();

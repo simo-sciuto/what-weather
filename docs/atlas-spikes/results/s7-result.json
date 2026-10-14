@@ -1,0 +1,470 @@
+{
+  "mapboxGl": "3.31.0",
+  "chromium": "141.0.7390.37",
+  "setup": {
+    "loadMs": 472,
+    "webgl": true
+  },
+  "A_center_padding": {
+    "noPadding": {
+      "getCenter": [
+        7.687,
+        45.07
+      ],
+      "unprojectCanvasCentre": [
+        7.687000000000751,
+        45.07000000000059
+      ]
+    },
+    "bottom200": {
+      "getCenter": [
+        7.687,
+        45.07
+      ],
+      "unprojectCanvasCentre": [
+        7.687000000000751,
+        44.875695586351185
+      ],
+      "unprojectPaddedCentre": [
+        7.687000000000751,
+        45.069999999999396
+      ],
+      "padding": {
+        "top": 0,
+        "bottom": 200,
+        "left": 0,
+        "right": 0
+      }
+    },
+    "getCenterEqualsPaddedCentre": true,
+    "getCenterEqualsCanvasCentre": false
+  },
+  "B1_jumpTo": {
+    "counts": {
+      "movestart": 1,
+      "move": 1,
+      "moveend": 1
+    },
+    "movestart": {
+      "t": 0,
+      "n": "movestart",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "moveend": {
+      "t": 0,
+      "n": "moveend",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "firstMove": {
+      "t": 0,
+      "n": "move",
+      "user": false,
+      "type": null,
+      "moving": false
+    }
+  },
+  "B1_easeTo": {
+    "counts": {
+      "movestart": 1,
+      "move": 19,
+      "moveend": 1,
+      "idle": 2
+    },
+    "movestart": {
+      "t": 1,
+      "n": "movestart",
+      "user": false,
+      "type": null,
+      "moving": true
+    },
+    "moveend": {
+      "t": 311,
+      "n": "moveend",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "idle": {
+      "t": 328,
+      "n": "idle",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "firstMove": {
+      "t": 17,
+      "n": "move",
+      "user": false,
+      "type": null,
+      "moving": true
+    }
+  },
+  "B1_setPadding": {
+    "counts": {
+      "movestart": 1,
+      "move": 1,
+      "moveend": 1,
+      "idle": 1
+    },
+    "movestart": {
+      "t": 1,
+      "n": "movestart",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "moveend": {
+      "t": 1,
+      "n": "moveend",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "idle": {
+      "t": 4,
+      "n": "idle",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "firstMove": {
+      "t": 1,
+      "n": "move",
+      "user": false,
+      "type": null,
+      "moving": false
+    }
+  },
+  "B1_jumpTo_every_frame": {
+    "counts": {
+      "movestart": 30,
+      "move": 30,
+      "moveend": 30,
+      "idle": 2,
+      "rotatestart": 29,
+      "rotateend": 29
+    },
+    "anyUser": false
+  },
+  "B2_slow_drag_stop": {
+    "counts": {
+      "movestart": 1,
+      "dragstart": 1,
+      "move": 8,
+      "dragend": 1,
+      "moveend": 1,
+      "idle": 2
+    },
+    "movestart": {
+      "t": 32,
+      "n": "movestart",
+      "user": true,
+      "type": "mousemove",
+      "moving": true
+    },
+    "moveend": {
+      "t": 887,
+      "n": "moveend",
+      "user": true,
+      "type": "mouseup",
+      "moving": false
+    },
+    "idle": {
+      "t": 896,
+      "n": "idle",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "firstMove": {
+      "t": 32,
+      "n": "move",
+      "user": true,
+      "type": "mousemove",
+      "moving": true
+    },
+    "mouseUpAt": 881,
+    "moveendAfterMouseUpMs": 6
+  },
+  "B2_fast_flick": {
+    "counts": {
+      "movestart": 1,
+      "dragstart": 1,
+      "move": 30,
+      "dragend": 1,
+      "moveend": 1,
+      "idle": 1
+    },
+    "movestart": {
+      "t": 9,
+      "n": "movestart",
+      "user": true,
+      "type": "mousemove",
+      "moving": true
+    },
+    "moveend": {
+      "t": 508,
+      "n": "moveend",
+      "user": true,
+      "type": "mouseup",
+      "moving": false
+    },
+    "idle": {
+      "t": 626,
+      "n": "idle",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "firstMove": {
+      "t": 9,
+      "n": "move",
+      "user": true,
+      "type": "mousemove",
+      "moving": true
+    },
+    "mouseUpAt": 101,
+    "moveendAfterMouseUpMs": 407
+  },
+  "B3_wheel": {
+    "counts": {
+      "movestart": 1,
+      "zoomstart": 1,
+      "move": 12,
+      "zoomend": 1,
+      "moveend": 1,
+      "idle": 2
+    },
+    "movestart": {
+      "t": 70,
+      "n": "movestart",
+      "user": false,
+      "type": null,
+      "moving": true
+    },
+    "moveend": {
+      "t": 445,
+      "n": "moveend",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "idle": {
+      "t": 462,
+      "n": "idle",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "firstMove": {
+      "t": 70,
+      "n": "move",
+      "user": false,
+      "type": null,
+      "moving": true
+    }
+  },
+  "B3_keyboard": {
+    "counts": {
+      "idle": 2,
+      "movestart": 1,
+      "move": 18,
+      "moveend": 1
+    },
+    "movestart": {
+      "t": 205,
+      "n": "movestart",
+      "user": true,
+      "type": "keydown",
+      "moving": true
+    },
+    "moveend": {
+      "t": 540,
+      "n": "moveend",
+      "user": true,
+      "type": "keydown",
+      "moving": false
+    },
+    "idle": {
+      "t": 625,
+      "n": "idle",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "firstMove": {
+      "t": 205,
+      "n": "move",
+      "user": true,
+      "type": "keydown",
+      "moving": true
+    }
+  },
+  "B4_ctrl_drag": {
+    "counts": {
+      "idle": 3,
+      "movestart": 1,
+      "rotatestart": 2,
+      "pitchstart": 2,
+      "move": 13,
+      "rotateend": 2,
+      "pitchend": 2,
+      "moveend": 1
+    },
+    "movestart": {
+      "t": 226,
+      "n": "movestart",
+      "user": true,
+      "type": "mousemove",
+      "moving": true
+    },
+    "moveend": {
+      "t": 988,
+      "n": "moveend",
+      "user": true,
+      "type": "mouseup",
+      "moving": false
+    },
+    "idle": {
+      "t": 1013,
+      "n": "idle",
+      "user": false,
+      "type": null,
+      "moving": false
+    },
+    "firstMove": {
+      "t": 226,
+      "n": "move",
+      "user": true,
+      "type": "mousemove",
+      "moving": true
+    },
+    "pitch": 43.27275821515057,
+    "bearing": 56.562087059702776
+  },
+  "C_limits": {
+    "pitch90": 85,
+    "zoom40": 22,
+    "zoomMinus10": 0.22881867003789003,
+    "lat89": 82.16644635636837,
+    "lng200": 200,
+    "defaults": {
+      "maxPitch": 85,
+      "minPitch": 0,
+      "maxZoom": 22,
+      "minZoom": -2,
+      "maxBounds": null
+    }
+  },
+  "D_transition": {
+    "styleTransition": null,
+    "internal": {}
+  },
+  "E_qrf": {
+    "projectedRiverPixel": [
+      400,
+      300
+    ],
+    "pointOnLine": [
+      "lake",
+      "river",
+      "river-zero"
+    ],
+    "offsets": {
+      "+2px_y": [
+        "lake",
+        "river-zero"
+      ],
+      "+4px_y": [
+        "lake",
+        "river-zero"
+      ],
+      "+6px_y": [
+        "lake",
+        "river-zero"
+      ],
+      "+8px_y": [
+        "lake"
+      ],
+      "+10px_y": [
+        "lake"
+      ],
+      "+16px_y": [
+        "lake"
+      ]
+    },
+    "layersOnlyRiver": [
+      "river"
+    ],
+    "hiddenLayerIncluded": [],
+    "zeroOpacityIncluded": [
+      "river-zero"
+    ],
+    "zeroOpacityWide7px": [
+      "river-zero"
+    ],
+    "zeroOpacityWide16px": [],
+    "box12": [
+      "river"
+    ],
+    "lakePoint": [
+      "lake"
+    ],
+    "peakAtZoom9": [
+      "peak"
+    ],
+    "peakFeatureProps": {
+      "kind": "peak",
+      "name": "Cima",
+      "ele": 4634
+    },
+    "peakTolerance": [
+      [
+        3,
+        1
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        9,
+        0
+      ],
+      [
+        14,
+        0
+      ]
+    ]
+  },
+  "E_qrf_zoom12": {
+    "atPeakZoom12": [
+      "late",
+      "peak"
+    ]
+  },
+  "E_qrf_pitch60": {
+    "pitch": 60,
+    "pixel": [
+      400,
+      300
+    ],
+    "onLine": [
+      "river"
+    ],
+    "offBy6": [],
+    "offBy12": []
+  },
+  "F_recreate": {
+    "constructToLoadMs": [
+      33,
+      28,
+      25
+    ]
+  },
+  "pageErrors": []
+}

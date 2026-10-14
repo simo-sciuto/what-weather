@@ -1,0 +1,6 @@
+import { readCalls } from "../../calls";
+// reads the request so the handler is dynamic (it is prerendered at build otherwise)
+export async function GET(req: Request) {
+  new URL(req.url);
+  return Response.json(readCalls());
+}

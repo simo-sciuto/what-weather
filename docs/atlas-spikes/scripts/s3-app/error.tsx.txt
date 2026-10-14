@@ -1,0 +1,4 @@
+"use client";
+export default function ErrorBoundary({ error }: { error: Error }) {
+  return <div id="error-boundary" role="alert">ERROR-BOUNDARY {error.message.slice(0, 40)}</div>;
+}

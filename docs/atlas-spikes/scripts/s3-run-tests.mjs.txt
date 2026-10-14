@@ -1,0 +1,133 @@
+// S3: how Next 16 navigation behaves for the atlas commit pipeline. Run against `next start -p 3101` of this scratch app.
+import { createRequire } from "node:module";
+import path from "node:path";
+const require = createRequire(path.resolve("noop.js"));
+const { chromium } = require("playwright-core");
+const BASE = "http://localhost:3101";
+const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-sandbox", "--disable-background-networking", "--disable-component-update", "--no-first-run"] });
+const out = {};
+
+async function fresh() {
+  const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } });
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/?lat=45.07&lon=7.69`);
+  await page.waitForSelector("#ctl");
+  await page.waitForFunction(() => window.__nav);
+  await page.evaluate(() => {
+    window.__marker = "same-document";
+    window.__rec = []; const t0 = performance.now();
+    const snap = () => {
+      const c = document.querySelector("#content"), k = document.querySelector("#ctl");
+      return { t: Math.round(performance.now() - t0), search: location.search.replace(/&delay=\d+/, ""), content: c ? c.textContent : null, pending: k ? k.dataset.pending : null, mount: k ? k.dataset.mount : null, count: k ? k.dataset.count : null,
+        loading: !!document.querySelector("#loading-fallback"), error: !!document.querySelector("#error-boundary"), hist: history.length };
+    };
+    window.__snap = snap; window.__t0 = t0;
+    setInterval(() => window.__rec.push(snap()), 40);
+  });
+  return { ctx, page };
+}
+// collapse consecutive identical snapshots (ignoring t and hist) into a readable timeline
+function collapse(rec) {
+  const rows = []; let prev = "";
+  for (const r of rec) { const k = JSON.stringify({ ...r, t: 0, hist: 0 }); if (k !== prev) { rows.push(r); prev = k; } }
+  return rows.map((r) => `${r.t}ms ${r.search || "(none)"} | ${r.content ?? "NO-CONTENT"} | pending=${r.pending} mount=${r.mount} count=${r.count} loading=${r.loading} error=${r.error} hist=${r.hist}`);
+}
+async function scenario(name, fn, waitMs) {
+  const { ctx, page } = await fresh();
+  await page.evaluate(() => window.__nav.bump());
+  const extra = await fn(page, ctx);
+  await page.waitForTimeout(waitMs);
+  const rec = (await page.evaluate(() => window.__rec).catch(() => [])) ?? [];
+  const marker = await page.evaluate(() => window.__marker ?? "LOST (full document reload)").catch(() => "LOST (page navigated)");
+  out[name] = { marker, timeline: collapse(rec), ...(extra || {}) };
+  await ctx.close();
+}
+
+await scenario("T1_replace_in_transition_slow", (p) => p.evaluate(() => window.__nav.replaceT("/?lat=41.11&lon=7.69&delay=1500")), 2800);
+await scenario("T2_replace_plain_slow", (p) => p.evaluate(() => window.__nav.replace("/?lat=41.22&lon=7.69&delay=1500")), 2800);
+await scenario("T3_superseded_A_slow_then_B_fast", async (p) => {
+  await p.evaluate(() => window.__nav.replaceT("/?lat=41.33&lon=7.69&delay=1500"));
+  await p.waitForTimeout(250);
+  await p.evaluate(() => window.__nav.replaceT("/?lat=41.44&lon=7.69&delay=300"));
+}, 3500);
+await scenario("T3b_superseded_A_fast_B_slow_then_A_again_fast", async (p) => {
+  await p.evaluate(() => window.__nav.replaceT("/?lat=41.55&lon=7.69&delay=1500"));
+  await p.waitForTimeout(250);
+  await p.evaluate(() => window.__nav.replaceT("/?lat=41.66&lon=7.69&delay=100"));
+}, 3500);
+await scenario("T4_server_throw_during_navigation", (p) => p.evaluate(() => window.__nav.replaceT("/?lat=41.77&lon=7.69&delay=300&fail=1")), 2500);
+await scenario("T5_offline_navigation", async (p, ctx) => {
+  await ctx.setOffline(true);
+  await p.evaluate(() => window.__nav.replaceT("/?lat=41.88&lon=7.69&delay=100"));
+  await p.waitForTimeout(6000);
+  let during;
+  try { during = await p.evaluate(() => window.__snap()); }
+  catch (e) { during = { documentReplaced: true, url: p.url().replace(BASE, ""), bodyText: (await p.evaluate(() => document.body.innerText.slice(0, 120)).catch(() => "n/a")) }; }
+  await ctx.setOffline(false);
+  await p.waitForTimeout(100);
+  return { duringOfflineAfter6s: during };
+}, 5000);
+await scenario("T6_push_for_comparison", (p) => p.evaluate(() => window.__nav.push("/?lat=41.99&lon=7.69&delay=300")), 1500);
+
+// preflight pattern
+{
+  const { ctx, page } = await fresh();
+  const r = {};
+  const t0 = Date.now();
+  r.preflightFail = await page.evaluate(async () => { const x = await fetch("/api/pre?lat=40.01&lon=7.69&fail=1&delay=200"); return { status: x.status, urlStill: location.search }; });
+  r.preflightFailMs = Date.now() - t0;
+  const t1 = Date.now();
+  r.preflightOk = await page.evaluate(async () => { const x = await fetch("/api/pre?lat=40.02&lon=7.69&delay=800"); return { status: x.status }; });
+  r.preflightOkMs = Date.now() - t1;
+  const t2 = Date.now();
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.02&lon=7.69&delay=800"));
+  await page.waitForFunction(() => document.querySelector("#content")?.textContent?.includes("40.02"), null, { timeout: 8000 });
+  r.replaceAfterWarmPreflightMs = Date.now() - t2;
+  r.upstreamCallsPerCell = await (await fetch(`${BASE}/api/calls`)).json().then((c) => ({ "40.01,7.69": c["40.01,7.69"], "40.02,7.69": c["40.02,7.69"] }));
+  // the same without a preflight, for the comparison
+  const t3 = Date.now();
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.03&lon=7.69&delay=800"));
+  await page.waitForFunction(() => document.querySelector("#content")?.textContent?.includes("40.03"), null, { timeout: 8000 });
+  r.replaceColdMs = Date.now() - t3;
+  out.T7_preflight_pattern = r;
+  await ctx.close();
+}
+
+// history semantics
+{
+  const { ctx, page } = await fresh();
+  const h0 = await page.evaluate(() => history.length);
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.11&lon=7.69"));
+  await page.waitForFunction(() => document.querySelector("#content")?.textContent?.includes("40.11"));
+  const h1 = await page.evaluate(() => history.length);
+  await page.evaluate(() => window.__nav.push("/?lat=40.12&lon=7.69"));
+  await page.waitForFunction(() => document.querySelector("#content")?.textContent?.includes("40.12"));
+  const h2 = await page.evaluate(() => history.length);
+  await page.goBack(); await page.waitForTimeout(600);
+  out.T8_history = { historyLengthStart: h0, afterReplace: h1, afterPush: h2, afterBackSearch: await page.evaluate(() => location.search) };
+  await ctx.close();
+}
+
+// RSC payload size for a navigation (synthetic 192-frame timeline in props, see calls.ts)
+{
+  const { ctx, page } = await fresh();
+  const seen = [];
+  page.on("response", async (res) => {
+    const rq = res.request();
+    if (rq.headers()["rsc"] === "1" || (res.headers()["content-type"] ?? "").includes("text/x-component")) {
+      try { const b = await res.body(); seen.push({ url: res.url().replace(BASE, "").slice(0, 70), bytes: b.length, encoding: res.headers()["content-encoding"] ?? "none", contentLength: res.headers()["content-length"] ?? null }); } catch (e) { seen.push({ url: res.url().slice(0, 60), error: String(e).slice(0, 60) }); }
+    }
+  });
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.21&lon=7.69&big=1"));
+  await page.waitForFunction(() => document.querySelector("#content")?.textContent?.includes("40.21"));
+  await page.waitForTimeout(500);
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.22&lon=7.69"));
+  await page.waitForFunction(() => document.querySelector("#content")?.textContent?.includes("40.22"));
+  await page.waitForTimeout(500);
+  out.T9_rsc_payload_synthetic = { note: "first with 192 frames as props (about 60 KB of JSON), second without", responses: seen };
+  await ctx.close();
+}
+out.upstreamCallsLog = await (await fetch(`${BASE}/api/calls`)).json();
+
+console.log(JSON.stringify(out, null, 1));
+await browser.close();

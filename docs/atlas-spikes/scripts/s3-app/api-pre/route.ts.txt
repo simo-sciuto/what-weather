@@ -1,0 +1,12 @@
+import { slowLoad } from "../../calls";
+// the "preflight": same cached function with the same arguments as the page
+export async function GET(req: Request) {
+  const u = new URL(req.url);
+  const lat = Number(Number(u.searchParams.get("lat") ?? "45.07").toFixed(2)), lon = Number(Number(u.searchParams.get("lon") ?? "7.69").toFixed(2));
+  try {
+    await slowLoad(lat, lon, Number(u.searchParams.get("delay") ?? "50"), u.searchParams.get("fail") === "1");
+    return Response.json({ ok: true });
+  } catch {
+    return Response.json({ ok: false }, { status: 502 });
+  }
+}

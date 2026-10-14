@@ -1,0 +1,32 @@
+{
+ "requestsOutsideOrigin": [],
+ "initialLoadMs": 2934,
+ "hasWindowNextRouter": true,
+ "title": "Torino 21° · Poco nuvoloso",
+ "timelineFrames": 0,
+ "navTo_Genova_ms": 151,
+ "navTo_Milano_ms": 94,
+ "responses": [
+  {
+   "url": "/?lat=45.07&lon=7.69&name=Torino",
+   "type": "Document",
+   "decoded": 257330,
+   "wire": 0,
+   "status": 200
+  },
+  {
+   "url": "/?lat=44.41&lon=8.93&name=Genova&_rsc=EkMTwnUmpBSDRw0X",
+   "type": "Fetch",
+   "decoded": 121423,
+   "wire": 31532,
+   "status": 200
+  },
+  {
+   "url": "/?lat=45.5&lon=9.19&name=Milano&_rsc=EkMTwnUmpBSDRw0X",
+   "type": "Fetch",
+   "decoded": 122834,
+   "wire": 32112,
+   "status": 200
+  }
+ ]
+}

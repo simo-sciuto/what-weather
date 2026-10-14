@@ -1,0 +1,50 @@
+{
+ "A_preflight_then_navigate": {
+  "preflightStatus": 200,
+  "preflightMs": 819,
+  "navigationAfterPreflightMs": 36,
+  "upstreamCallsForCell": 1
+ },
+ "A_control_no_preflight": {
+  "navigationMs": 833,
+  "upstreamCallsForCell": 1
+ },
+ "A_same_cell_other_digits": {
+  "navigationMs": 33,
+  "totalUpstreamCallsForCell": 1
+ },
+ "B_failed_preflight": {
+  "status": 502,
+  "retryStatus": 502,
+  "urlUnchanged": true,
+  "stateKept": {
+   "count": "1",
+   "content": "CONTENT 45.07,7.69"
+  },
+  "upstreamAttemptsForCell": 2,
+  "note": "a throwing cached function is not cached, so every retry reaches upstream"
+ },
+ "C_rsc_payload_synthetic": [
+  {
+   "url": "/?lat=40.21&lon=7.69&big=1&_rsc=EkMTwnUmpBSDRw0X",
+   "enc": "none",
+   "decoded": 14015,
+   "wire": 2713
+  },
+  {
+   "url": "/?lat=40.22&lon=7.69&_rsc=EkMTwnUmpBSDRw0X",
+   "enc": "none",
+   "decoded": 1537,
+   "wire": 712
+  }
+ ],
+ "C_note": "decoded = bytes after decompression, wireTotal = encoded bytes. The synthetic timeline is 192 frames of 5 small fields, far smaller than the real page's WeatherData.",
+ "callsLog": {
+  "45.07,7.69": 1,
+  "40.02,7.69": 1,
+  "40.03,7.69": 1,
+  "40.05,7.69": 2,
+  "40.21,7.69": 1,
+  "40.22,7.69": 1
+ }
+}

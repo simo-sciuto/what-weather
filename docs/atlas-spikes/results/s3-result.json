@@ -1,0 +1,87 @@
+{
+ "T1_replace_in_transition_slow": {
+  "marker": "same-document",
+  "timeline": [
+   "40ms ?lat=45.07&lon=7.69 | CONTENT 45.07,7.69 | pending=1 mount=tp5biy count=1 loading=false error=false hist=2",
+   "1560ms ?lat=41.11&lon=7.69 | CONTENT 41.11,7.69 | pending=0 mount=tp5biy count=1 loading=false error=false hist=2"
+  ]
+ },
+ "T2_replace_plain_slow": {
+  "marker": "same-document",
+  "timeline": [
+   "41ms ?lat=45.07&lon=7.69 | CONTENT 45.07,7.69 | pending=0 mount=qx9nbh count=1 loading=false error=false hist=2",
+   "1560ms ?lat=41.22&lon=7.69 | CONTENT 41.22,7.69 | pending=0 mount=qx9nbh count=1 loading=false error=false hist=2"
+  ]
+ },
+ "T3_superseded_A_slow_then_B_fast": {
+  "marker": "same-document",
+  "timeline": [
+   "41ms ?lat=45.07&lon=7.69 | CONTENT 45.07,7.69 | pending=1 mount=4mu1ym count=1 loading=false error=false hist=2",
+   "600ms ?lat=41.44&lon=7.69 | CONTENT 41.44,7.69 | pending=0 mount=4mu1ym count=1 loading=false error=false hist=2"
+  ]
+ },
+ "T3b_superseded_A_fast_B_slow_then_A_again_fast": {
+  "marker": "same-document",
+  "timeline": [
+   "40ms ?lat=45.07&lon=7.69 | CONTENT 45.07,7.69 | pending=1 mount=xe6kqd count=1 loading=false error=false hist=2",
+   "400ms ?lat=41.66&lon=7.69 | CONTENT 41.66,7.69 | pending=0 mount=xe6kqd count=1 loading=false error=false hist=2"
+  ]
+ },
+ "T4_server_throw_during_navigation": {
+  "marker": "same-document",
+  "timeline": [
+   "40ms ?lat=45.07&lon=7.69 | CONTENT 45.07,7.69 | pending=1 mount=aco998 count=1 loading=false error=false hist=2",
+   "361ms ?lat=41.77&lon=7.69&fail=1 | NO-CONTENT | pending=null mount=null count=null loading=false error=true hist=2"
+  ]
+ },
+ "T5_offline_navigation": {
+  "marker": "LOST (full document reload)",
+  "timeline": [],
+  "duringOfflineAfter6s": {
+   "documentReplaced": true,
+   "url": "chrome-error://chromewebdata/",
+   "bodyText": "No internet\n\nTry:\n\nChecking the network cables, modem, and router\nReconnecting to Wi-Fi\nERR_INTERNET_DISCONNECTED"
+  }
+ },
+ "T6_push_for_comparison": {
+  "marker": "same-document",
+  "timeline": [
+   "41ms ?lat=45.07&lon=7.69 | CONTENT 45.07,7.69 | pending=0 mount=miqgrg count=1 loading=false error=false hist=2",
+   "324ms ?lat=41.99&lon=7.69 | CONTENT 41.99,7.69 | pending=0 mount=miqgrg count=1 loading=false error=false hist=3"
+  ]
+ },
+ "T7_preflight_pattern": {
+  "preflightFail": {
+   "status": 502,
+   "urlStill": "?lat=45.07&lon=7.69"
+  },
+  "preflightFailMs": 258,
+  "preflightOk": {
+   "status": 200
+  },
+  "preflightOkMs": 815,
+  "replaceAfterWarmPreflightMs": 32,
+  "upstreamCallsPerCell": {},
+  "replaceColdMs": 820
+ },
+ "T8_history": {
+  "historyLengthStart": 2,
+  "afterReplace": 2,
+  "afterPush": 3,
+  "afterBackSearch": "?lat=40.11&lon=7.69"
+ },
+ "T9_rsc_payload_synthetic": {
+  "note": "first with 192 frames as props (about 60 KB of JSON), second without",
+  "responses": [
+   {
+    "url": "http://localhost:3101/?lat=40.21&lon=7.69&big=1&_rsc=EkMTwnU",
+    "error": "Error: response.body: Protocol error (Network.getResponseBod"
+   },
+   {
+    "url": "http://localhost:3101/?lat=40.22&lon=7.69&_rsc=EkMTwnUmpBSDR",
+    "error": "Error: response.body: Protocol error (Network.getResponseBod"
+   }
+  ]
+ },
+ "upstreamCallsLog": {}
+}

@@ -1,0 +1,35 @@
+import { createRequire } from "node:module";
+import path from "node:path";
+const require = createRequire(path.resolve("../s0/noop.js"));
+const { chromium } = require("playwright-core");
+const BASE = "http://localhost:3102";
+const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-sandbox", "--disable-background-networking", "--no-first-run"] });
+const ctx = await browser.newContext({ viewport: { width: 1000, height: 800 } });
+const page = await ctx.newPage();
+const out = { requestsOutsideOrigin: [] };
+page.on("request", (r) => { const u = r.url(); if (!u.startsWith(BASE) && !u.startsWith("data:") && !u.startsWith("blob:")) out.requestsOutsideOrigin.push(u.slice(0, 80)); });
+const cdp = await ctx.newCDPSession(page);
+await cdp.send("Network.enable");
+const reqs = new Map();
+cdp.on("Network.responseReceived", (e) => { const u = e.response.url; if (u.includes("_rsc=") || e.type === "Document") reqs.set(e.requestId, { url: u.replace(BASE, "").slice(0, 70), type: e.type, decoded: 0, wire: 0, status: e.response.status }); });
+cdp.on("Network.dataReceived", (e) => { const r = reqs.get(e.requestId); if (r) { r.decoded += e.dataLength; r.wire += e.encodedDataLength; } });
+const t0 = Date.now();
+await page.goto(`${BASE}/?lat=45.07&lon=7.69&name=Torino`, { waitUntil: "load" });
+await page.waitForTimeout(2500);
+out.initialLoadMs = Date.now() - t0;
+const hasRouter = await page.evaluate(() => !!(window.next && window.next.router));
+out.hasWindowNextRouter = hasRouter;
+out.title = await page.title();
+out.timelineFrames = await page.evaluate(() => document.querySelectorAll("[data-frame],[data-hour]").length);
+if (hasRouter) {
+  for (const [lat, lon, name] of [[44.41, 8.93, "Genova"], [45.5, 9.19, "Milano"]]) {
+    const t1 = Date.now();
+    await page.evaluate(([a, b, n]) => window.next.router.replace(`/?lat=${a}&lon=${b}&name=${n}`, { scroll: false }), [lat, lon, name]);
+    await page.waitForFunction((n) => document.title.includes(n) || document.body.innerText.toUpperCase().includes(n.toUpperCase()), name, { timeout: 15000 }).catch(() => {});
+    out[`navTo_${name}_ms`] = Date.now() - t1;
+    await page.waitForTimeout(1500);
+  }
+}
+out.responses = Array.from(reqs.values());
+console.log(JSON.stringify(out, null, 1));
+await browser.close();

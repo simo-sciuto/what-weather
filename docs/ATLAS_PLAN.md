@@ -2,6 +2,8 @@
 
 Status: **advisory checkpoint of 2026-10-14 for WTH-226. Nothing here is approved for development.** The five product decisions on the WTH-226 board line are APPROVED (the user, 2026-10-14) and are the source of truth; everything marked RECOMMENDATION is the `architect`'s and waits for the user. Read ADR-018 first.
 
+M0 (the spikes) ran on 2026-10-14: see docs/atlas-spikes/REPORT.md. It confirms some of the claims below, amends two (the preflight's cache sharing on serverless, and `originalEvent` as a user-move marker) and leaves S1, S2, S4 and the live part of S6 open. Its recommendations are not yet approved.
+
 Conventions: VERIFIED = read in the repo (path:line). UNVERIFIED = not provable offline, with the way to verify it.
 
 Blocker for the Next and Mapbox claims: `node_modules` is absent in this checkout, so the Next docs (`node_modules/next/dist/docs/`, required by AGENTS.md) and the `mapbox-gl` types could not be read. Pinned: next 16.3.7, react 19.2.8, mapbox-gl 3.31.0 (`package.json`, `package-lock.json`). Every claim below about router behaviour, `use cache` semantics and Mapbox API behaviour is UNVERIFIED until spikes S0, S3 and S7.

@@ -1,0 +1,79 @@
+// S3 (part 2): the preflight pattern against a cold cache, with real call counts, and the RSC payload size on the wire.
+import { createRequire } from "node:module";
+import path from "node:path";
+const require = createRequire(path.resolve("noop.js"));
+const { chromium } = require("playwright-core");
+const BASE = "http://localhost:3101";
+const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args: ["--no-sandbox", "--disable-background-networking", "--no-first-run"] });
+const out = {};
+const calls = async () => (await fetch(`${BASE}/api/calls`)).json();
+async function open() {
+  const ctx = await browser.newContext({ viewport: { width: 800, height: 600 } });
+  const page = await ctx.newPage();
+  await page.goto(`${BASE}/?lat=45.07&lon=7.69`);
+  await page.waitForFunction(() => window.__nav);
+  return { ctx, page };
+}
+const waitContent = (page, s) => page.waitForFunction((x) => document.querySelector("#content")?.textContent?.includes(x), s, { timeout: 10000 });
+
+{ // A. preflight then navigation, same cell: how many upstream calls
+  const { ctx, page } = await open();
+  const before = await calls();
+  const t0 = Date.now();
+  const pre = await page.evaluate(async () => (await fetch("/api/pre?lat=40.02&lon=7.69&delay=800")).status);
+  const preMs = Date.now() - t0;
+  const t1 = Date.now();
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.02&lon=7.69&delay=800"));
+  await waitContent(page, "40.02");
+  const navMs = Date.now() - t1;
+  const after = await calls();
+  out.A_preflight_then_navigate = { preflightStatus: pre, preflightMs: preMs, navigationAfterPreflightMs: navMs, upstreamCallsForCell: (after["40.02,7.69"] ?? 0) - (before["40.02,7.69"] ?? 0) };
+  // control: navigation with no preflight
+  const t2 = Date.now();
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.03&lon=7.69&delay=800"));
+  await waitContent(page, "40.03");
+  const after2 = await calls();
+  out.A_control_no_preflight = { navigationMs: Date.now() - t2, upstreamCallsForCell: after2["40.03,7.69"] ?? 0 };
+  // the same cell again (rounding: 40.021 and 40.024 are one cell at two decimals)
+  const t3 = Date.now();
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.024&lon=7.69&delay=800"));
+  await waitContent(page, "40.02");
+  const after3 = await calls();
+  out.A_same_cell_other_digits = { navigationMs: Date.now() - t3, totalUpstreamCallsForCell: after3["40.02,7.69"] };
+  await ctx.close();
+}
+
+{ // B. a failed preflight leaves URL, content and client state alone, and a retry costs one call
+  const { ctx, page } = await open();
+  await page.evaluate(() => window.__nav.bump());
+  const before = await calls();
+  const r = await page.evaluate(async () => (await fetch("/api/pre?lat=40.05&lon=7.69&fail=1&delay=200")).status);
+  const urlAfter = await page.evaluate(() => location.search);
+  const state = await page.evaluate(() => ({ count: document.querySelector("#ctl").dataset.count, content: document.querySelector("#content").textContent }));
+  const r2 = await page.evaluate(async () => (await fetch("/api/pre?lat=40.05&lon=7.69&fail=1&delay=200")).status);
+  const after = await calls();
+  out.B_failed_preflight = { status: r, retryStatus: r2, urlUnchanged: urlAfter === "?lat=45.07&lon=7.69", stateKept: state, upstreamAttemptsForCell: (after["40.05,7.69"] ?? 0) - (before["40.05,7.69"] ?? 0), note: "a throwing cached function is not cached, so every retry reaches upstream" };
+  await ctx.close();
+}
+
+{ // C. RSC payload on the wire (CDP), 192 synthetic frames in props vs none
+  const { ctx, page } = await open();
+  const cdp = await ctx.newCDPSession(page);
+  await cdp.send("Network.enable");
+  const reqs = new Map();
+  cdp.on("Network.responseReceived", (e) => { if (e.response.url.includes("_rsc=")) reqs.set(e.requestId, { url: e.response.url.replace(BASE, "").slice(0, 60), enc: e.response.headers["content-encoding"] ?? "none", type: e.response.headers["content-type"], decoded: 0, wire: 0 }); });
+  cdp.on("Network.dataReceived", (e) => { const r = reqs.get(e.requestId); if (r) { r.decoded += e.dataLength; r.wire += e.encodedDataLength; } });
+  cdp.on("Network.loadingFinished", (e) => { const r = reqs.get(e.requestId); if (r) r.wireTotal = e.encodedDataLength; });
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.21&lon=7.69&big=1"));
+  await waitContent(page, "40.21");
+  await page.waitForTimeout(700);
+  await page.evaluate(() => window.__nav.replaceT("/?lat=40.22&lon=7.69"));
+  await waitContent(page, "40.22");
+  await page.waitForTimeout(700);
+  out.C_rsc_payload_synthetic = Array.from(reqs.values());
+  out.C_note = "decoded = bytes after decompression, wireTotal = encoded bytes. The synthetic timeline is 192 frames of 5 small fields, far smaller than the real page's WeatherData.";
+  await ctx.close();
+}
+out.callsLog = await calls();
+console.log(JSON.stringify(out, null, 1));
+await browser.close();

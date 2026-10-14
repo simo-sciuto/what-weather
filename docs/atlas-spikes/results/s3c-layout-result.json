@@ -1,0 +1,57 @@
+[
+ [
+  "start",
+  {
+   "search": "?lat=45.07&lon=7.69",
+   "shell": "ecvzsh",
+   "n": "1",
+   "content": "CONTENT 45.07,7.69",
+   "atlasError": false,
+   "rootError": false
+  }
+ ],
+ [
+  "after a good replace",
+  {
+   "search": "?lat=41.1&lon=7.69",
+   "shell": "ecvzsh",
+   "n": "1",
+   "content": "CONTENT 41.1,7.69",
+   "atlasError": false,
+   "rootError": false
+  }
+ ],
+ [
+  "after a throwing replace",
+  {
+   "search": "?lat=41.2&lon=7.69&fail=1",
+   "shell": "ecvzsh",
+   "n": "1",
+   "content": null,
+   "atlasError": true,
+   "rootError": false
+  }
+ ],
+ [
+  "recovery by the next replace (6 s allowed)",
+  {
+   "search": "?lat=41.3&lon=7.69",
+   "shell": "ecvzsh",
+   "n": "1",
+   "content": "CONTENT 41.3,7.69",
+   "atlasError": false,
+   "rootError": false
+  }
+ ],
+ [
+  "after a full reload of the same URL",
+  {
+   "search": "?lat=41.3&lon=7.69",
+   "shell": "v2t3qu",
+   "n": "0",
+   "content": "CONTENT 41.3,7.69",
+   "atlasError": false,
+   "rootError": false
+  }
+ ]
+]

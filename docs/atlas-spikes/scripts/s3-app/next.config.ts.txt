@@ -1,0 +1,4 @@
+import type { NextConfig } from "next";
+// same flag as the real app: prerendered shell plus "use cache"
+const nextConfig: NextConfig = { cacheComponents: true, turbopack: { root: __dirname } };
+export default nextConfig;

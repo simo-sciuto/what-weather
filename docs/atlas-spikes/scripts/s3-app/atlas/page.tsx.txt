@@ -1,0 +1,9 @@
+import { slowLoad } from "../calls";
+type SP = Promise<Record<string, string | string[] | undefined>>;
+const one = (v: string | string[] | undefined, d: string) => (Array.isArray(v) ? v[0] : v) ?? d;
+export default async function AtlasPage({ searchParams }: { searchParams: SP }) {
+  const p = await searchParams;
+  const lat = Number(one(p.lat, "45.07")), lon = Number(one(p.lon, "7.69"));
+  const data = await slowLoad(Number(lat.toFixed(2)), Number(lon.toFixed(2)), Number(one(p.delay, "50")), one(p.fail, "") === "1");
+  return <div id="content">CONTENT {data.lat},{data.lon}</div>;
+}

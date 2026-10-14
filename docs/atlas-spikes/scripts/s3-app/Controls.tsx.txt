@@ -1,0 +1,24 @@
+"use client";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+
+export function Controls({ frames }: { frames: unknown[] }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const mounted = useRef(Math.random().toString(36).slice(2, 8));
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const w = window as unknown as Record<string, unknown>;
+    w.__nav = {
+      replace: (h: string) => router.replace(h, { scroll: false }),
+      replaceT: (h: string) => start(() => router.replace(h, { scroll: false })),
+      push: (h: string) => router.push(h, { scroll: false }),
+      bump: () => setCount((c) => c + 1),
+    };
+  }, [router]);
+  return (
+    <div id="ctl" data-pending={pending ? "1" : "0"} data-mount={mounted.current} data-count={count} data-frames={frames.length}>
+      CTL pending={String(pending)} mount={mounted.current} count={count}
+    </div>
+  );
+}

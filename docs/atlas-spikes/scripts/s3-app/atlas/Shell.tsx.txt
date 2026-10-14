@@ -1,0 +1,13 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+// stands for the Mapbox map: client state that must survive navigations and server errors
+export function Shell({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const mounted = useRef(Math.random().toString(36).slice(2, 8));
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).__atlas = { replace: (h: string) => router.replace(h, { scroll: false }), bump: () => setN((x) => x + 1) };
+  }, [router]);
+  return (<div id="shell" data-mount={mounted.current} data-n={n}>SHELL {mounted.current} n={n}{children}</div>);
+}
