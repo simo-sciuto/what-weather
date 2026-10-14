@@ -1,7 +1,15 @@
 "use client";
 
+import type { TimeSelection } from "@/types/time";
 import type { DayLabel, DayTimeline, Frame, Timeline } from "@/types/timeline";
 import { frameLook, type FrameLook } from "@/lib/weather/look";
+import {
+  NOW_SELECTION,
+  indexForSelection,
+  sameSelection,
+  selectionForDay,
+  selectionForIndex,
+} from "@/lib/weather/moment-selection";
 import {
   createContext,
   useCallback,
@@ -57,39 +65,43 @@ type MomentState = {
   dayLabel: DayLabel;
   /** Now, with nothing scrubbed */
   isLive: boolean;
+  /** What the moment is: "Adesso", or an absolute instant (ADR-019). `index` and `frame` are what it shows here. */
+  selection: TimeSelection;
   setIndex: (i: number) => void;
 };
 
 const NEXT_HOURS = 24;
-/** Opening a day lands on its middle */
-const DAY_OPENS_AT = 12;
 
 const TimelineContext = createContext<TimelineState | null>(null);
 const ViewContext = createContext<ViewState | null>(null);
 const MomentContext = createContext<MomentState | null>(null);
 
+/**
+ * The moment is held as a selection, "Adesso" or an absolute instant, and the indices the page's components speak
+ * in (`index`, `setIndex`) are worked out from it against the frames on show, so every component keeps the contract
+ * it always had. "Adesso" is the page's live reading, which the refresh keeps current.
+ */
 export function TimeProvider({ timeline, moon, children }: { timeline: Timeline; moon: Moon; children: ReactNode }) {
   const [view, setView] = useState<View>({ kind: "now" });
-  const [index, setIndex] = useState(0);
+  const [selection, setSelection] = useState<TimeSelection>(NOW_SELECTION);
 
   const selectDay = useCallback(
     (key: string) => {
       const target = timeline.days.find((d) => d.key === key);
       if (!target || target.isToday) {
         setView({ kind: "now" });
-        setIndex(0);
+        setSelection(NOW_SELECTION);
         return;
       }
       setView({ kind: "day", key });
-      const midday = target.hours.findIndex((i) => timeline.frames[i].hour >= DAY_OPENS_AT);
-      setIndex(Math.max(0, midday));
+      setSelection(selectionForDay(timeline, target));
     },
     [timeline],
   );
 
   const backToNow = useCallback(() => {
     setView({ kind: "now" });
-    setIndex(0);
+    setSelection(NOW_SELECTION);
   }, []);
 
   const timelineState = useMemo<TimelineState>(() => ({ timeline, moon }), [timeline, moon]);
@@ -105,17 +117,29 @@ export function TimeProvider({ timeline, moon, children }: { timeline: Timeline;
   }, [timeline, view, selectDay, backToNow]);
 
   const { frames, day } = viewState;
+  // Bound to the frames on show in this render, as the selection needs them (the old setter stored a bare number):
+  // call it after a view change has rendered, not in the same handler as `selectDay` or `backToNow`.
+  const setIndex = useCallback(
+    (i: number) => {
+      const next = selectionForIndex(frames, i, day !== null);
+      setSelection((prev) => (sameSelection(prev, next) ? prev : next));
+    },
+    [frames, day],
+  );
+
   const momentState = useMemo<MomentState>(() => {
-    const frame = frames[Math.min(index, frames.length - 1)];
+    const index = indexForSelection(frames, selection);
+    const frame = frames[index];
     return {
       index,
       frame,
       look: frameLook(frame),
       dayLabel: timeline.dayLabels[frame.dayKey],
-      isLive: !day && index === 0,
+      isLive: !day && selection.mode === "now",
+      selection,
       setIndex,
     };
-  }, [timeline, frames, day, index]);
+  }, [timeline, frames, day, selection, setIndex]);
 
   return (
     <TimelineContext.Provider value={timelineState}>
