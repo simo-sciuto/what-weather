@@ -32,8 +32,8 @@ export function Crosshair({ port, padding = ATLAS_PADDING }: { port: CameraPort 
       data-atlas-crosshair
       data-moving="false"
       aria-hidden="true"
-      className="pointer-events-none absolute z-10 size-11 -translate-x-1/2 -translate-y-1/2 text-ink opacity-60 transition-opacity duration-300 data-[moving=true]:opacity-100 motion-reduce:transition-none"
-      style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, filter: "drop-shadow(0 0 2px var(--sky-1))" }}
+      className="pointer-events-none absolute z-10 size-11 -translate-x-1/2 -translate-y-1/2 text-ink opacity-90 transition-opacity duration-300 data-[moving=true]:opacity-100 motion-reduce:transition-none"
+      style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, filter: "drop-shadow(0 0 2px var(--sky-1)) drop-shadow(0 0 4px var(--sky-1))" }}
     >
       <svg viewBox="0 0 44 44" className="size-full" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M22 2v13M22 29v13M2 22h13M29 22h13" />

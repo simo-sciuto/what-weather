@@ -38,7 +38,7 @@ export function CenterReadout({ port }: { port: CameraPort | null }) {
   }, [port]);
 
   return (
-    <div className="pointer-events-none absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-10">
+    <div className="pointer-events-none absolute bottom-[max(3.5rem,calc(env(safe-area-inset-bottom)+3rem))] left-[max(1rem,env(safe-area-inset-left))] z-10">
       <p className="mb-1 border-t border-white/25 pt-1 text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">Centro della mappa</p>
       <span ref={line} data-atlas-readout aria-hidden="true" className="block text-caption tabular-nums text-ink" />
       <p ref={spoken} aria-live="polite" className="sr-only" />

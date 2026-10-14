@@ -242,6 +242,17 @@ test("the keyboard reaches the map first, then Mapbox's own links and the way ba
   expect(wordmark).toBe(true);
 });
 
+test("the centre's coordinates never sit over Mapbox's logo or attribution", async ({ page }) => {
+  await openAtlas(page);
+  const overlaps = await page.evaluate(() => {
+    const r = document.querySelector("[data-atlas-readout]")!.parentElement!.getBoundingClientRect();
+    return [".mapboxgl-ctrl-logo", ".mapboxgl-ctrl-attrib"].flatMap((q) =>
+      [...document.querySelectorAll(q)].map((el) => el.getBoundingClientRect()).filter((b) => b.width > 0 && !(b.right <= r.left || b.left >= r.right || b.bottom <= r.top || b.top >= r.bottom)),
+    ).length;
+  });
+  expect(overlaps).toBe(0);
+});
+
 test("the home page is not the Atlas, and the Atlas is not offered to search engines", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-atlas]")).toHaveCount(0);
