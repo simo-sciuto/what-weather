@@ -4,6 +4,7 @@
  * is served locally and every other address is refused by the driver.
  */
 import { createMapboxCameraPort } from "@/lib/atlas/mapbox-camera-port";
+import { cellOf } from "@/lib/atlas/cell";
 import { createSettleController } from "@/lib/atlas/settle-controller";
 import type { AtlasStatus, CameraEvent, CommitRequest } from "@/types/atlas";
 
@@ -11,6 +12,9 @@ type Mapbox = typeof import("mapbox-gl").default;
 
 /** What the driver reads and calls: everything is plain data, so it crosses into the page and back */
 export type AtlasHarness = ReturnType<typeof start>;
+
+/** Where the long flight goes, far from where the map starts (7.687, 45.07) */
+const FLIGHT = { lng: 9.5, lat: 45.6, zoom: 8 };
 
 function start(quietMs: number) {
   const gl = (window as unknown as { mapboxgl: Mapbox }).mapboxgl;
@@ -78,7 +82,9 @@ function start(quietMs: number) {
     reset,
     jumpTo: () => port.jumpTo({ lng: 7.8, lat: 45.1 }),
     /** A long flight, for the person to interrupt */
-    flyLong: () => port.flyTo({ lng: 9.5, lat: 45.6, zoom: 8 }, { durationMs: 1500 }),
+    flyLong: () => port.flyTo(FLIGHT, { durationMs: 1500 }),
+    flight: FLIGHT,
+    cellOf: (lng: number, lat: number) => cellOf(lng, lat),
     phase: () => controller.getStatus().phase,
     command: (name: "jumpTo" | "easeTo" | "flyTo" | "setPadding") => {
       const target = { lng: 8.2, lat: 45.3, zoom: 10 };

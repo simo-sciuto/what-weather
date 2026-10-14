@@ -550,3 +550,51 @@ describe("after shutting down", () => {
     expect(controller.getStatus().loaded).toBeNull();
   });
 });
+
+describe("a flight of the code that the person interrupts (regression, pre-M3)", () => {
+  const DESTINATION = at(9.5, 45.6);
+  const MID_AIR = at(8.226, 45.228);
+  const WHERE_IT_STOPS = at(8.018, 45.277);
+
+  it("asks for where the map comes to rest, not for the flight's destination nor for where the flight was cut", () => {
+    const { controller, requests, port } = rig();
+    // The code starts a flight; the person takes hold of the map in mid-air: the flight ends where it was cut, as the
+    // code's, then the person's movement begins and ends (the order Mapbox 3.31 gave in a real browser, M3 pre-check)
+    port.emit("movestart", "program");
+    expect(controller.getStatus().phase).toBe("resting");
+    port.emit("moveend", "program", MID_AIR);
+    expect(controller.getStatus().phase).toBe("resting");
+    port.emit("movestart", "user");
+    expect(controller.getStatus().phase).toBe("moving");
+    port.emit("moveend", "user", WHERE_IT_STOPS);
+    vi.advanceTimersByTime(QUIET_MS - 1);
+    expect(requests).toHaveLength(0);
+    vi.advanceTimersByTime(1);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].cell).toEqual(cellOf(WHERE_IT_STOPS.lng, WHERE_IT_STOPS.lat));
+    expect(requests[0].cell).not.toEqual(cellOf(MID_AIR.lng, MID_AIR.lat));
+    expect(requests[0].cell).not.toEqual(cellOf(DESTINATION.lng, DESTINATION.lat));
+    expect(controller.getStatus()).toMatchObject({ candidate: cellOf(WHERE_IT_STOPS.lng, WHERE_IT_STOPS.lat) });
+  });
+
+  it("asks for nothing when the person's hold is only the flight being cut, and they let go without moving the map", () => {
+    const { controller, requests, port } = rig();
+    port.emit("movestart", "program");
+    port.emit("moveend", "program", MID_AIR);
+    vi.advanceTimersByTime(60_000);
+    expect(requests).toHaveLength(0);
+    expect(controller.getStatus().candidate).toBeNull();
+  });
+
+  it("settles on where the person leaves the map even if the flight's end is heard after their movement began", () => {
+    const { controller, requests, port } = rig();
+    port.emit("movestart", "program");
+    port.emit("movestart", "user");
+    port.emit("moveend", "program", MID_AIR); // the cut of the flight, heard late: the code's, and no quiet is running
+    expect(controller.getStatus().phase).toBe("moving");
+    port.emit("moveend", "user", WHERE_IT_STOPS);
+    vi.advanceTimersByTime(QUIET_MS);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].cell).toEqual(cellOf(WHERE_IT_STOPS.lng, WHERE_IT_STOPS.lat));
+  });
+});

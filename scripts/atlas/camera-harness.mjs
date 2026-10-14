@@ -196,26 +196,53 @@ try {
     check("a command of the code during the quiet cancels it: nothing is asked for", s.commits.length === 0 && s.phase === "resting", `phase ${s.phase}`);
   }
 
-  // 8b. The person interrupts a flight of the code: its end is still the code's, what follows is the person's
-  await reset();
-  await page.evaluate(() => window.atlas.flyLong());
-  await page.waitForTimeout(400);
-  await page.mouse.move(400, 300);
-  await page.mouse.down();
-  for (let i = 1; i <= 5; i++) {
-    await page.mouse.move(400 + i * 12, 300 + i * 4);
-    await page.waitForTimeout(30);
-  }
-  await page.mouse.up();
-  await page.waitForTimeout(QUIET + 900);
-  {
+  // 8b. The person interrupts a flight of the code, by a drag and by a wheel. Not only "does it say PASS": the sequence
+  // of events with who made each, the camera at the cut, the camera at the end, and the point the controller asked for.
+  for (const how of ["drag", "wheel"]) {
+    await reset();
+    const startAt = await page.evaluate(() => window.atlas.center());
+    const flight = await page.evaluate(() => window.atlas.flight);
+    await page.evaluate(() => window.atlas.flyLong());
+    await page.waitForTimeout(400);
+    if (how === "drag") {
+      await page.mouse.move(400, 300);
+      await page.mouse.down();
+      for (let i = 1; i <= 5; i++) {
+        await page.mouse.move(400 + i * 12, 300 + i * 4);
+        await page.waitForTimeout(30);
+      }
+      await page.mouse.up();
+    } else {
+      await page.mouse.move(650, 300);
+      await page.mouse.wheel(0, -240);
+    }
+    await page.waitForTimeout(QUIET + 2500);
     const s = await snap();
-    const seq = s.events.filter((e) => e.type !== "move").map((e) => `${e.type}:${e.origin}`);
-    const cut = s.events.findIndex((e) => e.type === "moveend" && e.origin === "program");
-    const next = s.events.findIndex((e, i) => i > cut && e.type === "movestart" && e.origin === "user");
-    check("a flight the person interrupts: the flight ends as the code's, then the person's movement starts", cut >= 0 && next > cut, seq.join(" "));
-    const last = s.events.findLast((e) => e.type === "moveend");
-    check("and the settle asks once, after the person's quiet", s.commits.length === 1 && last.origin === "user" && s.commits[0].t >= last.t + QUIET - 30, `${s.commits.length} request(s)`);
+    const end = await page.evaluate(() => window.atlas.center());
+    const marks = s.events.filter((e) => e.type !== "move");
+    console.log(`      ${how}: ` + marks.map((e) => `${e.t}ms ${e.type}:${e.origin}@${e.camera.lng.toFixed(3)},${e.camera.lat.toFixed(3)}`).join("  |  "));
+    const cut = marks.findIndex((e) => e.type === "moveend" && e.origin === "program");
+    const firstUser = marks.findIndex((e) => e.origin === "user");
+    const lastEnd = marks.findLast((e) => e.type === "moveend");
+    const cutCam = marks[cut]?.camera;
+    const dist = (a, b) => Math.hypot(a.lng - b.lng, a.lat - b.lat);
+    check(`${how} over a flight: the flight starts as the code's, is cut short as the code's, the person's movement follows`,
+      marks[0]?.type === "movestart" && marks[0].origin === "program" && cut > 0 && firstUser > cut && marks.slice(firstUser).every((e) => e.origin === "user"),
+      marks.map((e) => `${e.type}:${e.origin}`).join(" "));
+    check(`${how} over a flight: it really was cut in the air (the camera at the cut is between the start and the target)`,
+      cutCam && dist(cutCam, startAt) > 0.01 && dist(cutCam, flight) > 0.2, cutCam ? `cut at ${cutCam.lng.toFixed(3)},${cutCam.lat.toFixed(3)}` : "no cut");
+    const asked = s.commits[0];
+    const expected = await page.evaluate(([lng, lat]) => window.atlas.cellOf(lng, lat), [end.lng, end.lat]);
+    const target = await page.evaluate(([lng, lat]) => window.atlas.cellOf(lng, lat), [flight.lng, flight.lat]);
+    const atCut = await page.evaluate(([lng, lat]) => window.atlas.cellOf(lng, lat), [cutCam.lng, cutCam.lat]);
+    const same = (a, b) => a && b && a.lat === b.lat && a.lon === b.lon;
+    check(`${how} over a flight: the person's last moveend is where the map rests`, lastEnd.origin === "user" && dist(lastEnd.camera, end) < 1e-6);
+    check(`${how} over a flight: one request, for the cell the map rests on`, s.commits.length === 1 && same(asked?.cell, expected), `asked ${JSON.stringify(asked?.cell)}, rests on ${JSON.stringify(expected)}`);
+    check(`${how} over a flight: not for the flight's target`, !same(asked?.cell, target), `target ${JSON.stringify(target)}`);
+    if (how === "drag") check("drag over a flight: nor for where the flight was cut", !same(asked?.cell, atCut), `cut cell ${JSON.stringify(atCut)}`);
+    check(`${how} over a flight: asked after the person's quiet, counted from their moveend`, asked && asked.t >= lastEnd.t + QUIET - 30, `moveend ${lastEnd.t}, request ${asked?.t}`);
+    check(`${how} over a flight: the candidate and the point on show are that cell, the phase is resting`,
+      same(s.status.candidate, expected) && same(s.status.loaded, expected) && s.phase === "resting", `${JSON.stringify(s.status)}`);
   }
 
   // 9. The frames of a movement reach only a listener that asks for them; nothing is heard after dispose
