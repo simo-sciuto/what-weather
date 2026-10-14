@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "board": "node scripts/board/server.mjs"
+    "board": "node scripts/board/server.mjs",
+    "atlas:camera-harness": "node scripts/atlas/camera-harness.mjs"
   },
   "dependencies": {
     "mapbox-gl": "^3.31.0",
