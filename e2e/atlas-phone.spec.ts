@@ -1,5 +1,5 @@
 import { expect, test, type CDPSession, type Page } from "@playwright/test";
-import { centre, crosshairAndMapCentres, isWeatherRequest, movementEnded, openAtlas, recordRequests, zoom } from "./atlas-helpers";
+import { centre, centreCell, crosshairAndMapCentres, movementEnded, openAtlas, pointRequests, recordRequests, strayRequests, zoom } from "./atlas-helpers";
 
 /*
  * M3 on an emulated phone (Pixel 7, touch events sent through the browser's own protocol). This is an emulation: a real
@@ -96,7 +96,7 @@ test("two fingers pinch to zoom and twist to rotate, and the browser's own page 
 
 test("a finger takes over from a movement made by the code: the movement of the hand is the person's", async ({ page }) => {
   await openAtlas(page);
-  await page.evaluate(() => window.__atlas!.port.flyTo({ lng: 9.5, lat: 45.6, zoom: 8 }, { durationMs: 1800 }));
+  await page.evaluate(() => window.__atlas!.port.flyTo({ lng: 9.5, lat: 45.6, zoom: 8 }, { durationMs: 6000 }));
   await page.waitForTimeout(450);
   await swipe(page, { x: 200, y: 500 }, { x: 150, y: 420 });
   await movementEnded(page);
@@ -106,13 +106,19 @@ test("a finger takes over from a movement made by the code: the movement of the 
   expect(Math.hypot(end.lng - 9.5, end.lat - 45.6)).toBeGreaterThan(0.3);
 });
 
-test("a touch movement asks for nothing: no weather, no request of any kind", async ({ page }) => {
+test("a touch movement asks for nothing while it lasts, and one request follows the stop", async ({ page }) => {
   await openAtlas(page);
   const seen = recordRequests(page);
   await swipe(page, { x: 200, y: 500 }, { x: 120, y: 300 });
   await twoFingers(page, { x: 200, y: 400 }, 40, 120);
-  await page.waitForTimeout(1500);
+  await movementEnded(page);
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
   seen.stop();
-  expect(seen.urls.filter(isWeatherRequest)).toEqual([]);
-  expect(seen.urls).toEqual([]);
+  // Two gestures a moment apart may be one stop or two (the least interval keeps them from being more), and the last
+  // request is for the cell the map rests on
+  const asked = pointRequests(seen.urls);
+  expect(asked.length).toBeGreaterThanOrEqual(1);
+  expect(asked.length).toBeLessThanOrEqual(2);
+  expect(asked.at(-1)).toEqual(await centreCell(page));
+  expect(strayRequests(seen.urls)).toEqual([]);
 });

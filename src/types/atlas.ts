@@ -76,3 +76,25 @@ export type CommitReason = "settle" | "select" | "retry";
 export type CommitRequest = { seq: number; cell: Cell; reason: CommitReason; signal: AbortSignal };
 
 export type CommitResult = { ok: true } | { ok: false; reason: FailureReason };
+
+/**
+ * A point's weather in the few numbers the Atlas shows, as `/api/atlas/point` answers (M4). The model's reading for the
+ * cell, never an observation: the cell is the point, with no name borrowed from a town nearby.
+ */
+export type AtlasPoint = {
+  cell: Cell;
+  /** IANA zone or fixed offset of the point */
+  timezone: string;
+  /** The provider the numbers come from ("openweather", "mock") */
+  provider: string;
+  /** The hour of the reading, Unix seconds */
+  time: number;
+  temp: number;
+  /** The sky in words ("Sereno") */
+  label: string;
+  condition: string;
+  night: boolean;
+};
+
+/** What asking for a point comes to */
+export type PointResult = { ok: true; point: AtlasPoint } | { ok: false; reason: FailureReason };

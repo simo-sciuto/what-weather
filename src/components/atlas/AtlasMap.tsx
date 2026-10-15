@@ -2,6 +2,7 @@
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import { ATLAS_PADDING, ATLAS_START } from "@/constants/atlas";
+import { parsePlaceRef } from "@/lib/place";
 import { createMapboxCameraPort, type MapboxCameraPort } from "@/lib/atlas/mapbox-camera-port";
 import { sunPosition } from "@/lib/weather/sun-position";
 import type { CameraEvent } from "@/types/atlas";
@@ -72,11 +73,14 @@ export function AtlasMap({ onPort }: { onPort: (port: MapboxCameraPort | null) =
       try {
         const gl = await loadMapbox();
         if (cancelled) return;
+        // An address that names a point opens the map on it, so the point on show is the one under the crosshair
+        const named = parsePlaceRef(Object.fromEntries(new URLSearchParams(window.location.search)));
+        const opening = named ? { lng: named.lon, lat: named.lat } : ATLAS_START;
         map = new gl.Map({
           container: el,
           accessToken: TOKEN || "pk.atlas-test-map-no-service",
           style: TOKEN ? STYLE : BLANK_STYLE,
-          center: [ATLAS_START.lng, ATLAS_START.lat],
+          center: [opening.lng, opening.lat],
           zoom: ATLAS_START.zoom,
           pitch: ATLAS_START.pitch,
           bearing: ATLAS_START.bearing,

@@ -9,6 +9,8 @@ import { ATLAS_PALETTE, paletteVars } from "./atlas-look";
 import { countRender } from "./atlas-test";
 import { CenterReadout } from "./CenterReadout";
 import { Crosshair } from "./Crosshair";
+import { PointReading } from "./PointReading";
+import { useAtlasEngine } from "./useAtlasEngine";
 
 /**
  * The Atlas's persistent shell, mounted by `app/atlas/layout.tsx`, so it outlives every navigation inside the route
@@ -21,6 +23,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
   countRender("shell");
   const [port, setPort] = useState<CameraPort | null>(null);
   const vars = useMemo(() => paletteVars(ATLAS_PALETTE), []);
+  const engine = useAtlasEngine(port);
 
   return (
     <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={vars}>
@@ -32,6 +35,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       >
         <Wordmark />
       </Link>
+      <PointReading engine={engine} />
       <CenterReadout port={port} />
       <main className="sr-only">{children}</main>
     </div>

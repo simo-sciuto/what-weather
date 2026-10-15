@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { centreOffset, centrePoint, formatCenter } from "./center";
+import { centreOffset, centrePoint, formatCell, formatCenter } from "./center";
 
 describe("where the map's centre is on the screen", () => {
   const size = { width: 800, height: 600 };
@@ -40,5 +40,13 @@ describe("the centre as it is read", () => {
     expect(formatCenter(200, 10)).toBe("10,0000° N · 160,0000° O");
     expect(formatCenter(-200, 10)).toBe("10,0000° N · 160,0000° E");
     expect(formatCenter(7.687 + 360, 45.07)).toBe("45,0700° N · 7,6870° E");
+  });
+});
+
+describe("a cell as the person reads it", () => {
+  it("says two decimals, the Italian way, with the hemisphere", () => {
+    expect(formatCell({ lat: 45.07, lon: 7.69 })).toBe("45,07° N · 7,69° E");
+    expect(formatCell({ lat: -33.9, lon: -70.5 })).toBe("33,90° S · 70,50° O");
+    expect(formatCell({ lat: 0, lon: 0 })).toBe("0,00° N · 0,00° E");
   });
 });

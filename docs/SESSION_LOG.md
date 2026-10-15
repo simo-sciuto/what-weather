@@ -2,6 +2,13 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-15 (Atlas M4)
+- Worked on: M4 after the user's go-ahead (option 2 for the colour, R2 and the quota guard): the point route, the engine, the reading, the address, the e2e (rewritten and new). A real run with the user's local Mapbox token and Open-Meteo.
+- Found: the first batched write was refused by the permission classifier (no reason given); done file by file. The e2e "hand takes over" test (WTH-266) fails only inside the whole suite. The page's re-render after a point is three passes of the shell per stop, none per frame.
+- Not verified: the look of the reading (minimal, not designed), Safari, a real phone, the live provider's cost per fresh cell (S5).
+- Review of M4 applied (held request across a movement, the route's cache key, the address opens the map, focus and live region, sample data marked). The two takeover e2e flaked in full suites: the flight was too short, now 6 s.
+- Next: the user's review; M5 (colour) not started.
+
 ## 2026-10-15 (Atlas M3 validation gate)
 - Worked on: the gate on the user's Mac: full unit, lint, typecheck, e2e (36), the public-build check of `persistence-check`, a real-token smoke test (no screenshots), the board id check. Details in `docs/ATLAS_M3_REVIEW.md`.
 - Found: the branch had been pushed to origin by a stop hook, not authorized, and Vercel built a protected preview of `50b2903`; board ids 234 to 236 (and 225 to 233, ADR-018) collide with `main`: mine renumbered to 262 to 264, the rest is WTH-265.

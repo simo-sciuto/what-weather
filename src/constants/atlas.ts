@@ -24,3 +24,13 @@ export const ATLAS_LIGHT = 0.5;
 
 /** Padding around the map's viewport; none in M3, so the map's centre is the centre of the screen */
 export const ATLAS_PADDING: Required<CameraPadding> = { top: 0, right: 0, bottom: 0, left: 0 };
+
+/**
+ * The least time between two requests for a point, whatever the map does: a person who stops every second is still
+ * asked for once in two (the trailing one wins). PROVISIONAL: the real cost of a fresh cell on the live provider was
+ * never measured (the spike S5 and the quota, WTH-212), so this is a guard and not a budget.
+ */
+export const POINT_MIN_INTERVAL_MS = 2000;
+
+/** How long a point's weather may take before the Atlas calls it failed and offers "Riprova" */
+export const POINT_TIMEOUT_MS = 10_000;

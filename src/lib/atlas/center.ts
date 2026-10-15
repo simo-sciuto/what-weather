@@ -26,3 +26,9 @@ export function formatCenter(lng: number, lat: number): string {
   const part = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4).replace(".", ",")}° ${v >= 0 ? pos : neg}`;
   return `${part(lat, "N", "S")} · ${part(wrapped, "E", "O")}`;
 }
+
+/** A cell as its two decimals say it ("45,07° N · 7,69° E"): the point whose weather is on show is a kilometre wide, not ten metres */
+export function formatCell(cell: { lat: number; lon: number }): string {
+  const part = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(2).replace(".", ",")}° ${v >= 0 ? pos : neg}`;
+  return `${part(cell.lat, "N", "S")} · ${part(cell.lon, "E", "O")}`;
+}

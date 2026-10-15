@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { centrePoint } from "../src/lib/atlas/center";
-import { centre, crosshairAndMapCentres, isWeatherRequest, movementEnded, openAtlas, recordRequests, zoom } from "./atlas-helpers";
+import { centre, centreCell, crosshairAndMapCentres, movementEnded, openAtlas, pointRequests, recordRequests, strayRequests, zoom } from "./atlas-helpers";
 
 /*
- * M3: /atlas, a free map. These tests check its structure and its behaviour (the map is made once and stays, the
- * gestures move it, the crosshair stays, nothing renders for a frame, nothing asks for weather), with the map drawn over
- * an empty style. They do not judge the look: that is the user's, with the real Mapbox, in a browser.
+ * M3 and M4: /atlas, a free map and the weather of the point it rests on. These tests check its structure and its
+ * behaviour (the map is made once and stays, the gestures move it, the crosshair stays, nothing renders for a frame,
+ * nothing is asked for while the map moves and one request follows a stop), with the map drawn over an empty style and
+ * the sample weather behind the point route. They do not judge the look: that is the user's, with the real Mapbox, in a browser.
  */
 
 test("opens on a free map: the crosshair, the centre's coordinates, Mapbox's attribution and the way back", async ({ page }) => {
@@ -36,7 +37,8 @@ test("the map is made once, and the content of the route changes round it", asyn
     document.querySelector("canvas.mapboxgl-canvas")!.setAttribute("data-first", "yes");
   });
   const query = page.locator("[data-atlas-route-query]");
-  await expect(query).toHaveAttribute("data-atlas-route-query", "");
+  // The first point has arrived and the address says so (M4); the map was not made again for it
+  await expect(query).toHaveAttribute("data-atlas-route-query", "lat=45.07&lon=7.69");
 
   for (const [go, expected] of [
     ["replace('/atlas?x=1')", "x=1"],
@@ -134,7 +136,7 @@ test("the wheel zooms, the keyboard moves, and a drag with Control rotates and t
 test("a person's hand takes over from a movement made by the code: the flight ends as the code's, the hand's movement is the person's", async ({ page }) => {
   await openAtlas(page);
   const target = { lng: 9.5, lat: 45.6 };
-  await page.evaluate((t) => window.__atlas!.port.flyTo({ ...t, zoom: 8 }, { durationMs: 1800 }), target);
+  await page.evaluate((t) => window.__atlas!.port.flyTo({ ...t, zoom: 8 }, { durationMs: 6000 }), target);
   await page.waitForTimeout(450);
   await page.mouse.move(500, 400);
   await page.mouse.down();
@@ -157,27 +159,33 @@ test("a person's hand takes over from a movement made by the code: the flight en
 
 test("nothing renders for a frame of a movement, and the only text that follows the map is the readout", async ({ page }) => {
   await openAtlas(page);
-  const first = await page.evaluate(() => ({ ...window.renders }));
-  expect(first.shell).toBeGreaterThan(0);
-
   await page.mouse.move(500, 400);
   await page.mouse.down();
+  await page.mouse.move(506, 402);
+  // The movement has begun: the status changed once (moving), and from here to the release nothing may render
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "moving");
+  const during = await page.evaluate(() => ({ ...window.renders }));
+  expect(during.shell).toBeGreaterThan(0);
   const seen = new Set<string>();
-  for (let i = 1; i <= 30; i++) {
+  for (let i = 2; i <= 30; i++) {
     await page.mouse.move(500 + i * 6, 400 + i * 2);
     seen.add((await page.locator("[data-atlas-readout]").textContent()) ?? "");
   }
+  expect(seen.size).toBeGreaterThan(10);
+  // The counts are the same as at the first frame: not one render of the shell, the map, the crosshair, the readout or the point
+  expect(await page.evaluate(() => ({ ...window.renders }))).toEqual(during);
   await page.mouse.up();
   await page.mouse.wheel(0, -400);
-  await expect.poll(() => page.evaluate(() => window.__atlas!.events.at(-1)?.type)).toBe("moveend");
-  await page.waitForTimeout(800);
-
-  expect(seen.size).toBeGreaterThan(10);
-  // The counts are the same as before the movement: not one render of the shell, the map, the crosshair or the readout
-  expect(await page.evaluate(() => ({ ...window.renders }))).toEqual(first);
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
+  // A whole gesture and the point it ended on: the address changes once when the point arrives, and the shell and what
+  // it holds render a few times for it (the transition's two passes, the route's new content: three were counted), not once per frame; the point's own renders are the few
+  // changes of status (moving, settling, loading, resting)
+  const after = await page.evaluate(() => ({ ...window.renders }));
+  for (const name of ["shell", "map", "crosshair", "readout"]) expect((after[name] ?? 0) - (during[name] ?? 0)).toBeLessThanOrEqual(4);
+  expect((after.point ?? 0) - (during.point ?? 0)).toBeLessThan(12);
 });
 
-test("nothing the map does asks for weather, and a movement asks for nothing at all", async ({ page }) => {
+test("a movement asks for nothing, even held still; one request follows the stop, for the cell the map rests on", async ({ page }) => {
   await openAtlas(page);
   const seen = recordRequests(page);
   await page.mouse.move(500, 400);
@@ -186,14 +194,85 @@ test("nothing the map does asks for weather, and a movement asks for nothing at 
     await page.mouse.move(500 + i * 15, 400 + i * 4);
     await page.waitForTimeout(20);
   }
-  await page.mouse.up();
-  await page.mouse.wheel(0, -300);
-  await page.keyboard.press("ArrowLeft");
-  await page.evaluate(() => window.__atlas!.port.flyTo({ lng: 8.5, lat: 45.3 }, { durationMs: 400 }));
-  await page.waitForTimeout(2500);
-  seen.stop();
-  expect(seen.urls.filter(isWeatherRequest)).toEqual([]);
+  // Held still with the button down for longer than the quiet: still moving, still nothing asked for
+  await page.waitForTimeout(1500);
   expect(seen.urls).toEqual([]);
+  await page.mouse.up();
+  await movementEnded(page);
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
+  seen.stop();
+  expect(pointRequests(seen.urls)).toEqual([await centreCell(page)]);
+  expect(strayRequests(seen.urls)).toEqual([]);
+});
+
+test("the first point is the one the map opens on, with what it is, and the address follows it", async ({ page }) => {
+  await openAtlas(page);
+  const reading = page.locator("[data-atlas-point-reading]");
+  await expect(reading).toContainText(/^-?\d+°/);
+  await expect(page.locator("[data-atlas-point]")).toContainText("Dati di esempio");
+  await expect(page.locator("[data-atlas-point]")).toContainText("45,07° N · 7,69° E");
+  await expect(page.locator("[data-atlas-point]")).toContainText("ora locale");
+  await expect(page).toHaveURL(/\/atlas\?lat=45\.07&lon=7\.69/);
+  await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-map-creations", "1");
+});
+
+test("an address that names a point opens the map and the weather on that point, and carries the sample weather's parameters on", async ({ page }) => {
+  const asked: string[] = [];
+  page.on("request", (r) => asked.push(r.url()));
+  await page.goto("/atlas?lat=44.41&lon=8.93&mock=rain&at=09:00");
+  await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("[data-atlas-point]")).toContainText("44,41° N · 8,93° E");
+  // and the map is there too: the point on show is the one under the crosshair, not the Atlas's own start
+  expect(await centreCell(page)).toEqual({ lat: 44.41, lon: 8.93 });
+  await expect(page.locator("[data-atlas-readout]")).toContainText("44,4");
+  const first = asked.find((u) => new URL(u).pathname === "/api/atlas/point")!;
+  expect(Object.fromEntries(new URL(first).searchParams)).toMatchObject({ lat: "44.41", lon: "8.93", mock: "rain", at: "09:00" });
+});
+
+test("two stops a second apart are asked for no closer than the least interval, and the last one is the one asked for", async ({ page }) => {
+  await openAtlas(page);
+  const times: { t: number; lat: number; lon: number }[] = [];
+  page.on("request", (r) => {
+    const u = new URL(r.url());
+    if (u.pathname === "/api/atlas/point") times.push({ t: Date.now(), lat: Number(u.searchParams.get("lat")), lon: Number(u.searchParams.get("lon")) });
+  });
+  await page.mouse.move(500, 400);
+  await page.mouse.down();
+  await page.mouse.move(540, 420);
+  await page.mouse.up();
+  // the first stop is asked for once its quiet is over (a second drag inside the quiet would cancel it)
+  await expect.poll(() => times.length, { timeout: 15_000 }).toBe(1);
+  // and a second stop follows within the interval
+  await page.mouse.move(500, 400);
+  await page.mouse.down();
+  await page.mouse.move(430, 380);
+  await page.mouse.up();
+  await expect.poll(() => times.length, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
+  expect(times[1].t - times[0].t).toBeGreaterThanOrEqual(1900);
+  expect({ lat: times.at(-1)!.lat, lon: times.at(-1)!.lon }).toEqual(await centreCell(page));
+});
+
+test("a point that does not arrive leaves the previous one on show, says so, and Riprova asks for it again", async ({ page }) => {
+  await openAtlas(page);
+  const before = await page.locator("[data-atlas-point-reading]").textContent();
+  await page.route("**/api/atlas/point*", (route) => route.fulfill({ status: 502, contentType: "application/json", body: '{"error":"x"}' }));
+  await page.mouse.move(500, 400);
+  await page.mouse.down();
+  await page.mouse.move(380, 330, { steps: 8 });
+  await page.mouse.up();
+  const box = page.locator("[data-atlas-point]");
+  await expect(box).toHaveAttribute("data-phase", "failed", { timeout: 15_000 });
+  await expect(box).toContainText("Non aggiornato");
+  await expect(box).toContainText("Il meteo di questo punto non è arrivato.");
+  // the previous point is still the one on show
+  await expect(page.locator("[data-atlas-point-reading]")).toHaveText(before!);
+  await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-map-creations", "1");
+  await page.unroute("**/api/atlas/point*");
+  await page.getByRole("button", { name: "Riprova" }).click();
+  await expect(box).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
+  await expect(box).not.toContainText("Non aggiornato");
+  await expect(page).toHaveURL(new RegExp(`lat=${(await centreCell(page)).lat}`));
 });
 
 test("the point the crosshair marks is the map's centre, with and without padding", async ({ page }) => {

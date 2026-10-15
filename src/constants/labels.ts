@@ -59,4 +59,5 @@ export const LEVEL_LABELS = ["Basso", "Moderato", "Alto", "Molto alto"] as const
 /** The error our routes answer in Italian. */
 export const API_ERRORS = {
   missingCoordinates: "Coordinate mancanti",
+  weatherUnavailable: "Meteo non disponibile",
 } as const;

@@ -43,7 +43,30 @@ export async function openAtlas(page: Page): Promise<void> {
   test.skip(!webgl, "this browser has no WebGL, so Mapbox GL cannot draw");
   await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
   await page.waitForFunction(() => !!window.__atlas);
+  // The first point (M4) arrives on opening: wait for it, so every test starts with the map still and nothing in flight
+  await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting");
 }
+
+/** The requests to the Atlas's own point route among `urls`, as the cells they ask for */
+export const pointRequests = (urls: string[]) =>
+  urls
+    .filter((u) => new URL(u).pathname === "/api/atlas/point")
+    .map((u) => {
+      const q = new URL(u).searchParams;
+      return { lat: Number(q.get("lat")), lon: Number(q.get("lon")) };
+    });
+
+/** What is neither a point request nor the router's own refresh of the address (`?_rsc=`, after a point has arrived) */
+export const strayRequests = (urls: string[]) => urls.filter((u) => new URL(u).pathname !== "/api/atlas/point" && !/[?&]_rsc=/.test(u) && new URL(u).pathname !== "/icon.png");
+
+/** The cell the map's centre falls in, as the Atlas rounds it */
+export const centreCell = (page: Page) =>
+  page.evaluate(() => {
+    const c = window.__atlas!.map.getCenter();
+    const r = (v: number) => Math.round(v * 100) / 100;
+    return { lat: r(c.lat), lon: r(c.lng) };
+  });
 
 export const centre = (page: Page) => page.evaluate(() => window.__atlas!.map.getCenter());
 export const zoom = (page: Page) => page.evaluate(() => window.__atlas!.map.getZoom());
@@ -77,5 +100,3 @@ export function recordRequests(page: Page) {
     stop: () => page.off("request", on),
   };
 }
-
-export const isWeatherRequest = (url: string) => /\/api\/|[?&]lat=|_rsc=|\/weather/.test(url);
