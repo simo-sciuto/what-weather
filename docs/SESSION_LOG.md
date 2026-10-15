@@ -2,6 +2,12 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-15 (Atlas M5)
+- Worked on: M5 after the user's "prosegui": the point's sky from the home page's engine through the route, the zoom weight, `SkyDriver`, the map's inks, e2e for the sky (a night is not a morning, the sky holds while the map moves and the zoom sets it after the stop), a real run at Tokyo and Torino.
+- Found: the shell now renders five times per stop (router transition, new sky): the mark and the readout are memoised and the render test is tighter for them. A mutation check made the sky test fail when the zoom is read per frame.
+- Not verified: the look on a phone and on a computer (the user's), Safari, the dissolve of the markers and the map (WTH-270), the weights (WTH-271).
+- Next: the user's review; M6 (the instant across places) not started.
+
 ## 2026-10-15 (Atlas M4)
 - Worked on: M4 after the user's go-ahead (option 2 for the colour, R2 and the quota guard): the point route, the engine, the reading, the address, the e2e (rewritten and new). A real run with the user's local Mapbox token and Open-Meteo.
 - Found: the first batched write was refused by the permission classifier (no reason given); done file by file. The e2e "hand takes over" test (WTH-266) fails only inside the whole suite. The page's re-render after a point is three passes of the shell per stop, none per frame.

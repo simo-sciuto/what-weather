@@ -3,6 +3,8 @@
  * is on show are three different things, kept apart.
  */
 
+import type { SkyPalette } from "@/types/palette";
+
 /** Where the map looks and how: the geographic camera. Never the weather point. */
 export type Camera = { lng: number; lat: number; zoom: number; pitch: number; bearing: number };
 
@@ -83,6 +85,8 @@ export type CommitResult = { ok: true } | { ok: false; reason: FailureReason };
  */
 export type AtlasPoint = {
   cell: Cell;
+  /** The sky of the point's own weather, from the atmosphere engine, for the hour of the reading (M5) */
+  sky: PointSky;
   /** IANA zone or fixed offset of the point */
   timezone: string;
   /** The provider the numbers come from ("openweather", "mock") */
@@ -95,6 +99,9 @@ export type AtlasPoint = {
   condition: string;
   night: boolean;
 };
+
+/** What the page's sky is made of: the stops and the markers' colours, and the air the map is drawn in (`SkyPalette` without the map's inks, which the viewer's tuning redraws) */
+export type PointSky = Pick<SkyPalette, "sky1" | "sky2" | "sky3" | "glass" | "glow" | "sun" | "cloud" | "air">;
 
 /** What asking for a point comes to */
 export type PointResult = { ok: true; point: AtlasPoint } | { ok: false; reason: FailureReason };

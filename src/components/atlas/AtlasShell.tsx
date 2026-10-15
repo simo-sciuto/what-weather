@@ -1,15 +1,16 @@
 "use client";
 
-import type { CameraPort } from "@/types/atlas";
+import type { CameraPort, PointSky } from "@/types/atlas";
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { Wordmark } from "../Wordmark";
 import { AtlasMap } from "./AtlasMap";
-import { ATLAS_PALETTE, paletteVars } from "./atlas-look";
+import { ATLAS_SKY, paletteVars } from "./atlas-look";
 import { countRender } from "./atlas-test";
 import { CenterReadout } from "./CenterReadout";
 import { Crosshair } from "./Crosshair";
 import { PointReading } from "./PointReading";
+import { SkyDriver } from "./SkyDriver";
 import { useAtlasEngine } from "./useAtlasEngine";
 
 /**
@@ -22,12 +23,14 @@ import { useAtlasEngine } from "./useAtlasEngine";
 export function AtlasShell({ children }: { children: ReactNode }) {
   countRender("shell");
   const [port, setPort] = useState<CameraPort | null>(null);
-  const vars = useMemo(() => paletteVars(ATLAS_PALETTE), []);
+  const [sky, setSky] = useState<PointSky>(ATLAS_SKY);
+  const vars = useMemo(() => paletteVars(sky), [sky]);
   const engine = useAtlasEngine(port);
 
   return (
     <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={vars}>
-      <AtlasMap onPort={setPort} />
+      <AtlasMap onPort={setPort} sky={sky} />
+      <SkyDriver port={port} engine={engine} onSky={setSky} />
       <Crosshair port={port} />
       <Link
         href="/"

@@ -12,6 +12,18 @@ type Options = {
 
 const isNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
+const SKY_COLOURS = ["sky1", "sky2", "sky3", "glass", "glow", "sun", "cloud"] as const;
+const AIR_FIELDS = ["depth", "waterWeight", "roadWeight", "buildingWeight", "terrainWeight", "saturation", "landLift", "waterDeepen"] as const;
+
+function isSky(v: unknown): boolean {
+  if (!v || typeof v !== "object") return false;
+  const sky = v as Record<string, unknown>;
+  const air = sky.air as Record<string, unknown> | undefined;
+  // The three stops feed the map's inks, which read a hex colour: anything else is a failed request, not a broken map
+  const stops = ["sky1", "sky2", "sky3"].every((k) => typeof sky[k] === "string" && /^#[0-9a-f]{6}$/i.test(sky[k] as string));
+  return stops && SKY_COLOURS.every((k) => typeof sky[k] === "string") && !!air && AIR_FIELDS.every((k) => isNumber(air[k]));
+}
+
 /** The answer is checked, not trusted: a wrong shape is a failed request, never a half-drawn point */
 export function isAtlasPoint(v: unknown): v is AtlasPoint {
   if (!v || typeof v !== "object") return false;
@@ -19,6 +31,7 @@ export function isAtlasPoint(v: unknown): v is AtlasPoint {
   const cell = p.cell as Record<string, unknown> | undefined;
   return (
     !!cell &&
+    isSky(p.sky) &&
     isNumber(cell.lat) &&
     isNumber(cell.lon) &&
     typeof p.timezone === "string" &&

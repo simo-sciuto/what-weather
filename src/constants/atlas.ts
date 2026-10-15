@@ -32,5 +32,14 @@ export const ATLAS_PADDING: Required<CameraPadding> = { top: 0, right: 0, bottom
  */
 export const POINT_MIN_INTERVAL_MS = 2000;
 
+/**
+ * How local the sky's colour is, by zoom (M5, WTH-267): from far, the point's weather is only a tint over the neutral
+ * Atlas sky (it says nothing of the region round it); from close, the sky is the point's own. Between the two zooms the
+ * weight rises smoothly. PROVISIONAL: the zooms and the far weight are a first guess for the user's eyes to judge.
+ */
+export const SKY_ZOOM_REGIONAL = 5;
+export const SKY_ZOOM_LOCAL = 10;
+export const SKY_FAR_WEIGHT = 0.3;
+
 /** How long a point's weather may take before the Atlas calls it failed and offers "Riprova" */
 export const POINT_TIMEOUT_MS = 10_000;

@@ -178,10 +178,12 @@ test("nothing renders for a frame of a movement, and the only text that follows 
   await page.mouse.wheel(0, -400);
   await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
   // A whole gesture and the point it ended on: the address changes once when the point arrives, and the shell and what
-  // it holds render a few times for it (the transition's two passes, the route's new content: three were counted), not once per frame; the point's own renders are the few
+  // it holds render a few times for it (the transition's passes, the route's new content, the sky: five were counted), not once per frame; the point's own renders are the few
   // changes of status (moving, settling, loading, resting)
   const after = await page.evaluate(() => ({ ...window.renders }));
-  for (const name of ["shell", "map", "crosshair", "readout"]) expect((after[name] ?? 0) - (during[name] ?? 0)).toBeLessThanOrEqual(4);
+  // the mark and the coordinates have nothing to redraw for it at all; the shell and the map, a handful
+  for (const name of ["crosshair", "readout"]) expect(after[name] ?? 0).toBe(during[name] ?? 0);
+  for (const name of ["shell", "map"]) expect((after[name] ?? 0) - (during[name] ?? 0)).toBeLessThanOrEqual(8);
   expect((after.point ?? 0) - (during.point ?? 0)).toBeLessThan(12);
 });
 
@@ -256,13 +258,19 @@ test("two stops a second apart are asked for no closer than the least interval, 
 test("a point that does not arrive leaves the previous one on show, says so, and Riprova asks for it again", async ({ page }) => {
   await openAtlas(page);
   const before = await page.locator("[data-atlas-point-reading]").textContent();
+  await page.waitForTimeout(1200);
+  const skyBefore = await skyVar(page);
   await page.route("**/api/atlas/point*", (route) => route.fulfill({ status: 502, contentType: "application/json", body: '{"error":"x"}' }));
   await page.mouse.move(500, 400);
   await page.mouse.down();
   await page.mouse.move(380, 330, { steps: 8 });
   await page.mouse.up();
+  // a zoom that would re-tint the sky, on a stop whose point does not arrive
+  await page.mouse.wheel(0, -600);
   const box = page.locator("[data-atlas-point]");
   await expect(box).toHaveAttribute("data-phase", "failed", { timeout: 15_000 });
+  await page.waitForTimeout(1200);
+  expect(await skyVar(page)).toBe(skyBefore);
   await expect(box).toContainText("Non aggiornato");
   await expect(box).toContainText("Il meteo di questo punto non è arrivato.");
   // the previous point is still the one on show
@@ -330,6 +338,56 @@ test("the centre's coordinates never sit over Mapbox's logo or attribution", asy
     ).length;
   });
   expect(overlaps).toBe(0);
+});
+
+const skyVar = (page: import("@playwright/test").Page, name = "--sky-1") =>
+  page.locator("[data-atlas]").evaluate((el, n) => (el as HTMLElement).style.getPropertyValue(n), name);
+
+test("the sky follows the weather of the point on show: a night is not a morning, and it is not the neutral sky", async ({ page }) => {
+  await openAtlas(page);
+  const neutral = await skyVar(page);
+  const day = await (async () => {
+    await page.goto("/atlas?mock=clear&at=12:00");
+    await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
+    await expect.poll(() => skyVar(page), { timeout: 10_000 }).not.toBe(neutral);
+    return skyVar(page);
+  })();
+  await page.goto("/atlas?mock=clear&at=02:00");
+  await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => skyVar(page), { timeout: 10_000 }).not.toBe(neutral);
+  const night = await skyVar(page);
+  expect(night).not.toBe(day);
+});
+
+test("the sky stays the previous one while the map moves, and the zoom sets how local it is once the map stops", async ({ page }) => {
+  await page.goto("/atlas?mock=heavy-rain&at=02:00");
+  await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
+  await page.waitForFunction(() => !!window.__atlas);
+  // the sky has settled on the point's (the page's own dissolve is a second long)
+  await page.waitForTimeout(1200);
+  const far = await skyVar(page);
+
+  // While the map moves (the button held down, zooming with the wheel) the sky is the one it was
+  await page.mouse.move(500, 400);
+  await page.mouse.down();
+  await page.mouse.move(520, 410);
+  await page.mouse.wheel(0, -900);
+  await page.waitForTimeout(700);
+  expect(await skyVar(page)).toBe(far);
+  await page.mouse.up();
+
+  // and once it has stopped, closer, the sky is more the point's own
+  await expect.poll(() => skyVar(page), { timeout: 15_000 }).not.toBe(far);
+  const zoomed = await zoom(page);
+  expect(zoomed).toBeGreaterThan(8.5);
+  const close = await skyVar(page);
+
+  // farther again: back towards the neutral sky, the same sky as at the same zoom before
+  await page.mouse.wheel(0, 1800);
+  await expect.poll(() => zoom(page), { timeout: 15_000 }).toBeLessThan(zoomed - 0.5);
+  await movementEnded(page);
+  await expect.poll(() => skyVar(page), { timeout: 15_000 }).not.toBe(close);
 });
 
 test("the home page is not the Atlas, and the Atlas is not offered to search engines", async ({ page }) => {

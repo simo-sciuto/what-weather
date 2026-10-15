@@ -4,12 +4,13 @@ import { cellOf } from "@/lib/atlas/cell";
 import { parsePlaceRef } from "@/lib/place";
 import { weatherFor } from "@/lib/weather-page";
 import { conditionLabel } from "@/lib/weather/formatters";
+import { frameLook } from "@/lib/weather/look";
 import type { AtlasPoint } from "@/types/atlas";
 import type { NextRequest } from "next/server";
 
 /**
- * The Atlas's check of a point (M4, ADR-022): the weather of the cell the map rested on, in the few numbers the Atlas
- * shows. It reads through `weatherFor`, the same cache entry as the home page and the saved places, so a cell someone
+ * The Atlas's check of a point (M4, ADR-022): the weather of the cell the map rested on, in the few numbers (and the sky
+ * of its own weather) the Atlas shows. It reads through `weatherFor`, the same cache entry as the home page and the saved places, so a cell someone
  * has looked at costs nothing. It answers with the reading itself: the Atlas page does not fetch the weather again
  * (R2: on a serverless host a second fetch may not find this one's cache). A name in the query is ignored: a free
  * point is its coordinates. `mock` and `at` pick the sample weather and its hour, as on the home page.
@@ -29,8 +30,10 @@ export async function GET(request: NextRequest) {
       sample ? (params.get("mock") ?? undefined) : undefined,
       sample ? (params.get("at") ?? undefined) : undefined,
     );
+    const { palette: p } = frameLook(timeline.frames[0]);
     const point: AtlasPoint = {
       cell,
+      sky: { sky1: p.sky1, sky2: p.sky2, sky3: p.sky3, glass: p.glass, glow: p.glow, sun: p.sun, cloud: p.cloud, air: p.air },
       timezone: data.timezone,
       provider,
       time: data.current.time,

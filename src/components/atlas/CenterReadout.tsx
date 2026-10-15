@@ -2,7 +2,7 @@
 
 import { formatCenter } from "@/lib/atlas/center";
 import type { CameraPort } from "@/types/atlas";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { countRender } from "./atlas-test";
 
 /**
@@ -10,7 +10,7 @@ import { countRender } from "./atlas-test";
  * movement are heard by the port, and the text is set directly, so nothing renders for a frame). A second line, for the
  * screen reader, says the centre once, when a movement ends: it is not read out while the map moves.
  */
-export function CenterReadout({ port }: { port: CameraPort | null }) {
+function CenterReadoutInner({ port }: { port: CameraPort | null }) {
   countRender("readout");
   const line = useRef<HTMLSpanElement>(null);
   const spoken = useRef<HTMLParagraphElement>(null);
@@ -45,3 +45,6 @@ export function CenterReadout({ port }: { port: CameraPort | null }) {
     </div>
   );
 }
+
+/** Memoised: the shell renders for a new sky or a new address, and the mark has nothing to redraw for that */
+export const CenterReadout = memo(CenterReadoutInner);

@@ -4,6 +4,7 @@ import type { AtlasPoint, Camera, Cell, PointResult } from "@/types/atlas";
 import { cellOf } from "./cell";
 import { createAtlasEngine } from "./engine";
 import { createFakeCameraPort } from "./fake-camera-port";
+import { FIXTURE_SKY } from "./sky.fixture";
 
 /*
  * ADR-022, M4: the controller and the pipeline over a fake port and a fake server. Fake timers, so the quiet and the
@@ -18,7 +19,7 @@ const TORINO = at(7.687, 45.07);
 const GENOVA = at(8.93, 44.41);
 const MILANO = at(9.19, 45.46);
 
-const pointOf = (cell: Cell, temp = 17): AtlasPoint => ({ cell, timezone: "Europe/Rome", provider: "mock", time: 1_760_000_000, temp, label: "Sereno", condition: "clear", night: false });
+const pointOf = (cell: Cell, temp = 17): AtlasPoint => ({ cell, sky: FIXTURE_SKY, timezone: "Europe/Rome", provider: "mock", time: 1_760_000_000, temp, label: "Sereno", condition: "clear", night: false });
 
 type Asked = { cell: Cell; signal: AbortSignal; answer: (result: PointResult) => void };
 

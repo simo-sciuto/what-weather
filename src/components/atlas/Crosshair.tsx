@@ -3,7 +3,7 @@
 import { ATLAS_PADDING } from "@/constants/atlas";
 import { centreOffset } from "@/lib/atlas/center";
 import type { CameraPort } from "@/types/atlas";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { countRender } from "./atlas-test";
 
 /**
@@ -12,7 +12,7 @@ import { countRender } from "./atlas-test";
  * moves, by an attribute set on the element as the movement starts and ends, not by rendering: it never renders for a
  * frame of a movement.
  */
-export function Crosshair({ port, padding = ATLAS_PADDING }: { port: CameraPort | null; padding?: typeof ATLAS_PADDING }) {
+function CrosshairInner({ port, padding = ATLAS_PADDING }: { port: CameraPort | null; padding?: typeof ATLAS_PADDING }) {
   countRender("crosshair");
   const mark = useRef<HTMLDivElement>(null);
   const { x, y } = centreOffset(padding);
@@ -42,3 +42,6 @@ export function Crosshair({ port, padding = ATLAS_PADDING }: { port: CameraPort 
     </div>
   );
 }
+
+/** Memoised: the shell renders for a new sky or a new address, and the mark has nothing to redraw for that */
+export const Crosshair = memo(CrosshairInner);

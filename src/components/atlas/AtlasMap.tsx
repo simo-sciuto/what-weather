@@ -5,7 +5,7 @@ import { ATLAS_PADDING, ATLAS_START } from "@/constants/atlas";
 import { parsePlaceRef } from "@/lib/place";
 import { createMapboxCameraPort, type MapboxCameraPort } from "@/lib/atlas/mapbox-camera-port";
 import { sunPosition } from "@/lib/weather/sun-position";
-import type { CameraEvent } from "@/types/atlas";
+import type { CameraEvent, PointSky } from "@/types/atlas";
 import type { Mapbox } from "@/types/map";
 import type { Map as MapboxMap, StyleSpecification } from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
@@ -50,13 +50,13 @@ type Probe = { map?: MapboxMap; port?: MapboxCameraPort; events?: CameraEvent[] 
  * for any weather. The drawing is the home page's own (`STYLE`, `syncMap`, the viewer's layers and tuning), over the sky
  * of the shell; Mapbox's attribution and logo stay where its control puts them.
  */
-export function AtlasMap({ onPort }: { onPort: (port: MapboxCameraPort | null) => void }) {
+export function AtlasMap({ onPort, sky }: { onPort: (port: MapboxCameraPort | null) => void; sky: PointSky }) {
   countRender("map");
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const portRef = useRef(onPort);
   const [state, setState] = useState<"loading" | "ready" | "none" | "failed">(TOKEN || ATLAS_TEST_MAP ? "loading" : "none");
-  const { inks, options } = useAtlasMapLook();
+  const { inks, options } = useAtlasMapLook(sky);
 
   useEffect(() => {
     portRef.current = onPort;

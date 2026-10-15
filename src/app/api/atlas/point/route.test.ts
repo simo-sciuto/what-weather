@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { FIXTURE_SKY } from "@/lib/atlas/sky.fixture";
 
 /*
  * ADR-022, M4: the point route with the shared weather cache stood in for. It checks what the route decides itself: which
@@ -8,6 +9,8 @@ import { NextRequest } from "next/server";
 
 const weatherFor = vi.fn();
 vi.mock("@/lib/weather-page", () => ({ weatherFor: (...args: unknown[]) => weatherFor(...args) }));
+
+vi.mock("@/lib/weather/look", () => ({ frameLook: () => ({ palette: { ...FIXTURE_SKY, map: {} } }) }));
 
 import { GET } from "./route";
 
@@ -41,7 +44,7 @@ describe("the point route", () => {
     const response = await call("lat=45.0712&lon=7.6869");
     expect(response.status).toBe(200);
     expect(weatherFor.mock.calls[0][0]).toEqual({ lat: 45.07, lon: 7.69 });
-    expect(await response.json()).toMatchObject({ cell: { lat: 45.07, lon: 7.69 }, timezone: "Europe/Rome", provider: "openweather", time: 1_760_000_000, temp: 17.4, condition: "clear", night: false });
+    expect(await response.json()).toMatchObject({ sky: FIXTURE_SKY, cell: { lat: 45.07, lon: 7.69 }, timezone: "Europe/Rome", provider: "openweather", time: 1_760_000_000, temp: 17.4, condition: "clear", night: false });
   });
 
   it("brings a longitude beyond the antimeridian back into the same cell", async () => {
