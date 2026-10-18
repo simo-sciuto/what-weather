@@ -14,6 +14,8 @@ describe("the administrative words of a province", () => {
     expect(plainName("provincia di Caltanissetta")).toBe("Caltanissetta");
     expect(plainName("libero consorzio comunale di Enna")).toBe("Enna");
     expect(plainName("provincia dell'Aquila")).toBe("L'Aquila");
+    expect(plainName("provincia della Spezia")).toBe("La Spezia");
+    expect(plainName("provincia del Verbano-Cusio-Ossola")).toBe("Verbano-Cusio-Ossola");
     expect(plainName("Valle d'Aosta")).toBe("Valle d'Aosta");
     expect(plainName("Lazio")).toBe("Lazio");
     expect(plainName("provincia di ")).toBe("provincia di ");

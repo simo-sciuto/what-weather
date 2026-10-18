@@ -25,7 +25,7 @@ const dedupe = (places: Place[]) => {
  * have come (the first one is taken as soon as it is known), hands the place to `onChoose`, which starts the flight at
  * once. No recent or saved places here: the Atlas is a map, not a list.
  */
-export function AtlasSearch({ onChoose }: { onChoose: (place: Place) => void }) {
+export function AtlasSearch({ onChoose, onOpen }: { onChoose: (place: Place) => void; onOpen?: () => void }) {
   const ids = { list: useId(), input: useId() };
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -51,6 +51,7 @@ export function AtlasSearch({ onChoose }: { onChoose: (place: Place) => void }) 
     onChoose(place);
   }
   useEffect(() => {
+    if (!open) wantFirst.current = false;
     if (!open && refocus.current) {
       refocus.current = false;
       button.current?.focus();
@@ -69,11 +70,18 @@ export function AtlasSearch({ onChoose }: { onChoose: (place: Place) => void }) 
       setResults({ query: q, status: "loading", places: [] });
       try {
         const places = dedupe(await fetchPlaces(q, controller.signal));
+        // answered for a query that is no longer the one in the field: not shown, and never chosen
+        if (controller.signal.aborted) return;
         setResults({ query: q, status: "done", places });
         setActive(-1);
         if (wantFirst.current && places.length) chooseRef.current(places[0]);
+        // Enter has nothing to take: it is not left waiting for the next query
+        wantFirst.current = false;
       } catch {
-        if (!controller.signal.aborted) setResults({ query: q, status: "error", places: [] });
+        if (!controller.signal.aborted) {
+          wantFirst.current = false;
+          setResults({ query: q, status: "error", places: [] });
+        }
       }
     }, 250);
     return () => {
@@ -90,6 +98,8 @@ export function AtlasSearch({ onChoose }: { onChoose: (place: Place) => void }) 
       e.preventDefault();
       setActive((i) => (i <= 0 ? options.length - 1 : i - 1));
     } else if (e.key === "Enter") {
+      // an Enter that ends a composition (an input method) is not a choice
+      if (e.nativeEvent.isComposing) return;
       e.preventDefault();
       if (options.length) choose(options[Math.max(active, 0)]);
       else if (q.length >= 2) wantFirst.current = true;
@@ -128,6 +138,7 @@ export function AtlasSearch({ onChoose }: { onChoose: (place: Place) => void }) 
           aria-label="Cerca una località"
           onClick={() => {
             setOpen(true);
+            onOpen?.();
             // the field exists on the next render: focus it then
             requestAnimationFrame(() => input.current?.focus());
           }}
@@ -153,7 +164,12 @@ export function AtlasSearch({ onChoose }: { onChoose: (place: Place) => void }) 
               spellCheck={false}
               placeholder="Cerca un luogo"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                // A new query is not the one Enter was pressed for
+                wantFirst.current = false;
+                setActive(-1);
+                setQuery(e.target.value);
+              }}
               onKeyDown={onKeyDown}
               className="min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-muted"
             />

@@ -150,7 +150,7 @@ export function MapControls({ className = "" }: { className?: string }) {
 }
 
 /** Back to the page's own map: its layers and its colours, as they were */
-function useResetMap() {
+export function useResetMap() {
   const tuning = useMapTuning();
   const options = useMapOptions();
   const custom = !isUntuned(tuning) || !isDefaultMapOptions(options);
@@ -161,7 +161,7 @@ function useResetMap() {
   return { custom, reset };
 }
 
-const RESET_LINK =
+export const RESET_LINK =
   "text-ink-muted underline decoration-white/35 underline-offset-4 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent";
 
 /**
@@ -230,15 +230,21 @@ function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {
  * what the chip under the pointer does.
  */
 function MapPanelBody() {
-  const { palette } = useMoment().look;
+  return <MapPanelContent mapPalette={useMapPalette()} />;
+}
+
+/**
+ * The controls themselves, for whatever page holds a map: they take the palette the map is drawn in (its sky and the
+ * lines' inks as tuned) and read and write the viewer's two stores. The home page and the Atlas both use them.
+ */
+export function MapPanelContent({ mapPalette }: { mapPalette: SkyPalette }) {
   const tuning = useMapTuning();
   const options = useMapOptions();
-  const mapPalette = useMapPalette();
   const sliderId = useId();
   // What the choice the viewer is on says it does
   const [hint, setHint] = useState("");
 
-  const hue = motorwayHue(palette.sky2);
+  const hue = motorwayHue(mapPalette.sky2);
   const tone = (vivid: number, turn = tuning.hue) => {
     const { lightness, chroma } = mapTone(vivid);
     return `oklch(${lightness.toFixed(2)} ${chroma.toFixed(3)} ${Math.round(hue + turn)}deg)`;

@@ -26,8 +26,10 @@ export function plainName(name: string): string {
   if (!prefix) return name;
   const rest = name.slice(prefix[0].length).trim();
   if (!rest) return name;
-  // "provincia dell'Aquila" is "L'Aquila": the article belongs to the name
-  return /dell['’]\s*$/i.test(prefix[0]) ? `L'${rest}` : rest;
+  // "provincia dell'Aquila" is "L'Aquila" and "provincia della Spezia" is "La Spezia": the article belongs to the name
+  if (/dell['’]\s*$/i.test(prefix[0])) return `L'${rest}`;
+  if (/della\s*$/i.test(prefix[0]) && rest === "Spezia") return "La Spezia";
+  return rest;
 }
 
 export type PlaceLabel = {

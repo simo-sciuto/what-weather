@@ -29,7 +29,7 @@ export function useAtlasEngine(port: CameraPort | null): { engine: AtlasEngine |
   const [engine, setEngine] = useState<AtlasEngine | null>(null);
   const routerRef = useRef(router);
   // A point that comes from a search is pushed into the address (the Back button returns to where the person was); the others replace it
-  const pushNext = useRef(false);
+  const pushFor = useRef<string | null>(null);
 
   useEffect(() => {
     routerRef.current = router;
@@ -46,8 +46,9 @@ export function useAtlasEngine(port: CameraPort | null): { engine: AtlasEngine |
         for (const key of ["name", "region", "country"]) search.delete(key);
         search.set("lat", String(point.cell.lat));
         search.set("lon", String(point.cell.lon));
-        const how = pushNext.current ? "push" : "replace";
-        pushNext.current = false;
+        // pushed only for the cell the search asked for; any point that arrives clears the flag
+        const how = pushFor.current === `${point.cell.lat},${point.cell.lon}` ? "push" : "replace";
+        pushFor.current = null;
         startTransition(() => routerRef.current[how](`/atlas?${search}`, { scroll: false }));
       },
     });
@@ -75,7 +76,7 @@ export function useAtlasEngine(port: CameraPort | null): { engine: AtlasEngine |
     (target: { lat: number; lon: number }) => {
       if (!engine || !port) return;
       const here = port.get();
-      pushNext.current = true;
+      pushFor.current = `${cellOf(target.lon, target.lat).lat},${cellOf(target.lon, target.lat).lon}`;
       port.flyTo(
         { lng: target.lon, lat: target.lat, zoom: SEARCH_ZOOM },
         { durationMs: flightMs(distanceKm({ lat: here.lat, lon: here.lng }, target)), reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches },

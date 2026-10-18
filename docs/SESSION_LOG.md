@@ -6,6 +6,8 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Worked on: the place's name by zoom (ADR-024), a real geocoding probe, and the first answer to "the colours are always the same": the engine paints every overcast or rainy NIGHT almost the same dark (measured on twelve real places on 2026-10-18 at 22:26), and what the user means is a colour field over the map, not one sky (WTH-272, proposal only).
 - New asks recorded, not started: the field (WTH-272), map controls (WTH-273), city search with a flight (WTH-274), the names' layout (WTH-275, options asked of ux-ui).
 - Then, as the user chose (C, search, then controls): the title as option C (WTH-275), the city search with a flight (WTH-274, ADR-025). A real run flew Sicily to Bolzano (11 degrees against 16 in Sicily). The e2e for "a hand cuts the flight to a searched city" was dropped: Mapbox covers most of the distance in the first half of a flight, so distance is no measure and the same cut is tested with a direct flyTo.
+- Then the map controls (WTH-273): the home's `MapPanelContent` extracted and reused. The panel as a column at the right on a computer, because the first version covered the crosshair.
+- Review of the search, flight and controls applied: Enter left armed after a search that found nothing, the history pushed for a point the search did not ask for (both mutation checked), the panel's Escape taking the search's, the search and the panel fighting for the right of the screen (the search puts the panel away), "La Spezia", the sheet on a phone no longer covers the crosshair.
 - Not verified: the geocoder's terms and cost, Safari, a real phone, how the flight looks (the user's).
 
 ## 2026-10-15 (Atlas M5)

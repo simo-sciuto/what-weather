@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { Wordmark } from "../Wordmark";
 import { AtlasMap } from "./AtlasMap";
+import { AtlasMapPanel } from "./AtlasMapPanel";
 import { AtlasSearch } from "./AtlasSearch";
 import { ATLAS_SKY, paletteVars } from "./atlas-look";
 import { countRender } from "./atlas-test";
@@ -25,6 +26,8 @@ export function AtlasShell({ children }: { children: ReactNode }) {
   countRender("shell");
   const [port, setPort] = useState<CameraPort | null>(null);
   const [sky, setSky] = useState<PointSky>(ATLAS_SKY);
+  // The map panel and the search share the right of the screen: opening the search puts the panel away
+  const [panelOpen, setPanelOpen] = useState(false);
   const vars = useMemo(() => paletteVars(sky), [sky]);
   const { engine, goTo } = useAtlasEngine(port);
 
@@ -39,7 +42,8 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       >
         <Wordmark />
       </Link>
-      <AtlasSearch onChoose={(place) => goTo(place)} />
+      <AtlasMapPanel sky={sky} open={panelOpen} onOpenChange={setPanelOpen} />
+      <AtlasSearch onChoose={(place) => goTo(place)} onOpen={() => setPanelOpen(false)} />
       <PointReading engine={engine} port={port} />
       <CenterReadout port={port} />
       <main className="sr-only">{children}</main>

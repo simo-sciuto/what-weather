@@ -528,6 +528,102 @@ test("the search says when it finds nothing, and Escape closes it and gives the 
   await expect(page.getByRole("button", { name: "Cerca una località" })).toBeFocused();
 });
 
+test("the home page's map controls are in the Atlas: tint, intensity, contrast and what to show, in the same stores", async ({ page }) => {
+  await openAtlas(page);
+  const open = page.getByRole("button", { name: "La mappa: colori e strati" });
+  await expect(open).toHaveAttribute("aria-expanded", "false");
+  await open.click();
+  const panel = page.getByRole("dialog", { name: "La mappa" });
+  await expect(panel).toBeVisible();
+  for (const name of ["Tinta", "Intensità", "Contrasto"]) await expect(panel.getByLabel(name)).toBeVisible();
+  for (const group of ["La città", "Da aggiungere", "Mezzi pubblici"]) await expect(panel.getByRole("group", { name: group })).toBeVisible();
+
+  // a slider writes the viewer's tuning, the one the home page reads
+  await panel.getByLabel("Tinta").fill("120");
+  await panel.getByLabel("Contrasto").fill("80");
+  const tuning = await page.evaluate(() => JSON.parse(localStorage.getItem("weather:map-hue")!));
+  expect(tuning).toEqual({ hue: 120, vivid: 50, contrast: 80 });
+
+  // a layer chip writes the choice of layers, and says what it is on
+  const buildings = panel.getByRole("button", { name: "Edifici", exact: true });
+  await expect(buildings).toHaveAttribute("aria-pressed", "false");
+  await buildings.click();
+  await expect(buildings).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("weather:map-layers")!))).toContain("buildings");
+
+  // the map is the same map: changing its colours does not make it again
+  await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-map-creations", "1");
+  await expect(page.locator("canvas.mapboxgl-canvas")).toHaveCount(1);
+
+  // back to the automatic ones
+  await panel.getByRole("button", { name: "Torna agli automatici" }).click();
+  expect(await page.evaluate(() => [localStorage.getItem("weather:map-hue"), localStorage.getItem("weather:map-layers")])).toEqual([null, null]);
+  await expect(buildings).toHaveAttribute("aria-pressed", "false");
+
+  // Escape closes it and the keyboard goes back to the button
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+  await expect(open).toBeFocused();
+});
+
+test("what the viewer chose on the map is still chosen after a reload, and nothing in the panel moves the map", async ({ page }) => {
+  await openAtlas(page);
+  const before = await centre(page);
+  await page.getByRole("button", { name: "La mappa: colori e strati" }).click();
+  const panel = page.getByRole("dialog", { name: "La mappa" });
+  await panel.getByLabel("Intensità").fill("90");
+  expect(await centre(page)).toEqual(before);
+  await page.reload();
+  await page.waitForFunction(() => !!window.__atlas);
+  await page.getByRole("button", { name: "La mappa: colori e strati" }).click();
+  await expect(page.getByRole("dialog", { name: "La mappa" }).getByLabel("Intensità")).toHaveValue("90");
+});
+
+test("an Enter that found nothing does not make the next search fly, and the search puts the map panel away", async ({ page }) => {
+  await page.route("**/api/places?*", (route) => route.fulfill({ json: { places: new URL(route.request().url()).searchParams.get("q") === "zzzz" ? [] : [ROMA] } }));
+  await openAtlas(page);
+  await page.getByRole("button", { name: "La mappa: colori e strati" }).click();
+  await expect(page.getByRole("dialog", { name: "La mappa" })).toBeVisible();
+  const field = await searchFor(page, "zzzz");
+  // opening the search put the panel away: the results would hang over it
+  await expect(page.getByRole("dialog", { name: "La mappa" })).toHaveCount(0);
+  await field.press("Enter");
+  await expect(page.getByRole("status")).toHaveText("Località non trovata. Prova con un altro nome.");
+  await field.fill("");
+  await field.fill("rom");
+  await expect(page.getByRole("option", { name: /Roma/ })).toBeVisible();
+  // no Enter was pressed for this query: nothing flew
+  await page.waitForTimeout(600);
+  expect(await programMoves(page)).toBe(0);
+});
+
+test("the address is pushed only for the city that was searched for: a later stop replaces it", async ({ page }) => {
+  await page.route("**/api/places?*", (route) => route.fulfill({ json: { places: [ROMA] } }));
+  await openAtlas(page);
+  const flyToRoma = async () => {
+    const field = await searchFor(page, "rom");
+    await expect(page.getByRole("option", { name: /Roma/ })).toBeVisible();
+    await field.press("Enter");
+  };
+  await flyToRoma();
+  await expect(page.locator("[data-atlas-point]")).toContainText("41,89° N · 12,48° E", { timeout: 15_000 });
+  await movementEnded(page);
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting");
+  const length = await page.evaluate(() => history.length);
+  // the same city again: no point is asked for, so none arrives to be pushed...
+  await flyToRoma();
+  await movementEnded(page);
+  await page.waitForTimeout(800);
+  // ...and the next stop, somewhere else, is a replace, not a new entry in the history
+  await page.mouse.move(500, 400);
+  await page.mouse.down();
+  await page.mouse.move(380, 330, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator("[data-atlas-point]")).not.toContainText("41,89° N · 12,48° E", { timeout: 15_000 });
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting");
+  expect(await page.evaluate(() => history.length)).toBe(length);
+});
+
 test("the home page is not the Atlas, and the Atlas is not offered to search engines", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-atlas]")).toHaveCount(0);
