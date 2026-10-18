@@ -38,7 +38,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       >
         <Wordmark />
       </Link>
-      <PointReading engine={engine} />
+      <PointReading engine={engine} port={port} />
       <CenterReadout port={port} />
       <main className="sr-only">{children}</main>
     </div>

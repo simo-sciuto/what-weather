@@ -1,5 +1,6 @@
 import { CACHE_CONTROL } from "@/constants/cache";
 import { API_ERRORS } from "@/constants/labels";
+import { reverseGeocode } from "@/lib/api/sources/reverse-geocode";
 import { cellOf } from "@/lib/atlas/cell";
 import { parsePlaceRef } from "@/lib/place";
 import { weatherFor } from "@/lib/weather-page";
@@ -25,14 +26,15 @@ export async function GET(request: NextRequest) {
   // make a fresh upstream load of the same cell at will. They count only where the sample weather is the provider.
   const sample = process.env.NODE_ENV !== "production" || process.env.WEATHER_PROVIDER === "mock";
   try {
-    const { data, timeline, provider } = await weatherFor(
-      { lat: cell.lat, lon: cell.lon },
-      sample ? (params.get("mock") ?? undefined) : undefined,
-      sample ? (params.get("at") ?? undefined) : undefined,
-    );
+    // The name of the place is asked beside the weather and never fails it: `reverseGeocode` gives null for anything
+    const [{ data, timeline, provider }, place] = await Promise.all([
+      weatherFor({ lat: cell.lat, lon: cell.lon }, sample ? (params.get("mock") ?? undefined) : undefined, sample ? (params.get("at") ?? undefined) : undefined),
+      reverseGeocode(cell),
+    ]);
     const { palette: p } = frameLook(timeline.frames[0]);
     const point: AtlasPoint = {
       cell,
+      place,
       sky: { sky1: p.sky1, sky2: p.sky2, sky3: p.sky3, glass: p.glass, glow: p.glow, sun: p.sun, cloud: p.cloud, air: p.air },
       timezone: data.timezone,
       provider,

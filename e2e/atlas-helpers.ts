@@ -18,6 +18,7 @@ export type AtlasProbe = {
   };
   port: {
     flyTo: (target: Partial<Lngs & { zoom: number }>, options?: { durationMs?: number }) => void;
+    jumpTo: (target: Partial<Lngs & { zoom: number }>) => void;
   };
   events: { type: string; origin: string; camera: Lngs & { zoom: number } }[];
 };

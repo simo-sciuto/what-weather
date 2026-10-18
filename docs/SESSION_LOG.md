@@ -2,6 +2,11 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-18 (Atlas, place name and the user's new asks)
+- Worked on: the place's name by zoom (ADR-024), a real geocoding probe, and the first answer to "the colours are always the same": the engine paints every overcast or rainy NIGHT almost the same dark (measured on twelve real places on 2026-10-18 at 22:26), and what the user means is a colour field over the map, not one sky (WTH-272, proposal only).
+- New asks recorded, not started: the field (WTH-272), map controls (WTH-273), city search with a flight (WTH-274), the names' layout (WTH-275, options asked of ux-ui).
+- Not verified: the geocoder's terms and cost, Safari, a real phone.
+
 ## 2026-10-15 (Atlas M5)
 - Worked on: M5 after the user's "prosegui": the point's sky from the home page's engine through the route, the zoom weight, `SkyDriver`, the map's inks, e2e for the sky (a night is not a morning, the sky holds while the map moves and the zoom sets it after the stop), a real run at Tokyo and Torino.
 - Found: the shell now renders five times per stop (router transition, new sky): the mark and the readout are memoised and the render test is tighter for them. A mutation check made the sky test fail when the zoom is read per frame.

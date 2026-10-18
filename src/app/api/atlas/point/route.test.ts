@@ -10,6 +10,8 @@ import { FIXTURE_SKY } from "@/lib/atlas/sky.fixture";
 const weatherFor = vi.fn();
 vi.mock("@/lib/weather-page", () => ({ weatherFor: (...args: unknown[]) => weatherFor(...args) }));
 
+const reverseGeocode = vi.fn();
+vi.mock("@/lib/api/sources/reverse-geocode", () => ({ reverseGeocode: (...args: unknown[]) => reverseGeocode(...args) }));
 vi.mock("@/lib/weather/look", () => ({ frameLook: () => ({ palette: { ...FIXTURE_SKY, map: {} } }) }));
 
 import { GET } from "./route";
@@ -25,6 +27,7 @@ const env = { ...process.env };
 
 beforeEach(() => {
   weatherFor.mockReset().mockResolvedValue(sample);
+  reverseGeocode.mockReset().mockResolvedValue({ country: "Italia", place: "Torino", nearKm: 0.4 });
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -45,6 +48,15 @@ describe("the point route", () => {
     expect(response.status).toBe(200);
     expect(weatherFor.mock.calls[0][0]).toEqual({ lat: 45.07, lon: 7.69 });
     expect(await response.json()).toMatchObject({ sky: FIXTURE_SKY, cell: { lat: 45.07, lon: 7.69 }, timezone: "Europe/Rome", provider: "openweather", time: 1_760_000_000, temp: 17.4, condition: "clear", night: false });
+  });
+
+  it("names the place beside the weather, for the cell, and answers without a name when there is none", async () => {
+    expect((await (await call("lat=45.07&lon=7.69")).json()).place).toEqual({ country: "Italia", place: "Torino", nearKm: 0.4 });
+    expect(reverseGeocode.mock.calls[0][0]).toEqual({ lat: 45.07, lon: 7.69 });
+    reverseGeocode.mockResolvedValue(null);
+    const response = await call("lat=43.9&lon=8.9");
+    expect(response.status).toBe(200);
+    expect((await response.json()).place).toBeNull();
   });
 
   it("brings a longitude beyond the antimeridian back into the same cell", async () => {

@@ -390,6 +390,58 @@ test("the sky stays the previous one while the map moves, and the zoom sets how 
   await expect.poll(() => skyVar(page), { timeout: 15_000 }).not.toBe(close);
 });
 
+test("the place's name is as precise as the zoom, and zooming asks for nothing more", async ({ page }) => {
+  // The test build has no Mapbox token, so no geocoder: the point route is answered with a place added to its own answer
+  await page.route("**/api/atlas/point*", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    await route.fulfill({ response, json: { ...body, place: { country: "Italia", region: "Piemonte", place: "Torino", locality: "Borgo Vanchiglia", nearKm: 0.3 } } });
+  });
+  const asked: string[] = [];
+  page.on("request", (r) => {
+    if (new URL(r.url()).pathname === "/api/atlas/point") asked.push(r.url());
+  });
+  await openAtlas(page);
+  const name = page.locator("[data-atlas-place]");
+  const jump = (zoomTo: number) => page.evaluate((z) => window.__atlas!.port.jumpTo({ zoom: z }), zoomTo);
+  const nameAt = async (z: number) => {
+    await jump(z);
+    await movementEnded(page);
+    return name;
+  };
+
+  await expect(await nameAt(3)).toContainText("Italia");
+  await expect(await nameAt(6)).toContainText("Piemonte");
+  await expect(await nameAt(9.5)).toContainText("Torino");
+  await expect(name).toContainText("Piemonte");
+  await expect(await nameAt(12)).toContainText("Borgo Vanchiglia");
+  await expect(name).not.toContainText("Vicino a");
+  // back out: the same point, named coarser again; and in all of it one request, the opening one
+  await expect(await nameAt(6)).toContainText("Piemonte");
+  expect(asked).toHaveLength(1);
+  // a screen reader is told the name with the point
+  await expect(page.locator("[data-atlas-point] [aria-live]")).toContainText(/Punto caricato: .*Piemonte|Punto caricato: .*Torino|Punto caricato: .*Italia/);
+});
+
+test("a name far from the cell is the nearest place, and says so", async ({ page }) => {
+  await page.route("**/api/atlas/point*", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    await route.fulfill({ response, json: { ...body, place: { country: "Italia", region: "Valle d'Aosta", place: "Courmayeur", nearKm: 8.2 } } });
+  });
+  await openAtlas(page);
+  await page.evaluate(() => window.__atlas!.port.jumpTo({ zoom: 10 }));
+  await movementEnded(page);
+  await expect(page.locator("[data-atlas-place]")).toContainText("Vicino a");
+  await expect(page.locator("[data-atlas-place]")).toContainText("Courmayeur");
+});
+
+test("with no name to give (no token, the open sea) the reading is the weather and the coordinates, as before", async ({ page }) => {
+  await openAtlas(page);
+  await expect(page.locator("[data-atlas-place]")).toHaveCount(0);
+  await expect(page.locator("[data-atlas-point-reading]")).toBeVisible();
+});
+
 test("the home page is not the Atlas, and the Atlas is not offered to search engines", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-atlas]")).toHaveCount(0);

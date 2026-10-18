@@ -19,7 +19,7 @@ const TORINO = at(7.687, 45.07);
 const GENOVA = at(8.93, 44.41);
 const MILANO = at(9.19, 45.46);
 
-const pointOf = (cell: Cell, temp = 17): AtlasPoint => ({ cell, sky: FIXTURE_SKY, timezone: "Europe/Rome", provider: "mock", time: 1_760_000_000, temp, label: "Sereno", condition: "clear", night: false });
+const pointOf = (cell: Cell, temp = 17): AtlasPoint => ({ cell, place: null, sky: FIXTURE_SKY, timezone: "Europe/Rome", provider: "mock", time: 1_760_000_000, temp, label: "Sereno", condition: "clear", night: false });
 
 type Asked = { cell: Cell; signal: AbortSignal; answer: (result: PointResult) => void };
 

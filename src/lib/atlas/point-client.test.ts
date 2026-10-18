@@ -5,7 +5,7 @@ import { FIXTURE_SKY } from "./sky.fixture";
 
 /* ADR-022, M4: how the browser asks for a point, and how it tells one failure from another. No network, no server. */
 
-const POINT: AtlasPoint = { cell: { lat: 45.07, lon: 7.69 }, sky: FIXTURE_SKY, timezone: "Europe/Rome", provider: "mock", time: 1_760_000_000, temp: 17.4, label: "Sereno", condition: "clear", night: false };
+const POINT: AtlasPoint = { cell: { lat: 45.07, lon: 7.69 }, place: { country: "Italia", place: "Torino", nearKm: 0.4 }, sky: FIXTURE_SKY, timezone: "Europe/Rome", provider: "mock", time: 1_760_000_000, temp: 17.4, label: "Sereno", condition: "clear", night: false };
 const CELL = { lat: 45.07, lon: 7.69 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const live = () => new AbortController().signal;
@@ -20,6 +20,10 @@ describe("isAtlasPoint", () => {
     expect(isAtlasPoint({ ...POINT, cell: undefined })).toBe(false);
     expect(isAtlasPoint({ ...POINT, night: "no" })).toBe(false);
     expect(isAtlasPoint({ ...POINT, sky: undefined })).toBe(false);
+    expect(isAtlasPoint({ ...POINT, place: null })).toBe(true);
+    expect(isAtlasPoint({ ...POINT, place: undefined })).toBe(false);
+    expect(isAtlasPoint({ ...POINT, place: { place: 3 } })).toBe(false);
+    expect(isAtlasPoint({ ...POINT, place: { nearKm: "far" } })).toBe(false);
     expect(isAtlasPoint({ ...POINT, sky: { ...FIXTURE_SKY, sky1: 3 } })).toBe(false);
     expect(isAtlasPoint({ ...POINT, sky: { ...FIXTURE_SKY, sky2: "oklch(0.5 0.1 200)" } })).toBe(false);
     expect(isAtlasPoint({ ...POINT, sky: { ...FIXTURE_SKY, air: { depth: 1 } } })).toBe(false);

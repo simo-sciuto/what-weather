@@ -24,6 +24,13 @@ function isSky(v: unknown): boolean {
   return stops && SKY_COLOURS.every((k) => typeof sky[k] === "string") && !!air && AIR_FIELDS.every((k) => isNumber(air[k]));
 }
 
+/** A place is nothing, or an object whose names are text and whose distance is a number */
+function isPlace(v: unknown): boolean {
+  if (v === null) return true;
+  if (!v || typeof v !== "object") return false;
+  return Object.entries(v as Record<string, unknown>).every(([k, x]) => (k === "nearKm" ? isNumber(x) : typeof x === "string"));
+}
+
 /** The answer is checked, not trusted: a wrong shape is a failed request, never a half-drawn point */
 export function isAtlasPoint(v: unknown): v is AtlasPoint {
   if (!v || typeof v !== "object") return false;
@@ -32,6 +39,7 @@ export function isAtlasPoint(v: unknown): v is AtlasPoint {
   return (
     !!cell &&
     isSky(p.sky) &&
+    isPlace(p.place) &&
     isNumber(cell.lat) &&
     isNumber(cell.lon) &&
     typeof p.timezone === "string" &&

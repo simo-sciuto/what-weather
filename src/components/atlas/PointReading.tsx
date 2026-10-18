@@ -1,11 +1,13 @@
 "use client";
 
 import { formatCell } from "@/lib/atlas/center";
+import { placeLabel } from "@/lib/atlas/place-label";
 import type { AtlasEngine } from "@/lib/atlas/engine";
 import { formatTime } from "@/lib/weather/formatters";
-import type { FailureReason } from "@/types/atlas";
-import { useRef, useSyncExternalStore } from "react";
+import type { CameraPort, FailureReason } from "@/types/atlas";
+import { useMemo, useRef, useSyncExternalStore } from "react";
 import { countRender } from "./atlas-test";
+import { useRestingZoom } from "./useRestingZoom";
 
 const NONE = { status: null, point: null } as const;
 
@@ -24,8 +26,9 @@ const WHY: Record<FailureReason, string> = {
  * status and the point, never with a frame of the movement. A screen reader hears one line, from a region that is always
  * there, when a point arrives or fails, not while the map moves. The box takes no pointer: the map is dragged through it.
  */
-export function PointReading({ engine }: { engine: AtlasEngine | null }) {
+export function PointReading({ engine, port }: { engine: AtlasEngine | null; port: CameraPort | null }) {
   countRender("point");
+  const zoom = useRestingZoom(port, engine);
   const root = useRef<HTMLElement>(null);
   const snap = useSyncExternalStore(
     (listener) => engine?.subscribe(listener) ?? (() => {}),
@@ -38,10 +41,14 @@ export function PointReading({ engine }: { engine: AtlasEngine | null }) {
   const loading = status?.phase === "loading";
   const settled = !status || status.phase === "resting";
 
+  // The name of the place, as precise as the zoom the Atlas rests at: the same point, named finer as the map comes close
+  const named = useMemo(() => placeLabel(point?.place ?? null, zoom), [point, zoom]);
+  const where = named ? `${named.near ? "Vicino a " : ""}${named.name}` : null;
+
   const announced = failed
     ? WHY[failed.reason]
     : point
-      ? `Punto caricato: ${formatCell(point.cell)}, ${Math.round(point.temp)} gradi, ${point.label}.`
+      ? `Punto caricato: ${where ? `${where}, ` : ""}${formatCell(point.cell)}, ${Math.round(point.temp)} gradi, ${point.label}.`
       : "";
 
   const label = point ? (failed ? "Non aggiornato" : point.provider === "mock" ? "Dati di esempio" : "Previsione del modello") : loading ? "Carico il punto" : null;
@@ -61,6 +68,13 @@ export function PointReading({ engine }: { engine: AtlasEngine | null }) {
       {label ? <p className="mb-1 border-t border-white/25 pt-1 text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">{label}</p> : null}
       {point ? (
         <div aria-hidden="true" className={`transition-opacity duration-300 motion-reduce:transition-none ${settled && !failed ? "opacity-100" : "opacity-75"}`}>
+          {named ? (
+            <p data-atlas-place className="mb-1.5 text-ink">
+              {named.near ? <span className="mr-1.5 text-caption text-ink-muted">Vicino a </span> : null}
+              <span className="text-[1.375rem] font-semibold leading-tight">{named.name}</span>
+              {named.context ? <span className="block text-caption text-ink-muted">{named.context}</span> : null}
+            </p>
+          ) : null}
           <p data-atlas-point-reading className="flex items-baseline gap-3 text-ink">
             <span className="text-[2.5rem] font-semibold leading-none tabular-nums">{Math.round(point.temp)}°</span>
             <span className="text-body">{point.label}</span>

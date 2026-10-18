@@ -85,6 +85,8 @@ export type CommitResult = { ok: true } | { ok: false; reason: FailureReason };
  */
 export type AtlasPoint = {
   cell: Cell;
+  /** Where the cell is, from coarse to fine, as far as the geocoder knows; null where it knows nothing (the open sea) or cannot be asked */
+  place: PlaceNames | null;
   /** The sky of the point's own weather, from the atmosphere engine, for the hour of the reading (M5) */
   sky: PointSky;
   /** IANA zone or fixed offset of the point */
@@ -99,6 +101,12 @@ export type AtlasPoint = {
   condition: string;
   night: boolean;
 };
+
+/**
+ * The names of the places a cell lies in, one per level, each present only if known. `nearKm` is how far the finest
+ * name's own point is from the cell: a name far from the cell is the nearest place, not the place the cell is in.
+ */
+export type PlaceNames = { country?: string; region?: string; district?: string; place?: string; locality?: string; nearKm?: number };
 
 /** What the page's sky is made of: the stops and the markers' colours, and the air the map is drawn in (`SkyPalette` without the map's inks, which the viewer's tuning redraws) */
 export type PointSky = Pick<SkyPalette, "sky1" | "sky2" | "sky3" | "glass" | "glow" | "sun" | "cloud" | "air">;
