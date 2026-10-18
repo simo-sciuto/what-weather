@@ -43,3 +43,13 @@ export const SKY_FAR_WEIGHT = 0.3;
 
 /** How long a point's weather may take before the Atlas calls it failed and offers "Riprova" */
 export const POINT_TIMEOUT_MS = 10_000;
+
+/**
+ * The flight to a city the person searched for (WTH-274): it starts as soon as the search is chosen, arcs out and in
+ * (Mapbox's `flyTo`), and lands at a zoom where the town is named but not its quarter. Its length follows the distance
+ * between `FLIGHT_MIN_MS` and `FLIGHT_MAX_MS`. PROVISIONAL, for the user's eyes.
+ */
+export const SEARCH_ZOOM = 10.5;
+export const FLIGHT_MIN_MS = 1400;
+export const FLIGHT_MAX_MS = 4200;
+

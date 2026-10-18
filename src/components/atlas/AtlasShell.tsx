@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { Wordmark } from "../Wordmark";
 import { AtlasMap } from "./AtlasMap";
+import { AtlasSearch } from "./AtlasSearch";
 import { ATLAS_SKY, paletteVars } from "./atlas-look";
 import { countRender } from "./atlas-test";
 import { CenterReadout } from "./CenterReadout";
@@ -25,7 +26,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
   const [port, setPort] = useState<CameraPort | null>(null);
   const [sky, setSky] = useState<PointSky>(ATLAS_SKY);
   const vars = useMemo(() => paletteVars(sky), [sky]);
-  const engine = useAtlasEngine(port);
+  const { engine, goTo } = useAtlasEngine(port);
 
   return (
     <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={vars}>
@@ -38,6 +39,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       >
         <Wordmark />
       </Link>
+      <AtlasSearch onChoose={(place) => goTo(place)} />
       <PointReading engine={engine} port={port} />
       <CenterReadout port={port} />
       <main className="sr-only">{children}</main>

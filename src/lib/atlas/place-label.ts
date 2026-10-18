@@ -15,6 +15,21 @@ const FROM_ZOOM = [-Infinity, 5, 7, 9, 11] as const;
 /** From this far, the finest names are "near", not "in" */
 export const NEAR_KM = 5;
 
+/**
+ * The administrative words the Italian provinces and regions carry in front of the name ("provincia autonoma di
+ * Bolzano", "città metropolitana di Torino"): on a title they are noise, and make it too long to read. Only for how a
+ * level is shown; the names the geocoder gave are kept as they are.
+ */
+const ADMIN_PREFIX = /^(?:citt[àa] metropolitana|provincia autonoma|libero consorzio comunale|provincia|regione)\s+(?:dell['’]|della|dello|delle|degli|dei|del|di)\s*/i;
+export function plainName(name: string): string {
+  const prefix = ADMIN_PREFIX.exec(name);
+  if (!prefix) return name;
+  const rest = name.slice(prefix[0].length).trim();
+  if (!rest) return name;
+  // "provincia dell'Aquila" is "L'Aquila": the article belongs to the name
+  return /dell['’]\s*$/i.test(prefix[0]) ? `L'${rest}` : rest;
+}
+
 export type PlaceLabel = {
   /** The title: the level the zoom asks for, or, from the quarter's zoom, the town */
   name: string;
@@ -25,8 +40,10 @@ export type PlaceLabel = {
   near: boolean;
 };
 
-export function placeLabel(place: PlaceNames | null, zoom: number): PlaceLabel | null {
-  if (!place) return null;
+export function placeLabel(given: PlaceNames | null, zoom: number): PlaceLabel | null {
+  if (!given) return null;
+  const place: PlaceNames = { ...given };
+  for (const level of ["region", "district"] as const) if (place[level]) place[level] = plainName(place[level]!);
   let target = 0;
   FROM_ZOOM.forEach((z, i) => {
     if (zoom >= z) target = i;

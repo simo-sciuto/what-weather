@@ -451,6 +451,83 @@ test("with no name to give (no token, the open sea) the reading is the weather a
   await expect(page.locator("[data-atlas-point-reading]")).toBeVisible();
 });
 
+const ROMA = { name: "Roma", region: "Lazio", country: "IT", lat: 41.89, lon: 12.48 };
+const searchFor = async (page: import("@playwright/test").Page, text: string) => {
+  await page.getByRole("button", { name: "Cerca una località" }).click();
+  const field = page.getByRole("combobox", { name: "Cerca località" });
+  await field.fill(text);
+  return field;
+};
+const programMoves = (page: import("@playwright/test").Page) =>
+  page.evaluate(() => window.__atlas!.events.filter((e) => e.origin === "program" && e.type === "movestart").length);
+
+test("choosing a searched city starts the flight at once, asks for its point, and pushes the address", async ({ page }) => {
+  await page.route("**/api/places?*", (route) => route.fulfill({ json: { places: [ROMA] } }));
+  await openAtlas(page);
+  const asked: string[] = [];
+  page.on("request", (r) => {
+    if (new URL(r.url()).pathname === "/api/atlas/point") asked.push(r.url());
+  });
+  const historyBefore = await page.evaluate(() => history.length);
+  const field = await searchFor(page, "rom");
+  await expect(page.getByRole("option", { name: /Roma/ })).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("1 località trovata");
+  await field.press("Enter");
+
+  // the flight began with the choice, not after the weather: the code's own move, within a moment
+  await expect.poll(() => programMoves(page), { timeout: 1000 }).toBeGreaterThan(0);
+  expect(await centreCell(page)).not.toEqual({ lat: 41.89, lon: 12.48 });
+  await expect(page.getByRole("button", { name: "Cerca una località" })).toBeFocused();
+
+  // and the map lands on the city, at the zoom the town is named at
+  await expect.poll(async () => (await centre(page)).lat, { timeout: 15_000 }).toBeCloseTo(41.89, 1);
+  await movementEnded(page);
+  expect((await centre(page)).lng).toBeCloseTo(12.48, 1);
+  expect(await zoom(page)).toBeCloseTo(10.5, 1);
+  await expect(page.locator("[data-atlas-point]")).toContainText("41,89° N · 12,48° E", { timeout: 15_000 });
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting");
+  await expect(page).toHaveURL(/lat=41\.89&lon=12\.48/);
+  // a push, not a replace: Back is the place the person was at
+  expect(await page.evaluate(() => history.length)).toBe(historyBefore + 1);
+  // the point of the city was asked for once, when it was chosen, and the flight asked for nothing more
+  expect(asked.filter((u) => u.includes("lat=41.89"))).toHaveLength(1);
+  await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-map-creations", "1");
+});
+
+test("Enter before the results have come takes the first one as soon as it is known", async ({ page }) => {
+  await page.route("**/api/places?*", async (route) => {
+    await new Promise((r) => setTimeout(r, 700));
+    await route.fulfill({ json: { places: [ROMA] } });
+  });
+  await openAtlas(page);
+  const field = await searchFor(page, "roma");
+  await field.press("Enter");
+  expect(await programMoves(page)).toBe(0);
+  await expect.poll(() => programMoves(page), { timeout: 5000 }).toBeGreaterThan(0);
+  await expect.poll(async () => (await centre(page)).lat, { timeout: 15_000 }).toBeCloseTo(41.89, 1);
+});
+
+test("a person who prefers less motion gets a jump, not a flight", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.route("**/api/places?*", (route) => route.fulfill({ json: { places: [ROMA] } }));
+  await openAtlas(page);
+  const field = await searchFor(page, "rom");
+  await expect(page.getByRole("option", { name: /Roma/ })).toBeVisible();
+  await field.press("Enter");
+  await expect.poll(async () => (await centre(page)).lat, { timeout: 1500 }).toBeCloseTo(41.89, 1);
+});
+
+test("the search says when it finds nothing, and Escape closes it and gives the keyboard back", async ({ page }) => {
+  await page.route("**/api/places?*", (route) => route.fulfill({ json: { places: [] } }));
+  await openAtlas(page);
+  const field = await searchFor(page, "zzzz");
+  await expect(page.getByRole("status")).toHaveText("Località non trovata. Prova con un altro nome.");
+  expect(await programMoves(page)).toBe(0);
+  await field.press("Escape");
+  await field.press("Escape");
+  await expect(page.getByRole("button", { name: "Cerca una località" })).toBeFocused();
+});
+
 test("the home page is not the Atlas, and the Atlas is not offered to search engines", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("[data-atlas]")).toHaveCount(0);

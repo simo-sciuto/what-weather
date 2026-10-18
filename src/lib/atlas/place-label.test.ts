@@ -1,16 +1,30 @@
 import { describe, expect, it } from "vitest";
 import type { PlaceNames } from "@/types/atlas";
-import { placeLabel } from "./place-label";
+import { placeLabel, plainName } from "./place-label";
 
 /* ADR-024: the name of the place by zoom. Pure. */
 
 const TORINO: PlaceNames = { country: "Italia", region: "città metropolitana di Torino", place: "Torino", locality: "Borgo Vanchiglia", nearKm: 0.3 };
 
+describe("the administrative words of a province", () => {
+  it("are left off a title, and the name is kept when nothing else would be left", () => {
+    expect(plainName("provincia autonoma di Bolzano")).toBe("Bolzano");
+    expect(plainName("città metropolitana di Torino")).toBe("Torino");
+    expect(plainName("Città Metropolitana di Reggio Calabria")).toBe("Reggio Calabria");
+    expect(plainName("provincia di Caltanissetta")).toBe("Caltanissetta");
+    expect(plainName("libero consorzio comunale di Enna")).toBe("Enna");
+    expect(plainName("provincia dell'Aquila")).toBe("L'Aquila");
+    expect(plainName("Valle d'Aosta")).toBe("Valle d'Aosta");
+    expect(plainName("Lazio")).toBe("Lazio");
+    expect(plainName("provincia di ")).toBe("provincia di ");
+  });
+});
+
 describe("the name the zoom asks for", () => {
   it("is the country from far, then the region, the town, and from close the quarter", () => {
     expect(placeLabel(TORINO, 3)?.name).toBe("Italia");
-    expect(placeLabel(TORINO, 5)?.name).toBe("città metropolitana di Torino");
-    expect(placeLabel(TORINO, 8)?.name).toBe("città metropolitana di Torino");
+    expect(placeLabel(TORINO, 5)?.name).toBe("Torino");
+    expect(placeLabel(TORINO, 8)?.name).toBe("Torino");
     expect(placeLabel(TORINO, 9)?.name).toBe("Torino");
     expect(placeLabel(TORINO, 10.75)?.name).toBe("Torino");
     // from the quarter's zoom the title is the town, with the quarter under it
@@ -32,8 +46,10 @@ describe("the name the zoom asks for", () => {
   });
 
   it("puts the coarser places after it, nearest first, as its context", () => {
-    expect(placeLabel(TORINO, 9)).toMatchObject({ context: "città metropolitana di Torino, Italia" });
-    expect(placeLabel(TORINO, 11)).toMatchObject({ context: "città metropolitana di Torino, Italia" });
+    // the metropolitan city is the town's own name: it is not told twice
+    expect(placeLabel(TORINO, 9)).toMatchObject({ context: "Italia" });
+    expect(placeLabel(TORINO, 11)).toMatchObject({ context: "Italia" });
+    expect(placeLabel({ country: "Italia", region: "Piemonte", place: "Torino" }, 9)).toMatchObject({ context: "Piemonte, Italia" });
     expect(placeLabel(TORINO, 3)?.context).toBeNull();
   });
 
