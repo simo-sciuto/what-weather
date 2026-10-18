@@ -9,6 +9,11 @@ import { useMemo, useRef, useSyncExternalStore } from "react";
 import { countRender } from "./atlas-test";
 import { useRestingZoom } from "./useRestingZoom";
 
+/** The title: the town and, from close, the quarter, at one size that follows the width of the screen and never takes more than two lines each */
+const TITLE = "line-clamp-2 text-balance text-[clamp(1.75rem,7vw,3.25rem)] leading-[1.02] tracking-tight";
+/** The page's own halo (the markers' pattern in globals.css), so the title reads over a bright or a busy map */
+const TITLE_SHADOW = { textShadow: "0 0 2px color-mix(in oklab, var(--sky-1) 85%, transparent), 0 0 14px color-mix(in oklab, var(--sky-1) 80%, transparent)" } as const;
+
 const NONE = { status: null, point: null } as const;
 
 const WHY: Record<FailureReason, string> = {
@@ -43,7 +48,7 @@ export function PointReading({ engine, port }: { engine: AtlasEngine | null; por
 
   // The name of the place, as precise as the zoom the Atlas rests at: the same point, named finer as the map comes close
   const named = useMemo(() => placeLabel(point?.place ?? null, zoom), [point, zoom]);
-  const where = named ? `${named.near ? "Vicino a " : ""}${named.name}` : null;
+  const where = named ? `${named.near ? "Vicino a " : ""}${named.name}${named.detail ? `, ${named.detail}` : ""}` : null;
 
   const announced = failed
     ? WHY[failed.reason]
@@ -60,7 +65,7 @@ export function PointReading({ engine, port }: { engine: AtlasEngine | null; por
       data-atlas-point={point || failed || loading ? "" : undefined}
       data-phase={status?.phase ?? "resting"}
       aria-label="Punto caricato"
-      className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-[calc(max(1rem,env(safe-area-inset-top))+3.25rem)] z-10 max-w-[min(20rem,calc(100%-2rem))] outline-none"
+      className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-[calc(max(1rem,env(safe-area-inset-top))+3.25rem)] z-10 max-w-[min(26rem,calc(100%-2rem))] outline-none"
     >
       <p aria-live="polite" className="sr-only">
         {announced}
@@ -69,11 +74,18 @@ export function PointReading({ engine, port }: { engine: AtlasEngine | null; por
       {point ? (
         <div aria-hidden="true" className={`transition-opacity duration-300 motion-reduce:transition-none ${settled && !failed ? "opacity-100" : "opacity-75"}`}>
           {named ? (
-            <p data-atlas-place className="mb-1.5 text-ink">
-              {named.near ? <span className="mr-1.5 text-caption text-ink-muted">Vicino a </span> : null}
-              <span className="text-[1.375rem] font-semibold leading-tight">{named.name}</span>
-              {named.context ? <span className="block text-caption text-ink-muted">{named.context}</span> : null}
-            </p>
+            <div data-atlas-place className="mb-2 text-ink" style={TITLE_SHADOW}>
+              {named.near ? <p className="mb-1 text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">Vicino a</p> : null}
+              <p data-atlas-place-name className={`${TITLE} font-semibold`}>
+                {named.name}
+              </p>
+              {named.detail ? (
+                <p data-atlas-place-detail className={`${TITLE} font-normal text-ink-muted`}>
+                  {named.detail}
+                </p>
+              ) : null}
+              {named.context ? <p className="mt-1.5 text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">{named.context.replaceAll(", ", " \u00b7 ")}</p> : null}
+            </div>
           ) : null}
           <p data-atlas-point-reading className="flex items-baseline gap-3 text-ink">
             <span className="text-[2.5rem] font-semibold leading-none tabular-nums">{Math.round(point.temp)}°</span>

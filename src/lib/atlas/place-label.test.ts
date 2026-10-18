@@ -13,12 +13,17 @@ describe("the name the zoom asks for", () => {
     expect(placeLabel(TORINO, 8)?.name).toBe("città metropolitana di Torino");
     expect(placeLabel(TORINO, 9)?.name).toBe("Torino");
     expect(placeLabel(TORINO, 10.75)?.name).toBe("Torino");
-    expect(placeLabel(TORINO, 11)?.name).toBe("Borgo Vanchiglia");
-    expect(placeLabel(TORINO, 18)?.name).toBe("Borgo Vanchiglia");
+    // from the quarter's zoom the title is the town, with the quarter under it
+    expect(placeLabel(TORINO, 11)).toMatchObject({ name: "Torino", detail: "Borgo Vanchiglia" });
+    expect(placeLabel(TORINO, 18)).toMatchObject({ name: "Torino", detail: "Borgo Vanchiglia" });
+    expect(placeLabel(TORINO, 9)?.detail).toBeNull();
   });
 
   it("only gets more precise as the map comes close, never less", () => {
-    const depth = (z: number) => Object.values(TORINO).indexOf(placeLabel(TORINO, z)!.name);
+    const depth = (z: number) => {
+      const l = placeLabel(TORINO, z)!;
+      return Object.values(TORINO).indexOf(l.detail ?? l.name) + (l.detail ? 0.5 : 0);
+    };
     let last = -1;
     for (let z = 0; z <= 20; z += 0.25) {
       expect(depth(z)).toBeGreaterThanOrEqual(last);
@@ -28,12 +33,13 @@ describe("the name the zoom asks for", () => {
 
   it("puts the coarser places after it, nearest first, as its context", () => {
     expect(placeLabel(TORINO, 9)).toMatchObject({ context: "città metropolitana di Torino, Italia" });
-    expect(placeLabel(TORINO, 11)).toMatchObject({ context: "Torino, città metropolitana di Torino" });
+    expect(placeLabel(TORINO, 11)).toMatchObject({ context: "città metropolitana di Torino, Italia" });
     expect(placeLabel(TORINO, 3)?.context).toBeNull();
   });
 
   it("falls back to the finest level it has when the zoom asks for one it does not know", () => {
-    expect(placeLabel({ country: "Italia", place: "Courmayeur" }, 12)?.name).toBe("Courmayeur");
+    expect(placeLabel({ country: "Italia", place: "Courmayeur" }, 12)).toMatchObject({ name: "Courmayeur", detail: null });
+    expect(placeLabel({ country: "Italia", locality: "Les Praz" }, 12)).toMatchObject({ name: "Les Praz", detail: null });
     expect(placeLabel({ country: "Italia", place: "Courmayeur" }, 6)?.name).toBe("Italia");
     expect(placeLabel({ country: "Italia" }, 14)?.name).toBe("Italia");
   });
@@ -49,6 +55,7 @@ describe("the name the zoom asks for", () => {
     expect(placeLabel(far, 6)?.near).toBe(false);
     expect(placeLabel(far, 3)?.near).toBe(false);
     expect(placeLabel({ ...far, nearKm: 4.9 }, 10)?.near).toBe(false);
+    expect(placeLabel({ ...far, locality: "Entrèves" }, 12)).toMatchObject({ name: "Courmayeur", detail: "Entrèves", near: true });
     expect(placeLabel({ ...far, nearKm: undefined }, 10)?.near).toBe(false);
   });
 });

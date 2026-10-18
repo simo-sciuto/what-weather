@@ -414,7 +414,16 @@ test("the place's name is as precise as the zoom, and zooming asks for nothing m
   await expect(await nameAt(6)).toContainText("Piemonte");
   await expect(await nameAt(9.5)).toContainText("Torino");
   await expect(name).toContainText("Piemonte");
+  // close: the town and the quarter under it, at one size, the town heavier
   await expect(await nameAt(12)).toContainText("Borgo Vanchiglia");
+  await expect(page.locator("[data-atlas-place-name]")).toHaveText("Torino");
+  await expect(page.locator("[data-atlas-place-detail]")).toHaveText("Borgo Vanchiglia");
+  const sizes = await page.evaluate(() => {
+    const css = (sel: string) => getComputedStyle(document.querySelector(sel)!);
+    return { name: css("[data-atlas-place-name]").fontSize, detail: css("[data-atlas-place-detail]").fontSize, nameWeight: css("[data-atlas-place-name]").fontWeight, detailWeight: css("[data-atlas-place-detail]").fontWeight };
+  });
+  expect(sizes.detail).toBe(sizes.name);
+  expect(Number(sizes.nameWeight)).toBeGreaterThan(Number(sizes.detailWeight));
   await expect(name).not.toContainText("Vicino a");
   // back out: the same point, named coarser again; and in all of it one request, the opening one
   await expect(await nameAt(6)).toContainText("Piemonte");
