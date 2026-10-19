@@ -2,6 +2,9 @@
 
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
+## 2026-10-19
+- WTH-278: the poster's shared words name the moment the poster is of (on `claude/poster-share-moment`, not merged): `shareText`, with tests including the day the summer time ends.
+
 ## 2026-10-12
 - The open branches are on `main`: the historical-provider port (WTH-166 licences, WTH-001/002/003 audits, WTH-167 sample records, WTH-168 `HistoricalProvider`), and WTH-185.
 - WTH-206: the poster's SVG embeds only the faces its scene sets text in (Inter Tight and Schibsted Grotesk, not Syne); `sceneFamilies`, filtered `fontFaceCss` and `embeddedFontCss`.

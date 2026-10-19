@@ -171,6 +171,7 @@ Audits:
 
 ## DONE
 
+- [x] WTH-278 The poster's shared words said "il cielo di adesso" whatever moment was chosen on the timeline (found by the UX audit of 2026-10-19, verified in `PosterButton.tsx`): `shareText` (`src/components/poster/share-text.ts`) says adesso only within half an hour of the clock and not for a forecast, otherwise the day and the hour on the place's clock, and that it is a forecast. The shared link still opens the place's weather now: the moment is not in the address until the absolute instant (Atlas M6, ADR-019) is on `main`. Done 2026-10-19 on `claude/poster-share-moment`, not merged.
 Rebuilt on 2026-10-02 from git history (13 commits, 2026-09-24 to 2026-10-01), grouped by theme and ordered by when each theme first appears. Each line says what was done and in which commit; "first build" is `1a90650`, which shipped the whole first version at once. The reasons behind choices are in DECISIONS.md where known; here only what the code and commit messages show.
 
 ### Recenti
