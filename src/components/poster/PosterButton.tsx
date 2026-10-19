@@ -11,6 +11,7 @@ import { usePlace } from "../location/PlaceContext";
 import { useMap } from "../weather/MapContext";
 import { BarTab, GLASS, ICONS, usePhoneNav } from "../layout/PhoneNav";
 import { POSTER_FORMATS, renderPoster, type PosterFormat } from "./render-poster";
+import { shareText } from "./share-text";
 import { usePosterSnapshot, type PosterSnapshot } from "./usePosterSnapshot";
 
 type Drawn =
@@ -119,7 +120,10 @@ export function PosterButton({
       type: "image/png",
     });
     const url = new URL(placeHref(place), window.location.origin).toString();
-    const text = `${place.name}, il cielo di adesso in un poster. Il meteo è qui:`;
+    // The words say which moment the poster is of: the one on its snapshot, not always now
+    const text = snapshot
+      ? shareText(place.name, { time: snapshot.time, timeZone: snapshot.timeZone, allDay: snapshot.allDay, forecast: snapshot.record.forecast }, Math.floor(Date.now() / 1000))
+      : `${place.name}, il cielo di adesso in un poster. Il meteo è qui:`;
     const title = `${place.name} · what-weather`;
     const withFile = { files: [file], title, text, url };
     const message = { title, text, url };
