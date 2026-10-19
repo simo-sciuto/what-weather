@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { centrePoint } from "../src/lib/atlas/center";
-import { centre, centreCell, crosshairAndMapCentres, movementEnded, openAtlas, pointRequests, recordRequests, strayRequests, zoom } from "./atlas-helpers";
+import { centre, centreCell, crosshairAndMapCentres, fieldRequests, movementEnded, openAtlas, pointRequests, recordRequests, strayRequests, zoom } from "./atlas-helpers";
 
 /*
  * M3 and M4: /atlas, a free map and the weather of the point it rests on. These tests check its structure and its
@@ -622,6 +622,83 @@ test("the address is pushed only for the city that was searched for: a later sto
   await expect(page.locator("[data-atlas-point]")).not.toContainText("41,89° N · 12,48° E", { timeout: 15_000 });
   await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting");
   expect(await page.evaluate(() => history.length)).toBe(length);
+});
+
+const fieldPixel = (page: import("@playwright/test").Page, x: number, y: number) =>
+  page.evaluate(([px, py]) => Array.from(window.__atlasField!.canvas.getContext("2d")!.getImageData(px, py, 1, 1).data), [x, y]);
+
+test("the weather field is under the map's lines, in the colours of the weather of different places, and says what it is", async ({ page }) => {
+  const seen = recordRequests(page);
+  await openAtlas(page);
+  // under every line of the map: its layer is the first of the style
+  const order = await page.evaluate(() => (window.__atlas!.map as unknown as { getStyle: () => { layers: { id: string }[] } }).getStyle().layers.map((l) => l.id));
+  expect(order[0]).toBe("atlas-weather-field");
+  // and lightly over them all, so the roads and the water take the colour of the weather of their place
+  expect(order.at(-1)).toBe("atlas-weather-tint");
+  expect(fieldRequests(seen.urls)).toHaveLength(1);
+  // the sample field is cooler to the north and cloudy in the west: the four corners are not one colour, and it fades between them
+  const { width, height } = await page.evaluate(() => ({ width: window.__atlasField!.canvas.width, height: window.__atlasField!.canvas.height }));
+  const [nw, ne, sw, se, mid] = await Promise.all([fieldPixel(page, 2, 2), fieldPixel(page, width - 3, 2), fieldPixel(page, 2, height - 3), fieldPixel(page, width - 3, height - 3), fieldPixel(page, width / 2, height / 2)]);
+  const apart = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  expect(apart(nw, se)).toBeGreaterThan(20);
+  expect(apart(nw, ne)).toBeGreaterThan(8);
+  expect(apart(nw, sw)).toBeGreaterThan(8);
+  // the middle is between the corners, not one of them: the colours fade, they do not step
+  expect(apart(mid, nw)).toBeGreaterThan(3);
+  expect(apart(mid, se)).toBeGreaterThan(3);
+  expect(nw[3]).toBe(255);
+  // and a line says what the colours are and how far apart the places are
+  const note = page.locator("[data-atlas-field-note]");
+  await expect(note).toContainText("Dati di esempio");
+  await expect(note).toContainText("modello, sfumato tra punti a circa");
+  await expect(note).toContainText("km");
+});
+
+test("the field is asked for once on opening, never while the map moves, and again only when a stop needs other places", async ({ page }) => {
+  const seen = recordRequests(page);
+  await openAtlas(page);
+  expect(fieldRequests(seen.urls)).toHaveLength(1);
+  // held still with the button down, well beyond the quiet: nothing
+  await page.mouse.move(500, 400);
+  await page.mouse.down();
+  await page.mouse.move(520, 410, { steps: 4 });
+  await page.waitForTimeout(1500);
+  expect(fieldRequests(seen.urls)).toHaveLength(1);
+  await page.mouse.up();
+  // a small nudge: the same places, so the same field, and no request
+  await movementEnded(page);
+  await page.waitForTimeout(3000);
+  expect(fieldRequests(seen.urls)).toHaveLength(1);
+  // to another country at another zoom: other places, one more request, and a new drawing
+  const draws = await page.evaluate(() => window.__atlasField!.draws);
+  await page.evaluate(() => window.__atlas!.port.jumpTo({ lng: -3.7, lat: 40.4, zoom: 5 }));
+  await expect.poll(() => fieldRequests(seen.urls).length, { timeout: 15_000 }).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.__atlasField!.draws), { timeout: 15_000 }).toBeGreaterThan(draws);
+  // the point's own weather is still its own business: one request for the point of each stop
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
+  await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-map-creations", "1");
+});
+
+test("a field that cannot be had leaves the map as it is, with no layer and no note", async ({ page }) => {
+  await page.route("**/api/atlas/field*", (route) => route.fulfill({ status: 502, contentType: "application/json", body: '{"error":"x"}' }));
+  await page.goto("/atlas");
+  await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => !!window.__atlasField)).toBe(false);
+  expect(await page.evaluate(() => (window.__atlas!.map as unknown as { getLayer: (id: string) => unknown }).getLayer("atlas-weather-field"))).toBeUndefined();
+  await expect(page.locator("[data-atlas-field-note]")).toHaveCount(0);
+  await expect(page.locator("canvas.mapboxgl-canvas")).toHaveCount(1);
+});
+
+test("the map's own colours and layers can be changed and the field stays under them", async ({ page }) => {
+  await openAtlas(page);
+  await page.getByRole("button", { name: "La mappa: colori e strati" }).click();
+  await page.getByRole("dialog", { name: "La mappa" }).getByLabel("Tinta").fill("150");
+  await page.getByRole("dialog", { name: "La mappa" }).getByRole("button", { name: "Edifici", exact: true }).click();
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => (window.__atlas!.map as unknown as { getStyle: () => { layers: { id: string }[] } }).getStyle().layers[0].id)).toBe("atlas-weather-field");
+  await page.getByRole("button", { name: "Torna agli automatici" }).click();
 });
 
 test("the home page is not the Atlas, and the Atlas is not offered to search engines", async ({ page }) => {

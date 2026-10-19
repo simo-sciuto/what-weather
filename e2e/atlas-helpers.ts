@@ -29,6 +29,7 @@ declare global {
   interface Window {
     __atlas?: AtlasProbe;
     renders?: Record<string, number>;
+    __atlasField?: { canvas: HTMLCanvasElement; draws: number; field: { step: number; provider: string; lats: number[]; lons: number[] } };
     next?: { router: { push: (href: string) => void; replace: (href: string) => void; back: () => void } };
   }
 }
@@ -47,6 +48,8 @@ export async function openAtlas(page: Page): Promise<void> {
   // The first point (M4) arrives on opening: wait for it, so every test starts with the map still and nothing in flight
   await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting");
+  // and the first weather field (WTH-272), so nothing is in flight when a test begins
+  await page.waitForFunction(() => !!window.__atlasField, null, { timeout: 30_000 });
 }
 
 /** The requests to the Atlas's own point route among `urls`, as the cells they ask for */
@@ -58,8 +61,12 @@ export const pointRequests = (urls: string[]) =>
       return { lat: Number(q.get("lat")), lon: Number(q.get("lon")) };
     });
 
-/** What is neither a point request nor the router's own refresh of the address (`?_rsc=`, after a point has arrived) */
-export const strayRequests = (urls: string[]) => urls.filter((u) => new URL(u).pathname !== "/api/atlas/point" && !/[?&]_rsc=/.test(u) && new URL(u).pathname !== "/icon.png");
+/** The requests to the weather field's route among `urls` */
+export const fieldRequests = (urls: string[]) => urls.filter((u) => new URL(u).pathname === "/api/atlas/field");
+
+/** What is neither a point request, a field request nor the router's own refresh of the address (`?_rsc=`, after a point has arrived) */
+export const strayRequests = (urls: string[]) =>
+  urls.filter((u) => !["/api/atlas/point", "/api/atlas/field", "/icon.png"].includes(new URL(u).pathname) && !/[?&]_rsc=/.test(u));
 
 /** The cell the map's centre falls in, as the Atlas rounds it */
 export const centreCell = (page: Page) =>

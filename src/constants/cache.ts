@@ -41,3 +41,7 @@ export const CACHE_CONTROL = {
   /** An answer that is different every time */
   noStore: "no-store",
 } as const;
+
+/** Open-Meteo refreshes its current conditions every quarter of an hour: the weather field is kept as long, and dropped after the data's own age limit. */
+export const FIELD_REVALIDATE_SECONDS = 15 * MINUTE_SECONDS;
+

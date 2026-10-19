@@ -1,11 +1,13 @@
 "use client";
 
 import type { CameraPort, PointSky } from "@/types/atlas";
+import type { Map as MapboxMap } from "mapbox-gl";
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { Wordmark } from "../Wordmark";
 import { AtlasMap } from "./AtlasMap";
 import { AtlasMapPanel } from "./AtlasMapPanel";
+import { WeatherFieldLayer } from "./WeatherFieldLayer";
 import { AtlasSearch } from "./AtlasSearch";
 import { ATLAS_SKY, paletteVars } from "./atlas-look";
 import { countRender } from "./atlas-test";
@@ -25,6 +27,7 @@ import { useAtlasEngine } from "./useAtlasEngine";
 export function AtlasShell({ children }: { children: ReactNode }) {
   countRender("shell");
   const [port, setPort] = useState<CameraPort | null>(null);
+  const [map, setMap] = useState<MapboxMap | null>(null);
   const [sky, setSky] = useState<PointSky>(ATLAS_SKY);
   // The map panel and the search share the right of the screen: opening the search puts the panel away
   const [panelOpen, setPanelOpen] = useState(false);
@@ -33,7 +36,8 @@ export function AtlasShell({ children }: { children: ReactNode }) {
 
   return (
     <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={vars}>
-      <AtlasMap onPort={setPort} sky={sky} />
+      <AtlasMap onPort={setPort} onMap={setMap} sky={sky} />
+      <WeatherFieldLayer map={map} port={port} />
       <SkyDriver port={port} engine={engine} onSky={setSky} />
       <Crosshair port={port} />
       <Link

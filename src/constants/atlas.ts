@@ -53,3 +53,21 @@ export const SEARCH_ZOOM = 10.5;
 export const FLIGHT_MIN_MS = 1400;
 export const FLIGHT_MAX_MS = 4200;
 
+/**
+ * The weather field across the map (WTH-272): the colour of the weather of many places at once, drawn under the map's
+ * lines and fading from one place to the next. One request asks Open-Meteo for a lattice of points over what is in view;
+ * the lattice sits on a fixed grid of whole steps (so the same view, and its neighbours, share one cache entry) and
+ * never has more than `FIELD_MAX_POINTS` points (each point is one call on Open-Meteo's meter). PROVISIONAL: the cap,
+ * the steps, the opacities and the colours' richness are first guesses for the user's eyes, and the quota
+ * is undecided (WTH-212, WTH-269).
+ */
+export const FIELD_MAX_POINTS = 48;
+/** The steps a lattice may have, in degrees, from fine to coarse: the finest is about the resolution of the models */
+export const FIELD_STEPS = [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64] as const;
+/** How opaque the field is under the map's lines: the sky of the page shows through a little, and while it is not there */
+export const FIELD_OPACITY = 0.9;
+/** How strongly the same colours are laid over the map's own lines and water, so the roads and the sea take the colour of the weather of the place they are in */
+export const FIELD_TINT_OPACITY = 0.38;
+/** The pixels of the image the field is drawn into: the map stretches it, smoothly, over what is in view */
+export const FIELD_IMAGE = { width: 192, height: 144 } as const;
+

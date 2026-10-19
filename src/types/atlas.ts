@@ -113,3 +113,23 @@ export type PointSky = Pick<SkyPalette, "sky1" | "sky2" | "sky3" | "glass" | "gl
 
 /** What asking for a point comes to */
 export type PointResult = { ok: true; point: AtlasPoint } | { ok: false; reason: FailureReason };
+
+/** A box on the map, in degrees */
+export type Bounds = { west: number; south: number; east: number; north: number };
+
+/** A lattice of points on a fixed grid: `lats` from the south, `lons` from the west, a point is `lats[i]`, `lons[j]` at index `i * lons.length + j` */
+export type Lattice = { step: number; lats: number[]; lons: number[] };
+
+/**
+ * The weather of a lattice of places as colours (`/api/atlas/field`, WTH-272): one colour and one temperature per point,
+ * in the lattice's order. The colour is the weather's tone from the atmosphere engine, tinted by the temperature's scale;
+ * it is a model's reading, interpolated between the points when drawn, never a measurement.
+ */
+export type WeatherField = Lattice & {
+  provider: string;
+  /** The hour of the reading, Unix seconds */
+  time: number;
+  colors: string[];
+  temps: number[];
+};
+

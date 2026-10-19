@@ -50,16 +50,18 @@ type Probe = { map?: MapboxMap; port?: MapboxCameraPort; events?: CameraEvent[] 
  * for any weather. The drawing is the home page's own (`STYLE`, `syncMap`, the viewer's layers and tuning), over the sky
  * of the shell; Mapbox's attribution and logo stay where its control puts them.
  */
-export function AtlasMap({ onPort, sky }: { onPort: (port: MapboxCameraPort | null) => void; sky: PointSky }) {
+export function AtlasMap({ onPort, onMap, sky }: { onPort: (port: MapboxCameraPort | null) => void; onMap?: (map: MapboxMap | null) => void; sky: PointSky }) {
   countRender("map");
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const portRef = useRef(onPort);
+  const mapCb = useRef(onMap);
   const [state, setState] = useState<"loading" | "ready" | "none" | "failed">(TOKEN || ATLAS_TEST_MAP ? "loading" : "none");
   const { inks, options } = useAtlasMapLook(sky);
 
   useEffect(() => {
     portRef.current = onPort;
+    mapCb.current = onMap;
   });
 
   useEffect(() => {
@@ -109,7 +111,10 @@ export function AtlasMap({ onPort, sky }: { onPort: (port: MapboxCameraPort | nu
 
         portRef.current(port);
         map.once("idle", () => {
-          if (!cancelled) setState("ready");
+          if (cancelled) return;
+          setState("ready");
+          // The style is drawn: what is laid under its lines (the weather field) can be added
+          mapCb.current?.(map ?? null);
         });
         // A style that fails to load falls back; a stray tile error once it is drawn does not
         map.on("error", () => {
@@ -126,6 +131,7 @@ export function AtlasMap({ onPort, sky }: { onPort: (port: MapboxCameraPort | nu
       map?.remove();
       mapRef.current = null;
       portRef.current(null);
+      mapCb.current?.(null);
       if (ATLAS_TEST_MAP) delete (window as unknown as { __atlas?: Probe }).__atlas;
     };
   }, []);
