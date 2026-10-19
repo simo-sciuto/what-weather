@@ -1,6 +1,6 @@
 # ATLAS PLAN
 
-Status: **advisory checkpoint of 2026-10-14 for WTH-226. Nothing here is approved for development.** The five product decisions on the WTH-226 board line are APPROVED (the user, 2026-10-14) and are the source of truth; everything marked RECOMMENDATION is the `architect`'s and waits for the user. Read ADR-018 first.
+Status: **advisory checkpoint of 2026-10-14 for WTH-291. Nothing here is approved for development.** The five product decisions on the WTH-291 board line are APPROVED (the user, 2026-10-14) and are the source of truth; everything marked RECOMMENDATION is the `architect`'s and waits for the user. Read ADR-027 first.
 
 M0 (the spikes) ran on 2026-10-14: see docs/atlas-spikes/REPORT.md. It confirms some of the claims below, amends two (the preflight's cache sharing on serverless, and `originalEvent` as a user-move marker) and leaves S1, S2, S4 and the live part of S6 open. Its recommendations are not yet approved.
 
@@ -26,7 +26,7 @@ Spot-checked by the main session on 2026-10-14: `placeKey` (page.tsx:111, :121),
 ## 2. Proposed architecture (RECOMMENDATION, incremental, no rewrite)
 
 1. **Five state holders, one writer each:** camera (the Mapbox instance, mirrored in a non-React store), candidate point (client controller), loaded point (the server render, props: the truth), selected geographic element (client store), time selection (client store, absolute instant).
-2. **The atlas on a separate route**, sharing components, with `/` untouched. Reason: ADR-013 pauses layout work and ADR-018 keeps the pause; a free map changes the interaction grammar (wheel and finger). A separate route is also the rollback.
+2. **The atlas on a separate route**, sharing components, with `/` untouched. Reason: ADR-013 pauses layout work and ADR-027 keeps the pause; a free map changes the interaction grammar (wheel and finger). A separate route is also the rollback.
 3. **The map is created once** (its effect independent of the weather point). Camera commands are explicit (search, "Esplora qui", saved place). Only the chapter subtree is keyed by place, not the providers or the map.
 4. **Commit pipeline "preflight then navigate".** On settle, a cheap abortable request (a route that calls `weatherFor` with identical arguments, so it shares the cache entry; `/api/summary` is the precedent). On success, `startTransition(() => router.replace(href, { scroll: false }))`; the server render then hits a warm cache. On failure or timeout the previous data stays, the status is `failed`, and a manual "Riprova" is offered. Reason: a server-component throw during a navigation goes to `app/error.tsx` and would replace the atlas content, and a network failure of the RSC fetch may fall back to a full page load (UNVERIFIED, spike S3). Fallback if S3 or S4 fail: a light JSON route feeding the shell, chapters loaded lazily (a bigger change, not recommended up front).
 5. **Time becomes an instant**, with an adapter that keeps the `useMoment()` shape for its 12 consumers.
@@ -132,7 +132,7 @@ type PointWeather =
 
 **Phase 3:** Q1 phase B (per-lattice grid with a client memo snapped to the lattice, zoom gating, a local luminosity field, fallback to A, after S9); Q2 lakes and rivers detail. Left out: "Segui il corso", trails, the past mode.
 
-ADR proposals (not written): ADR-019 time is an absolute instant (amends ADR-008); ADR-020 camera, candidate and loaded point, commit on settle (amends ADR-003); ADR-021 the atlas route and the pause (amends ADR-013, ADR-018); ADR-022 the light point-weather cache unit keyed on cell and elevation, Open-Meteo only (extends ADR-005); ADR-023 geographic elements: identification, provenance, licence stance on tile attributes (touches ADR-009).
+ADR proposals (not written): ADR-019 time is an absolute instant (amends ADR-008); ADR-020 camera, candidate and loaded point, commit on settle (amends ADR-003); ADR-021 the atlas route and the pause (amends ADR-013, ADR-027); ADR-022 the light point-weather cache unit keyed on cell and elevation, Open-Meteo only (extends ADR-005); ADR-023 geographic elements: identification, provenance, licence stance on tile attributes (touches ADR-009).
 
 ## 6. Approval checkpoints and rollback
 
@@ -176,7 +176,7 @@ ADR proposals (not written): ADR-019 time is an absolute instant (amends ADR-008
 | S7 | Mapbox semantics | scratch: `getCenter()` with `setPadding`, `moveend` after inertia, `originalEvent` for user moves only, `idle` timing, max pitch | each answer recorded; if `getCenter` is not at the pin the crosshair maths changes | browser |
 | S8 | One transition clock | register the other variables, set the style `transition`; sample over time | all three end within 100 ms of each other | browser |
 | S9 | Phase B feasibility | prototype a local luminosity field from the 49 points; run the legibility tests; measure mobile cost | legibility holds; at least 50 fps on Pixel 7 | device |
-| S10 | Quiet threshold | instrument the gap between `moveend` and the next `movestart` in the WTH-227 sessions | pick about the p80 of re-start gaps | real sessions |
+| S10 | Quiet threshold | instrument the gap between `moveend` and the next `movestart` in the WTH-292 sessions | pick about the p80 of re-start gaps | real sessions |
 
 ## 9. Acceptance criteria (testable)
 
@@ -229,4 +229,4 @@ Unverified (and how): OpenWeather One Call 4.0's hourly horizon and elevation su
 
 ## 13. Found outside the task (on the board, not implemented)
 
-See WTH-228 to WTH-232.
+See WTH-293 to WTH-297.

@@ -1,4 +1,4 @@
-# M0 REPORT: technical spikes for WTH-226
+# M0 REPORT: technical spikes for WTH-291
 
 Date: 2026-10-14. Authorized by the user the same day (approval of the architecture plan, M0 only). Scope: spikes S0, S1, S3, S6, S7 and S2 (only if a real-device test was possible), no S4. No change to the application code, to `main` or to Create; no deploy, no merge; M1 and M2 not started. Everything ran in scratch directories outside the repository. Raw results are in `results/`, the scripts in `scripts/` (each `.txt` file is a source file: remove the suffix to run it, see "Reproduce" at the end).
 

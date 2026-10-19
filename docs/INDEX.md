@@ -13,7 +13,7 @@ CLAUDE.md (loaded automatically), docs/PROJECT_STATE.md, docs/BOARD.md
 | Anything that touches an earlier decision | DECISIONS.md |
 | Weather Visual Engine: V1 plan, subtask scope, atmospheric grammar | WEATHER_VISUAL_ENGINE.md, DECISIONS.md |
 | The app's areas (Meteo, Territorio, Record), where a new feature goes | APP_AREAS.md, ROADMAP.md |
-| The atlas hypothesis, free map, camera / weather point / time state, WTH-226 | ATLAS_PLAN.md, DECISIONS.md (ADR-018), BOARD.md (WTH-226), atlas-spikes/REPORT.md, ATLAS_M3_REVIEW.md (manual review of /atlas) |
+| The atlas hypothesis, free map, camera / weather point / time state, WTH-291 | ATLAS_PLAN.md, DECISIONS.md (ADR-027), BOARD.md (WTH-291), atlas-spikes/REPORT.md, ATLAS_M3_REVIEW.md (manual review of /atlas) |
 | Selling records: data, map and hosting licences | LICENCES.md, ROADMAP.md |
 | Selling records, licences, providers' terms (ADR-013, WTH-166) | LICENCES.md, DECISIONS.md |
 | The validation page and its sample records (WTH-167) | RECORDS_SAMPLES.md, LICENCES.md |

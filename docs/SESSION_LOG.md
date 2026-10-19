@@ -30,7 +30,7 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 
 ## 2026-10-15 (Atlas M3 validation gate)
 - Worked on: the gate on the user's Mac: full unit, lint, typecheck, e2e (36), the public-build check of `persistence-check`, a real-token smoke test (no screenshots), the board id check. Details in `docs/ATLAS_M3_REVIEW.md`.
-- Found: the branch had been pushed to origin by a stop hook, not authorized, and Vercel built a protected preview of `50b2903`; board ids 234 to 236 (and 225 to 233, ADR-018) collide with `main`: mine renumbered to 262 to 264, the rest is WTH-265.
+- Found: the branch had been pushed to origin by a stop hook, not authorized, and Vercel built a protected preview of `50b2903`; board ids 234 to 236 (and 225 to 233, ADR-027) collide with `main`: mine renumbered to 262 to 264, the rest is WTH-265.
 - Not verified: how the map looks (the user's eyes), Safari, a real phone, screen readers.
 
 ## 2026-10-14 (Atlas M3)
@@ -40,7 +40,7 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Validation gate: full suites re-run (517 unit, 36 e2e), public build checked for diagnostics, soft 404 analysed, focus ring and crosshair padding covered, board ids 234 to 236 confirmed unused, review sheet written. No push, to avoid a Vercel preview.
 - Next: the user's manual review of /atlas with the real token; M4 not started.
 
-## 2026-10-14 (Atlas direction and foundation, WTH-226)
+## 2026-10-14 (Atlas direction and foundation, WTH-291)
 - Worked on: the Atlas hypothesis (the map as the product): five product decisions with the user (place, colour, geography, time, cards), the architect's plan (`docs/ATLAS_PLAN.md`), the M0 spikes (`docs/atlas-spikes/REPORT.md`), then M1 (absolute time, ADR-019) and M2 (camera port and settle controller, ADR-020) on `claude/atlas-foundation`, each reviewed by the `reviewer` (no blocking findings; the important ones fixed). The artifact of the session holds the decisions, the Move / Explore / Keep proposals and the design system trials.
 - Decided by the user: the route `/atlas` ("Esplora la mappa"), free points keep their coordinates and no borrowed city name, URL replace after a stop and push for search, natural map gestures on a phone, R1 to R9 accepted. M3 and M4 not authorized.
 - Found on the way: the Next docs say serverless `use cache` entries do not persist across requests (R2 open); a wheel zoom carries no `originalEvent`; `tsc` needs `next typegen` first (`LayoutProps`). The code branch is local only: the user excluded an application push.

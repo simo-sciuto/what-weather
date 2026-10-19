@@ -8,13 +8,13 @@ what-weather, a calm weather web app styled as a Swiss poster. Next.js 16 / Reac
 ## Direction
 Set by the user 2026-10-04 (ROADMAP.md, ADR-013): Visual Weather Records. Free daily app as shop window, records of meaningful moments as the paid product. Live-app layout work paused.
 
-Hypothesis added by the user 2026-10-14 (ADR-018): the map itself may be the product (an interactive atmospheric atlas), posters a complementary function. Under study and to be tested with more people (WTH-225 to WTH-227); the Create redesign is frozen on its own branch, outside `main`.
+Hypothesis added by the user 2026-10-14 (ADR-027): the map itself may be the product (an interactive atmospheric atlas), posters a complementary function. Under study and to be tested with more people (WTH-290 to WTH-292); the Create redesign is frozen on its own branch, outside `main`.
 
 ## Phase
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
-WTH-226, the Atlas, on the local branch `claude/atlas-foundation`: M0 to M5, the place name (ADR-024), the title as option C, the city search with a flight and the home's map controls (ADR-025), and, as the user asked on 2026-10-19, the weather field: the map and its roads coloured by the weather of many places, fading between them (ADR-026, WTH-272). All awaiting the user's look on a computer and a phone. The branch on origin is at `50b2903` (pushed by a stop hook, not authorized; a Vercel preview exists), without everything since. Open: the contrast of white text over a bright field and the other field follow-ups (WTH-277), the quota of Open-Meteo calls (WTH-212, WTH-269), board and ADR ids that collide with `main` (WTH-265), the real phone, Safari.
+WTH-291, the Atlas, on the local branch `claude/atlas-foundation`: M0 to M5, the place name (ADR-024), the title as option C, the city search with a flight and the home's map controls (ADR-025), and, as the user asked on 2026-10-19, the weather field: the map and its roads coloured by the weather of many places, fading between them (ADR-026, WTH-272). All awaiting the user's look on a computer and a phone. The branch on origin is at `50b2903` (pushed by a stop hook, not authorized; a Vercel preview exists), without everything since. Open: the contrast of white text over a bright field and the other field follow-ups (WTH-277), the quota of Open-Meteo calls (WTH-212, WTH-269), board and ADR ids that collide with `main` (WTH-265), the real phone, Safari.
 
 ## Last checkpoint
 WTH-168 (the historical provider, branch `rebase-local-unpushed-2026-10-12` on `main`, reviewed, committed with this note): `openmeteo-archive.ts`, `HistoricalProvider`, `WeatherData.reconstruction` (ADR-016; `reanalysis` for ERA5, `forecast-archive` for the IFS from 2017), 21 tests on a real recorded answer. Next on the Records track: WTH-167 (the validation page, which needs sample records made with this provider and Open-Meteo's commercial plan before any promotion), WTH-169 onwards only if 167 says people want records; WTH-219 and WTH-220 (Mapbox) are the user's.

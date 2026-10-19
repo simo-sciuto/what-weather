@@ -1,7 +1,7 @@
 import type { Camera, CameraEvent, CameraOrigin, CameraPort, CameraTarget } from "@/types/atlas";
 
 /**
- * A camera port with no map behind it, for tests (and the seam a map-less end-to-end test will need, WTH-230). The test
+ * A camera port with no map behind it, for tests (and the seam a map-less end-to-end test will need, WTH-295). The test
  * plays the person with `user`; the port's own commands move the camera at once as `program`.
  */
 export type FakeCameraPort = CameraPort & {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AtlasShell } from "@/components/atlas/AtlasShell";
 
 /**
- * The Atlas, an experiment on its own route (ADR-018, ADR-020): the map, free. The shell with the map lives here, in the
+ * The Atlas, an experiment on its own route (ADR-027, ADR-020): the map, free. The shell with the map lives here, in the
  * layout, so it is made once and the content of the route comes and goes inside it. The home page is not touched.
  */
 export const metadata: Metadata = {
