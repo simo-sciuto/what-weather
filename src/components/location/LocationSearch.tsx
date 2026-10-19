@@ -1,6 +1,7 @@
 "use client";
 
 import { fetchPlaces } from "@/lib/api/places";
+import { trackOnce } from "@/lib/analytics/analytics";
 import { placeHref, samePlace } from "@/lib/place";
 import type { PlaceRef } from "@/types/place";
 import { clearRecent } from "@/lib/recent-places";
@@ -197,6 +198,7 @@ export function LocationSearch() {
     setOpen(false);
     setQuery("");
     inputRef.current?.blur();
+    trackOnce("explore", { source: "search" });
     startTransition(() => router.push(placeHref(ref)));
   }
 

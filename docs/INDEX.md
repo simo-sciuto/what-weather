@@ -17,6 +17,9 @@ CLAUDE.md (loaded automatically), docs/PROJECT_STATE.md, docs/BOARD.md
 | Selling records: data, map and hosting licences | LICENCES.md, ROADMAP.md |
 | Selling records, licences, providers' terms (ADR-013, WTH-166) | LICENCES.md, DECISIONS.md |
 | The validation page and its sample records (WTH-167) | RECORDS_SAMPLES.md, LICENCES.md |
+| Competitors, prices, the three directions of Create (WTH-231, ADR-018) | COMPETITORS.md, ROADMAP.md |
+| Create: the editor, `CreateRecord`, preview and export (WTH-232 to WTH-240) | CREATE_SPEC.md, COMPETITORS.md |
+| Product validation with people, the protocol and its decisions (WTH-227) | UX_VALIDATION_PROTOCOL.md, ROADMAP.md |
 | Planning, "what next" | ROADMAP.md, BOARD.md |
 | "What did we do" | CHANGELOG.md, SESSION_LOG.md |
 

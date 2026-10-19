@@ -295,6 +295,17 @@ describe("over the site's own map: the name as a hole on the grid, the facts in 
     expect(line(raster("oslo"))).toEqual(["© MAPBOX © OPENSTREETMAP"]);
   });
 
+  it("says on the record that a moment is a forecast, and leaves the current conditions' line as it was (WTH-236)", () => {
+    const credits = (s: RecordScene) => s.layers.find((l) => l.id === "credits")!.payload;
+    const line = (s: RecordScene) => {
+      const p = credits(s);
+      return p.kind === "text" ? p.lines.map((x) => x.text) : [];
+    };
+    expect(line(raster("oslo", { forecast: true }))).toEqual(["PREVISIONE   © MAPBOX © OPENSTREETMAP"]);
+    expect(line(raster("oslo", { forecast: true, credit: "WEATHER DATA OPEN-METEO.COM" }))).toEqual(["PREVISIONE   WEATHER DATA OPEN-METEO.COM   © MAPBOX © OPENSTREETMAP"]);
+    expect(line(raster("oslo", { forecast: false }))).toEqual(["© MAPBOX © OPENSTREETMAP"]);
+  });
+
   it("marks the city with a red ring and a white line out to its coordinates", () => {
     const s = raster("oslo");
     const node = s.layers.find((l) => l.id === "node-city")!;

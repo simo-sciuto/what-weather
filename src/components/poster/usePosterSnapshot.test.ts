@@ -98,6 +98,15 @@ describe("the poster's snapshot", () => {
     expect(input(timeline.days[timeline.days.length - 1].overview).provenance).toBeUndefined();
   });
 
+  it("marks a forecast on the record, and leaves the current conditions unmarked (WTH-236)", async () => {
+    const { data, timeline } = await sources();
+    const frame = timeline.frames[3];
+    const input = (forecast?: boolean) => recordInputOf({ place: data.place, frame, timeZone: data.timezone, forecast });
+    expect(input(true).forecast).toBe(true);
+    expect(input(false).forecast).toBeUndefined();
+    expect(input().forecast).toBeUndefined();
+  });
+
   it("carries the weather data's credit to the record, and none for sample data (WTH-212)", async () => {
     const { data, timeline } = await sources();
     const frame = timeline.frames[0];

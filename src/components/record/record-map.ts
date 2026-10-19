@@ -6,6 +6,7 @@ import type { Mapbox } from "@/types/map";
 import type { MapLayer, SkyPalette } from "@/types/palette";
 import { STYLE, syncMap } from "../weather/map-style";
 import { BASE_ZOOM } from "../weather/map-view";
+import { PosterError, mapFailureOf, webglAvailable } from "@/lib/record/poster-errors";
 import { seaGrid } from "./sea-grid";
 
 /**
@@ -110,7 +111,7 @@ function mapZoom(W: number, H: number, lat: number, viewZoom: number): number {
 
 const idle = (map: MapboxMap) =>
   new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Map timed out")), MAP_TIMEOUT_MS);
+    const timer = setTimeout(() => reject(new PosterError("timeout")), MAP_TIMEOUT_MS);
     map.once("idle", () => {
       clearTimeout(timer);
       resolve();
@@ -145,7 +146,13 @@ function overShadow(lines: HTMLCanvasElement): HTMLCanvasElement {
 /** Both pictures, as PNG data URLs, for `renderSvg`'s `images` */
 export async function drawRecordMap(o: RecordMapInput): Promise<{ map: string; "map-cut": string }> {
   const { width: W, height: H } = o;
-  const mapboxgl = await o.loadMapbox();
+  if (!webglAvailable()) throw new PosterError("webgl");
+  let mapboxgl: Mapbox;
+  try {
+    mapboxgl = await o.loadMapbox();
+  } catch (cause) {
+    throw new PosterError("map-unreachable", { cause });
+  }
   const [cssW, cssH] = [W / PIXEL_RATIO, H / PIXEL_RATIO];
   const box = document.createElement("div");
   box.setAttribute("aria-hidden", "true");
@@ -177,14 +184,14 @@ export async function drawRecordMap(o: RecordMapInput): Promise<{ map: string; "
     });
     const m = map;
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Map timed out")), MAP_TIMEOUT_MS);
+      const timer = setTimeout(() => reject(new PosterError("timeout")), MAP_TIMEOUT_MS);
       m.once("load", () => {
         clearTimeout(timer);
         resolve();
       });
       m.once("error", (e) => {
         clearTimeout(timer);
-        reject(e.error ?? new Error("Map failed"));
+        reject(new PosterError(mapFailureOf(e.error), { cause: e.error }));
       });
     });
 

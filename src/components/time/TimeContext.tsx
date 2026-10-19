@@ -2,7 +2,9 @@
 
 import type { TimeSelection } from "@/types/time";
 import type { DayLabel, DayTimeline, Frame, Timeline } from "@/types/timeline";
+import { trackOnce } from "@/lib/analytics/analytics";
 import { frameLook, type FrameLook } from "@/lib/weather/look";
+import type { MomentStart } from "@/lib/weather/moment";
 import {
   NOW_SELECTION,
   indexForSelection,
@@ -76,17 +78,29 @@ const TimelineContext = createContext<TimelineState | null>(null);
 const ViewContext = createContext<ViewState | null>(null);
 const MomentContext = createContext<MomentState | null>(null);
 
+/** The selection a page opens on: "Adesso", or the moment Create was opened on (its day, if it is not today, and the hour in that day) */
+function startSelection(timeline: Timeline, start?: MomentStart | null): TimeSelection {
+  if (!start) return NOW_SELECTION;
+  const day = start.day ? timeline.days.find((d) => d.key === start.day) : undefined;
+  const frames = day ? (day.hours.length ? day.hours.map((i) => timeline.frames[i]) : [day.overview]) : timeline.frames.slice(0, NEXT_HOURS + 1);
+  return selectionForIndex(frames, start.index, day !== undefined);
+}
+
 /**
  * The moment is held as a selection, "Adesso" or an absolute instant, and the indices the page's components speak
  * in (`index`, `setIndex`) are worked out from it against the frames on show, so every component keeps the contract
  * it always had. "Adesso" is the page's live reading, which the refresh keeps current.
+ *
+ * `start`: the moment the page opens on, when it is not the current one (Create, WTH-236). Absent, the page opens on
+ * the current conditions, as Explore always has.
  */
-export function TimeProvider({ timeline, moon, children }: { timeline: Timeline; moon: Moon; children: ReactNode }) {
-  const [view, setView] = useState<View>({ kind: "now" });
-  const [selection, setSelection] = useState<TimeSelection>(NOW_SELECTION);
+export function TimeProvider({ timeline, moon, start, children }: { timeline: Timeline; moon: Moon; start?: MomentStart | null; children: ReactNode }) {
+  const [view, setView] = useState<View>(() => (start?.day ? { kind: "day", key: start.day } : { kind: "now" }));
+  const [selection, setSelection] = useState<TimeSelection>(() => startSelection(timeline, start));
 
   const selectDay = useCallback(
     (key: string) => {
+      trackOnce("explore", { source: "day" });
       const target = timeline.days.find((d) => d.key === key);
       if (!target || target.isToday) {
         setView({ kind: "now" });
@@ -121,6 +135,7 @@ export function TimeProvider({ timeline, moon, children }: { timeline: Timeline;
   // call it after a view change has rendered, not in the same handler as `selectDay` or `backToNow`.
   const setIndex = useCallback(
     (i: number) => {
+      trackOnce("explore", { source: "scrub" });
       const next = selectionForIndex(frames, i, day !== null);
       setSelection((prev) => (sameSelection(prev, next) ? prev : next));
     },

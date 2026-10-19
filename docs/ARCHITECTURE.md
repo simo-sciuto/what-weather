@@ -99,7 +99,8 @@ A word is a label here when two places say it; a choice made twice is one functi
 
 | Route | Purpose |
 | --- | --- |
-| `/` (`src/app/page.tsx`) | the poster page; server component, reads searchParams |
+| `/` (`src/app/page.tsx`) | Explore, the weather page; server component, reads searchParams |
+| `/crea` (`src/app/crea/page.tsx`) | Create (ADR-018): the poster for the place in the address (else the default place, never a random one), through the same cached unit (`loadCreatePage`); the poster is drawn from the fixed base view |
 | `/lab/atmosfera` | dev-only calibration lab for the Weather Visual Engine (both palette engines over the calibration scenarios); `notFound()` in production |
 | `/api/places` | place search, runs server-side so keys stay hidden |
 | `/api/summary` | small summary for a saved place's card |
@@ -118,9 +119,10 @@ No state library. React contexts and external stores:
 
 ## UI structure
 
-- `app/page.tsx` composes: `Sky` (palette background), `MapBackdropGL` (fixed Mapbox city behind the page), `WeatherHero` (the poster reading), `TimeScrubber`, then chapters: urgent items (alerts, precipitation, promoted details), `Activities`, week (`DailyForecast`), map (`MapView`, only with a Mapbox token), details (`Almanac`), `Territory` (streamed in `Suspense`), `SiteFooter` (lists sources actually in use).
+- `app/page.tsx` composes: `Sky` (palette background), `MapBackdropGL` (fixed Mapbox city behind the page), `WeatherHero` (the poster reading), `TimeScrubber`, then chapters: urgent items (alerts, precipitation, promoted details), `Territory` (streamed in `Suspense`), then `DetailsBand`: `Activities`, week (`DailyForecast`), `DetailsDisclosure` (closed until asked for, its children not mounted while closed: the map `MapView`, only with a Mapbox token, and the details `Almanac`) and `SiteFooter` (lists sources actually in use, always in view).
 - Desktop: hero pinned left, chapters scroll right. Phone: the reading is the first screen.
-- `components/poster/`: the downloadable poster (canvas render).
+- `lib/analytics/analytics.ts`: the measure points of ADR-018 (`explore`, `create_open`, `preview_done`), a placeholder with no service, cookie or identifier until `setAnalyticsSink` is called (WTH-226); `components/analytics/TrackOnMount` for server pages.
+- `components/poster/`: the downloadable poster (canvas render, `PosterButton` on `/crea` only) and `CreateLink`, the way from the weather page to `/crea` (a link on a computer, the Poster tab of the phone's bar).
 
 ## Tests
 

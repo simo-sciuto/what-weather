@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
-import { parsePlaceRef } from "./place";
+import { createPlaceRef, parsePlaceRef } from "./place";
 import type { PlaceRef } from "@/types/place";
 import { getProvider } from "./api/providers/get-provider";
 import { lookupPollen } from "./api/sources/pollen";
@@ -9,7 +9,8 @@ import { sinceYesterday } from "./api/sources/yesterday";
 import { DEFAULT_PLACE } from "@/constants/weather";
 import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS, WEATHER_STALE_SECONDS } from "@/constants/cache";
 import { roundCoord } from "./weather/coordinates";
-import { buildTimeline } from "./weather/frames";
+import { buildTimeline, relabelDays } from "./weather/frames";
+import { momentStart } from "./weather/moment";
 import { randomPlace } from "./weather/random-places";
 import { toRadians } from "@/utils/math";
 
@@ -145,11 +146,40 @@ export async function loadWeatherPage(searchParams: SearchParams) {
   const landed = !linked && getProvider(scenario, at).name !== "mock";
   const ref = linked ?? (landed ? landingPlace() : DEFAULT_PLACE);
   const loaded = await weatherFor(ref, scenario, at);
+  const renderedAt = Math.floor(Date.now() / 1000);
   return {
     ...loaded,
+    // The day names are worked out now, not when the weather was cached (WTH-249)
+    timeline: relabelDays(loaded.timeline, loaded.data.timezone, renderedAt),
     scenario,
     at,
     landed,
-    renderedAt: Math.floor(Date.now() / 1000),
+    renderedAt,
+  };
+}
+
+/**
+ * The weather behind the Create page: the place in the URL (else the default place, never a random one), through the
+ * same cached unit as the weather page (ADR-003). The moment on show comes from `t` (Unix seconds, from Explore) and
+ * is found in that same cached timeline: no key of its own. Without `t` the page opens on the current conditions; with
+ * a `t` the timeline does not hold, nothing is chosen in its place (`available` is false, WTH-236).
+ */
+export async function loadCreatePage(searchParams: SearchParams) {
+  const params = await searchParams;
+  const scenario = param(params.mock);
+  const at = param(params.at);
+  const loaded = await weatherFor(createPlaceRef(params), scenario, at);
+  const renderedAt = Math.floor(Date.now() / 1000);
+  const timeline = relabelDays(loaded.timeline, loaded.data.timezone, renderedAt);
+  const raw = param(params.t);
+  const time = raw === undefined ? null : Number(raw);
+  const requested = time === null || Number.isInteger(time) ? time : Number.NaN;
+  const start = requested === null || Number.isNaN(requested) ? null : momentStart(timeline, requested);
+  return {
+    ...loaded,
+    timeline,
+    scenario,
+    at,
+    moment: { requested, start, available: requested === null || start !== null },
   };
 }

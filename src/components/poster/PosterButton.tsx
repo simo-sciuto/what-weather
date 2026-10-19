@@ -2,6 +2,9 @@
 import { ACTION_LABELS } from "@/constants/labels";
 import { slug } from "@/utils/string";
 
+import { track } from "@/lib/analytics/analytics";
+import { createView } from "@/lib/record/create-record";
+import { POSTER_MESSAGES, posterFailureOf, type PosterFailure } from "@/lib/record/poster-errors";
 import { placeHref } from "@/lib/place";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePlace } from "../location/PlaceContext";
@@ -13,7 +16,7 @@ import { usePosterSnapshot, type PosterSnapshot } from "./usePosterSnapshot";
 type Drawn =
   | { status: "drawing" }
   | { status: "done"; url: string; blob: Blob }
-  | { status: "error" };
+  | { status: "error"; failure: PosterFailure };
 
 const FORMATS = Object.keys(POSTER_FORMATS) as PosterFormat[];
 
@@ -22,13 +25,13 @@ function revokeAll(drawn: Partial<Record<PosterFormat, Drawn>>) {
     if (d?.status === "done") URL.revokeObjectURL(d.url);
 }
 
-/** A file name without accents or spaces: "what-weather-reykjavik-stampa-a.png". */
+/** A file name without accents or spaces: "what-weather-reykjavik-a4.png". */
 function fileName(place: string, format: PosterFormat) {
   return `what-weather-${slug(place)}-${slug(POSTER_FORMATS[format].label)}.png`;
 }
 
 /**
- * "Crea poster", under the reading: a dialog that draws the place as a Swiss
+ * "Crea poster", on the Create page (`/crea`): a dialog that draws the place as a Swiss
  * poster (the map in the colours of the moment on show; its name, region and
  * country; its coordinates; the moment's weather as a readout) in three formats, with a preview, a download and, where the
  * device can, a share. The colours are those of the moment when it opens, so
@@ -47,7 +50,8 @@ export function PosterButton({
   const { place } = usePlace();
   const { token, loadMapbox } = useMap();
   // Everything the poster is drawn from, frozen when the dialog opens
-  const takeSnapshot = usePosterSnapshot();
+  // Drawn from Create's fixed view, never from where the weather page's map was left (ADR-018)
+  const takeSnapshot = usePosterSnapshot(createView);
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [snapshot, setSnapshot] = useState<PosterSnapshot | null>(null);
@@ -70,13 +74,14 @@ export function PosterButton({
     if (!token) return;
     setDrawn((d) => ({ ...d, [f]: { status: "drawing" } }));
     renderPoster({ ...taken, format: f, token, loadMapbox })
-      .then((blob) =>
+      .then((blob) => {
+        track("preview_done", { format: f });
         setDrawn((d) => ({
           ...d,
           [f]: { status: "done", url: URL.createObjectURL(blob), blob },
-        })),
-      )
-      .catch(() => setDrawn((d) => ({ ...d, [f]: { status: "error" } })));
+        }));
+      })
+      .catch((cause) => setDrawn((d) => ({ ...d, [f]: { status: "error", failure: posterFailureOf(cause) } })));
   }
 
   function open() {
@@ -127,7 +132,7 @@ export function PosterButton({
     await navigator.share(data).catch(() => undefined);
   }
 
-  const { width, height } = POSTER_FORMATS[format];
+  const { width, height, name, note } = POSTER_FORMATS[format];
   const action =
     "inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
@@ -174,8 +179,8 @@ export function PosterButton({
               Poster di {place.name}
             </h2>
             <p className="mt-1 text-sm text-ink-muted">
-              La città nei colori del cielo di questo momento, come la vedi
-              nella mappa.
+              La città nei colori del cielo di questo momento, sempre dalla
+              stessa vista: dall’alto, con il nord in alto.
             </p>
           </div>
           <button
@@ -221,15 +226,13 @@ export function PosterButton({
               // eslint-disable-next-line @next/next/no-img-element -- a local blob, nothing for next/image to optimise
               <img
                 src={current.url}
-                alt={`Poster di ${place.name}, formato ${POSTER_FORMATS[format].label}`}
+                alt={`Poster di ${place.name}, formato ${name}`}
                 className="size-full object-contain"
               />
             ) : (
               <div className="skeleton absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-ink-muted">
                 <p role="status">
-                  {current?.status === "error"
-                    ? "Non sono riuscito a disegnare il poster. Riprova tra poco."
-                    : "Sto disegnando il poster…"}
+                  {current?.status === "error" ? POSTER_MESSAGES[current.failure].message : "Sto disegnando il poster…"}
                 </p>
               </div>
             )}
@@ -237,8 +240,13 @@ export function PosterButton({
         </div>
 
         <p className="mt-3 text-center text-xs tabular-nums text-ink-muted">
-          PNG · {width} × {height} px
+          {name} · {width} × {height} px
         </p>
+        {note && (
+          <p className="mx-auto mt-1 max-w-[26rem] text-center text-xs text-ink-muted">
+            {note}
+          </p>
+        )}
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           {canShare && current?.status === "done" && (
@@ -259,13 +267,16 @@ export function PosterButton({
               Scarica
             </a>
           ) : current?.status === "error" ? (
-            <button
-              type="button"
-              onClick={() => snapshot && draw(format, snapshot)}
-              className={`${action} bg-accent text-[#0c0f25] hover:bg-accent/85`}
-            >
-              {ACTION_LABELS.retry}
-            </button>
+            // Retry only where a retry can help (WTH-235): not for a refused map or a device without WebGL
+            POSTER_MESSAGES[current.failure].retry && (
+              <button
+                type="button"
+                onClick={() => snapshot && draw(format, snapshot)}
+                className={`${action} bg-accent text-[#0c0f25] hover:bg-accent/85`}
+              >
+                {ACTION_LABELS.retry}
+              </button>
+            )
           ) : (
             <span
               aria-disabled="true"

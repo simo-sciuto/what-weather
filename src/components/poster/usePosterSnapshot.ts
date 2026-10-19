@@ -10,11 +10,10 @@ import { placeParts } from "@/lib/weather/formatters";
 import { sunPosition } from "@/lib/weather/sun-position";
 import { usePlace } from "../location/PlaceContext";
 import { useMoment, useTimeline } from "../time/TimeContext";
-import { useMapOptions, useMapPalette } from "../weather/MapControls";
 import { useMap } from "../weather/MapContext";
-import { currentView } from "../weather/map-view";
 import type { RecordInput, RecordProvenance } from "@/lib/record/types";
 import type { PosterInput } from "./render-poster";
+import { POSTER_MAP_OPTIONS, posterMapPalette } from "./canonical-map";
 
 /**
  * Everything a poster is drawn from but its format and Mapbox: the place, the moment and its fingerprint, the sky,
@@ -36,6 +35,8 @@ export type PosterSources = {
   /** The day's range, when the frame's day is known */
   /** The credit the weather data's licence asks for (`weatherCredit`) */
   credit?: string;
+  /** The moment on show is a forecast, not the current conditions (WTH-236) */
+  forecast?: boolean;
   /** The day's range; `partial` when it covers only part of the day */
   day?: { high: number; low: number; partial?: boolean };
 };
@@ -59,7 +60,7 @@ export function recordClock(ts: number, timeZone: string): { time: string; zone:
  * so they stay out (the atmosphere then takes the condition's own rain or snow, as for any absent rate); its
  * temperature is the day's high.
  */
-export function recordInputOf({ place, frame, timeZone, day, credit }: Pick<PosterSources, "place" | "frame" | "timeZone" | "day" | "credit">): RecordInput {
+export function recordInputOf({ place, frame, timeZone, day, credit, forecast }: Pick<PosterSources, "place" | "frame" | "timeZone" | "day" | "credit" | "forecast">): RecordInput {
   const allDay = frame.overview === true;
   const reading = <T,>(v: T) => (allDay ? undefined : v);
   return {
@@ -82,6 +83,7 @@ export function recordInputOf({ place, frame, timeZone, day, credit }: Pick<Post
     light: frame.light,
     provenance: provenanceOf(frame, day),
     credit,
+    ...(forecast ? { forecast: true } : {}),
   };
 }
 
@@ -98,9 +100,9 @@ function provenanceOf(frame: PosterSources["frame"], day: PosterSources["day"]):
 }
 
 /** The snapshot from its sources: pure, so what goes on a poster can be checked without a page */
-export function posterSnapshot({ place, frame, look, timeZone, palette, options, view, day, credit }: PosterSources): PosterSnapshot {
+export function posterSnapshot({ place, frame, look, timeZone, palette, options, view, day, credit, forecast }: PosterSources): PosterSnapshot {
   return {
-    record: recordInputOf({ place, frame, timeZone, day, credit }),
+    record: recordInputOf({ place, frame, timeZone, day, credit, forecast }),
     place: { name: place.name, ...placeParts(place), lat: place.lat, lon: place.lon },
     time: frame.time,
     timeZone,
@@ -117,16 +119,16 @@ export function posterSnapshot({ place, frame, look, timeZone, palette, options,
 /**
  * The poster's sources, read where the page keeps them (place, moment, map), and `take()` to freeze them into a
  * snapshot when a poster is asked for. A hook, not a context: only the poster reads this, and only on demand, so
- * nothing re-renders for it while the timeline is scrubbed (ADR-008).
+ * nothing re-renders for it while the timeline is scrubbed (ADR-008). `viewOf` gives the map's view at that
+ * instant: Create passes its fixed view (`createView`), never the weather page's (`currentView`).
  */
-export function usePosterSnapshot(): () => PosterSnapshot {
+export function usePosterSnapshot(viewOf: () => PosterInput["view"]): () => PosterSnapshot {
   const { place } = usePlace();
   const { timezone, weatherCredit } = useMap();
-  const { frame, look } = useMoment();
-  const palette = useMapPalette();
-  const options = useMapOptions();
+  const { frame, look, isLive } = useMoment();
   const { timeline } = useTimeline();
   const day = timeline.days.find((d) => d.key === frame.dayKey);
+  // The poster's own colours and layers, never the ones Explore keeps in the browser (WTH-243)
   return () =>
-    posterSnapshot({ place, frame, look, timeZone: timezone, palette, options, view: currentView(), credit: weatherCredit, day: day && { high: day.high, low: day.low, partial: day.partial } });
+    posterSnapshot({ place, frame, look, timeZone: timezone, palette: posterMapPalette(look.palette), options: POSTER_MAP_OPTIONS, view: viewOf(), credit: weatherCredit, forecast: !isLive, day: day && { high: day.high, low: day.low, partial: day.partial } });
 }

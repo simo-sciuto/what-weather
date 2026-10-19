@@ -69,6 +69,11 @@ export type RecordInput = {
   provenance?: RecordProvenance;
   /** The credit the weather data's licence asks for, printed beside the map's (WTH-212); none for sample data */
   credit?: string;
+  /**
+   * The moment is a forecast, not the current conditions (WTH-236): the record says so on its credits line. Absent,
+   * the figures are the current conditions, as before.
+   */
+  forecast?: boolean;
 };
 
 export type RecordProvenance = {

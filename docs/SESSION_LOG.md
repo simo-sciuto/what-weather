@@ -52,21 +52,31 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Found on the way: a slow WTH-200 test timed out under parallel load; only its timeout changed. The poster was not checked visually.
 - Next: WTH-169 checkpoint (labels "Oggi"/"Domani" for past moments, cache lifetime of `getAt`), then WTH-167.
 
-## 2026-10-06 (poster closed, sea and provenance)
-- Closed with the user's look at real exports (Torino, El Paso, Bergamo; iPhone): WTH-187, WTH-199, WTH-200, WTH-203.
-- Done and reviewed: WTH-204 (`seaGrid`, one flood, identical output, 3.6 s to 26 ms on a long harbour), WTH-196 (`RecordInput.provenance`; "~" on an interpolated hour, no partial range or estimated air printed).
-- Mistake owned: at the start the poster's name was said to be in Syne; it is Inter Tight (ADR-015 update).
-- Next: WTH-166 (licences) or the poster clean-ups.
+## 2026-10-13 (reliability pass: WTH-235, WTH-236, WTH-249)
+- Worked on: the poster's failures told apart and their retry limited to the causes it can help (WTH-235, `8c34a8a`); the day names worked out per request, outside the cache (WTH-249, `9ec764d`); Explore's moment carried to Create by its instant, marked as a forecast on the record and the poster, and said so when it is no longer held (WTH-236, `3b68f9a`). Board updated; WTH-250 (Mapbox CSS on /crea) registered to verify.
+- Verified: typecheck, lint, 463 unit tests, 29 e2e; live Explore-to-Create; exports at 2480 × 3508, 1440 × 2560, 2400 × 2400 for Torino and Lisbona; the failure messages in the browser. Simulated, not real services: the causes of failure (blocked map, WebGL off, slow map). Not reproduced: the reviewer's own failure, and the refusal (401/403) in the browser.
+- Not done: no push, no deploy, no participant, no redesign, no change to Editorial, Monochrome or Chromatic, no WTH-234, no WTH-247. The desktop pilot is suspended until the user confirms the new commit. WTH-227 stays open.
 
-## 2026-10-05/06 (Visual Record poster)
-- Worked on: WTH-187, the brief V3.1 (inspect, propose, spike), then the user's Type Engine research, then the "Crea poster" button on the record engine over the site's own map, iterated many times with the user (layouts, screenprint, typefaces, colours); WTH-199 the home page's name and temperature in the record's face. ADR-015 for the typeface.
-- Decided by the user: the Tshuru structure, then the old poster's style with the record's facts; Syne (after Archivo, a free Helvetica, Mona Sans, Schibsted, Climate Crisis); no screenprint; colours from the app's colour study.
-- Mistakes owned: a separate lab page instead of the poster at first; the zoom changed without being asked; board and state not kept up during the iterations (caught up on 2026-10-06).
-- Not verified: a real Mapbox export (headless WebGL stalls here); the user is the one who has seen real posters. Reviewer pass pending on the whole branch.
-- 2026-10-06: `claude/code-conventions` merged into `main`, then `main` merged into this branch and the record code brought to the conventions (`type`, `@/types/*` imports, the shared `clamp`); the typeface's ADR renumbered ADR-015, since ADR-014 is the conventions.
+## 2026-10-13 (desktop pilot readiness, WTH-248 approved)
+- Worked on: WTH-248 approved; the desktop pilot's readiness checked on commit `1ae9724` (application code of `05965b5`): live Explore, `/crea` at 200, the Mapbox preview drawn at 2480 × 3508 px, `/lab/atmosfera` at 404, no blocking error. The build was made from that tree and the server runs on localhost:3300 for the user's session. No participant, no simulation, no result.
+- To confirm: the protocol file is v1.2, while the request named v1.1.
+- Not done: no push, no deploy, no smartphone session, no change to Explore, Create or the poster system.
+
+## 2026-10-13 (WTH-248 fixed, phone checklist, Mapbox token checked)
+- Worked on: WTH-248: the cause is the prerendered static shell (cacheComponents), where the guard inside the page ran at build time and the shell was sent with status 200. Fixed with a proxy and one tested rule (`05965b5`, separate commit). The full e2e suite passed 26 of 26. The Mapbox token in the client was checked in code and in a build: only the public `pk.` token reaches the browser. The phone checklist is in the feasibility document, section 8, for the user to run on real devices.
+- Not done: no push, no deploy, no participant, no UX session, no real phone. The pilot needs the user's confirmation of the new commit. WTH-227 stays open.
 
 ## 2026-10-05 (code conventions, WTH-186)
 - Worked on: the conventions the user asked for (types not interfaces, shared types in one place, constants and labels in a file, utils, api folder), as ADR-014, after the architect's check; four checkpoints on `claude/code-conventions`, each reviewed.
 - Found: the `rgba(` to `hexToRgba(` rename also hit a CSS string in the poster's glow, which no test, golden run or e2e draws (the poster needs the Mapbox token); the reviewer saw it. Fixed with `bloomColor` and a test, and from then on the poster is checked by a real render through a harness with a fake map, pixel by pixel.
 - Not verified: the poster on screen with the map. Optional leftovers in WTH-189; WTH-188 (providers and sources depend on each other).
 - Next: the merge into `main`, as the user decides.
+
+## 2026-10-13 (phone feasibility on the local network, WTH-248 found)
+- Worked on: documented the feasibility of phone tests on the local Wi-Fi (`docs/PHONE_LOCAL_TEST.md`): the build served on the LAN with a command-line flag; plain HTTP limits (location and sharing differ, checked in an emulated Pixel 7, not a phone); provider calls stay on the server; the Mapbox token answered from every origin tested, to be checked in the account; the preview's risks on a phone. No project file changed, no push, no deploy, no participant. The server was stopped after the checks.
+- Found: the development labs `/lab/atmosfera` and `/lab/record` answer 200 in production and locally (WTH-248).
+- Not verified: any real phone. The physical checks are listed in the document.
+
+## 2026-10-13 (WTH-227 pilot authorised, protocol v1.2)
+- Worked on: the morning checks on the local build (commit served, Open-Meteo reading, Mapbox and its attributions on Explore and on the poster, /crea, the preview, no blocking error): all passed. Protocol v1.2 before the pilot: section 0.1 with the authorisations and their limits, the no-demo rules, the spontaneous reaction to the poster in the sheet. Board: WTH-227 authorised for one desktop pilot, not complete; WTH-220 stays open.
+- No push, merge, deploy or recruitment by the assistant. The pilot's material is kept apart from the five.
