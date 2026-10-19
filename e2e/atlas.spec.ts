@@ -317,7 +317,7 @@ test("the keyboard reaches the map first, then Mapbox's own links and the way ba
   // not the browser's near-black default
   expect(canvas.color).not.toBe("rgb(16, 16, 16)");
   let wordmark = false;
-  for (let i = 0; i < 4 && !wordmark; i++) {
+  for (let i = 0; i < 8 && !wordmark; i++) {
     await page.keyboard.press("Tab");
     const f = await focused();
     if (f.tag === "A") {
@@ -325,7 +325,8 @@ test("the keyboard reaches the map first, then Mapbox's own links and the way ba
       expect(f.width).toBeGreaterThanOrEqual(2);
       expect(f.color).not.toBe("rgb(16, 16, 16)");
     }
-    wordmark = await page.evaluate(() => document.activeElement?.getAttribute("href") === "/");
+    // the way back is the wordmark: the front page, or the weather of the place on show
+    wordmark = await page.evaluate(() => /^\/(\?lat=[^&]+&lon=[^&]+)?$/.test(document.activeElement?.getAttribute("href") ?? "x"));
   }
   expect(wordmark).toBe(true);
 });

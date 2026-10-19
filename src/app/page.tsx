@@ -18,6 +18,10 @@ import { MapCompass } from "@/components/weather/MapCompass";
 import { MapGestures } from "@/components/weather/MapGestures";
 import { Chapter } from "@/components/weather/Chapter";
 import { DetailsBand } from "@/components/weather/DetailsBand";
+import { ExploreCard } from "@/components/explainer/ExploreCard";
+import { CreatePanel } from "@/components/explainer/CreatePanel";
+import { KeepPanel } from "@/components/explainer/KeepPanel";
+import { TriptychWithGuide } from "@/components/explainer/Triptych";
 import { Territory } from "@/components/weather/CityFacts";
 import { Sky } from "@/components/weather/Sky";
 import { WeatherAlerts } from "@/components/weather/WeatherAlert";
@@ -176,6 +180,10 @@ export default async function Home({
                   <div className="mt-3">
                     <SavedPlaces />
                   </div>
+                  {/* The page's three parts, as the schema has them: Explore, Create, Keep (and the guide that tells them) */}
+                  <div className="mt-4">
+                    <TriptychWithGuide timezone={data.timezone} />
+                  </div>
                 </header>
 
                 {/*
@@ -204,12 +212,14 @@ export default async function Home({
                 {/* On a phone the weather data are a sheet that rises over the map; on a computer the right column */}
                 <Sheet name="data" title={PAGE_LABELS.weather} desktop="contents">
                   {/* The hours ahead: under the reading on a phone, at the top of the right column on a computer */}
-                  <div className="data-col data-col-first relative pb-2.5 pt-2 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
+                  <div className="data-col data-col-first not-conserva relative pb-2.5 pt-2 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
                     <TimeScrubber />
                   </div>
 
-                  <div className="data-col relative flex flex-col gap-2.5 pb-6 lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pb-10 lg:pt-8 xl:col-span-6 xl:col-start-7">
+                  <div className="data-col not-crea not-conserva relative flex flex-col gap-2.5 pb-6 lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pb-10 lg:pt-8 xl:col-span-6 xl:col-start-7">
                     {/* The moment's quick facts lead the data: this column on a computer, the sheet on a phone */}
+                    <ExploreCard />
+
                     <MomentFacts />
 
                     {/* The place itself, right after the hours: what it is, its capitals, the towns around, its waters and peaks (streamed; nothing known, no chapter) */}
@@ -250,6 +260,9 @@ export default async function Home({
                       at={at}
                     />
                   </div>
+
+                  <CreatePanel timezone={data.timezone} />
+                  <KeepPanel />
                 </Sheet>
 
                 {/*

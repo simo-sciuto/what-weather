@@ -649,3 +649,72 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* The home's three parts (Explore, Create, Keep): which blocks show in which, by the mode on the document (see explainer/mode.ts) */
+.only-crea,
+.only-conserva {
+  display: none;
+}
+html[data-mode="crea"] .only-crea,
+html[data-mode="conserva"] .only-conserva {
+  display: flex;
+}
+html[data-mode="crea"] .not-crea,
+html[data-mode="conserva"] .not-conserva {
+  display: none;
+}
+
+/* A light that passes over a poster now and then */
+@keyframes poster-shine {
+  0%,
+  55% {
+    transform: translateX(0) skewX(-12deg);
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(520%) skewX(-12deg);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="poster-shine"],
+  .\[animation\:poster-shine_4\.5s_ease-in-out_infinite\] {
+    animation: none;
+  }
+}
+
+/* The film's scrub bar: a hairline with a butter handle, the page's own look */
+.explainer-scrub {
+  appearance: none;
+  background: transparent;
+}
+.explainer-scrub::-webkit-slider-runnable-track {
+  height: 2px;
+  background: rgb(255 255 255 / 0.22);
+  border-radius: 2px;
+}
+.explainer-scrub::-moz-range-track {
+  height: 2px;
+  background: rgb(255 255 255 / 0.22);
+  border-radius: 2px;
+}
+.explainer-scrub::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #f9e8a7;
+  border: 0;
+}
+.explainer-scrub::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #f9e8a7;
+  border: 0;
+}
+
