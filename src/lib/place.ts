@@ -32,7 +32,8 @@ export function createPlaceRef(raw: Raw): PlaceRef {
   return parsePlaceRef(raw) ?? DEFAULT_PLACE;
 }
 
-function placeQuery(p: PlaceRef): string {
+/** A place as a query string: coordinates to four decimals, then the names it has. The one precision every link uses (ADR-029). */
+export function placeQuery(p: PlaceRef): string {
   const q = new URLSearchParams({ lat: p.lat.toFixed(4), lon: p.lon.toFixed(4) });
   if (p.name) q.set("name", p.name);
   if (p.region) q.set("region", p.region);
