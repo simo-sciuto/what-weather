@@ -16,8 +16,8 @@ import { clamp01 } from "@/utils/math";
 export function HeroTemp({
   size = "title",
 }: {
-  /** "phone": the headline of the phone's poster, large but held to a set size */
-  size?: "title" | "phone";
+  /** "phone": the headline of the phone's poster, large but held to a set size; "band": the same figure at the size of the phone's small headline */
+  size?: "title" | "phone" | "band";
 }) {
   const { frame } = useMoment();
   return (
@@ -26,7 +26,9 @@ export function HeroTemp({
       className={`display-figure tracking-[-0.03em] whitespace-nowrap tabular-nums transition-colors duration-700 ${
         size === "phone"
           ? "text-[clamp(5.5rem,27vw,7.25rem)] leading-[0.76]"
-          : "mt-[0.165em] text-[1.9em] leading-[0.727]"
+          : size === "band"
+            ? "text-[2rem] leading-none"
+            : "mt-[0.165em] text-[1.9em] leading-[0.727]"
       }`}
       style={{ color: tempColor(frame.temp) }}
     >

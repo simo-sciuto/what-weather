@@ -1,13 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useSheet } from "../layout/PhoneNav";
 import { useView } from "./TimeContext";
 
 /**
  * Makes a row of the week card open that day on the left (sky, reading,
- * hours). On a phone the week is in the sheet of data: it comes down to halfway,
- * so the reading of the day picked shows above it.
+ * hours).
  */
 export function DaySelect({
   dayKey,
@@ -22,7 +20,6 @@ export function DaySelect({
 }) {
   // The view only: scrubbing through the hours doesn't re-render the week.
   const { view, selectDay } = useView();
-  const sheet = useSheet("data");
   // Today's row stands for the "now" view.
   const selected = view.kind === "day" ? view.key === dayKey : isToday;
   return (
@@ -31,8 +28,6 @@ export function DaySelect({
       aria-pressed={selected}
       onClick={() => {
         selectDay(dayKey);
-        if (window.matchMedia("(width < 64rem)").matches)
-          sheet.setState("half");
       }}
       className={`w-full rounded-lg text-left transition-colors hover:bg-white/8 focus-visible:outline-2 focus-visible:outline-accent ${
         selected ? "bg-white/12 shadow-[inset_2px_0_0_var(--accent)]" : ""

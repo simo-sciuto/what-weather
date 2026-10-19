@@ -11,8 +11,8 @@ test("from the weather page to the Atlas on the same place, and from the Atlas o
   await stubSummaries(page);
   await open(page, "clear", "13:00", TURIN);
 
-  // Explore leads to the map, opened on the place on show
-  const toMap = page.locator("[data-explore-card]:visible");
+  // Explore leads to the map, opened on the place on show (the bar's action, a plain link for now)
+  const toMap = page.locator('[data-bar-action="esplora"]');
   await expect(toMap).toHaveAttribute("href", "/atlas?lat=45.07&lon=7.69");
   await toMap.click();
   await expect(page).toHaveURL(/\/atlas\?lat=45\.07&lon=7\.69/);

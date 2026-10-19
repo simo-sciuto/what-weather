@@ -1,5 +1,5 @@
 "use client";
-import { ACTION_LABELS, PAGE_LABELS } from "@/constants/labels";
+import { ACTION_LABELS } from "@/constants/labels";
 
 import {
   MAP_TUNING,
@@ -38,8 +38,7 @@ import { createPortal } from "react-dom";
 import { useMoment } from "../time/TimeContext";
 import { useMap } from "./MapContext";
 import { activeLayers } from "./map-style";
-import { GLASS, Sheet } from "../layout/PhoneNav";
-import { AtlasLink } from "../atlas/AtlasLink";
+import { GLASS } from "../layout/PhoneNav";
 
 /** The viewer's tuning of the map's colours; the page's own on the server and until the browser says otherwise. */
 function useMapTuning(): MapTuning {
@@ -164,34 +163,6 @@ export function useResetMap() {
 
 export const RESET_LINK =
   "text-ink-muted underline decoration-white/35 underline-offset-4 transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent";
-
-/**
- * On a phone, the map's colours and layers in a sheet of glass like the data's (see PhoneNav), opened from
- * the bar's map icon. Without Mapbox there is no map, and so no sheet.
- */
-export function MapSheet() {
-  const { token } = useMap();
-  const { custom, reset } = useResetMap();
-  if (!token) return null;
-  return (
-    <Sheet
-      name="map"
-      title={PAGE_LABELS.map}
-      actions={
-        <>
-          <AtlasLink compact />
-          {custom && (
-            <button type="button" onClick={reset} className={RESET_LINK}>
-              Torna agli automatici
-            </button>
-          )}
-        </>
-      }
-    >
-      <MapPanelBody />
-    </Sheet>
-  );
-}
 
 /** On a computer, the map's colours and layers in a panel of glass floating over the foot of the page */
 function MapPanel({ id, onClose }: { id: string; onClose: () => void }) {

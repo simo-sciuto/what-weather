@@ -3,6 +3,9 @@ import { TURIN, hydrated, open, stubSummaries } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await stubSummaries(page);
+  // A place chosen in the search has no sample sky in its address, so the guide would play by itself on arriving
+  // there (once per browser) and take the keyboard; these tests are about the search, the guide has its own
+  await page.addInitScript(() => window.localStorage.setItem("what-weather:guide-seen", "1"));
 });
 
 test("searching a place and choosing it opens its weather", async ({ page }) => {
@@ -27,17 +30,19 @@ test("a search that finds nothing says so", async ({ page }) => {
   await expect(page.getByRole("status")).toHaveText("Località non trovata. Prova con un altro nome.");
 });
 
-test("a saved place stays saved after a reload", async ({ page }) => {
+test("a kept place stays kept after a reload, in the Keep station", async ({ page }) => {
   await open(page, "clear", "13:00");
-  const saved = page.getByRole("list", { name: "Città salvate" });
-  await expect(saved.getByRole("link")).toHaveCount(0);
+  const records = page.locator("section#conserva").getByRole("list", { name: "Record conservati" });
+  await expect(records).toHaveCount(0);
 
-  await saved.getByRole("button", { name: "Salva Milano" }).click();
-  await expect(saved.getByRole("link", { name: /Milano/ })).toHaveAttribute("aria-current", "location");
+  await page.getByRole("navigation", { name: "Percorso" }).getByRole("link", { name: "Conserva" }).click();
+  await page.locator('[data-bar-action="conserva"]').click();
+  await expect(records.getByRole("listitem")).toHaveCount(1);
+  await expect(records).toContainText("Milano");
 
   await page.reload({ waitUntil: "commit" });
   await hydrated(page);
-  await expect(saved.getByRole("link", { name: /Milano/ })).toBeVisible();
+  await expect(records).toContainText("Milano");
 });
 
 test("places seen lately are offered in the search, and can be cleared", async ({ page }) => {

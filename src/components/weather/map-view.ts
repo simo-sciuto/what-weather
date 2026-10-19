@@ -60,7 +60,7 @@ export function viewAt(progress: number): { zoom: number; pitch: number } {
   return { zoom: zoomAt(progress), pitch: pitchAt(progress) };
 }
 
-/** A phone: the page doesn't scroll there, the finger moves the map (see MapGestures) */
+/** A phone: the map stays at the top view (the finger moves it only in the Atlas); `phoneMap.progress` is only ever 0 there since the home became one page (ADR-028) */
 export const isPhone = () => window.matchMedia("(width < 64rem)").matches;
 
 /**

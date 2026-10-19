@@ -122,7 +122,7 @@ No state library. React contexts and external stores:
 - `app/page.tsx` composes: `Sky` (palette background), `MapBackdropGL` (fixed Mapbox city behind the page), `WeatherHero` (the poster reading), `TimeScrubber`, then chapters: urgent items (alerts, precipitation, promoted details), `Territory` (streamed in `Suspense`), then `DetailsBand`: `Activities`, week (`DailyForecast`), `DetailsDisclosure` (closed until asked for, its children not mounted while closed: the map `MapView`, only with a Mapbox token, and the details `Almanac`) and `SiteFooter` (lists sources actually in use, always in view).
 - Desktop: hero pinned left, chapters scroll right. Phone: the reading is the first screen.
 - `lib/analytics/analytics.ts`: the measure points of ADR-018 (`explore`, `create_open`, `preview_done`), a placeholder with no service, cookie or identifier until `setAnalyticsSink` is called (WTH-226); `components/analytics/TrackOnMount` for server pages.
-- `components/poster/`: the downloadable poster (canvas render, `PosterButton` on `/crea` only) and `CreateLink`, the way from the weather page to `/crea` (a link on a computer, the Poster tab of the phone's bar).
+- `components/poster/`: the downloadable poster (canvas render, `PosterButton` on `/crea` only); the way from the weather page to `/crea` is the Crea action of the bar (`components/bar/Bar.tsx`, ADR-028).
 
 ## Tests
 

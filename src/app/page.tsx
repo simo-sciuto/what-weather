@@ -1,11 +1,10 @@
-import { PAGE_LABELS, TAGLINE } from "@/constants/labels";
+import { TAGLINE } from "@/constants/labels";
 import { Wordmark } from "@/components/Wordmark";
 import { LocationSearch } from "@/components/location/LocationSearch";
 import { PlaceProvider } from "@/components/location/PlaceContext";
-import { SavedPlaces } from "@/components/location/SavedPlaces";
 import { AutoRefresh } from "@/components/time/AutoRefresh";
-import { PhoneNavProvider, Sheet } from "@/components/layout/PhoneNav";
-import { PhoneBar } from "@/components/time/HeroMeta";
+import { Bar } from "@/components/bar/Bar";
+import { Station } from "@/components/stations/Station";
 import { MomentFacts } from "@/components/time/MomentFacts";
 import { AtmosphereMain, TimeProvider } from "@/components/time/TimeContext";
 import { TimeScrubber } from "@/components/time/TimeScrubber";
@@ -13,21 +12,21 @@ import { PrecipitationTimeline } from "@/components/weather/PrecipitationTimelin
 import { MapBackdropGL } from "@/components/weather/MapBackdropGL";
 import { MapProvider } from "@/components/weather/MapContext";
 import { weatherCredit } from "@/lib/record/credits";
-import { MapSheet } from "@/components/weather/MapControls";
-import { MapCompass } from "@/components/weather/MapCompass";
-import { MapGestures } from "@/components/weather/MapGestures";
+import { HeadlineBand } from "@/components/weather/HeadlineBand";
+import { SiteFooter } from "@/components/weather/SiteFooter";
 import { Chapter } from "@/components/weather/Chapter";
 import { DetailsBand } from "@/components/weather/DetailsBand";
-import { ExploreCard } from "@/components/explainer/ExploreCard";
+import { Guide } from "@/components/explainer/Guide";
 import { CreatePanel } from "@/components/explainer/CreatePanel";
 import { KeepPanel } from "@/components/explainer/KeepPanel";
-import { TriptychWithGuide } from "@/components/explainer/Triptych";
 import { Territory } from "@/components/weather/CityFacts";
 import { Sky } from "@/components/weather/Sky";
 import { WeatherAlerts } from "@/components/weather/WeatherAlert";
 import { PromotedDetails } from "@/components/weather/WeatherDetails";
 import { WeatherHero } from "@/components/weather/WeatherHero";
 import { placeHref } from "@/lib/place";
+import { readMoment, resolveAddressMoment } from "@/lib/weather/moment-address";
+import { momentLabel } from "@/lib/weather/moment-label";
 import { loadWeatherPage, type SearchParams } from "@/lib/weather-page";
 import { detailModules, moonInfo } from "@/lib/weather/details";
 import {
@@ -99,6 +98,23 @@ export default async function Home({
     renderedAt,
   } = await loadWeatherPage(searchParams);
 
+  // The moment in the address (`t`, ADR-028): the hour the page opens on, or the word that the forecast does not hold it
+  const params = await searchParams;
+  const rawT = Array.isArray(params.t) ? params.t[0] : params.t;
+  const asked = resolveAddressMoment(
+    { timeline, timezone: data.timezone },
+    readMoment(rawT === undefined ? "" : new URLSearchParams({ t: rawT })),
+  );
+  const unavailable =
+    asked.status === "unavailable"
+      ? {
+          asked:
+            asked.requested === null
+              ? null
+              : momentLabel(asked.requested, data.timezone, data.place.name),
+        }
+      : undefined;
+
   const range = tempRange(data);
   const precip = precipOutlook(data);
   const precipSection = precip && <PrecipitationTimeline outlook={precip} />;
@@ -117,17 +133,15 @@ export default async function Home({
       key={placeKey}
       timeline={timeline}
       moon={{ phase: moon.phase, southern: moon.southern }}
+      start={asked.status === "ok" ? asked.start : null}
     >
       <PlaceProvider place={data.place}>
         {/* The maps (the backdrop and the chapter) share Mapbox, the place and its cloud grid */}
         <MapProvider timezone={data.timezone} weatherCredit={weatherCredit(provider)}>
-          <PhoneNavProvider>
-            <AutoRefresh
-              landedAt={landed ? placeHref(data.place) : undefined}
-            />
-            <AtmosphereMain className="atmosphere min-h-dvh overflow-x-clip">
-              <Sky />
-              {/*
+          <AutoRefresh landedAt={landed ? placeHref(data.place) : undefined} />
+          <AtmosphereMain className="atmosphere min-h-dvh overflow-x-clip">
+            <Sky />
+            {/*
               The city's map, fixed behind the whole screen like the sky: it
               stays put while the page scrolls over it, with the city pinned
               between the place's name and the clock, strongest there and held
@@ -135,90 +149,72 @@ export default async function Home({
               between them. Early in the markup, so the data's veils (.data-col, .data-veil)
               paint over it.
             */}
-              <MapBackdropGL className="backdrop-fade pointer-events-none fixed inset-0 -z-1" />
-              {/* On a phone the page stays still and the finger moves the map */}
-              {MAPBOX && <MapGestures />}
-              {/* The compass, on a phone under the search button (a computer has it in the poster's head) */}
-              {MAPBOX && (
-                <div className="fixed right-[1.125rem] top-[calc(max(0.875rem,env(safe-area-inset-top))+3.25rem)] z-30 sm:right-[2.125rem] lg:hidden">
-                  <MapCompass sigla={false} />
-                </div>
-              )}
-              {/* On a phone a bar at the foot of the screen: the weather data, the poster, the map */}
-              <PhoneBar />
-              <MapSheet />
-              {/*
-            Phone: the first screen is the sky and one reading (place, temperature,
-            outlook, the timeline); chapters follow. Desktop: the reading stays
-            pinned on the left over the sky while the chapters scroll on the right.
+            <MapBackdropGL className="backdrop-fade pointer-events-none fixed inset-0 -z-1" />
+            {/* The Testata at its small size on a phone, once the large reading has left the screen */}
+            <HeadlineBand />
+            {/* The Barra: the path through the three stations, the moment, the one action */}
+            <Bar timezone={data.timezone} />
+            {/*
+            One page that scrolls. Phone: the Testata fills the first screen (place, temperature,
+            outlook), the three stations follow in one column. Desktop: the Testata stays
+            pinned on the left over the sky while the stations scroll on the right.
           */}
-              <div className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:grid lg:grid-cols-12 lg:gap-x-14 lg:px-12">
-                {/*
-                The search and the saved places: first thing on a phone; on a computer at the top of
+            <div className="mx-auto max-w-[88rem] px-5 sm:px-8 lg:grid lg:grid-cols-12 lg:gap-x-14 lg:px-12">
+              {/*
+                The search: first thing on a phone; on a computer at the top of
                 the right column, so the left one is the place's alone, like a poster.
               */}
-                <header className="relative z-30 pt-[max(1rem,env(safe-area-inset-top))] lg:col-span-7 lg:col-start-6 lg:row-start-1 lg:pt-[3.5vh] xl:col-span-6 xl:col-start-7">
-                  {/* The name, then the search: on one line from a tablet up, the name above on a phone */}
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-                    <div className="flex shrink-0 flex-col gap-1 self-start sm:self-auto">
-                      <Link
-                        href="/"
-                        className="on-sky self-start rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-                      >
-                        <Wordmark className="text-[1.375rem]" />
-                      </Link>
-                      {/* The promise (ADR-018), in English over the Italian page */}
-                      <p lang="en" className="on-sky text-caption text-ink-muted">
-                        {TAGLINE}
-                      </p>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <LocationSearch />
-                    </div>
+              <header className="relative z-30 pt-[max(1rem,env(safe-area-inset-top))] lg:col-span-7 lg:col-start-6 lg:row-start-1 lg:pt-[3.5vh] xl:col-span-6 xl:col-start-7">
+                {/* The name, then the search: on one line from a tablet up, the name above on a phone */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+                  <div className="flex shrink-0 flex-col gap-1 self-start sm:self-auto">
+                    <Link
+                      href="/"
+                      className="on-sky self-start rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+                    >
+                      <Wordmark className="text-[1.375rem]" />
+                    </Link>
+                    {/* The promise (ADR-018), in English over the Italian page */}
+                    <p lang="en" className="on-sky text-caption text-ink-muted">
+                      {TAGLINE}
+                    </p>
                   </div>
-                  {/* Saved places, one tap away: small pills under the search */}
-                  <div className="mt-3">
-                    <SavedPlaces />
-                  </div>
-                  {/* The page's three parts, as the schema has them: Explore, Create, Keep (and the guide that tells them) */}
-                  <div className="mt-4">
-                    <TriptychWithGuide timezone={data.timezone} />
-                  </div>
-                </header>
-
-                {/*
-              Desktop: pinned at the screen's height beside the whole right column, a poster of the
-              place: the reading takes the full height and scales to it (see .hero-fit).
-            */}
-                <div className="relative z-0 before:pointer-events-none before:absolute before:-inset-x-[30vw] before:-inset-y-24 before:-z-1 before:bg-[radial-gradient(ellipse_30rem_22rem_at_50%_55%,color-mix(in_oklab,var(--sky-1)_40%,transparent)_0%,color-mix(in_oklab,var(--sky-1)_20%,transparent)_50%,transparent_100%)] lg:sticky lg:top-0 lg:col-span-5 lg:col-start-1 lg:row-span-3 lg:row-start-1 lg:flex xl:col-span-6 lg:h-dvh lg:flex-col lg:gap-[3vh] lg:py-[3.5vh]">
-                  <div className="flex flex-col gap-7 pb-6 pt-6 lg:min-h-0 lg:flex-1 lg:gap-[3vh] lg:py-0">
-                    <div className="hero-fit">
-                      <WeatherHero
-                        place={data.place}
-                        timezone={data.timezone}
-                        current={data.current}
-                        range={range}
-                        // Sample data may simulate another time of day; the clock follows it.
-                        renderedAt={
-                          provider === "mock" ? data.current.time : renderedAt
-                        }
-                        outlook={buildNarrative(data)}
-                        yesterday={yesterday}
-                      />
-                    </div>
+                  <div className="min-w-0 flex-1">
+                    <LocationSearch />
                   </div>
                 </div>
+              </header>
 
-                {/* On a phone the weather data are a sheet that rises over the map; on a computer the right column */}
-                <Sheet name="data" title={PAGE_LABELS.weather} desktop="contents">
-                  {/* The hours ahead: under the reading on a phone, at the top of the right column on a computer */}
-                  <div className="data-col data-col-first not-conserva relative pb-2.5 pt-2 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:pb-0 lg:pt-8 xl:col-span-6 xl:col-start-7">
-                    <TimeScrubber />
+              {/*
+              Desktop: pinned at the screen's height (less the bar) beside the whole right column, a poster of the
+              place: the reading takes the full height and scales to it (see .hero-fit).
+            */}
+              <div className="relative z-0 before:pointer-events-none before:absolute before:-inset-x-[30vw] before:-inset-y-24 before:-z-1 before:bg-[radial-gradient(ellipse_30rem_22rem_at_50%_55%,color-mix(in_oklab,var(--sky-1)_40%,transparent)_0%,color-mix(in_oklab,var(--sky-1)_20%,transparent)_50%,transparent_100%)] lg:sticky lg:top-0 lg:col-span-5 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:flex xl:col-span-6 lg:h-[calc(100dvh-var(--bar-h))] lg:flex-col lg:gap-[3vh] lg:py-[3.5vh]">
+                <div className="flex flex-col gap-7 pb-6 pt-6 lg:min-h-0 lg:flex-1 lg:gap-[3vh] lg:py-0">
+                  <div className="hero-fit">
+                    <WeatherHero
+                      place={data.place}
+                      timezone={data.timezone}
+                      current={data.current}
+                      range={range}
+                      // Sample data may simulate another time of day; the clock follows it.
+                      renderedAt={
+                        provider === "mock" ? data.current.time : renderedAt
+                      }
+                      outlook={buildNarrative(data)}
+                      yesterday={yesterday}
+                      unavailable={unavailable}
+                    />
                   </div>
+                </div>
+              </div>
 
-                  <div className="data-col not-crea not-conserva relative flex flex-col gap-2.5 pb-6 lg:col-span-7 lg:col-start-6 lg:row-start-3 lg:pb-10 lg:pt-8 xl:col-span-6 xl:col-start-7">
-                    {/* The moment's quick facts lead the data: this column on a computer, the sheet on a phone */}
-                    <ExploreCard />
+              {/* The three stations: Explore, Create, Keep. A column on the right on a computer, the one column on a phone (over a wash of the sky) */}
+              <div className="data-col stations-veil relative -mx-5 px-5 pb-[calc(var(--bar-h)+env(safe-area-inset-bottom)+1.5rem)] sm:-mx-8 sm:px-8 lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:mx-0 lg:px-0 lg:pb-[calc(var(--bar-h)+3rem)] lg:pt-8 xl:col-span-6 xl:col-start-7">
+                <Station id="esplora">
+                  <div className="flex flex-col gap-2.5">
+                    {/* The hours ahead as a curve: the same moment as the bar's track */}
+                    <TimeScrubber />
 
                     <MomentFacts />
 
@@ -244,39 +240,51 @@ export default async function Home({
                       </div>
                     )}
 
-                    {/* The hours themselves live in the timeline beside the reading; here only rain on the way */}
+                    {/* The hours themselves live in the timeline above; here only rain on the way */}
                     {precip && !precip.urgent && (
                       <Chapter id="chapter-hours" title="Prossime ore">
                         {precipSection}
                       </Chapter>
                     )}
 
-                    <DetailsBand
-                      data={data}
-                      modules={modules}
-                      provider={provider}
-                      maps={MAPBOX}
-                      scenario={scenario}
-                      at={at}
-                    />
+                    <DetailsBand data={data} modules={modules} maps={MAPBOX} />
                   </div>
+                </Station>
 
+                <Station id="crea">
                   <CreatePanel timezone={data.timezone} />
-                  <KeepPanel />
-                </Sheet>
+                </Station>
 
-                {/*
-                Desktop: a veil of the sky behind the whole right column, over the map and under
-                the data, so the numbers read cleanly while the city stays bright beside the name.
-                Last in the markup, so it paints above the map (same layer, later in order).
-              */}
-                <div
-                  aria-hidden="true"
-                  className="data-veil pointer-events-none relative -z-1 hidden lg:col-span-7 lg:col-start-6 lg:row-span-3 lg:row-start-1 lg:block xl:col-span-6 xl:col-start-7"
-                />
+                <Station id="conserva">
+                  <KeepPanel />
+                </Station>
+
+                {/* The foot of the page: where the data comes from, and the guide again (text, not a button of the page) */}
+                <div className="flex flex-col gap-5 pt-2">
+                  <SiteFooter
+                    provider={provider}
+                    openWeatherKey={Boolean(process.env.OPENWEATHER_API_KEY)}
+                    maps={MAPBOX}
+                    updatedAt={data.current.time}
+                    timezone={data.timezone}
+                    scenario={scenario}
+                    at={at}
+                  />
+                  <Guide timezone={data.timezone} />
+                </div>
               </div>
-            </AtmosphereMain>
-          </PhoneNavProvider>
+
+              {/*
+              Desktop: a veil of the sky behind the whole right column, over the map and under
+              the data, so the numbers read cleanly while the city stays bright beside the name.
+              Last in the markup, so it paints above the map (same layer, later in order).
+            */}
+              <div
+                aria-hidden="true"
+                className="data-veil pointer-events-none relative -z-1 hidden lg:col-span-7 lg:col-start-6 lg:row-span-2 lg:row-start-1 lg:block xl:col-span-6 xl:col-start-7"
+              />
+            </div>
+          </AtmosphereMain>
         </MapProvider>
       </PlaceProvider>
     </TimeProvider>

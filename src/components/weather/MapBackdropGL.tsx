@@ -92,7 +92,7 @@ export function MapBackdropGL({ className }: { className: string }) {
   }, []);
 
   // Scrolling down zooms into the city and tilts it: the map stays fixed, so the page seems to descend into
-  // it. On a phone the page stays still and the finger does the same, and turns the map too (see MapGestures).
+  // it. On a phone the map stays at the top view: the page scrolls over it, and the finger moves the map only in the Atlas (ADR-028).
   useEffect(() => {
     let frame = 0;
     const apply = () => {

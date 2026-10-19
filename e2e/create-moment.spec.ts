@@ -11,7 +11,6 @@ test("a forecast hour chosen on Explore opens Create on that hour, marked as a f
   for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
   await expect(hours).toHaveAttribute("aria-valuetext", /^16:00: /);
 
-  await page.locator('[data-mode-tab="crea"]:visible').first().click();
   const link = page.locator("[data-create-link]");
   const href = (await link.getAttribute("href")) ?? "";
   expect(href).toMatch(/[?&]t=\d+/);
@@ -24,7 +23,6 @@ test("a forecast hour chosen on Explore opens Create on that hour, marked as a f
 
 test("with no moment chosen on Explore, Create opens on the current conditions", async ({ page }) => {
   await open(page, "clear", "13:00");
-  await page.locator('[data-mode-tab="crea"]:visible').first().click();
   const href = (await page.locator("[data-create-link]").getAttribute("href")) ?? "";
   expect(href).not.toMatch(/[?&]t=/);
 

@@ -14,12 +14,12 @@ export async function open(page: Page, scenario: string, at: string, place?: typ
   await hydrated(page);
 }
 
-/** The saved places are only drawn once the page is interactive (before, placeholders stand in). */
+/** The bar says it is ready once the page is interactive (the records are only read, and the moment only written, from then on). */
 export async function hydrated(page: Page) {
-  await expect(page.getByRole("list", { name: "Città salvate" })).toBeVisible();
+  await expect(page.locator('[data-bar][data-ready="true"]')).toBeAttached();
 }
 
-/** Answers the saved places' weather without a server round trip. */
+/** Answers the kept records' weather without a server round trip. */
 export async function stubSummaries(page: Page) {
   await page.route("**/api/summary?*", (route) =>
     route.fulfill({

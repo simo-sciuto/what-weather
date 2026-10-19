@@ -39,6 +39,7 @@ export function WeatherHero({
   renderedAt,
   outlook,
   yesterday,
+  unavailable,
 }: {
   place: Place;
   timezone: string;
@@ -49,6 +50,8 @@ export function WeatherHero({
   outlook: string;
   /** Degrees gained or lost since the same time yesterday; null when unknown */
   yesterday: number | null;
+  /** The address asked for an hour the forecast does not hold: the hour as asked (on the place's clock), if it was one */
+  unavailable?: { asked: string | null };
 }) {
   const label = conditionLabel(current);
   const sinceYesterday =
@@ -76,8 +79,6 @@ export function WeatherHero({
     // and the gaps): the temperature at its top, the name and the outlook at its foot, the city between.
     <section
       data-map-anchor="poster"
-      // On a phone the finger here moves the map (see MapGestures)
-      data-map-gestures
       aria-label="Meteo attuale"
       className="on-sky flex min-h-[calc(100svh-7.5rem)] flex-col lg:min-h-full"
     >
@@ -136,7 +137,7 @@ export function WeatherHero({
       <div aria-hidden="true" className="min-h-8 flex-1" />
 
       {/* On a phone, the foot: the hour and the day on one line, a hairline, the name, the place's facts */}
-      <div className="pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:hidden">
+      <div className="pb-[calc(var(--bar-h)+1rem+env(safe-area-inset-bottom))] lg:hidden">
         <div className="border-t border-white/30 pt-2">
           <HeroNowPhone
             timezone={timezone}
@@ -151,6 +152,13 @@ export function WeatherHero({
           className="mt-3"
         />
       </div>
+
+      {/* An hour the address asked for and the forecast does not hold: said, never answered with another hour (the page stays on Adesso) */}
+      {unavailable && (
+        <p role="status" data-moment-unavailable className="mt-3 text-caption font-medium text-ink lg:mb-3">
+          Dato non disponibile per quest&apos;ora{unavailable.asked ? `: ${unavailable.asked}` : ""}. La pagina mostra Adesso.
+        </p>
+      )}
 
       {/* On a computer, the foot: one line, the place, the day and the hour (a phone has its own just above) */}
       <div className="lg:pb-1">

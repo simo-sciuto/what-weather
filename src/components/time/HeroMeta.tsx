@@ -1,22 +1,17 @@
 "use client";
-import { PAGE_LABELS } from "@/constants/labels";
 
 import { dayOfYear } from "@/lib/weather/formatters";
 import { tempAccent } from "@/lib/weather/temp-color";
-import { CreateTab } from "../poster/CreateLink";
 import { LocalClock } from "../weather/LocalClock";
 import { MapControls } from "../weather/MapControls";
-import { useRef, type CSSProperties } from "react";
-import { BarTab, ICONS, useLens, usePhoneNav } from "../layout/PhoneNav";
-import { useMap } from "../weather/MapContext";
 import { MapCompass } from "../weather/MapCompass";
 import { useMoment, useView } from "./TimeContext";
 
 /**
  * The poster's top line on a computer: the two actions at either end of it,
- * level with the site's search beside the poster: the place as a poster to
- * keep, and the map's layers and colours to choose. (A phone has them docked
- * to the screen instead, see HeroActionsDock.)
+ * level with the site's search beside the poster: the compass and the map's
+ * layers and colours to choose. (A phone has neither: the map's
+ * controls are in the Atlas, which Esplora opens.)
  */
 export function HeroActions() {
   return (
@@ -24,55 +19,6 @@ export function HeroActions() {
       <MapCompass />
       <MapControls />
     </div>
-  );
-}
-
-/**
- * On a phone, the way between its three pages: a wide capsule of glass floating over the map
- * (clear, untinted, barely blurred, lit along its edge with a curved highlight on top, as the system's own tab bars are: whatever
- * lies behind it gives it its colour), with an
- * icon and a name for each (the weather, the map, the poster) and a drop of glass on the page you are on, which travels
- * to the next as you go (see useLens). It stays in view while a sheet is open (the sheet stops above it),
- * so the page you are on is always marked. On the poster, its icon goes to Create; away from it, it goes back.
- */
-export function PhoneBar() {
-  const { page, go } = usePhoneNav();
-  const { token } = useMap();
-  // The page on show is marked in the colour of the temperature on show, as an accent in the scene's saturation
-  const { frame, look } = useMoment();
-  const tabs = useRef<(HTMLElement | null)[]>([]);
-  const lens = useLens(page, tabs);
-  return (
-    <nav
-      aria-label="Pagine"
-      style={{ "--selected": tempAccent(frame.temp, look.palette.air.saturation) } as CSSProperties}
-      className="fixed inset-x-4 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 grid grid-cols-3 items-center overflow-hidden rounded-full bg-[linear-gradient(180deg,rgb(255_255_255/0.07),rgb(255_255_255/0.015))] p-1 [text-shadow:0_1px_4px_rgb(0_0_0/0.45)] shadow-[0_12px_30px_rgb(0_0_0/0.28),inset_0_0.5px_0_rgb(255_255_255/0.55),inset_0_-0.5px_0_rgb(255_255_255/0.2),inset_0_0_0_0.5px_rgb(255_255_255/0.22)] backdrop-blur-[3px] backdrop-brightness-[1.08] backdrop-saturate-[1.6] before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-1/2 before:rounded-b-full before:bg-[radial-gradient(ellipse_at_top,rgb(255_255_255/0.18),transparent_70%)] lg:hidden"
-    >
-      <span
-        ref={lens}
-        aria-hidden="true"
-        className="absolute bottom-1.5 left-0 top-1.5 rounded-full bg-white/10 shadow-[inset_0_0.5px_0_rgb(255_255_255/0.35),inset_0_0_0_0.5px_rgb(255_255_255/0.12)]"
-      />
-      <BarTab
-        label={PAGE_LABELS.weather}
-        current={page === "data"}
-        onClick={() => go("data")}
-        tabRef={(el) => void (tabs.current[0] = el)}
-      >
-        {ICONS.data}
-      </BarTab>
-      {token && (
-        <BarTab
-          label="Modifica mappa"
-          current={page === "map"}
-          onClick={() => go("map")}
-          tabRef={(el) => void (tabs.current[1] = el)}
-        >
-          {ICONS.map}
-        </BarTab>
-      )}
-      <CreateTab tabRef={(el) => void (tabs.current[2] = el)} />
-    </nav>
   );
 }
 

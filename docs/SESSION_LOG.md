@@ -5,7 +5,8 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 ## 2026-10-19 (Tavola unica: design, decision, C1)
 - Worked on: the user rejected the three-tab home ("troppo separato", "va rivista completamente"). Six concepts and then a deep v2 of the chosen one as a Figma-style design document (artifact, boards W1 to W12 with desktop and phone, motion, states, words); the `ux-ui` agent reviewed it, the `architect` gave "via libera con condizioni" (ADR-028). The user agreed to the six choices. Committed the triptych work as a checkpoint, then C1 (pure data) with a `reviewer` pass.
 - Not verified: anything on screen (C1 shows nothing new); the four spikes before the one map (WTH-307); Safari, a real phone, screen readers.
-- Next: C2 (WTH-305), the bar and the stations, after the user's go; the spikes can run before.
+- Spikes S1 to S3 (WTH-307): clip-path and gestures pass in Chrome; the name in the cache key is a real risk, fix designed for C4. C2 (WTH-305) built by the `frontend` agent, reviewed, fixed; the home's e2e green, one load flake in the Keep list (passes alone 4 of 4).
+- Next: the user's look at C2 on a computer and a phone; then C3 (the poster in place and the records).
 
 ## 2026-10-19 (Atlas weather field)
 - Worked on: WTH-272 after the user chose the temperature's colour engine and asked that roads and everything follow each place's weather. First version (a field under the map, tone from the atmosphere engine) was too uniform, as the user's screenshot showed: at night the engine gives one dark colour to every overcast place, and roads and sea sat above the field. Rewritten: the temperature leads, a second layer tints everything.

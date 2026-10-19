@@ -235,22 +235,7 @@ body {
     0 1px 20px rgb(0 0 0 / 0.25);
 }
 
-/* On a phone the data sit in a sheet of glass over the map (see PhoneNav); on a computer .data-veil keeps them legible. */
-
-/*
- * On a phone the page itself never scrolls: it is the poster, and the finger moves the map behind it
- * (see MapGestures). Where the finger moves the map, the browser must not take the gesture for itself.
- */
-@media (width < 64rem) {
-  html,
-  body {
-    overflow: hidden;
-    overscroll-behavior: none;
-  }
-  [data-map-gestures] {
-    touch-action: none;
-  }
-}
+/* On a computer .data-veil keeps the data legible over the map; on a phone .stations-veil does. */
 
 /* ---------- Sky scene ---------- */
 
@@ -523,9 +508,53 @@ body {
   background-color: var(--glass);
 }
 
-/* The current reading settles in on arrival and on every change of place */
+/* M01, the page opens: the sky first, then the Testata rises 16px and appears (600ms, after the sky's first 300ms)... */
 .rise-in {
-  animation: rise-in 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: rise-in 600ms 300ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+/* ...then the Barra comes in from 24px below (400ms, delay 200) */
+.arrive-bar {
+  animation: bar-in 400ms 200ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+/* M03, a station enters once, rising 16px when it comes up to a quarter of the screen (set by Station, see its note) */
+.station[data-enter="waiting"] {
+  opacity: 0;
+  transform: translateY(16px);
+}
+.station[data-enter="done"] {
+  animation: reveal 500ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* The Barra and the small Testata: the sky's own colour, deepened, so white text holds on any sky */
+.bar-surface {
+  background: color-mix(in oklab, color-mix(in oklab, var(--sky-1) 45%, #0c0f25) 94%, transparent);
+}
+/* The Barra's height: the page leaves this room at its foot (a phone's two rows, a computer's one) */
+:root {
+  --bar-h: 104px;
+}
+@media (width >= 64rem) {
+  :root {
+    --bar-h: 72px;
+  }
+}
+/* On a phone the stations sit over the map with no sheet: a wash of the sky behind them, full width, so the data read */
+@media (width < 64rem) {
+  .stations-veil {
+    background: linear-gradient(
+      180deg,
+      transparent 0,
+      color-mix(in oklab, var(--sky-1) 55%, transparent) 4rem,
+      color-mix(in oklab, var(--sky-1) 70%, transparent) 100%
+    );
+  }
 }
 .rise-in-late {
   animation: rise-in 700ms 150ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -581,7 +610,7 @@ body {
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(16px);
   }
 }
 
@@ -647,42 +676,6 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* The home's three parts (Explore, Create, Keep): which blocks show in which, by the mode on the document (see explainer/mode.ts) */
-.only-crea,
-.only-conserva {
-  display: none;
-}
-html[data-mode="crea"] .only-crea,
-html[data-mode="conserva"] .only-conserva {
-  display: flex;
-}
-html[data-mode="crea"] .not-crea,
-html[data-mode="conserva"] .not-conserva {
-  display: none;
-}
-
-/* A light that passes over a poster now and then */
-@keyframes poster-shine {
-  0%,
-  55% {
-    transform: translateX(0) skewX(-12deg);
-    opacity: 0;
-  }
-  70% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(520%) skewX(-12deg);
-    opacity: 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  [style*="poster-shine"],
-  .\[animation\:poster-shine_4\.5s_ease-in-out_infinite\] {
-    animation: none;
   }
 }
 

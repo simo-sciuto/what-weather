@@ -21,8 +21,8 @@ test("the weather page leads to Create for the place on show", async ({ page }) 
   await page.goto(`/?lat=${TURIN.lat}&lon=${TURIN.lon}&name=${TURIN.name}&mock=clear&at=13:00`);
 
   await expect(page.getByText("Weather, worth looking at")).toBeVisible();
-  // Create is one of the page's three parts: its tab shows the poster of the moment and the way to make it
-  await page.locator('[data-mode-tab="crea"]:visible').first().click();
+  // Create is one of the page's three stations: it shows the poster of the moment and the way to make it
+  await page.getByRole("navigation", { name: "Percorso" }).getByRole("link", { name: "Crea" }).click();
   const create = page.locator("[data-create-link]");
   await expect(create).toHaveAttribute("href", /^\/crea\?lat=45\.0700&lon=7\.6900&name=Torino/);
   await create.click();
