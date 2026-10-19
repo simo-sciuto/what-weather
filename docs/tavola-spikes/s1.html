@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="mapbox-gl.css"><script src="mapbox-gl.js"></script>
+<style>
+html,body{margin:0}
+#map{position:fixed;inset:0;z-index:-1}
+/* the page scrolls over the fixed map; the window is a clip-path on the map's own box */
+#page{position:relative;min-height:300vh;background:linear-gradient(180deg,rgba(10,92,194,.0),rgba(10,92,194,.0))}
+.band{height:100vh;padding:48px;font:700 40px sans-serif;color:#fff}
+#map.win{clip-path:inset(160px 40px 40vh 40vw)}
+#map.open{clip-path:inset(0 0 72px 0)}
+#map.anim{transition:clip-path 520ms cubic-bezier(.3,0,0,1)}
+</style></head><body>
+<div id="map" class="win anim"></div>
+<div id="page"><div class="band">01 Esplora</div><div class="band">02 Crea</div><div class="band">03 Conserva</div></div>
+<script>
+const style={version:8,sources:{},layers:[{id:'bg',type:'background',paint:{'background-color':'#1b4f86'}}]};
+const map=new mapboxgl.Map({container:'map',style,center:[9.19,45.46],zoom:6,attributionControl:false,fadeDuration:0});
+window.map=map;
+window.__ready=new Promise(r=>map.once('load',r));
+</script></body></html>
