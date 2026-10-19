@@ -2,6 +2,11 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-19 (Tavola unica: design, decision, C1)
+- Worked on: the user rejected the three-tab home ("troppo separato", "va rivista completamente"). Six concepts and then a deep v2 of the chosen one as a Figma-style design document (artifact, boards W1 to W12 with desktop and phone, motion, states, words); the `ux-ui` agent reviewed it, the `architect` gave "via libera con condizioni" (ADR-028). The user agreed to the six choices. Committed the triptych work as a checkpoint, then C1 (pure data) with a `reviewer` pass.
+- Not verified: anything on screen (C1 shows nothing new); the four spikes before the one map (WTH-307); Safari, a real phone, screen readers.
+- Next: C2 (WTH-305), the bar and the stations, after the user's go; the spikes can run before.
+
 ## 2026-10-19 (Atlas weather field)
 - Worked on: WTH-272 after the user chose the temperature's colour engine and asked that roads and everything follow each place's weather. First version (a field under the map, tone from the atmosphere engine) was too uniform, as the user's screenshot showed: at night the engine gives one dark colour to every overcast place, and roads and sea sat above the field. Rewritten: the temperature leads, a second layer tints everything.
 - Not verified: how it looks at night and on a phone (the user's eyes), the legibility of white text over a bright field, Open-Meteo's meter and terms for about 48 calls per view, the antimeridian.

@@ -17,6 +17,8 @@ Set by the user: "Weather, worth looking at". Explore (free, the way in) and Cre
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 
 ## Active task
+Tavola unica (ADR-028, accepted 2026-10-19): the home becomes one page with three stations (Explore, Create, Keep), a fixed bar and one map; checkpoints C1 to C5 on the board (WTH-304 to WTH-309). C1 (pure data: `t` in the address, the kept record and the saved-places migration) is done and reviewed on `claude/atlas-foundation`, nothing visible yet; next is C2 (WTH-305) and the four spikes (WTH-307). Still nothing on `main`, nothing pushed, nothing deployed.
+
 On 2026-10-19 `main` (Explore, Create, Territory, the poster's failures told apart) was merged INTO `claude/atlas-foundation`, so the Atlas, Create and the poster can be worked on and tried together; nothing goes into `main` until the user says the work is complete and as he wants it.
 
 WTH-291, the Atlas, on the local branch `claude/atlas-foundation`: M0 to M5, the place name (ADR-024), the title as option C, the city search with a flight and the home's map controls (ADR-025), and, as the user asked on 2026-10-19, the weather field: the map and its roads coloured by the weather of many places, fading between them (ADR-026, WTH-272). All awaiting the user's look on a computer and a phone. The branch on origin is at `50b2903` (pushed by a stop hook, not authorized; a Vercel preview exists), without everything since. Open: the contrast of white text over a bright field and the other field follow-ups (WTH-277), the quota of Open-Meteo calls (WTH-212, WTH-269), board and ADR ids that collide with `main` (WTH-265), the real phone, Safari.

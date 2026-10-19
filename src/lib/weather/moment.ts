@@ -16,7 +16,7 @@ export type MomentStart = {
 };
 
 /** The start of a moment in the timeline, or null when the timeline does not hold it (past, too far, or gone) */
-export function momentStart(timeline: Timeline, time: number): MomentStart | null {
+export function momentStart(timeline: Pick<Timeline, "frames" | "days">, time: number): MomentStart | null {
   const next = timeline.frames.slice(0, WINDOW + 1).findIndex((f) => f.time === time);
   if (next >= 0) return { day: null, index: next, live: next === 0 };
   for (const day of timeline.days) {
