@@ -39,6 +39,7 @@ import { useMoment } from "../time/TimeContext";
 import { useMap } from "./MapContext";
 import { activeLayers } from "./map-style";
 import { GLASS, Sheet } from "../layout/PhoneNav";
+import { AtlasLink } from "../atlas/AtlasLink";
 
 /** The viewer's tuning of the map's colours; the page's own on the server and until the browser says otherwise. */
 function useMapTuning(): MapTuning {
@@ -123,7 +124,7 @@ export function MapControls({ className = "" }: { className?: string }) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className="group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-ink aria-expanded:text-accent"
+        className="group inline-flex items-baseline gap-3 whitespace-nowrap text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-ink aria-expanded:text-accent"
       >
         Personalizza la mappa
         <span
@@ -177,11 +178,14 @@ export function MapSheet() {
       name="map"
       title={PAGE_LABELS.map}
       actions={
-        custom && (
-          <button type="button" onClick={reset} className={RESET_LINK}>
-            Torna agli automatici
-          </button>
-        )
+        <>
+          <AtlasLink compact />
+          {custom && (
+            <button type="button" onClick={reset} className={RESET_LINK}>
+              Torna agli automatici
+            </button>
+          )}
+        </>
       }
     >
       <MapPanelBody />

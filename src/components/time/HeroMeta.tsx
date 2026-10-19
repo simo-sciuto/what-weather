@@ -3,6 +3,7 @@ import { PAGE_LABELS } from "@/constants/labels";
 
 import { dayOfYear } from "@/lib/weather/formatters";
 import { tempAccent } from "@/lib/weather/temp-color";
+import { AtlasLink } from "../atlas/AtlasLink";
 import { CreateLink, CreateTab } from "../poster/CreateLink";
 import { LocalClock } from "../weather/LocalClock";
 import { MapControls } from "../weather/MapControls";
@@ -21,7 +22,10 @@ import { useMoment, useView } from "./TimeContext";
 export function HeroActions() {
   return (
     <div className="flex h-12 items-center justify-between gap-4 max-lg:hidden">
-      <CreateLink />
+      <div className="flex items-baseline gap-3 whitespace-nowrap xl:gap-4">
+        <CreateLink />
+        <AtlasLink />
+      </div>
       <MapCompass />
       <MapControls />
     </div>

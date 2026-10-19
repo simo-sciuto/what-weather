@@ -2,13 +2,12 @@
 
 import type { CameraPort, PointSky } from "@/types/atlas";
 import type { Map as MapboxMap } from "mapbox-gl";
-import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
-import { Wordmark } from "../Wordmark";
 import { AtlasMap } from "./AtlasMap";
 import { AtlasMapPanel } from "./AtlasMapPanel";
 import { WeatherFieldLayer } from "./WeatherFieldLayer";
 import { AtlasSearch } from "./AtlasSearch";
+import { WordmarkLink } from "./WordmarkLink";
 import { ATLAS_SKY, paletteVars } from "./atlas-look";
 import { countRender } from "./atlas-test";
 import { CenterReadout } from "./CenterReadout";
@@ -40,12 +39,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       <WeatherFieldLayer map={map} port={port} />
       <SkyDriver port={port} engine={engine} onSky={setSky} />
       <Crosshair port={port} />
-      <Link
-        href="/"
-        className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1rem,env(safe-area-inset-top))] z-10 text-[1.375rem] text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-      >
-        <Wordmark />
-      </Link>
+      <WordmarkLink engine={engine} />
       <AtlasMapPanel sky={sky} open={panelOpen} onOpenChange={setPanelOpen} />
       <AtlasSearch onChoose={(place) => goTo(place)} onOpen={() => setPanelOpen(false)} />
       <PointReading engine={engine} port={port} />

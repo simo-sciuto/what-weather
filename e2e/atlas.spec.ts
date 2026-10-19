@@ -17,7 +17,8 @@ test("opens on a free map: the crosshair, the centre's coordinates, Mapbox's att
   await expect(page.locator("[data-atlas-readout]")).toHaveText("45,0700° N · 7,6870° E");
   await expect(page.locator(".mapboxgl-ctrl-attrib")).toBeVisible();
   await expect(page.locator(".mapboxgl-ctrl-logo")).toBeVisible();
-  await expect(page.getByRole("link", { name: "what-weather" })).toHaveAttribute("href", "/");
+  // the way back is the weather of the place on show (the front page before there is one)
+  await expect(page.getByRole("link", { name: "what-weather" })).toHaveAttribute("href", /^\/(\?lat=45\.0700&lon=7\.6900)?$/);
   await expect(page.getByRole("heading", { name: "Esplora la mappa" })).toBeAttached();
 });
 
