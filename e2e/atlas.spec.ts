@@ -850,3 +850,28 @@ test("moving the time bar renders neither the shell nor the map, and an hour wit
   await expect(page.locator("[data-atlas-time] input[type=range]")).toHaveAttribute("aria-valuetext", /^Ora non disponibile: /, { timeout: 30_000 });
   await expect(page.locator("[data-atlas-time-label]")).toContainText("non disponibile");
 });
+
+test("a tapped summit opens its card: its weather in altitude and whether it is a good time to go, with what it does not judge", async ({ page }) => {
+  await openAtlas(page);
+  const asked: string[] = [];
+  page.on("request", (r) => asked.push(r.url()));
+  await page.evaluate(() => (window as unknown as { __atlasPeak: (p: Record<string, unknown>, lng: number, lat: number) => void }).__atlasPeak({ name: "Rocciamelone", elevation_m: 3538, maki: "mountain" }, 7.077, 45.203));
+  const card = page.locator("[data-atlas-peak]");
+  await expect(card.getByRole("heading", { name: "Rocciamelone" })).toBeFocused();
+  await expect(card).toContainText("3538 m");
+  await expect(card.locator("[data-atlas-verdict]")).toHaveAttribute("data-atlas-verdict", /^(good|caution|no|unknown)$/, { timeout: 15_000 });
+  await expect(card).toContainText("È un buon momento per salirci?");
+  await expect(card).toContainText("Non sostituisce il bollettino");
+  await expect(card).toContainText("Dati di esempio");
+  // the summit's weather is asked for at its height; the camera did not move, so no new point
+  const spot = asked.find((u) => new URL(u).pathname === "/api/atlas/spot");
+  expect(new URL(spot!).searchParams.get("ele")).toBe("3538");
+  expect(pointRequests(asked)).toEqual([]);
+  // the verdict follows the time bar: twelve hours on it is worked out again, without asking
+  await page.locator("[data-atlas-time] input[type=range]").focus();
+  for (let i = 0; i < 12; i++) await page.keyboard.press("ArrowRight");
+  await expect(card.locator("[data-atlas-verdict]")).toBeVisible();
+  expect(asked.filter((u) => new URL(u).pathname === "/api/atlas/spot")).toHaveLength(1);
+  await page.keyboard.press("Escape");
+  await expect(card).toHaveCount(0);
+});

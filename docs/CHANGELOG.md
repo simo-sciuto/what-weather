@@ -2,6 +2,9 @@
 
 Meaningful completed changes, newest first. Before 2026-10-01 this is rebuilt from git history; the same work is listed by theme in BOARD.md (DONE), with WTH ids.
 
+## 2026-10-20 (summits)
+- The `peaks` layer (named summits from Mapbox Streets) in the colour engine; a tap opens the summit's card with the model's weather at its height (`/api/atlas/spot`, `RouteWeather`, ADR-031) and "È un buon momento per salirci?" (`peakOutlook`, the `weather-data` agent's thresholds) at the hour of the time bar. Also: Adesso refreshed on a page left open (WTH-359), local-day paging, dead CSS removed.
+
 ## 2026-10-20 (the atlas built, WTH-340 to WTH-348)
 - `/` is the atmospheric atlas. Built on the Atlas foundation: UI tokens from the colour engine measured against the weather field (`ui-tokens.ts`); the point answers with all its hours, a time store and the `TimeBar` move the reading, the sky, the relief's light and the field over them without asking the server; the hourly field (three days of colours per place from one request); the `LayerSwitch` (Meteo, Territorio, Percorsi, the region box); `t` and `strato` in the address through one writer; `/atlas` and `/crea` redirect. Deleted: Tavola, Create, Keep, poster, record, explainer, analytics, the old home and the modules only they used, 12 old e2e specs, Syne. Reviewed by the `reviewer` and fixed. 546 unit tests, 47 e2e. The verdict's spec is `docs/VERDICT.md` (not built).
 

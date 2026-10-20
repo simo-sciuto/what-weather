@@ -9,6 +9,8 @@ import { createAddressWriter } from "@/lib/atlas/address";
 import { inRegion } from "@/lib/atlas/layers";
 import { NOW_SELECTION } from "@/lib/weather/instant";
 import { AddressSync } from "./AddressSync";
+import { PeakCard } from "./PeakCard";
+import { createSelectionStore, type Selection } from "@/lib/atlas/selection";
 import { useCallback, useMemo, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { AtlasMap } from "./AtlasMap";
 import { AtlasMapPanel } from "./AtlasMapPanel";
@@ -66,6 +68,9 @@ export function AtlasShell({ children }: { children: ReactNode }) {
   );
   const vars = tokens as unknown as CSSProperties;
 
+  // What was tapped on the map (WTH-351): never moves the camera
+  const [selection] = useState(() => createSelectionStore());
+  const onPeak = useCallback((peak: Selection) => selection.set(peak), [selection]);
   const chooseLayer = useCallback((next: AtlasLayer) => layers.set(next), [layers]);
   const onChoose = useCallback((place: { lat: number; lon: number }) => goTo(place), [goTo]);
   const onOpen = useCallback(() => setPanelOpen(false), []);
@@ -78,7 +83,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
 
   return (
     <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={{ ...vars, "--dock-room": "max(0.75rem, env(safe-area-inset-bottom))" } as CSSProperties}>
-      <AtlasMap onPort={setPort} onMap={setMap} sky={sky} sunAt={sunAt} options={override} />
+      <AtlasMap onPort={setPort} onMap={setMap} sky={sky} sunAt={sunAt} options={override} onPeak={onPeak} />
       <AddressSync address={address} time={time} layers={layers} />
       <WeatherFieldLayer map={map} port={port} onColors={setFieldColors} store={time} opacity={plan.fieldOpacity} tint={plan.tintOpacity} />
       <SkyDriver port={port} engine={engine} store={time} onSky={setSky} onSun={setSunAt} />
@@ -90,6 +95,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       <LayerSwitch engine={engine} layer={layer} chosen={chosen} onLayer={chooseLayer} />
       <TimeBar engine={engine} store={time} />
       <CenterReadout port={port} />
+      <PeakCard selection={selection} store={time} />
       <main className="sr-only">{children}</main>
     </div>
   );

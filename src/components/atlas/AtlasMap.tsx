@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { STYLE, syncMap } from "@/lib/map/map-style";
 import type { SunAt } from "./SkyDriver";
 import type { MapOption } from "@/lib/map-options";
+import { peakOf, type Selection } from "@/lib/atlas/selection";
 import { useAtlasMapLook } from "./atlas-look";
 import { ATLAS_TEST_MAP, countRender } from "./atlas-test";
 
@@ -58,6 +59,7 @@ export function AtlasMap({
   sky,
   sunAt = null,
   options: layerOptions,
+  onPeak,
 }: {
   onPort: (port: MapboxCameraPort | null) => void;
   onMap?: (map: MapboxMap | null) => void;
@@ -66,6 +68,8 @@ export function AtlasMap({
   sunAt?: SunAt | null;
   /** The options of the layer on show, when it is not Meteo (WTH-346) */
   options?: readonly MapOption[];
+  /** A summit was tapped (WTH-351): its name, height and point from the map's own label */
+  onPeak?: (peak: Selection) => void;
 }) {
   countRender("map");
   const box = useRef<HTMLDivElement>(null);
@@ -75,9 +79,11 @@ export function AtlasMap({
   const [state, setState] = useState<"loading" | "ready" | "none" | "failed">(TOKEN || ATLAS_TEST_MAP ? "loading" : "none");
   const { inks, options } = useAtlasMapLook(sky, layerOptions);
 
+  const peakCb = useRef(onPeak);
   useEffect(() => {
     portRef.current = onPort;
     mapCb.current = onMap;
+    peakCb.current = onPeak;
   });
 
   useEffect(() => {
@@ -118,7 +124,22 @@ export function AtlasMap({
         const { top, right, bottom, left } = ATLAS_PADDING;
         if (top || right || bottom || left) port.setPadding(ATLAS_PADDING);
 
+        // A tap on a summit opens its card; the pointer says it can be tapped
+        map.on("click", "peaks", (e) => {
+          const f = e.features?.[0] as { geometry?: { type: string; coordinates?: unknown }; properties?: Record<string, unknown> | null } | undefined;
+          const coords = f?.geometry?.type === "Point" ? (f.geometry.coordinates as [number, number]) : [e.lngLat.lng, e.lngLat.lat];
+          const peak = peakOf(f?.properties, coords[0], coords[1]);
+          if (peak) peakCb.current?.(peak);
+        });
+        map.on("mouseenter", "peaks", () => (map!.getCanvas().style.cursor = "pointer"));
+        map.on("mouseleave", "peaks", () => (map!.getCanvas().style.cursor = ""));
+
         if (ATLAS_TEST_MAP) {
+          // The blank test map has no tiles and so no summits: the tests tap one through here
+          (window as unknown as { __atlasPeak?: (p: Record<string, unknown>, lng: number, lat: number) => void }).__atlasPeak = (p, lng, lat) => {
+            const peak = peakOf(p, lng, lat);
+            if (peak) peakCb.current?.(peak);
+          };
           const probe = window as unknown as { __atlas?: Probe };
           const events: CameraEvent[] = [];
           port.subscribe((e) => events.push(e));
