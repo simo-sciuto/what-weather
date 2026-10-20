@@ -21,6 +21,7 @@ function formats(timezone: string) {
     short: (t: number) => `${day.format(t * 1000)}, ${time.format(t * 1000)}`,
     spoken: (t: number) => spoken.format(t * 1000).replace(/ (\d{1,2})$/, ", ore $1"),
     key: (t: number) => key.format(t * 1000),
+    hour: (t: number) => time.format(t * 1000),
   };
 }
 
@@ -66,7 +67,14 @@ export const TimeBar = memo(function TimeBar({ engine, store }: { engine: AtlasE
     store.set(at === 0 ? NOW_SELECTION : { mode: "at", instant: hours[at].time });
   };
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    const keys: Record<string, number> = { PageUp: shown + DAY, PageDown: shown - DAY, Home: 0, End: last };
+    // A day on or back is the same hour on the place's clock, also across the change of the clocks (a 25-hour day)
+    const dayFrom = (dir: 1 | -1) => {
+      const at = hours[shown].time;
+      const target = f.key(at + dir * DAY * 3600);
+      const found = hours.findIndex((h) => f.key(h.time) === target && f.hour(h.time) === f.hour(at));
+      return found >= 0 ? found : shown + dir * DAY;
+    };
+    const keys: Record<string, number> = { PageUp: dayFrom(1), PageDown: dayFrom(-1), Home: 0, End: last };
     if (!(e.key in keys)) return;
     e.preventDefault();
     choose(keys[e.key]);

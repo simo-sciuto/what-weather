@@ -74,14 +74,16 @@ describe("uiTokens", () => {
     expect(thinnestVeil([255, 255, 255], [250, 250, 250], 4.5)).toBe(1);
   });
 
-  it("the accent is the sun and reads at 3:1 on surface-2 in every sky; text on it is the night ink", () => {
+  it("the accent is the sun and reads at 3:1 on both surfaces in every sky; text on it is the night ink", () => {
     for (const [name, input] of Object.entries(SKIES)) {
       const sky = skyOf(input);
       const t = uiTokens(sky, FIELDS[0], inksOf(sky));
       expect(t["--accent"]).toBe(sky.sun);
       const ground = worstBackdrop(sky, FIELDS[0], inksOf(sky));
-      const surface = mix(ground, parseColor(t["--surface-2"])!, alphaOf(t["--surface-2"]));
-      expect(contrastRatio(parseColor(sky.sun)!, surface), name).toBeGreaterThanOrEqual(3);
+      for (const token of ["--surface-1", "--surface-2"] as const) {
+        const surface = mix(ground, parseColor(t[token])!, alphaOf(t[token]));
+        expect(contrastRatio(parseColor(sky.sun)!, surface), `${name} ${token}`).toBeGreaterThanOrEqual(3);
+      }
       expect(contrastRatio(parseColor(t["--on-accent"])!, parseColor(sky.sun)!), name).toBeGreaterThanOrEqual(4.5);
     }
   });
