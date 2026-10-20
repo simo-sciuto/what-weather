@@ -28,6 +28,8 @@ export type FieldLoader = {
   onCamera: (event: CameraEvent) => void;
   /** The view as it is now, with no movement to wait for (the first one) */
   start: (camera: Camera) => void;
+  /** Asks for the view again even if it is the one on show (WTH-359) */
+  refresh: (camera: Camera) => void;
   dispose: () => void;
 };
 
@@ -95,6 +97,12 @@ export function createFieldLoader(options: FieldLoaderOptions): FieldLoader {
     },
     start(camera) {
       if (!disposed) need(camera);
+    },
+    // The same view asked for again, its hours moved on (WTH-359): only with nothing in flight or waiting
+    refresh(camera) {
+      if (disposed || inflight || timer !== null) return;
+      shown = null;
+      need(camera);
     },
     dispose() {
       disposed = true;

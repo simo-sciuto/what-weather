@@ -9,6 +9,7 @@ import type { AddressWriter } from "@/lib/atlas/address";
 import type { AtlasPoint, CameraPort } from "@/types/atlas";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import { useRefresh } from "./useRefresh";
 
 /** The sample weather's parameters, handed on from the address to the request (tests and the home page's `?mock`) */
 const PASSED = ["mock", "at"] as const;
@@ -89,6 +90,12 @@ export function useAtlasEngine(port: CameraPort | null, address: AddressWriter):
     },
     [engine, port],
   );
+
+  // A page left open asks again for the point on show (WTH-359)
+  const refresh = useCallback(() => {
+    engine?.controller.refresh();
+  }, [engine]);
+  useRefresh(engine ? refresh : null);
 
   return { engine, goTo };
 }

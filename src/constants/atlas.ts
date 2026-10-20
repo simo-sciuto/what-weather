@@ -77,3 +77,6 @@ export const FIELD_IMAGE = { width: 192, height: 144 } as const;
 
 /** How long the time bar must rest before the moment is written into the address (WTH-343): a link opens on it, a drag does not rewrite the address at every hour */
 export const MOMENT_ADDRESS_DELAY_MS = 400;
+
+/** How often a page left open asks again for the point and the field on show, so "Adesso" stays now (WTH-359); the server's cache keeps a cell ten minutes */
+export const REFRESH_MS = 10 * 60 * 1000;

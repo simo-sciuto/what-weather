@@ -61,6 +61,11 @@ export type SettleController = {
   resolve: (seq: number, result: CommitResult) => "applied" | "stale";
   /** Asks again for the point that failed; false when nothing has failed */
   retry: () => boolean;
+  /**
+   * Asks again for the point on show, so "Adesso" stays now on a page left open (WTH-359); only while the map rests and
+   * nothing is in flight or failed. False when there was nothing to ask for.
+   */
+  refresh: () => boolean;
   /** Asks for a point on purpose (a search, a saved place, "Esplora qui"): no quiet, no wait */
   select: (cell: Cell) => void;
   dispose: () => void;
@@ -239,6 +244,12 @@ export function createSettleController(options: SettleControllerOptions): Settle
     retry() {
       if (disposed || !failed) return false;
       commit(failed.cell, "retry");
+      return true;
+    },
+
+    refresh() {
+      if (disposed || !loaded || inflight || failed || phase !== "resting") return false;
+      commit(loaded, "refresh");
       return true;
     },
 

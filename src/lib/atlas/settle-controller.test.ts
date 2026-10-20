@@ -598,3 +598,30 @@ describe("a flight of the code that the person interrupts (regression, pre-M3)",
     expect(requests[0].cell).toEqual(cellOf(WHERE_IT_STOPS.lng, WHERE_IT_STOPS.lat));
   });
 });
+
+describe("refresh (WTH-359)", () => {
+  it("asks again for the point on show while the map rests, and only then", () => {
+    const { controller, requests } = rig();
+    expect(controller.refresh()).toBe(false);
+    controller.select(cellOf(TORINO.lng, TORINO.lat));
+    expect(requests).toHaveLength(1);
+    // in flight: nothing more
+    expect(controller.refresh()).toBe(false);
+    controller.resolve(requests[0].seq, { ok: true });
+    expect(controller.refresh()).toBe(true);
+    expect(requests).toHaveLength(2);
+    expect(requests[1]).toMatchObject({ cell: requests[0].cell, reason: "refresh" });
+  });
+
+  it("never asks again while the map moves, or for a point that failed", () => {
+    const { controller, requests, port } = rig();
+    controller.select(cellOf(TORINO.lng, TORINO.lat));
+    controller.resolve(requests[0].seq, { ok: true });
+    port.user(GENOVA, { end: false });
+    expect(controller.refresh()).toBe(false);
+    port.emit("moveend", "user", GENOVA);
+    vi.advanceTimersByTime(QUIET_MS);
+    controller.resolve(requests.at(-1)!.seq, { ok: false, reason: "upstream" });
+    expect(controller.refresh()).toBe(false);
+  });
+});

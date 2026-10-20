@@ -17,14 +17,14 @@ WTH-339, the reset. Built on 2026-10-20, each step committed, pushed and tested 
 - Docs: VISION, PRINCIPLES, EXPERIENCE, DESIGN_SYSTEM, ARCHITECTURE, ROADMAP, VERDICT (spec), ADR-030; the design system "what-weather Atlante" in Claude Design (https://claude.ai/artifact/4ecgeDMLxKfXqHspB4nE7a, private).
 
 ## Last checkpoint
-`7364e8c`, the review fixes.
+WTH-359, Adesso refreshed on a page left open (after `7364e8c`, the review fixes).
 
 ## Blocked, and on whom
 - The user: a look at `/` on a computer and a 360 px phone (WTH-361); the docs and the design system; Inter Tight or Inter; the region box wording; colour worked out on the server (WTH-358); the verdict's thresholds and the new `RouteWeather` contract (docs/VERDICT.md, WTH-354); the map panel against the layers (WTH-357); whether and when this branch goes to `main` (the Vercel preview of the branch builds the atlas at `/`).
 - Network: the data spike (WTH-341: Overpass, Wikidata, elevation, Tiling Service, Open-Meteo call counting) cannot run in this cloud environment; it needs access to those hosts or a local run. Territorio's data and cards (WTH-351), peaks and lakes (WTH-352) and Percorsi (WTH-353) wait on it.
 
 ## Known problems
-- WTH-359 Adesso does not refresh on a page left open. WTH-360 smaller follow-ups from the review. The field and point colour is still computed on the server (WTH-358).
+- WTH-360 smaller follow-ups from the review. The field and point colour is still computed on the server (WTH-358).
 - Not verified: the real Mapbox drawing with a token, Safari, a real phone, Open-Meteo's daily budget with the hourly field.
 
 ## Constraints to respect
@@ -33,4 +33,4 @@ WTH-339, the reset. Built on 2026-10-20, each step committed, pushed and tested 
 - Italian copy, English code and docs.
 
 ## Next checkpoint
-The user's look and decisions above; then WTH-341 (data spike, with network) and WTH-359.
+The user's look and decisions above; then WTH-341 (data spike, with network).

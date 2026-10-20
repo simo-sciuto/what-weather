@@ -128,3 +128,18 @@ describe("when the field is asked for", () => {
     expect(shown).toHaveLength(0);
   });
 });
+
+describe("refresh (WTH-359)", () => {
+  it("asks again for the view on show, but not over a request in flight", async () => {
+    const { loader, asked, answer } = rig();
+    loader.start(TORINO);
+    loader.refresh(TORINO);
+    expect(asked).toHaveLength(1);
+    await answer(0);
+    loader.refresh(TORINO);
+    // the least interval between two requests holds for a refresh too
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(asked).toHaveLength(2);
+    expect(asked[1].bounds).toEqual(asked[0].bounds);
+  });
+});

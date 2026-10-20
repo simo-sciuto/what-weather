@@ -72,7 +72,7 @@ export type AtlasStatus = {
 };
 
 /** Why a point was asked for: the map settled, it was picked on purpose, or the person pressed "Riprova" */
-export type CommitReason = "settle" | "select" | "retry";
+export type CommitReason = "settle" | "select" | "retry" | "refresh";
 
 /** A request the controller makes of its owner. Answer it with `resolve(seq, ...)`; `signal` aborts when it is superseded. */
 export type CommitRequest = { seq: number; cell: Cell; reason: CommitReason; signal: AbortSignal };

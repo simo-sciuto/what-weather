@@ -5,7 +5,8 @@ import { createFieldLoader } from "@/lib/atlas/field-loader";
 import { interpolateField, latticeBox } from "@/lib/atlas/field-image";
 import type { Bounds, CameraPort, WeatherField } from "@/types/atlas";
 import type { ImageSource, Map as MapboxMap } from "mapbox-gl";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRefresh } from "./useRefresh";
 import { fieldColorsAt } from "@/lib/atlas/field-hours";
 import type { TimeStore } from "@/lib/atlas/time-store";
 import { useAtlasTime } from "./useAtlasTime";
@@ -75,6 +76,10 @@ export function WeatherFieldLayer({
   const instantRef = useRef(instant);
   const fieldRef = useRef<WeatherField | null>(null);
   const paintRef = useRef<((field: WeatherField, again?: boolean) => void) | null>(null);
+  const loaderRef = useRef<{ refresh: () => void } | null>(null);
+  // A page left open asks again for the field in view (WTH-359)
+  const refresh = useCallback(() => loaderRef.current?.refresh(), []);
+  useRefresh(map && port ? refresh : null);
 
   useEffect(() => {
     if (!map || !port) return;
@@ -125,6 +130,7 @@ export function WeatherFieldLayer({
     });
     const stop = port.subscribe((event) => loader.onCamera(event));
     loader.start(port.get());
+    loaderRef.current = { refresh: () => loader.refresh(port.get()) };
     return () => {
       stop();
       loader.dispose();
@@ -134,6 +140,7 @@ export function WeatherFieldLayer({
       if (ATLAS_TEST_MAP) delete (window as unknown as { __atlasField?: unknown }).__atlasField;
       setShown(null);
       paintRef.current = null;
+      loaderRef.current = null;
       fieldRef.current = null;
     };
   }, [map, port, onColors]);
