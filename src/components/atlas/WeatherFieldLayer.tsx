@@ -5,7 +5,8 @@ import { createFieldLoader } from "@/lib/atlas/field-loader";
 import { interpolateField, latticeBox } from "@/lib/atlas/field-image";
 import type { Bounds, CameraPort, WeatherField } from "@/types/atlas";
 import type { ImageSource, Map as MapboxMap } from "mapbox-gl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { fieldColorsAt } from "@/lib/atlas/field-hours";
 import { ATLAS_TEST_MAP } from "./atlas-test";
 
 const SOURCE = "atlas-weather-field";
@@ -47,16 +48,20 @@ export function WeatherFieldLayer({
   map,
   port,
   onColors,
-  nowOnly = false,
+  instant = null,
 }: {
   map: MapboxMap | null;
   port: CameraPort | null;
   /** The colours of the places in view, each time they are drawn: what the interface's surfaces are measured against */
   onColors?: (colors: readonly string[]) => void;
-  /** Another hour is on show: the field is of now only (WTH-345), and says so */
-  nowOnly?: boolean;
+  /** The hour on show, Unix seconds; null for "Adesso". The field draws that hour's colours where it has them (WTH-345) */
+  instant?: number | null;
 }) {
   const [shown, setShown] = useState<WeatherField | null>(null);
+  // The hour on show and a way to paint again without asking: moving the time bar redraws the image it already has
+  const instantRef = useRef(instant);
+  const fieldRef = useRef<WeatherField | null>(null);
+  const paintRef = useRef<((field: WeatherField) => void) | null>(null);
 
   useEffect(() => {
     if (!map || !port) return;
@@ -67,8 +72,9 @@ export function WeatherFieldLayer({
     if (!ctx) return;
     let draws = 0;
 
-    const draw = (field: WeatherField) => {
-      const pixels = interpolateField(field, field.colors, FIELD_IMAGE.width, FIELD_IMAGE.height);
+    const paint = (field: WeatherField) => {
+      const { colors } = fieldColorsAt(field, instantRef.current);
+      const pixels = interpolateField(field, colors, FIELD_IMAGE.width, FIELD_IMAGE.height);
       ctx.putImageData(new ImageData(pixels as Uint8ClampedArray<ArrayBuffer>, FIELD_IMAGE.width, FIELD_IMAGE.height), 0, 0);
       const { west, east, south, north } = latticeBox(field);
       const coordinates: [[number, number], [number, number], [number, number], [number, number]] = [[west, north], [east, north], [east, south], [west, south]];
@@ -83,10 +89,16 @@ export function WeatherFieldLayer({
         // and the same colours over every line and the water, so the whole map, not only what is behind it, is of its place's weather
         map.addLayer({ id: TINT, type: "raster", source: SOURCE, paint: { "raster-opacity": FIELD_TINT_OPACITY, "raster-fade-duration": 0, "raster-resampling": "linear" } });
       }
+      onColors?.(colors);
+    };
+    paintRef.current = paint;
+
+    const draw = (field: WeatherField) => {
+      fieldRef.current = field;
+      paint(field);
       draws += 1;
       if (ATLAS_TEST_MAP) (window as unknown as { __atlasField?: unknown }).__atlasField = { canvas, draws, field };
       setShown(field);
-      onColors?.(field.colors);
     };
 
     const loader = createFieldLoader({
@@ -104,10 +116,18 @@ export function WeatherFieldLayer({
       if (map.getSource(SOURCE)) map.removeSource(SOURCE);
       if (ATLAS_TEST_MAP) delete (window as unknown as { __atlasField?: unknown }).__atlasField;
       setShown(null);
+      paintRef.current = null;
+      fieldRef.current = null;
     };
   }, [map, port, onColors]);
 
+  useEffect(() => {
+    instantRef.current = instant;
+    if (fieldRef.current) paintRef.current?.(fieldRef.current);
+  }, [instant]);
+
   if (!shown) return null;
+  const nowOnly = fieldColorsAt(shown, instant).nowOnly;
   const km = Math.round(shown.step * 111);
   return (
     <p

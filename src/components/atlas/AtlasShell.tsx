@@ -61,7 +61,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
   return (
     <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={vars}>
       <AtlasMap onPort={setPort} onMap={setMap} sky={sky} sunAt={sunAt} />
-      <WeatherFieldLayer map={map} port={port} onColors={setFieldColors} nowOnly={selection.mode === "at"} />
+      <WeatherFieldLayer map={map} port={port} onColors={setFieldColors} instant={selection.mode === "at" ? selection.instant : null} />
       <SkyDriver port={port} engine={engine} store={time} onSky={setSky} onSun={setSunAt} />
       <Crosshair port={port} />
       <WordmarkLink engine={engine} />

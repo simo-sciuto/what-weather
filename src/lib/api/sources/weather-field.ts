@@ -4,7 +4,8 @@ import { WeatherProviderError } from "@/lib/api/providers/openweather";
 import { mapCode } from "@/lib/api/providers/openmeteo";
 import { fieldColor, type FieldSample } from "@/lib/atlas/field-color";
 import { TWILIGHT } from "@/lib/weather/frames";
-import type { Lattice, WeatherField } from "@/types/atlas";
+import { FIELD_FORECAST_DAYS } from "@/constants/atlas";
+import type { FieldHour, Lattice, WeatherField } from "@/types/atlas";
 import type { Condition } from "@/types/weather";
 import { cacheLife } from "next/cache";
 
@@ -16,10 +17,28 @@ import { cacheLife } from "next/cache";
  * them when drawn, never a measurement. Like the cloud grid, always Open-Meteo, whatever provider the pages use.
  */
 
+type Reading = { temperature_2m?: number | null; cloud_cover?: number | null; precipitation?: number | null; weather_code?: number | null };
 type Point = {
-  current?: { time?: number; temperature_2m?: number | null; cloud_cover?: number | null; precipitation?: number | null; weather_code?: number | null };
-  daily?: { sunrise?: (number | null)[]; sunset?: (number | null)[] };
+  current?: { time?: number } & Reading;
+  hourly?: { time?: number[] } & { [K in keyof Reading]?: (number | null)[] };
+  daily?: { time?: number[]; sunrise?: (number | null)[]; sunset?: (number | null)[] };
 };
+
+/** The sun times of the day an hour falls in, from the place's daily rows (in GMT, as asked); the first day's when none matches */
+function sunOf(p: Point, ts: number): { sunrise: number | null | undefined; sunset: number | null | undefined } {
+  const days = p.daily?.time ?? [];
+  let i = 0;
+  for (let k = 0; k < days.length; k++) if (days[k] <= ts) i = k;
+  return { sunrise: p.daily?.sunrise?.[i], sunset: p.daily?.sunset?.[i] };
+}
+
+/** A place's reading as the colour engine's sample */
+function sampleOf(reading: Reading | null, fallbackTemp: number, light: number): { sample: FieldSample; temp: number } {
+  const code = reading?.weather_code;
+  const { condition, intensity } = typeof code === "number" ? mapCode(code) : { condition: "clear" as Condition, intensity: "moderate" as const };
+  const temp = reading?.temperature_2m ?? fallbackTemp;
+  return { temp, sample: { temp, cloudCover: reading?.cloud_cover ?? 0, precipitation: reading?.precipitation ?? 0, condition, intensity, light } };
+}
 
 /** The solar scale of the palette (0 sunrise, 1 sunset, below 0 before it and above 1 after it), as the page's frames have it */
 export function solarLight(ts: number, sunrise: number | null | undefined, sunset: number | null | undefined, polarDark = false): number {
@@ -43,21 +62,41 @@ export function parseField(raw: unknown, lattice: Lattice): WeatherField {
   const fallbackTemp = known.find((c) => c)?.temperature_2m ?? 15;
   points.forEach((p, i) => {
     const c = known[i];
-    const code = c?.weather_code;
-    const { condition, intensity } = typeof code === "number" ? mapCode(code) : { condition: "clear" as Condition, intensity: "moderate" as const };
-    const temp = c?.temperature_2m ?? fallbackTemp;
-    const sample: FieldSample = {
-      temp,
-      cloudCover: c?.cloud_cover ?? 0,
-      precipitation: c?.precipitation ?? 0,
-      condition,
-      intensity,
-      light: solarLight(c?.time ?? time, p.daily?.sunrise?.[0], p.daily?.sunset?.[0]),
-    };
+    const sun = sunOf(p, c?.time ?? time);
+    const { sample, temp } = sampleOf(c, fallbackTemp, solarLight(c?.time ?? time, sun.sunrise, sun.sunset));
     temps.push(Math.round(temp * 10) / 10);
     colors.push(fieldColor(sample));
   });
-  return { ...lattice, provider: "open-meteo", time, colors, temps };
+  return { ...lattice, provider: "open-meteo", time, colors, temps, hours: hoursOf(points) };
+}
+
+/**
+ * The hours of the field from now on, as colours (WTH-345): the hours every place has, from the first place's own list,
+ * each place coloured by its own weather and its own sun at that hour. A place missing an hour takes that hour's
+ * temperature from the others, as for now. None when the answer carries no hours.
+ */
+function hoursOf(points: Point[]): FieldHour[] {
+  const times = points[0]?.hourly?.time ?? [];
+  const now = points.find((p) => typeof p.current?.time === "number")?.current?.time ?? 0;
+  const out: FieldHour[] = [];
+  times.forEach((t, h) => {
+    // The hour that holds now and the ones after it: the time bar never goes back
+    if (t + 3600 <= now) return;
+    const readings = points.map((p) => {
+      const v = p.hourly;
+      if (!v || v.time?.[h] !== t) return null;
+      const r: Reading = { temperature_2m: v.temperature_2m?.[h], cloud_cover: v.cloud_cover?.[h], precipitation: v.precipitation?.[h], weather_code: v.weather_code?.[h] };
+      return typeof r.temperature_2m === "number" ? r : null;
+    });
+    const fallback = readings.find((r) => r)?.temperature_2m;
+    if (typeof fallback !== "number") return;
+    const colors = points.map((p, i) => {
+      const sun = sunOf(p, t);
+      return fieldColor(sampleOf(readings[i], fallback, solarLight(t, sun.sunrise, sun.sunset)).sample);
+    });
+    out.push({ time: t, colors });
+  });
+  return out;
 }
 
 /** One request for the whole lattice; no cache here (see `weatherField`) */
@@ -67,8 +106,9 @@ export async function fetchField(lattice: Lattice, fetchImpl: typeof fetch = fet
     latitude: points.map(([la]) => la).join(","),
     longitude: points.map(([, lo]) => lo).join(","),
     current: "temperature_2m,cloud_cover,precipitation,weather_code",
+    hourly: "temperature_2m,cloud_cover,precipitation,weather_code",
     daily: "sunrise,sunset",
-    forecast_days: "1",
+    forecast_days: String(FIELD_FORECAST_DAYS),
     timeformat: "unixtime",
     timezone: "GMT",
   });
@@ -114,5 +154,32 @@ export function sampleField(lattice: Lattice): WeatherField {
       );
     }
   }
-  return { ...lattice, provider: "mock", time: 1_760_000_000, colors, temps };
+  // Three days of hours from the current hour, as the sample point's own forecast has them: a day that warms and cools,
+  // the night darker, the rain moving east
+  const start = Math.floor(Date.now() / 3_600_000) * 3600;
+  const hours: FieldHour[] = [];
+  for (let h = 0; h < FIELD_FORECAST_DAYS * 24; h++) {
+    const light = ((h + 12) % 24) / 12 - 0.5; // midday at h = 0, as `time` is taken
+    const shift = 4 * Math.cos((h / 24) * 2 * Math.PI);
+    const hourColors: string[] = [];
+    for (const lat of lats) {
+      for (const lon of lons) {
+        const fy = lat1 === lat0 ? 0.5 : (lat - lat0) / (lat1 - lat0);
+        const fx = lon1 === lon0 ? 0.5 : (lon - lon0) / (lon1 - lon0);
+        const rainy = Math.abs(fx - (h % 24) / 24) < 0.25 && fy < 0.5;
+        hourColors.push(
+          fieldColor({
+            temp: Math.round((24 - 16 * fy + 4 * fx + shift) * 10) / 10,
+            cloudCover: rainy ? 100 : 30,
+            precipitation: rainy ? 3 : 0,
+            condition: rainy ? "rain" : "partly-cloudy",
+            intensity: "moderate",
+            light: light < 0 || light > 1 ? 1.6 : light,
+          }),
+        );
+      }
+    }
+    hours.push({ time: start + h * 3600, colors: hourColors });
+  }
+  return { ...lattice, provider: "mock", time: start, colors, temps, hours };
 }

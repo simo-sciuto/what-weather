@@ -104,3 +104,50 @@ describe("sampleField", () => {
     expect(new Set(field.colors).size).toBeGreaterThan(3);
   });
 });
+
+describe("the field's hours (WTH-345)", () => {
+  const H = 3600;
+  const hourly = (temps: number[], codes: number[]) => ({
+    time: temps.map((_, i) => NOON - 2 * H + i * H),
+    temperature_2m: temps,
+    cloud_cover: temps.map(() => 0),
+    precipitation: temps.map(() => 0),
+    weather_code: codes,
+  });
+  const withHours = ANSWER.map((p, i) => ({
+    ...p,
+    daily: { time: [NOON - 43_200], sunrise: [NOON - 21_600], sunset: [NOON + 21_600] },
+    hourly: hourly([10 + i, 12 + i, 14 + i, 30 + i, 5 + i], [0, 0, 0, 0, 61]),
+  }));
+
+  it("keeps the hour that holds now and those after it, each with a colour per place in the lattice's order", () => {
+    const field = parseField(withHours, LATTICE);
+    expect(field.hours?.map((h) => h.time)).toEqual([NOON, NOON + H, NOON + 2 * H]);
+    for (const h of field.hours ?? []) expect(h.colors).toHaveLength(4);
+  });
+
+  it("colours an hour by its own weather: a hot hour is not a cold one, and the hours differ from now when the weather does", () => {
+    const field = parseField(withHours, LATTICE);
+    const [now, hot, cold] = field.hours ?? [];
+    expect(hot.colors[0]).not.toBe(now.colors[0]);
+    expect(cold.colors[0]).not.toBe(hot.colors[0]);
+  });
+
+  it("has no hours when the answer carries none, as an older one", () => {
+    expect(parseField(ANSWER, LATTICE).hours).toEqual([]);
+  });
+
+  it("asks for the hours of three days, beside now and the sun", async () => {
+    const fetchImpl = vi.fn(() => Promise.resolve(new Response(JSON.stringify(withHours))));
+    await fetchField(LATTICE, fetchImpl);
+    const url = new URL(String((fetchImpl.mock.calls[0] as unknown[])[0]));
+    expect(url.searchParams.get("hourly")).toContain("temperature_2m");
+    expect(url.searchParams.get("forecast_days")).toBe("3");
+  });
+
+  it("the sample field has three days of hours, whole", () => {
+    const field = sampleField(latticeFor({ west: 6, south: 44, east: 10, north: 47 }));
+    expect(field.hours).toHaveLength(72);
+    for (const h of field.hours ?? []) expect(h.colors).toHaveLength(field.lats.length * field.lons.length);
+  });
+});

@@ -68,6 +68,9 @@ export const FIELD_STEPS = [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64] as const;
 export const FIELD_OPACITY = 0.9;
 /** How strongly the same colours are laid over the map's own lines and water, so the roads and the sea take the colour of the weather of the place they are in */
 export const FIELD_TINT_OPACITY = 0.38;
+
+/** How many days of hours the weather field carries (WTH-345): as far as a verdict is ever given (ARCHITECTURE.md section 5) */
+export const FIELD_FORECAST_DAYS = 3;
 /** The pixels of the image the field is drawn into: the map stretches it, smoothly, over what is in view */
 export const FIELD_IMAGE = { width: 192, height: 144 } as const;
 

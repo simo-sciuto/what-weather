@@ -733,7 +733,8 @@ test("the time bar moves the reading and the sky over the point's own hours, ask
   await expect.poll(() => new URL(page.url()).searchParams.get("t")).not.toBeNull();
   expect(pointRequests(asked)).toEqual([]);
   expect(asked.filter((u) => new URL(u).pathname.startsWith("/api/atlas/field"))).toEqual([]);
-  await expect(page.locator("[data-atlas-field-note]")).toContainText("i colori della mappa sono di adesso");
+  // the field has the hour too: its colours are that hour's, drawn again without asking
+  await expect(page.locator("[data-atlas-field-note]")).not.toContainText("di adesso");
   await expect.poll(() => page.locator("[data-atlas]").evaluate((el) => getComputedStyle(el).getPropertyValue("--sky-2"))).not.toBe(skyBefore);
   // Home is "Adesso" again, and the address loses the moment
   await slider.focus();
@@ -760,4 +761,5 @@ test("an address with a moment opens on that hour; an hour beyond the forecast i
   far.searchParams.set("t", String(Math.floor(Date.now() / 1000) + 300 * 86400));
   await page.goto(far.toString());
   await expect(page.locator("[data-atlas-point-unavailable]")).toContainText("Colori non disponibili per quest'ora", { timeout: 30_000 });
+  await expect(page.locator("[data-atlas-field-note]")).toContainText("i colori della mappa sono di adesso");
 });

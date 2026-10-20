@@ -148,5 +148,14 @@ export type WeatherField = Lattice & {
   time: number;
   colors: string[];
   temps: number[];
+  /**
+   * The next hours of the same places as colours (WTH-345), one entry per hour in order, each with a colour per place in
+   * the lattice's order: what the time bar moves the map's colour over. Absent from an older answer; hours the field
+   * does not reach are said, the colours of now are never shown as if they were another hour's.
+   */
+  hours?: FieldHour[];
 };
+
+/** One hour of the weather field: when, and a colour per place */
+export type FieldHour = { time: number; colors: string[] };
 
