@@ -613,7 +613,7 @@ describe("refresh (WTH-359)", () => {
     expect(requests[1]).toMatchObject({ cell: requests[0].cell, reason: "refresh" });
   });
 
-  it("never asks again while the map moves; a point that failed is asked for again, not the one before it", () => {
+  it("never asks again while the map moves, or for a point that failed", () => {
     const { controller, requests, port } = rig();
     controller.select(cellOf(TORINO.lng, TORINO.lat));
     controller.resolve(requests[0].seq, { ok: true });
@@ -622,19 +622,18 @@ describe("refresh (WTH-359)", () => {
     port.emit("moveend", "user", GENOVA);
     vi.advanceTimersByTime(QUIET_MS);
     controller.resolve(requests.at(-1)!.seq, { ok: false, reason: "upstream" });
-    const asked = requests.length;
-    expect(controller.refresh()).toBe(true);
-    expect(requests).toHaveLength(asked + 1);
-    expect(requests.at(-1)).toMatchObject({ cell: cellOf(GENOVA.lng, GENOVA.lat), reason: "refresh" });
+    expect(controller.refresh()).toBe(false);
   });
 
-  it("a refresh that failed does not stop the next one", () => {
+  it("a refresh that failed is kept and never asked again alone (ADR-020): only Riprova or a new settle ask again", () => {
     const { controller, requests } = rig();
     controller.select(cellOf(TORINO.lng, TORINO.lat));
     controller.resolve(requests[0].seq, { ok: true });
     controller.refresh();
     controller.resolve(requests[1].seq, { ok: false, reason: "upstream" });
-    expect(controller.refresh()).toBe(true);
-    expect(requests[2]).toMatchObject({ cell: requests[0].cell, reason: "refresh" });
+    expect(controller.refresh()).toBe(false);
+    expect(requests).toHaveLength(2);
+    expect(controller.retry()).toBe(true);
+    expect(requests[2]).toMatchObject({ cell: requests[0].cell, reason: "retry" });
   });
 });

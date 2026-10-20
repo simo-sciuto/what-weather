@@ -109,8 +109,8 @@ export function peakOutlook(sample: RouteWeatherSample, instant: number, now: nu
   const reasons: Reason[] = [];
   const add = (factor: Factor, level: Level, text: string) => level !== "ok" && reasons.push({ factor, level, text });
 
-  // Critical: without the sky's code or any sign of rain there is nothing to decide on
-  if (window.some((h) => h.condition === null) || window.every((h) => !finite(h.precipProbability) && !finite(h.precipitation))) {
+  // Critical: without the sky's code, or an hour with neither sign of rain, there is nothing to decide on (VERDICT.md 3)
+  if (window.some((h) => h.condition === null) || window.some((h) => !finite(h.precipProbability) && !finite(h.precipitation))) {
     return unknown("Il tipo di tempo previsto non c'è per quest'ora.", ["tipo di tempo"]);
   }
 
@@ -139,8 +139,12 @@ export function peakOutlook(sample: RouteWeatherSample, instant: number, now: nu
   const rainLevelThere = rainLevel(wettest);
   if (rainLevelThere !== "ok") {
     const p = finite(wettest.precipProbability) ? ` (${round(wettest.precipProbability * 100)}%)` : "";
-    const mm = finite(wettest.precipitation) && wettest.precipitation >= THRESHOLDS.rainAmount ? `, ${wettest.precipitation.toFixed(1).replace(".", ",")} mm/h` : "";
-    add("rain", rainLevelThere, `${rainLevelThere === "no" ? "Pioggia probabile" : "Qualche possibilità di pioggia"}${p}${mm} verso le ${hhmm(wettest.time, timezone)}.`);
+    // Said by what made it count: the amount when it is the amount, the probability otherwise
+    const text =
+      finite(wettest.precipitation) && wettest.precipitation >= THRESHOLDS.rainAmount
+        ? `Pioggia prevista, ${wettest.precipitation.toFixed(1).replace(".", ",")} mm/h,`
+        : `${rainLevelThere === "no" ? "Pioggia probabile" : "Qualche possibilità di pioggia"}${p}`;
+    add("rain", rainLevelThere, `${text} verso le ${hhmm(wettest.time, timezone)}.`);
   }
   const snows = window.filter((h) => finite(h.snowfall));
   if (snows.length === 0) notEvaluated.push("neve");
@@ -178,9 +182,10 @@ export function peakOutlook(sample: RouteWeatherSample, instant: number, now: nu
   if (ele >= THRESHOLDS.cloudFrom) {
     const low = finite(at.lowCloud) && at.lowCloud >= THRESHOLDS.lowCloud;
     const blind = (finite(at.visibility) && at.visibility < 1) || at.condition === "fog";
-    if (!finite(at.lowCloud) && !finite(at.visibility)) notEvaluated.push("nubi basse");
+    if (!finite(at.lowCloud)) notEvaluated.push("nubi basse");
+    if (!finite(at.visibility)) notEvaluated.push("visibilità");
     if (low || blind)
-      add("visibility", "caution", `Nubi basse in quota verso le ${hhmm(at.time, timezone)}: il sentiero può essere difficile da seguire.`);
+      add("visibility", "caution", `${blind ? "Nebbia o poca visibilità" : "Nubi basse"} in quota verso le ${hhmm(at.time, timezone)}: il sentiero può essere difficile da seguire.`);
   }
 
   reasons.sort((a, b) => (a.level === b.level ? ORDER.indexOf(a.factor) - ORDER.indexOf(b.factor) : a.level === "no" ? -1 : 1));

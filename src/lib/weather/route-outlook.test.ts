@@ -120,7 +120,7 @@ describe("peakOutlook", () => {
   });
 
   it("the summit's own height, not the cache's band of 100 m, is read against the freezing level", () => {
-    // sample asked at 3500 m, summit 3538 m: 3800 is under 3538 + 300
+    // sample asked at 3500 m, summit 3538 m: 3820 is under 3538 + 300, not under 3500 + 300
     expect(peakOutlook(peak(3500, () => ({ freezingLevel: 3820 })), NOON, NOW).verdict).toBe("good");
     expect(peakOutlook(peak(3500, () => ({ freezingLevel: 3820 })), NOON, NOW, undefined, 3538).verdict).toBe("caution");
   });
@@ -129,7 +129,8 @@ describe("peakOutlook", () => {
     const out = peakOutlook(peak(2000, (h) => (h.time === NOON + 2 * H ? { precipitation: 1.4, precipProbability: 0.1 } : {})), NOON, NOW);
     expect(out.verdict).toBe("no");
     expect(out.reasons[0].factor).toBe("rain");
-    expect(out.reasons[0].text).toContain("1,4 mm/h");
+    expect(out.reasons[0].text).toContain("Pioggia prevista, 1,4 mm/h");
+    expect(out.reasons[0].text).not.toContain("probabile");
   });
 
   it("snow anywhere in the summit's hour or the way down is Non ora", () => {
@@ -153,5 +154,14 @@ describe("peakOutlook", () => {
     const { hours } = peak(2000);
     expect(hourNear(hours, NOON + 20 * 60)?.time).toBe(NOON);
     expect(hourNear([hours[0]], NOW + 2 * H)).toBeNull();
+  });
+  it("an hour with neither the probability nor the amount of rain is no verdict; fog is said as fog", () => {
+    expect(peakOutlook(peak(2000, (h) => (h.time === NOON + H ? { precipProbability: null, precipitation: null } : {})), NOON, NOW).verdict).toBe("unknown");
+    const fog = peakOutlook(peak(2400, () => ({ condition: "fog" })), NOON, NOW);
+    expect(fog.verdict).toBe("caution");
+    expect(fog.reasons[0].text).toContain("Nebbia");
+    const noCloud = peakOutlook(peak(2400, () => ({ lowCloud: null })), NOON, NOW);
+    expect(noCloud.notEvaluated).toContain("nubi basse");
+    expect(noCloud.certainty).toBe("media");
   });
 });
