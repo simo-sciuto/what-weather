@@ -763,3 +763,30 @@ test("an address with a moment opens on that hour; an hour beyond the forecast i
   await expect(page.locator("[data-atlas-point-unavailable]")).toContainText("Colori non disponibili per quest'ora", { timeout: 30_000 });
   await expect(page.locator("[data-atlas-field-note]")).toContainText("i colori della mappa sono di adesso");
 });
+
+test("three layers, one at a time: the choice is in the address and survives a reload, and the arrows move between them", async ({ page }) => {
+  await openAtlas(page);
+  const layers = page.locator("[data-atlas-layers]");
+  await expect(layers.getByRole("radio")).toHaveCount(3);
+  await expect(layers.getByRole("radio", { name: "Meteo" })).toBeChecked();
+  await layers.getByText("Territorio").click();
+  await expect(layers.getByRole("radio", { name: "Territorio" })).toBeChecked();
+  await expect.poll(() => new URL(page.url()).searchParams.get("strato")).toBe("territorio");
+  await page.keyboard.press("ArrowRight");
+  await expect(layers.getByRole("radio", { name: "Percorsi" })).toBeChecked();
+  await expect(page.locator("[data-atlas-layers-note]")).toContainText("I sentieri arrivano presto");
+  await page.reload();
+  await expect(page.locator("[data-atlas-layers]").getByRole("radio", { name: "Percorsi" })).toBeChecked({ timeout: 30_000 });
+  await page.locator("[data-atlas-layers]").getByText("Meteo").click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("strato")).toBeNull();
+});
+
+test("away from the region Territorio and Percorsi are off, and a line says why", async ({ page }) => {
+  await page.route((url) => !["localhost", "127.0.0.1"].includes(url.hostname), (route) => route.abort());
+  await page.goto("/atlas?lat=41.9&lon=12.5");
+  await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
+  const layers = page.locator("[data-atlas-layers]");
+  await expect(layers.getByRole("radio", { name: "Territorio" })).toBeDisabled();
+  await expect(layers.getByRole("radio", { name: "Percorsi" })).toBeDisabled();
+  await expect(page.locator("[data-atlas-layers-note]")).toContainText("per ora Piemonte e Alpi occidentali");
+});

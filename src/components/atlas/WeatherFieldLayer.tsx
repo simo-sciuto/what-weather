@@ -49,6 +49,8 @@ export function WeatherFieldLayer({
   port,
   onColors,
   instant = null,
+  opacity = FIELD_OPACITY,
+  tint = FIELD_TINT_OPACITY,
 }: {
   map: MapboxMap | null;
   port: CameraPort | null;
@@ -56,6 +58,9 @@ export function WeatherFieldLayer({
   onColors?: (colors: readonly string[]) => void;
   /** The hour on show, Unix seconds; null for "Adesso". The field draws that hour's colours where it has them (WTH-345) */
   instant?: number | null;
+  /** How strong the field is under the lines and over them: the layer on show quiets it (WTH-346) */
+  opacity?: number;
+  tint?: number;
 }) {
   const [shown, setShown] = useState<WeatherField | null>(null);
   // The hour on show and a way to paint again without asking: moving the time bar redraws the image it already has
@@ -122,6 +127,12 @@ export function WeatherFieldLayer({
   }, [map, port, onColors]);
 
   useEffect(() => {
+    if (!map || !shown) return;
+    if (map.getLayer(LAYER)) map.setPaintProperty(LAYER, "raster-opacity", opacity);
+    if (map.getLayer(TINT)) map.setPaintProperty(TINT, "raster-opacity", tint);
+  }, [map, shown, opacity, tint]);
+
+  useEffect(() => {
     instantRef.current = instant;
     if (fieldRef.current) paintRef.current?.(fieldRef.current);
   }, [instant]);
@@ -133,7 +144,7 @@ export function WeatherFieldLayer({
     <p
       data-atlas-field-note
       data-provider={shown.provider}
-      className="pointer-events-none absolute bottom-[calc(var(--dock-room)+4rem+3.5rem+4.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-10 max-w-[min(20rem,calc(100%-2rem))] text-xs uppercase tracking-[0.14em] text-ink-muted"
+      className="pointer-events-none absolute bottom-[calc(var(--dock-room)+7.5rem+3.5rem+4.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-10 max-w-[min(20rem,calc(100%-2rem))] text-xs uppercase tracking-[0.14em] text-ink-muted"
     >
       {shown.provider === "mock" ? "Dati di esempio" : "Colori del meteo"} · modello, sfumato tra punti a circa {km} km{nowOnly ? " · i colori della mappa sono di adesso" : ""}
     </p>

@@ -59,9 +59,11 @@ function useMapOptions(): MapOption[] {
 }
 
 /** The colours of the map's layers, opposite the sky it is under, as the viewer tuned them, and the layers they chose */
-export function useAtlasMapLook(sky: PointSky): { inks: SkyPalette["map"]; options: MapOption[] } {
+export function useAtlasMapLook(sky: PointSky, override?: readonly MapOption[]): { inks: SkyPalette["map"]; options: MapOption[] } {
   const tuning = useMapTuning();
-  const options = useMapOptions();
+  const own = useMapOptions();
+  // A layer other than Meteo draws its own options (WTH-346); the viewer's choice is kept for Meteo
+  const options = useMemo(() => (override ? [...override] : own), [override, own]);
   const active = useMemo(() => activeLayers(options), [options]);
   const inks = useMemo(() => mapInksFor(sky.sky2, tuning, active, sky.air), [sky, tuning, active]);
   return { inks, options };

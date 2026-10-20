@@ -11,6 +11,7 @@ import type { Map as MapboxMap, StyleSpecification } from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
 import { STYLE, syncMap } from "@/lib/map/map-style";
 import type { SunAt } from "./SkyDriver";
+import type { MapOption } from "@/lib/map-options";
 import { useAtlasMapLook } from "./atlas-look";
 import { ATLAS_TEST_MAP, countRender } from "./atlas-test";
 
@@ -56,12 +57,15 @@ export function AtlasMap({
   onMap,
   sky,
   sunAt = null,
+  options: layerOptions,
 }: {
   onPort: (port: MapboxCameraPort | null) => void;
   onMap?: (map: MapboxMap | null) => void;
   sky: PointSky;
   /** Where and when the relief is lit: the point and hour on show; with none, Torino now */
   sunAt?: SunAt | null;
+  /** The options of the layer on show, when it is not Meteo (WTH-346) */
+  options?: readonly MapOption[];
 }) {
   countRender("map");
   const box = useRef<HTMLDivElement>(null);
@@ -69,7 +73,7 @@ export function AtlasMap({
   const portRef = useRef(onPort);
   const mapCb = useRef(onMap);
   const [state, setState] = useState<"loading" | "ready" | "none" | "failed">(TOKEN || ATLAS_TEST_MAP ? "loading" : "none");
-  const { inks, options } = useAtlasMapLook(sky);
+  const { inks, options } = useAtlasMapLook(sky, layerOptions);
 
   useEffect(() => {
     portRef.current = onPort;
