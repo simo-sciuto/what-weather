@@ -51,7 +51,9 @@ export type MapLayer =
   | "traffic-slow"
   | "traffic-heavy"
   | "traffic-jam"
-  | "lights";
+  | "lights"
+  /** Named summits (OpenStreetMap through Mapbox Streets, WTH-350): what a card opens on in Territorio */
+  | "peaks";
 
 /**
  * What the weather does to the map's hierarchy (WTH-046G), the map half of the atmosphere: weights on the

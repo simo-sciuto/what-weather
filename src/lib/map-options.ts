@@ -7,7 +7,7 @@
  * access is guarded.
  */
 
-export const MAP_OPTIONS = ["water", "streets", "main-roads", "motorways", "green", "relief", "contours", "train", "metro", "tram", "bus", "buildings", "buildings-3d", "shadows", "traffic", "lights"] as const;
+export const MAP_OPTIONS = ["water", "streets", "main-roads", "motorways", "green", "relief", "contours", "train", "metro", "tram", "bus", "buildings", "buildings-3d", "shadows", "traffic", "lights", "peaks"] as const;
 export type MapOption = (typeof MAP_OPTIONS)[number];
 
 /** What the map shows until the viewer chooses otherwise: the city as it always was */
@@ -34,6 +34,7 @@ export const MAP_OPTION_INFO: Record<MapOption, { label: string; hint: string }>
   shadows: { label: "Ombre", hint: "Quelle degli edifici, dal sole del momento" },
   traffic: { label: "Traffico", hint: "In diretta, dove c'è coda" },
   lights: { label: "Luci di notte", hint: "I luoghi accesi, a sole calato" },
+  peaks: { label: "Cime", hint: "Le cime con il loro nome, avvicinandosi: toccane una per il suo meteo" },
 };
 
 // Its own key: an earlier one held only the extras, and read as a choice it would have switched the roads off.

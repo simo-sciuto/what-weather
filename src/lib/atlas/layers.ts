@@ -34,8 +34,8 @@ export type LayerPlan = {
   tintOpacity: number;
 };
 
-const TERRITORY: readonly MapOption[] = ["water", "green", "relief", "contours", "main-roads"];
-const ROUTES_GROUND: readonly MapOption[] = ["water", "relief", "streets", "main-roads"];
+const TERRITORY: readonly MapOption[] = ["water", "green", "relief", "contours", "main-roads", "peaks"];
+const ROUTES_GROUND: readonly MapOption[] = ["water", "relief", "streets", "main-roads", "peaks"];
 
 export function layerPlan(layer: AtlasLayer, viewerOptions: readonly MapOption[]): LayerPlan {
   if (layer === "territorio") return { options: [...TERRITORY], fieldOpacity: 0.55, tintOpacity: 0.18 };

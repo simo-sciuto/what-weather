@@ -36,6 +36,8 @@ export function optionColor(p: SkyPalette, option: MapOption): string {
       return over(map.tram);
     case "bus":
       return over(map["bus-stops"]);
+    case "peaks":
+      return over(map.peaks);
     case "buildings":
       return over(map.buildings);
     case "buildings-3d":

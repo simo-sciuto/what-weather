@@ -577,6 +577,25 @@ export const STYLE: StyleSpecification = {
         "circle-blur": 0.7,
       },
     },
+    // The named summits (WTH-350), from OpenStreetMap through Mapbox Streets' natural labels: a small dot with a dark
+    // rim, so it reads over a light field; a tap on one opens its card (Territorio)
+    {
+      id: "peaks",
+      type: "circle",
+      source: "streets",
+      "source-layer": "natural_label",
+      minzoom: 9,
+      layout: hidden(),
+      filter: ["==", ["get", "maki"], "mountain"],
+      paint: {
+        "circle-color": "#ffffff",
+        "circle-opacity": 0.9,
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2.5, 14, 5],
+        "circle-stroke-color": "#0c0f25",
+        "circle-stroke-width": 1,
+        "circle-stroke-opacity": 0.6,
+      },
+    },
   ],
 };
 
@@ -607,6 +626,7 @@ const KIND: Record<
   "traffic-heavy": "ranked",
   "traffic-jam": "ranked",
   lights: "circle",
+  peaks: "circle",
 };
 
 /** The layers each option the viewer may choose turns on */
@@ -627,6 +647,7 @@ export const OPTION_LAYERS: Record<MapOption, MapLayer[]> = {
   shadows: ["shadows"],
   traffic: ["traffic-slow", "traffic-heavy", "traffic-jam"],
   lights: ["lights"],
+  peaks: ["peaks"],
 };
 
 /** The layers the chosen options turn on */

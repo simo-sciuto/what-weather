@@ -426,9 +426,15 @@ describe("atmospheric depth (WTH-046F)", () => {
     const sample = states.flatMap((state) =>
       [-0.6, 0, 0.3, 0.5, 0.9, 1.2, 1.8].flatMap((light) => {
         // `air` is the field WTH-046H added, clear for the live page: the rest of the palette is what is fingerprinted
-        const { air: _air, ...p } = skyPalette({ light, state, cloudCover: 40, uv: 4 });
+        const { air: _air, ...whole } = skyPalette({ light, state, cloudCover: 40, uv: 4 });
         void _air;
-        return [p, mapInksFor(p.sky2, { hue: 40, vivid: 90, contrast: 15 }, ALL_MAP_LAYERS)];
+        const { peaks: _peak, ...map } = whole.map;
+        void _peak;
+        const p = { ...whole, map };
+        // The summits came later (WTH-350): the layers that were there must be exactly as they were
+        const { peaks: _peaks, ...inks } = mapInksFor(p.sky2, { hue: 40, vivid: 90, contrast: 15 }, ALL_MAP_LAYERS);
+        void _peaks;
+        return [p, inks];
       }),
     );
     expect(createHash("sha256").update(JSON.stringify(sample)).digest("hex")).toBe(LIVE_FINGERPRINT);

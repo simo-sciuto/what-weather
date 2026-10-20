@@ -417,6 +417,8 @@ const MAP_INK: Record<MapLayer, { contrast: number; minOpacity: number }> = {
   "traffic-heavy": { contrast: 2.1, minOpacity: 0.95 },
   "traffic-jam": { contrast: 2.2, minOpacity: 1 },
   lights: { contrast: 2, minOpacity: 0.7 },
+  // The summits are things to touch: as strong as the stops
+  peaks: { contrast: 1.8, minOpacity: 0.8 },
 };
 /**
  * How much of each layer's opacity, and so of its contrast with the sky, the thickest haze takes (WTH-046F): the ground
@@ -450,6 +452,7 @@ const DEPTH_PLANE: Record<MapLayer, number> = {
   "traffic-heavy": 0,
   "traffic-jam": 0,
   lights: 0,
+  peaks: 0,
 };
 /**
  * The share of each line that shows through the backdrop's fade (65% away from the city, see
@@ -523,6 +526,7 @@ const GROUPS: readonly (readonly MapLayer[])[] = [
   ["tram", "tram-stops"],
   ["bus-stops"],
   ["green"],
+  ["peaks"],
 ];
 
 /** The city as the page always draws it: the layers kept apart unless the viewer chose others (see `mapInksFor`) */
@@ -632,6 +636,8 @@ function mapInks(
       opposite + towardButter * toRadians(35) + Math.PI,
     ),
     lights: road(0.95, 0.09, BUTTER_HUE),
+    // The summits a hue of their own, light, between the woods and the water
+    peaks: road(0.94, 0.06, opposite + towardButter * toRadians(130)),
   };
   // The weather's say on colour, before the layers are drawn and kept apart from one another
   if (!isClearMap(air))
@@ -898,6 +904,8 @@ const MAP_PLANE: Record<MapLayer, MapPlane> = {
   "traffic-heavy": "tone",
   "traffic-jam": "tone",
   lights: "tone",
+  // Summits are information, not weather
+  peaks: "tone",
 };
 
 /** The share of its opacity a layer keeps in this air: its plane's weight, and the depth's share of its plane. 1 in clear air. */
