@@ -2,7 +2,7 @@
 
 # what-weather
 
-A calm weather web app styled as a Swiss poster. Next.js 16, React 19, Tailwind 4, Mapbox. Italian UI, English code. Details in docs/PRODUCT.md and docs/ARCHITECTURE.md.
+An atmospheric atlas of Piedmont and the western Alps: a calm full-screen map painted by the weather. Next.js 16, React 19, Tailwind 4, Mapbox. Italian UI, English code. Details in docs/VISION.md and docs/ARCHITECTURE.md.
 
 ## Project memory
 
@@ -14,12 +14,12 @@ Never claim something is done unless it was implemented and checked. Do not rely
 
 ## Rules
 
-1. Preserve the architecture. No rewrite without explaining: current problem, why it is insufficient, alternative, migration cost, risks, benefit. Then wait for approval.
+1. Preserve the architecture (docs/ARCHITECTURE.md, its core in section 1). No rewrite without explaining: current problem, why it is insufficient, alternative, migration cost, risks, benefit. Then wait for approval. The 2026-10-20 reset (ADR-030) is such an approved rewrite of the UI only.
 2. If a change spans more than one significant part of the architecture, stop and propose a checkpoint first.
 3. Keep the provider abstraction and `WeatherData`: the UI never reads raw provider payloads. No API keys in client code.
 4. No new dependency without a justification the current stack cannot meet.
 5. Do not change APIs or data contracts casually.
-6. Preserve the poster identity and progressive disclosure. A visual change needs a functional reason; no arbitrary redesigns.
+6. Preserve the identity: the colour engine paints map and interface, the map is the page, calm by default (docs/PRINCIPLES.md, docs/DESIGN_SYSTEM.md). A visual change needs a functional reason; no arbitrary redesigns.
 7. Weather data is product data: mind timezone, timestamps, units, provenance, measured vs interpolated, min/max, missing data. Never hide uncertainty behind polish.
 8. Accessibility, responsive behavior and performance are part of done.
 9. If a task conflicts with docs/DECISIONS.md, flag it before changing anything.

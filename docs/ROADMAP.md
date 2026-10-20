@@ -1,54 +1,31 @@
 # ROADMAP
 
-Direction, not tasks (tasks live in BOARD.md). Only the user sets this.
+The atmospheric atlas (VISION.md, ADR-030), in checkpoints. Each is small, mergeable alone and approved by the user before the next; only the first two are ready to start, the rest is revisited at each checkpoint (CLAUDE.md rule 2). From the `architect` agent's plan of 2026-10-20, checked against `a08157c`. The direction before the reset is `archive/ROADMAP_v1.md`.
 
-## Direction (set by the user, 2026-10-04)
+Already built and kept (no checkpoint): the point after a stop (ADR-022), the sky from the point (ADR-023), place names (ADR-024), search with a flight (ADR-025), the weather field (ADR-026), the load key without names, the moment in the address.
 
-what-weather becomes **Visual Weather Records**: the portrait of a place's sky at a moment that matters, set as a Swiss poster. `PLACE + TIME + WEATHER -> VISUAL RECORD`. The weather is the engine; the record is the product.
+## Now
 
-Positioning line (draft): "Che tempo faceva quel giorno. Il cielo dei vostri momenti, come un manifesto svizzero."
+0. WTH-339 step 2 and 3: these docs, ADR-030, the design system. Waiting for the user's review.
+1. WTH-340: decouple the Atlas from the superseded tree (moves only, no visible change).
+2. WTH-341: data spike for Piedmont (extracts, sizes, Tiling Service, Open-Meteo call counting, LICENCES.md). No app code.
 
-Two layers, each with one role:
+## The atlas
 
-1. **The daily weather app: free, the shop window.** It shows the engine at work every day, builds a habit and brings traffic. It stays calm and shareable; it does not try to compete with the system weather apps.
-2. **Records: paid, the product.** A place and a date, past included (a wedding, a birth, a first meeting, a summit), become a poster with the real sky, map and data of that hour. Sold as a digital file and as a print.
+3. WTH-342: UI tokens in code, scoped to the Atlas shell, measured against the field.
+4. WTH-343: time, data side (`AtlasPoint.frames`, `timeStore`, client `frameLook`, relief sun at the instant and point).
+5. WTH-344: the time bar.
+6. WTH-345: the hourly field.
+7. WTH-346: the layer switch skeleton (Meteo, Territorio; the fate of the tuning panel).
+8. WTH-347: `/` becomes the atlas. Gate: the user's look; then the user decides about `main`.
+9. WTH-348: delete the superseded tree.
+10. WTH-349 (optional): the point's cost and edge caching.
 
-The market is personalised posters as gifts (city maps, star maps of a night), not weather apps. The edge is real weather rendered by a deterministic visual language: the same place and moment always give the same poster.
+## Territory and routes
 
-What this means for the work:
-
-- The Weather Visual Engine (WTH-046) continues: it is what makes a record true.
-- Then the Records track (BOARD NEXT): historical data, a validation landing, the records flow, print-grade posters, dedication, English for the flow, payment last.
-- Validate before building the purchase flow (WTH-167). Check licences before taking money (WTH-166).
-- Layout work on the live app that does not serve records is paused (BOARD LATER), except the Explore and Create homepage (ADR-018).
-- Data honesty stays a selling point: historical weather is a reanalysis and the poster says so (PRODUCT principle 1).
-
-## Hypothesis under study (the user, 2026-10-14, ADR-027)
-
-The map itself may be the product: an interactive atmospheric atlas to explore (cities, Alps, coast, valleys, rivers, lakes, mountain paths), in the identity already built; posters become a complementary function. Not a pivot: first freeze the Create redesign (WTH-290), study a freely explorable map whose weather updates on selection, not on movement (WTH-291), and test with more people what draws them (WTH-292). The Records track above stays as it is until the user decides.
-
-## Direction update (set by the user, 2026-10-12, ADR-018)
-
-From a startup-style assessment of the product, the user took this as the direction from now on. One promise, two experiences, one centre of gravity:
-
-- Tagline: **Weather, worth looking at**. Weather x place x design. The UI stays Italian.
-- **Explore**: why people arrive. A place, its weather, how it changes, a map that follows the weather. Free, quick, readable. Three depths: first glance, exploration, details (progressive disclosure).
-- **Create**: why people stay and may pay. A place, a moment and its conditions become a typographic and geographic composition. Free preview, paid export, print later.
-- Explore and Create share data and visual identity, not interface complexity.
-- First paid product: the digital record (experimental price 6,90 EUR); print second, through print on demand, only if demand shows. No weather subscription. Studio (9 EUR a month) is a later hypothesis.
-- First audience: design-sensitive people; travellers and geography fans bring traffic; creatives and studios later.
-- Past dates stay a hypothesis to validate, not an advantage proven. Provenance, source and confidence on every record (ADR-016).
-- Postponed: community, feeds, profiles, native apps, subscriptions, ads, more features.
-- Do not delete advanced features: radar, specialist data and the week move deeper in the hierarchy.
-- Pivots, decided by evidence in the first 90 days, never built in parallel: A visual weather studio (first choice), B design-first daily app (people return but do not buy), C weather graphics for creators (professional demand).
-- The guiding question: what can a person do with what-weather that they cannot do as well with the tools they already use? The hypothesis to test: turn the real conditions of a place and a moment into a unique composition, through a simple and pleasant experience.
-- Conditions before taking money stay: licences (WTH-166, 211, 212), the poster's map rights (WTH-219, 220), validation (WTH-167, 227).
-
-Tasks: BOARD "Priority 0" (WTH-225 to WTH-231). The 90-day plan: validate, redesign Explore and measure, Create MVP, distribution and first sales.
-
-## Earlier phases (bootstrap audit)
-
-- Phase 1: Foundation (done). Provider abstraction, normalized WeatherData, timeline, outlook sentence, caching, mock provider, unit and e2e tests.
-- Phase 2: Product refinement. Trustworthy data semantics (air quality, measured vs interpolated, min/max): kept, now in service of records (BOARD "Data trust").
-- Phase 3: Portfolio quality. Accessibility, performance, PWA, mobile: still part of done for each task; the audits stay in LATER.
-- Phase 4: Polish. Motion (WTH-046M), micro-interactions: after the Records track.
+11. WTH-350: routes, peaks and population in the colour contract.
+12. WTH-351: Territorio data and cards.
+13. WTH-352: weather at a peak or lake, elevation-aware (its own ADR).
+14. WTH-353: Percorsi (ODbL publication before going live).
+15. WTH-354: "È un buon momento per andarci?".
+16. WTH-355: search over peaks, lakes and routes (candidate).
