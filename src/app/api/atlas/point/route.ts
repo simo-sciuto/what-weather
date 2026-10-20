@@ -6,7 +6,10 @@ import { parsePlaceRef } from "@/lib/place";
 import { weatherFor } from "@/lib/weather-page";
 import { conditionLabel } from "@/lib/weather/formatters";
 import { frameLook } from "@/lib/weather/look";
-import type { AtlasPoint } from "@/types/atlas";
+import type { AtlasHour, AtlasPoint, PointSky } from "@/types/atlas";
+import type { SkyPalette } from "@/types/palette";
+
+const skyOf = (p: SkyPalette): PointSky => ({ sky1: p.sky1, sky2: p.sky2, sky3: p.sky3, glass: p.glass, glow: p.glow, sun: p.sun, cloud: p.cloud, air: p.air });
 import type { NextRequest } from "next/server";
 
 /**
@@ -32,10 +35,14 @@ export async function GET(request: NextRequest) {
       reverseGeocode(cell),
     ]);
     const { palette: p } = frameLook(timeline.frames[0]);
+    // Every hour the provider gave (never a day's summary), each with the sky of its own weather (WTH-343)
+    const hours: AtlasHour[] = timeline.frames
+      .filter((f) => !f.overview)
+      .map((f) => ({ time: f.time, temp: f.temp, label: conditionLabel(f), condition: f.condition, night: f.phase === "night", sky: skyOf(frameLook(f).palette) }));
     const point: AtlasPoint = {
       cell,
       place,
-      sky: { sky1: p.sky1, sky2: p.sky2, sky3: p.sky3, glass: p.glass, glow: p.glow, sun: p.sun, cloud: p.cloud, air: p.air },
+      sky: skyOf(p),
       timezone: data.timezone,
       provider,
       time: data.current.time,
@@ -43,6 +50,7 @@ export async function GET(request: NextRequest) {
       label: conditionLabel(data.current),
       condition: data.current.condition,
       night: timeline.frames[0].phase === "night",
+      hours,
     };
     return Response.json(point, { headers: { "Cache-Control": sample ? "no-store" : CACHE_CONTROL.summary } });
   } catch (error) {

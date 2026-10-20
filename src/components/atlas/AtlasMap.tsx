@@ -10,6 +10,7 @@ import type { Mapbox } from "@/types/map";
 import type { Map as MapboxMap, StyleSpecification } from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
 import { STYLE, syncMap } from "@/lib/map/map-style";
+import type { SunAt } from "./SkyDriver";
 import { useAtlasMapLook } from "./atlas-look";
 import { ATLAS_TEST_MAP, countRender } from "./atlas-test";
 
@@ -50,7 +51,18 @@ type Probe = { map?: MapboxMap; port?: MapboxCameraPort; events?: CameraEvent[] 
  * for any weather. The drawing is the home page's own (`STYLE`, `syncMap`, the viewer's layers and tuning), over the sky
  * of the shell; Mapbox's attribution and logo stay where its control puts them.
  */
-export function AtlasMap({ onPort, onMap, sky }: { onPort: (port: MapboxCameraPort | null) => void; onMap?: (map: MapboxMap | null) => void; sky: PointSky }) {
+export function AtlasMap({
+  onPort,
+  onMap,
+  sky,
+  sunAt = null,
+}: {
+  onPort: (port: MapboxCameraPort | null) => void;
+  onMap?: (map: MapboxMap | null) => void;
+  sky: PointSky;
+  /** Where and when the relief is lit: the point and hour on show; with none, Torino now */
+  sunAt?: SunAt | null;
+}) {
   countRender("map");
   const box = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
@@ -140,9 +152,10 @@ export function AtlasMap({ onPort, onMap, sky }: { onPort: (port: MapboxCameraPo
   useEffect(() => {
     const map = mapRef.current;
     if (!map || state !== "ready" || ATLAS_TEST_MAP) return;
-    const sun = sunPosition(Date.now() / 1000, ATLAS_START.lat, ATLAS_START.lng);
-    syncMap(map, { inks, options, sun, lat: ATLAS_START.lat });
-  }, [inks, options, state]);
+    const at = sunAt ?? { time: Date.now() / 1000, lat: ATLAS_START.lat, lon: ATLAS_START.lng };
+    const sun = sunPosition(at.time, at.lat, at.lon);
+    syncMap(map, { inks, options, sun, lat: at.lat });
+  }, [inks, options, state, sunAt]);
 
   return (
     <>

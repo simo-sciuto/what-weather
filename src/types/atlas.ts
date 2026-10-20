@@ -100,6 +100,23 @@ export type AtlasPoint = {
   label: string;
   condition: string;
   night: boolean;
+  /**
+   * Every hour of the forecast the provider gave, in order (WTH-343): what the time bar moves over. The fields above are
+   * the reading of "Adesso"; each hour carries its own sky, so a chosen hour colours the Atlas without asking again.
+   */
+  hours: AtlasHour[];
+};
+
+/** One hour of a point's forecast, as the Atlas shows it */
+export type AtlasHour = {
+  /** Unix seconds */
+  time: number;
+  temp: number;
+  /** The sky in words ("Sereno") */
+  label: string;
+  condition: string;
+  night: boolean;
+  sky: PointSky;
 };
 
 /**

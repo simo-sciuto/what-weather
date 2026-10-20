@@ -47,11 +47,14 @@ export function WeatherFieldLayer({
   map,
   port,
   onColors,
+  nowOnly = false,
 }: {
   map: MapboxMap | null;
   port: CameraPort | null;
   /** The colours of the places in view, each time they are drawn: what the interface's surfaces are measured against */
   onColors?: (colors: readonly string[]) => void;
+  /** Another hour is on show: the field is of now only (WTH-345), and says so */
+  nowOnly?: boolean;
 }) {
   const [shown, setShown] = useState<WeatherField | null>(null);
 
@@ -110,9 +113,9 @@ export function WeatherFieldLayer({
     <p
       data-atlas-field-note
       data-provider={shown.provider}
-      className="pointer-events-none absolute bottom-[calc(var(--dock-room)+3.5rem+4.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-10 max-w-[min(20rem,calc(100%-2rem))] text-xs uppercase tracking-[0.14em] text-ink-muted"
+      className="pointer-events-none absolute bottom-[calc(var(--dock-room)+4rem+3.5rem+4.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-10 max-w-[min(20rem,calc(100%-2rem))] text-xs uppercase tracking-[0.14em] text-ink-muted"
     >
-      {shown.provider === "mock" ? "Dati di esempio" : "Colori del meteo"} · modello, sfumato tra punti a circa {km} km
+      {shown.provider === "mock" ? "Dati di esempio" : "Colori del meteo"} · modello, sfumato tra punti a circa {km} km{nowOnly ? " · i colori della mappa sono di adesso" : ""}
     </p>
   );
 }

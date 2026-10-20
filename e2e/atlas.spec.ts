@@ -710,3 +710,54 @@ test("the home page is not the Atlas, and the Atlas is not offered to search eng
   await page.goto("/atlas");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
 });
+
+test("the time bar moves the reading and the sky over the point's own hours, asks for nothing, and writes the moment into the address", async ({ page }) => {
+  await openAtlas(page);
+  const asked: string[] = [];
+  page.on("request", (r) => asked.push(r.url()));
+  const bar = page.locator("[data-atlas-time]");
+  await expect(bar).toBeVisible();
+  const now = bar.getByRole("button", { name: "Adesso" });
+  await expect(now).toHaveAttribute("aria-pressed", "true");
+  const slider = bar.getByRole("slider", { name: "Momento" });
+  const skyBefore = await page.locator("[data-atlas]").evaluate((el) => getComputedStyle(el).getPropertyValue("--sky-2"));
+  // A night twelve hours on: Page Up is a day, the arrows an hour each
+  await slider.focus();
+  for (let i = 0; i < 12; i++) await page.keyboard.press("ArrowRight");
+  await expect(bar.getByRole("button", { name: "Torna ad adesso" })).toHaveAttribute("aria-pressed", "false");
+  await expect(slider).not.toHaveAttribute("aria-valuetext", /^Adesso/);
+  await expect(page.locator("[data-atlas-time-label]")).not.toHaveText("Adesso");
+  // the reading is the chosen hour's, with its day
+  await expect(page.locator("[data-atlas-point]")).toContainText(/ora locale/);
+  // and the moment is in the address after a pause, without a request for the point or the field
+  await expect.poll(() => new URL(page.url()).searchParams.get("t")).not.toBeNull();
+  expect(pointRequests(asked)).toEqual([]);
+  expect(asked.filter((u) => new URL(u).pathname.startsWith("/api/atlas/field"))).toEqual([]);
+  await expect(page.locator("[data-atlas-field-note]")).toContainText("i colori della mappa sono di adesso");
+  await expect.poll(() => page.locator("[data-atlas]").evaluate((el) => getComputedStyle(el).getPropertyValue("--sky-2"))).not.toBe(skyBefore);
+  // Home is "Adesso" again, and the address loses the moment
+  await slider.focus();
+  await page.keyboard.press("Home");
+  await expect(now).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => new URL(page.url()).searchParams.get("t")).toBeNull();
+});
+
+test("an address with a moment opens on that hour; an hour beyond the forecast is said, never shown as another", async ({ page }) => {
+  await openAtlas(page);
+  const t = Number(await page.locator("[data-atlas-time] input[type=range]").evaluate((el) => (el as HTMLInputElement).max)) > 0;
+  expect(t).toBe(true);
+  // the first point's hours: take the sixth one from the bar itself
+  await page.locator("[data-atlas-time] input[type=range]").focus();
+  for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowRight");
+  await expect.poll(() => new URL(page.url()).searchParams.get("t")).not.toBeNull();
+  const address = page.url();
+  const label = await page.locator("[data-atlas-time-label]").textContent();
+  await page.goto(address);
+  await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("[data-atlas-time-label]")).toHaveText(label ?? "");
+  // A year on: no hour answers it, the reading says so and the colours are not another hour's
+  const far = new URL(address);
+  far.searchParams.set("t", String(Math.floor(Date.now() / 1000) + 300 * 86400));
+  await page.goto(far.toString());
+  await expect(page.locator("[data-atlas-point-unavailable]")).toContainText("Colori non disponibili per quest'ora", { timeout: 30_000 });
+});

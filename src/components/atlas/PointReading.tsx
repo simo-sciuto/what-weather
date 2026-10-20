@@ -5,12 +5,16 @@ import { placeRefOf } from "@/lib/atlas/links";
 import { createHref, placeHref } from "@/lib/place";
 import { placeLabel } from "@/lib/atlas/place-label";
 import type { AtlasEngine } from "@/lib/atlas/engine";
+import { UNAVAILABLE_WORDS } from "@/lib/atlas/hours";
+import type { TimeStore } from "@/lib/atlas/time-store";
 import { formatTime } from "@/lib/weather/formatters";
 import type { CameraPort, FailureReason } from "@/types/atlas";
 import Link from "next/link";
 import { memo, useMemo, useRef, useSyncExternalStore } from "react";
 import { countRender } from "./atlas-test";
 import { useRestingZoom } from "./useRestingZoom";
+import { useAtlasTime } from "./useAtlasTime";
+import { viewOf } from "@/lib/atlas/hours";
 
 /** The title: the town and, from close, the quarter, at one size that follows the width of the screen and never takes more than two lines each */
 const TITLE = "line-clamp-2 text-balance text-[clamp(1.75rem,7vw,3.25rem)] leading-[1.02] tracking-tight";
@@ -21,6 +25,9 @@ const TITLE_SHADOW = { textShadow: "0 0 2px color-mix(in oklab, var(--sky-1) 85%
 const WAY = "inline-flex items-baseline gap-3 font-display text-[0.9375rem] font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent";
 
 const NONE = { status: null, point: null } as const;
+
+/** The day of a chosen hour at the place's clock: "mar 20" */
+const dayOf = (time: number, timezone: string) => new Intl.DateTimeFormat("it-IT", { weekday: "short", day: "numeric", timeZone: timezone }).format(time * 1000);
 
 const WHY: Record<FailureReason, string> = {
   timeout: "Il meteo di questo punto ci mette troppo.",
@@ -38,7 +45,7 @@ const WHY: Record<FailureReason, string> = {
  * there, when a point arrives or fails, not while the map moves. The box takes no pointer: the map is dragged through it.
  */
 /** Memoised: the shell renders when its colours change (a new field, a new sky), the reading only with its engine */
-export const PointReading = memo(function PointReading({ engine, port }: { engine: AtlasEngine | null; port: CameraPort | null }) {
+export const PointReading = memo(function PointReading({ engine, port, store = null }: { engine: AtlasEngine | null; port: CameraPort | null; store?: TimeStore | null }) {
   countRender("point");
   const zoom = useRestingZoom(port, engine);
   const root = useRef<HTMLElement>(null);
@@ -49,6 +56,10 @@ export const PointReading = memo(function PointReading({ engine, port }: { engin
   );
   const status = snap.status;
   const point = snap.point;
+  // The point at the hour on show (WTH-343): "Adesso" is its own reading, another hour its forecast, or why there is none
+  const selection = useAtlasTime(store);
+  const view = useMemo(() => (point ? viewOf(point, selection) : null), [point, selection]);
+  const hour = view?.status === "ok" ? view.hour : null;
   const failed = status?.failed ?? null;
   const loading = status?.phase === "loading";
   const settled = !status || status.phase === "resting";
@@ -60,10 +71,11 @@ export const PointReading = memo(function PointReading({ engine, port }: { engin
   const announced = failed
     ? WHY[failed.reason]
     : point
-      ? `Punto caricato: ${where ? `${where}, ` : ""}${formatCell(point.cell)}, ${Math.round(point.temp)} gradi, ${point.label}.`
+      ? `Punto caricato: ${where ? `${where}, ` : ""}${formatCell(point.cell)}, ${hour ? `${Math.round(hour.temp)} gradi, ${hour.label}` : "nessuna previsione per quest'ora"}.`
       : "";
 
   const label = point ? (failed ? "Non aggiornato" : point.provider === "mock" ? "Dati di esempio" : "Previsione del modello") : loading ? "Carico il punto" : null;
+  const when = hour ? `${view?.status === "ok" && !view.live ? `${dayOf(hour.time, point?.timezone ?? "UTC")}, ` : ""}${formatTime(hour.time, point?.timezone ?? "UTC")}` : null;
 
   return (
     <section
@@ -99,12 +111,19 @@ export const PointReading = memo(function PointReading({ engine, port }: { engin
               {named.context ? <p className="mt-1.5 text-xs uppercase tracking-[0.14em] text-ink-muted">{named.context.replaceAll(", ", " \u00b7 ")}</p> : null}
             </div>
           ) : null}
-          <p data-atlas-point-reading className="flex items-baseline gap-3 text-ink">
-            <span className="text-[2.5rem] font-semibold leading-none tabular-nums">{Math.round(point.temp)}°</span>
-            <span className="text-body">{point.label}</span>
-          </p>
+          {hour ? (
+            <p data-atlas-point-reading className="flex items-baseline gap-3 text-ink">
+              <span className="text-[2.5rem] font-semibold leading-none tabular-nums">{Math.round(hour.temp)}°</span>
+              <span className="text-body">{hour.label}</span>
+            </p>
+          ) : (
+            <p data-atlas-point-unavailable className="text-body text-ink">
+              {view?.status === "unavailable" ? UNAVAILABLE_WORDS[view.reason] : ""} Colori non disponibili per quest&apos;ora.
+            </p>
+          )}
           <p className="mt-1 text-caption tabular-nums text-ink-muted">
-            {formatCell(point.cell)} · {formatTime(point.time, point.timezone)} ora locale
+            {formatCell(point.cell)}
+            {when ? ` · ${when} ora locale` : ""}
           </p>
         </div>
       ) : null}

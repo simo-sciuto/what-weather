@@ -71,3 +71,6 @@ export const FIELD_TINT_OPACITY = 0.38;
 /** The pixels of the image the field is drawn into: the map stretches it, smoothly, over what is in view */
 export const FIELD_IMAGE = { width: 192, height: 144 } as const;
 
+
+/** How long the time bar must rest before the moment is written into the address (WTH-343): a link opens on it, a drag does not rewrite the address at every hour */
+export const MOMENT_ADDRESS_DELAY_MS = 400;

@@ -3,7 +3,10 @@
 import type { CameraPort, PointSky } from "@/types/atlas";
 import type { Map as MapboxMap } from "mapbox-gl";
 import { uiTokens } from "@/lib/weather/ui-tokens";
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { createTimeStore } from "@/lib/atlas/time-store";
+import { readMoment, selectionOfAddress, withMoment } from "@/lib/weather/moment-address";
+import { MOMENT_ADDRESS_DELAY_MS } from "@/constants/atlas";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { AtlasMap } from "./AtlasMap";
 import { AtlasMapPanel } from "./AtlasMapPanel";
 import { WeatherFieldLayer } from "./WeatherFieldLayer";
@@ -15,7 +18,9 @@ import { countRender } from "./atlas-test";
 import { CenterReadout } from "./CenterReadout";
 import { Crosshair } from "./Crosshair";
 import { PointReading } from "./PointReading";
-import { SkyDriver } from "./SkyDriver";
+import { SkyDriver, type SunAt } from "./SkyDriver";
+import { TimeBar } from "./TimeBar";
+import { useAtlasTime } from "./useAtlasTime";
 import { useAtlasEngine } from "./useAtlasEngine";
 
 /**
@@ -30,6 +35,10 @@ export function AtlasShell({ children }: { children: ReactNode }) {
   const [port, setPort] = useState<CameraPort | null>(null);
   const [map, setMap] = useState<MapboxMap | null>(null);
   const [sky, setSky] = useState<PointSky>(ATLAS_SKY);
+  const [sunAt, setSunAt] = useState<SunAt | null>(null);
+  // The moment the whole Atlas shows (WTH-343), read once from the address; "Adesso" on the server
+  const [time] = useState(() => createTimeStore(typeof window === "undefined" ? undefined : selectionOfAddress(readMoment(window.location.search))));
+  const selection = useAtlasTime(time);
   // The map panel and the search share the right of the screen: opening the search puts the panel away
   const [panelOpen, setPanelOpen] = useState(false);
   const [fieldColors, setFieldColors] = useState<readonly string[]>([]);
@@ -39,16 +48,27 @@ export function AtlasShell({ children }: { children: ReactNode }) {
   const vars = tokens as unknown as CSSProperties;
   const { engine, goTo } = useAtlasEngine(port);
 
+  // The moment goes into the address after a pause, so a link opens on it; "Adesso" takes it out. Native history: the
+  // page renders no weather, and the router's own navigations keep the parameter (they start from the address)
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const next = withMoment(window.location.search, selection);
+      if (next !== window.location.search.replace(/^\?/, "")) window.history.replaceState(window.history.state, "", `${window.location.pathname}${next ? `?${next}` : ""}`);
+    }, MOMENT_ADDRESS_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [selection]);
+
   return (
     <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={vars}>
-      <AtlasMap onPort={setPort} onMap={setMap} sky={sky} />
-      <WeatherFieldLayer map={map} port={port} onColors={setFieldColors} />
-      <SkyDriver port={port} engine={engine} onSky={setSky} />
+      <AtlasMap onPort={setPort} onMap={setMap} sky={sky} sunAt={sunAt} />
+      <WeatherFieldLayer map={map} port={port} onColors={setFieldColors} nowOnly={selection.mode === "at"} />
+      <SkyDriver port={port} engine={engine} store={time} onSky={setSky} onSun={setSunAt} />
       <Crosshair port={port} />
       <WordmarkLink engine={engine} />
       <AtlasMapPanel sky={sky} tokens={vars} open={panelOpen} onOpenChange={setPanelOpen} />
       <AtlasSearch onChoose={(place) => goTo(place)} onOpen={() => setPanelOpen(false)} />
-      <PointReading engine={engine} port={port} />
+      <PointReading engine={engine} port={port} store={time} />
+      <TimeBar engine={engine} store={time} />
       <CenterReadout port={port} />
       <AtlasDock engine={engine} />
       <main className="sr-only">{children}</main>

@@ -31,6 +31,13 @@ function isPlace(v: unknown): boolean {
   return Object.entries(v as Record<string, unknown>).every(([k, x]) => (k === "nearKm" ? isNumber(x) : typeof x === "string"));
 }
 
+/** An hour of the forecast, checked as the point is */
+function isHour(v: unknown): boolean {
+  if (!v || typeof v !== "object") return false;
+  const h = v as Record<string, unknown>;
+  return isNumber(h.time) && isNumber(h.temp) && typeof h.label === "string" && typeof h.condition === "string" && typeof h.night === "boolean" && isSky(h.sky);
+}
+
 /** The answer is checked, not trusted: a wrong shape is a failed request, never a half-drawn point */
 export function isAtlasPoint(v: unknown): v is AtlasPoint {
   if (!v || typeof v !== "object") return false;
@@ -48,7 +55,9 @@ export function isAtlasPoint(v: unknown): v is AtlasPoint {
     isNumber(p.temp) &&
     typeof p.label === "string" &&
     typeof p.condition === "string" &&
-    typeof p.night === "boolean"
+    typeof p.night === "boolean" &&
+    Array.isArray(p.hours) &&
+    p.hours.every(isHour)
   );
 }
 

@@ -5,7 +5,7 @@ import { FIXTURE_SKY } from "./sky.fixture";
 
 /* ADR-022, M4: how the browser asks for a point, and how it tells one failure from another. No network, no server. */
 
-const POINT: AtlasPoint = { cell: { lat: 45.07, lon: 7.69 }, place: { country: "Italia", place: "Torino", nearKm: 0.4 }, sky: FIXTURE_SKY, timezone: "Europe/Rome", provider: "mock", time: 1_760_000_000, temp: 17.4, label: "Sereno", condition: "clear", night: false };
+const POINT: AtlasPoint = { cell: { lat: 45.07, lon: 7.69 }, place: { country: "Italia", place: "Torino", nearKm: 0.4 }, sky: FIXTURE_SKY, timezone: "Europe/Rome", provider: "mock", time: 1_760_000_000, temp: 17.4, label: "Sereno", condition: "clear", night: false, hours: [{ time: 1_760_000_000, temp: 17.4, label: "Sereno", condition: "clear", night: false, sky: FIXTURE_SKY }] };
 const CELL = { lat: 45.07, lon: 7.69 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const live = () => new AbortController().signal;
@@ -27,6 +27,11 @@ describe("isAtlasPoint", () => {
     expect(isAtlasPoint({ ...POINT, sky: { ...FIXTURE_SKY, sky1: 3 } })).toBe(false);
     expect(isAtlasPoint({ ...POINT, sky: { ...FIXTURE_SKY, sky2: "oklch(0.5 0.1 200)" } })).toBe(false);
     expect(isAtlasPoint({ ...POINT, sky: { ...FIXTURE_SKY, air: { depth: 1 } } })).toBe(false);
+    // The hours the time bar moves over are checked as the point is
+    expect(isAtlasPoint({ ...POINT, hours: [] })).toBe(true);
+    expect(isAtlasPoint({ ...POINT, hours: undefined })).toBe(false);
+    expect(isAtlasPoint({ ...POINT, hours: [{ ...POINT.hours[0], temp: "9" }] })).toBe(false);
+    expect(isAtlasPoint({ ...POINT, hours: [{ ...POINT.hours[0], sky: { ...FIXTURE_SKY, sky1: "red" } }] })).toBe(false);
   });
 });
 
