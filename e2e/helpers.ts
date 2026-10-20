@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 
-/** Milan, the place the page opens on. */
+/** Turin, a place with a name and region in the address. */
 export const TURIN = { name: "Torino", region: "Piemonte", country: "IT", lat: 45.07, lon: 7.69 };
 
 /**
@@ -16,8 +16,14 @@ export async function open(page: Page, scenario: string, at: string, place?: typ
 
 /** The bar says it is ready once the page is interactive (the records are only read, and the moment only written, from then on). */
 export async function hydrated(page: Page) {
-  await expect(page.locator('[data-bar][data-ready="true"]')).toBeAttached();
+  await expect(page.locator('[data-dock][data-ready="true"]')).toBeAttached();
 }
+
+/** The bar of the three sections */
+export const dock = (page: Page) => page.getByRole("navigation", { name: "Sezioni" });
+
+/** The section's own layer: Crea is shown or hidden, Meteo is the page itself */
+export const creaLayer = (page: Page) => page.locator('[data-section="crea"]');
 
 /** Answers the kept records' weather without a server round trip. */
 export async function stubSummaries(page: Page) {

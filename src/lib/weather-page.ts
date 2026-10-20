@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { cache } from "react";
-import { createPlaceRef, parsePlaceRef } from "./place";
+import { parsePlaceRef } from "./place";
 import type { PlaceRef } from "@/types/place";
 import { getProvider } from "./api/providers/get-provider";
 import { lookupPollen } from "./api/sources/pollen";
@@ -10,7 +10,6 @@ import { DEFAULT_PLACE } from "@/constants/weather";
 import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS, WEATHER_STALE_SECONDS } from "@/constants/cache";
 import { roundCoord } from "./weather/coordinates";
 import { buildTimeline, relabelDays } from "./weather/frames";
-import { momentStart } from "./weather/moment";
 import { needsNames, withPlaceNames } from "./weather/place-names";
 import { randomPlace } from "./weather/random-places";
 import { toRadians } from "@/utils/math";
@@ -105,17 +104,23 @@ export async function weatherFor(ref: PlaceRef, scenario?: string, at?: string) 
 const landingPlace = cache(randomPlace);
 
 /**
+ * Where a bare address lands: on a city drawn at random (the home, ADR-017) or on the default place (the entries
+ * `/crea` and `/atlas`, ADR-029: a record is made of a place somebody chose, never of a draw).
+ */
+export type Landing = "random" | "default";
+
+/**
  * Reads the request (the URL), then loads through the cache. A link to a place
- * wins. A bare address lands on a city drawn at random, a different one on each
- * visit; sample data (`?mock`, the tests) always lands on the default place,
+ * wins. A bare address lands, by `landing`, on a city drawn at random, a different one on each
+ * visit, or on the default place; sample data (`?mock`, the tests) always lands on the default place,
  * so what it shows stays the same.
  */
-export async function loadWeatherPage(searchParams: SearchParams) {
+export async function loadWeatherPage(searchParams: SearchParams, { landing = "random" }: { landing?: Landing } = {}) {
   const params = await searchParams;
   const scenario = param(params.mock);
   const at = param(params.at);
   const linked = parsePlaceRef(params);
-  const landed = !linked && getProvider(scenario, at).name !== "mock";
+  const landed = !linked && landing === "random" && getProvider(scenario, at).name !== "mock";
   const ref = linked ?? (landed ? landingPlace() : DEFAULT_PLACE);
   const loaded = await weatherFor(ref, scenario, at);
   const renderedAt = Math.floor(Date.now() / 1000);
@@ -127,31 +132,5 @@ export async function loadWeatherPage(searchParams: SearchParams) {
     at,
     landed,
     renderedAt,
-  };
-}
-
-/**
- * The weather behind the Create page: the place in the URL (else the default place, never a random one), through the
- * same cached unit as the weather page (ADR-003). The moment on show comes from `t` (Unix seconds, from Explore) and
- * is found in that same cached timeline: no key of its own. Without `t` the page opens on the current conditions; with
- * a `t` the timeline does not hold, nothing is chosen in its place (`available` is false, WTH-236).
- */
-export async function loadCreatePage(searchParams: SearchParams) {
-  const params = await searchParams;
-  const scenario = param(params.mock);
-  const at = param(params.at);
-  const loaded = await weatherFor(createPlaceRef(params), scenario, at);
-  const renderedAt = Math.floor(Date.now() / 1000);
-  const timeline = relabelDays(loaded.timeline, loaded.data.timezone, renderedAt);
-  const raw = param(params.t);
-  const time = raw === undefined ? null : Number(raw);
-  const requested = time === null || Number.isInteger(time) ? time : Number.NaN;
-  const start = requested === null || Number.isNaN(requested) ? null : momentStart(timeline, requested);
-  return {
-    ...loaded,
-    timeline,
-    scenario,
-    at,
-    moment: { requested, start, available: requested === null || start !== null },
   };
 }

@@ -15,7 +15,7 @@ import type { WeatherData } from "@/types/weather";
 /**
  * The lower levels of the page (ADR-018): the next 24 hours for outdoor plans and the week stay in view; the rain
  * and cloud map and the almanac of details are the deepest level, closed until asked for (`DetailsDisclosure`); the
- * credits are the page's foot, outside the stations (where the data comes from is never put away). A fragment, so the chapters stay children
+ * credits are the page's foot, outside the parts (where the data comes from is never put away). A fragment, so the chapters stay children
  * of the data column's flex container.
  */
 export function DetailsBand({

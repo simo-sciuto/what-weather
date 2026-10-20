@@ -1,4 +1,3 @@
-import { DEFAULT_PLACE } from "@/constants/weather";
 import type { PlaceRef } from "@/types/place";
 import type { Place } from "@/types/weather";
 
@@ -24,14 +23,6 @@ export function parsePlaceRef(raw: Raw): PlaceRef | null {
   return { lat, lon, name: text(raw.name), region: text(raw.region), country: text(raw.country, 3) };
 }
 
-/**
- * The place the Create page (`/crea`) is made for: the one in the URL, else the default place. Never a random city
- * (ADR-017 belongs to the bare address of the weather page): a record is made of a place somebody chose.
- */
-export function createPlaceRef(raw: Raw): PlaceRef {
-  return parsePlaceRef(raw) ?? DEFAULT_PLACE;
-}
-
 /** A place as a query string: coordinates to four decimals, then the names it has. The one precision every link uses (ADR-029). */
 export function placeQuery(p: PlaceRef): string {
   const q = new URLSearchParams({ lat: p.lat.toFixed(4), lon: p.lon.toFixed(4) });
@@ -46,7 +37,7 @@ export function placeHref(p: PlaceRef): string {
 }
 
 /**
- * The Create page for a place (`/crea`, ADR-018), and the moment on show when it is not the current one (WTH-236):
+ * The Create entry for a place (`/crea`, ADR-018, ADR-029), and the moment on show when it is not the current one (WTH-236):
  * `t` is that moment's instant, Unix seconds. Absent, Create takes the current conditions.
  */
 export function createHref(p: PlaceRef, t?: number): string {

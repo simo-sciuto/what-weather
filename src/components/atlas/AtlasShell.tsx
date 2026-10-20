@@ -8,6 +8,7 @@ import { AtlasMapPanel } from "./AtlasMapPanel";
 import { WeatherFieldLayer } from "./WeatherFieldLayer";
 import { AtlasSearch } from "./AtlasSearch";
 import { WordmarkLink } from "./WordmarkLink";
+import { AtlasDock } from "../nav/AtlasDock";
 import { ATLAS_SKY, paletteVars } from "./atlas-look";
 import { countRender } from "./atlas-test";
 import { CenterReadout } from "./CenterReadout";
@@ -44,6 +45,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       <AtlasSearch onChoose={(place) => goTo(place)} onOpen={() => setPanelOpen(false)} />
       <PointReading engine={engine} port={port} />
       <CenterReadout port={port} />
+      <AtlasDock engine={engine} />
       <main className="sr-only">{children}</main>
     </div>
   );

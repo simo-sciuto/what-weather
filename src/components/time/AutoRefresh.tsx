@@ -34,7 +34,8 @@ export function AutoRefresh({ landedAt }: { landedAt?: string }) {
       if (Date.now() - loadedAt < WEATHER_REVALIDATE_SECONDS * 1000) return;
       loadedAt = Date.now();
       // A city drawn at random would be drawn again: stay on this one, at its own address.
-      startTransition(() => (landedAt ? router.replace(landedAt) : router.refresh()));
+      // (the section the person is in, the address' hash, goes with it)
+      startTransition(() => (landedAt ? router.replace(`${landedAt}${window.location.hash}`) : router.refresh()));
     };
     const id = setInterval(check, CHECK_MS);
     document.addEventListener("visibilitychange", check);

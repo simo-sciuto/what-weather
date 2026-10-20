@@ -4,7 +4,7 @@ import type { PointSky } from "@/types/atlas";
 import type { SkyPalette } from "@/types/palette";
 import { useEffect, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import { GLASS } from "../layout/PhoneNav";
+import { GLASS } from "../layout/glass";
 import { MapPanelContent, RESET_LINK, useResetMap } from "../weather/MapControls";
 import { ACTION_LABELS } from "@/constants/labels";
 import { ATLAS_PALETTE, useAtlasMapLook } from "./atlas-look";
@@ -86,7 +86,7 @@ function MapPanel({ id, palette, onClose }: { id: string; palette: SkyPalette; o
       // The page's sky variables live on the Atlas's root, not on the body this is portalled to: the glass reads them
       // A phone: a sheet over the foot of the screen. A computer: a column at the right, so the centre, where the
       // crosshair is, stays free and the map is seen changing beside it
-      className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-50 max-h-[46dvh] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 overflow-y-auto rounded-[1.75rem] p-5 text-left text-ink lg:bottom-4 lg:left-auto lg:right-4 lg:top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] lg:max-h-none lg:w-[24rem] lg:translate-x-0 ${GLASS}`}
+      className={`fixed bottom-[var(--dock-room)] left-1/2 z-50 max-h-[46dvh] w-[min(40rem,calc(100vw-2rem))] -translate-x-1/2 overflow-y-auto rounded-[1.75rem] p-5 text-left text-ink lg:bottom-4 lg:left-auto lg:right-4 lg:top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] lg:max-h-none lg:w-[24rem] lg:translate-x-0 ${GLASS}`}
       style={{ "--sky-1": palette.sky1, "--sky-2": palette.sky2, "--sky-3": palette.sky3 } as React.CSSProperties}
     >
       <div className="flex items-baseline justify-between gap-4 pb-3">

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { TURIN, hydrated, open, stubSummaries } from "./helpers";
+import { TURIN, creaLayer, dock, hydrated, open, stubSummaries } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await stubSummaries(page);
@@ -30,13 +30,13 @@ test("a search that finds nothing says so", async ({ page }) => {
   await expect(page.getByRole("status")).toHaveText("Località non trovata. Prova con un altro nome.");
 });
 
-test("a kept place stays kept after a reload, in the Keep station", async ({ page }) => {
+test("a kept place stays kept after a reload, in 'I tuoi poster'", async ({ page }) => {
   await open(page, "clear", "13:00");
-  const records = page.locator("section#conserva").getByRole("list", { name: "Record conservati" });
-  await expect(records).toHaveCount(0);
+  await page.getByRole("button", { name: "Conserva" }).click();
+  await expect(page.getByRole("button", { name: "Conserva" })).toHaveAttribute("aria-pressed", "true");
 
-  await page.getByRole("navigation", { name: "Percorso" }).getByRole("link", { name: "Conserva" }).click();
-  await page.locator('[data-bar-action="conserva"]').click();
+  await dock(page).getByRole("link", { name: "Crea" }).click();
+  const records = creaLayer(page).getByRole("list", { name: "Record conservati" });
   await expect(records.getByRole("listitem")).toHaveCount(1);
   await expect(records).toContainText("Milano");
 

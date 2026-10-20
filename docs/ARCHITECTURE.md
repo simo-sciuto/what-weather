@@ -1,6 +1,6 @@
 # ARCHITECTURE
 
-Factual, from the code as of 2026-10-05. If code and this file disagree, the code wins: fix this file.
+Factual, from the code as of 2026-10-20 (WTH-310: rewritten for ADR-029, D3). If code and this file disagree, the code wins: fix this file.
 
 ## Stack
 
@@ -11,7 +11,7 @@ Next.js here has breaking changes: read `node_modules/next/dist/docs/` before wr
 ## Data flow
 
 ```
-URL (?lat&lon&name..), else a random city (src/lib/weather/random-places.ts); sample data: DEFAULT_PLACE (Milano)
+URL (?lat&lon&name..&t), else a random city on `/` (src/lib/weather/random-places.ts) or DEFAULT_PLACE on `/crea`; sample data: DEFAULT_PLACE (Milano)
   -> src/lib/weather-page.ts  loadWeatherPage()  -> weatherFor() -> load()   ["use cache", tag weather:lat,lon]
        -> getProvider()  (src/lib/api/providers/get-provider.ts)
             openweather | openweather-free | open-meteo | mock     (each implements WeatherProvider)
@@ -21,7 +21,7 @@ URL (?lat&lon&name..), else a random city (src/lib/weather/random-places.ts); sa
           (a past moment, for the Records track: getHistoricalProvider().getAt() -> the same WeatherData
            with `reconstruction`, see "Historical weather" below)
        -> buildTimeline(data)  (frames.ts)  ->  Timeline / Frame[]
-  -> src/app/page.tsx (server component) -> client providers -> UI
+  -> src/components/tavola/TavolaPage.tsx (server component, used by app/page.tsx and app/crea/page.tsx) -> client providers -> UI
 ```
 
 Rules that hold today:
@@ -79,7 +79,7 @@ The palette has two ways of weathering that base, sharing one finish (`finishPal
 
 ## Caching
 
-- `load()` in `weather-page.ts` is the single cached unit per place: `"use cache"`, coordinates rounded to 2 decimals (~1 km, `COORD_PRECISION`, through `roundCoord` in `lib/weather/coordinates.ts`), `cacheLife` revalidate 600 s, expire 3600 s, stale 300 s. Mock uses `cacheLife("seconds")`.
+- `load()` in `weather-page.ts` is the single cached unit per place: `"use cache"`, keyed on the coordinates, the scenario and the hour and nothing else (ADR-029, WTH-323: the place's name, region and country are put on after the cache, and the place search that completes them, `namesFor`, is cached on its own), coordinates rounded to 2 decimals (~1 km, `COORD_PRECISION`, through `roundCoord` in `lib/weather/coordinates.ts`), `cacheLife` revalidate 600 s, expire 3600 s, stale 300 s. Mock uses `cacheLife("seconds")`.
 - The page, `generateMetadata`, `/api/og`, `/api/summary` all go through `weatherFor()` so they share one entry.
 - Other cached units: place search (`/api/places`, 1 day revalidate), cloud grid (1 h), nearby towns, city facts.
 - The cache's numbers, the `Cache-Control` of each route and the fetch timeouts are in `src/constants/` (see Constants).
@@ -99,30 +99,48 @@ A word is a label here when two places say it; a choice made twice is one functi
 
 | Route | Purpose |
 | --- | --- |
-| `/` (`src/app/page.tsx`) | Explore, the weather page; server component, reads searchParams |
-| `/crea` (`src/app/crea/page.tsx`) | Create (ADR-018): the poster for the place in the address (else the default place, never a random one), through the same cached unit (`loadCreatePage`); the poster is drawn from the fixed base view |
-| `/lab/atmosfera` | dev-only calibration lab for the Weather Visual Engine (both palette engines over the calibration scenarios); `notFound()` in production |
+| `/` (`src/app/page.tsx`) | The home, one page of three sections (ADR-029): Meteo by default, Crea at `#crea`. Server component (`TavolaPage`), reads searchParams; a bare address draws a random city (ADR-017). `generateMetadata` is the place's reading |
+| `/crea` (`src/app/crea/page.tsx`) | An entry address, not a page of its own: the same tree as `/` opened on Crea, on the place in the address or else the default place (never a random one). `noindex`, canonical `/`; not redirected and not rewritten (a switch writes only the hash: `/crea?...#meteo`) |
+| `/atlas` (`src/app/atlas/`) | Esplora, the map (ADR-027), still its own route until D6: `layout.tsx` holds `AtlasShell` (the map, the crosshair, the point's reading, the weather field) and the page holds only the route's name and query for screen readers. It has the bar too (`AtlasDock`: Esplora current, Meteo and Crea as links to `/`). `noindex` |
+| `/lab/atmosfera`, `/lab/record` | dev-only labs (the calibration of the Weather Visual Engine, the record); `notFound()` in production |
 | `/api/places` | place search, runs server-side so keys stay hidden |
 | `/api/summary` | small summary for a saved place's card |
 | `/api/clouds` | cloud and precipitation grid for the map animation |
 | `/api/random-place` | a city drawn at random from the whole world, never cached |
 | `/api/og` | share image (ImageResponse) for a place |
-| `manifest.ts`, `error.tsx`, `loading.tsx` | PWA manifest, error and loading states |
+| `/api/atlas/point` | the Atlas's weather of the cell the map rested on, through `weatherFor` (the same cache entry as the home) |
+| `/api/atlas/field` | the weather field of a view: the colour of the weather of a fixed lattice of places (ADR-026) |
+| `manifest.ts`, `error.tsx`, `loading.tsx` | PWA manifest, error and loading states (`loading.tsx` is the shell of every route) |
+
+## Sections, the address and the bar (ADR-029)
+
+One page, three sections: Meteo (the weather: Tempo and Territorio), Esplora (the map) and Crea (the poster and "I tuoi poster"). The sections are client state, not routes, and the address is their truth:
+- `lib/sections.ts` is the one place that knows the shape: `sectionOf(pathname, hash)`, `sectionHref`, `entryOf` (what a route opens on: `/` Meteo, `/crea` Crea, `/atlas` Esplora), `journeyQuery` (`lat`, `lon`, the names and `t` at one precision) and `sharedHref` (`/?...#crea` for somebody else). The hash is `#crea` and `#esplora`; none is Meteo (on an entry route Meteo is written, `#meteo`).
+- `components/tavola/section-store.ts` is the store (`useSyncExternalStore`): it reads route and hash, listens to `popstate` and `hashchange`, and after its own `history.pushState` (which fires nothing) notifies itself. A switch is one new step, so Back returns to the previous section; Next's router integrates the native `pushState` (`usePathname` and `useSearchParams` follow, no server render). `getServerSnapshot` is the route's own section (`initial`), so a shared `#crea` link shows Meteo for a moment before hydration.
+- `components/tavola/Tavola.tsx` (client) holds the page: `AtmosphereMain`, `Sky`, `MapBackdropGL`, Meteo (the server's tree, `inert` and `aria-hidden` while Crea is on show; it is the document and keeps its scroll), Crea (a `fixed inset-0` opaque layer tinted by the sky with its own scroll, mounted on the first visit and afterwards hidden with React's `<Activity>`), the bar and a line that announces the section. After a change somebody made (a switch, Back, Forward) the focus goes to the new section's title (`data-section-title`, `tabIndex=-1`, no scroll), the line says `Meteo: Torino`, and `document.title` becomes `Meteo · Torino · what-weather`. The page opening on a section does none of these. No `ViewTransition` yet (D4).
+- Meteo (`TavolaPage`): the search, the Testata (`WeatherHero`: place, temperature, the day's range, "Conserva" with `KeepButton`, one line of identity from `TerritoryLine`, the same `cityFacts` entry as Territorio), then the column: `PartsNav` (two large titles, Tempo and Territorio, a 3 px accent line under the one being read, sticky on a computer, in the small Testata `HeadlineBand` on a phone), `#parte-tempo` (`TimeScrubber`, `MomentFacts`, alerts and rain when urgent, "Prossime ore", `DetailsBand`) and `#parte-territorio` (`Territory` in `Suspense`; when it resolves to nothing the part and its title are gone, `MeteoParts.tsx`: IntersectionObserver spy, no write to the address). The ids are not `tempo` or `crea`: an id equal to a hash would be scrolled to by the router.
+- Crea (`components/create/CreaSection.tsx`): the place and the moment of the page's providers (not loaded again), `PosterButton` (the dialog, with the poster as it was; the second click stays until D5), "I tuoi poster" (`keep/KeepPanel`), "Conserva". An address whose `t` the forecast does not hold is said, and no poster is offered for it.
+- Esplora in D3 is a link to `/atlas?<journeyQuery of the place and t>` (a bridge until D6).
+- The bar (`components/nav/Dock.tsx`, `nav` "Sezioni", three real links with `aria-current="page"`, not tabs): the only glass of the app. CSS in `globals.css` (`.dock*`): the glass is its own layer, a sibling of the drop and of the links (a filter, opacity or transform on a parent would break the blur), `backdrop-filter: blur(16px) saturate(1.8) brightness(1.04)` over a layer of the sky deepened to 58%, opaque fallbacks for no blur, `prefers-reduced-transparency`, `prefers-contrast: more` and forced colours; `--dock-room` is the room the page, the Atlas's readouts and Mapbox's controls leave at the foot; `view-transition-name: dock` is already on the capsule. `sections.tsx` holds the labels and the icons. On `/atlas`, `AtlasDock` builds the links from the point on show.
+- Parked: `components/bar/MomentTrack.tsx` (the bar's moment track, taken out by ADR-029; the hour is chosen on the curve of the hours). `components/time/MomentAddress.tsx` keeps `t` in the address current (`replaceState` after 400 ms of quiet) from inside Meteo.
 
 ## Client state (`src/components/`)
 
-No state library. React contexts and external stores:
-- `time/TimeContext.tsx`: three contexts at different paces (Timeline fixed per place, View = next 24 h or one picked day, Moment = hour on show). The page remounts the provider with `key={lat,lon}` on a new place.
-- `location/PlaceContext.tsx`, `weather/MapContext.tsx`.
-- localStorage (guarded, exposed as external stores): saved places (`lib/saved-places.ts`), recent places, map tuning (`lib/map-tuning.ts`, key `weather:map-hue`), map layer options (`lib/map-options.ts`).
+No state library. React contexts and external stores, split by pace of change (ADR-008):
+- `time/TimeContext.tsx`: three contexts at different paces (Timeline fixed per place, View = next 24 h or one picked day, Moment = hour on show). `TavolaPage` remounts the provider with `key={lat,lon}` on a new place. The page itself (`Tavola`) does not read the moment, so scrubbing re-renders only what reads it (`TavolaDock` for the `t` Esplora carries, `MomentAddress`, `CreaSection`).
+- `location/PlaceContext.tsx`, `weather/MapContext.tsx` (Mapbox, the place, the cloud grid), `tavola/MeteoParts.tsx` (the part being read), `tavola/section-store.ts` (the section).
+- localStorage (guarded, exposed as external stores): the kept records (`lib/keep`, `keep/useKept.ts`, key `weather:kept`, migrated once from the saved places of before), saved places (`lib/saved-places.ts`, still read by the search, WTH-313), recent places, map tuning (`lib/map-tuning.ts`, key `weather:map-hue`), map layer options (`lib/map-options.ts`).
+- The Atlas has its own state, outside React: `lib/atlas/engine.ts` (the point the map rests on, with a settle controller and a point fetcher), the camera port (`mapbox-camera-port.ts`) the map's events go through without reaching React (ADR-020), and the weather field's loader (`field-loader.ts`).
 - No place cookie: a bare address draws a random city (ADR-017); `/api/random-place` draws one from the whole world for the "Città casuale" button.
 
 ## UI structure
 
-- `app/page.tsx` composes: `Sky` (palette background), `MapBackdropGL` (fixed Mapbox city behind the page), `WeatherHero` (the poster reading), `TimeScrubber`, then chapters: urgent items (alerts, precipitation, promoted details), `Territory` (streamed in `Suspense`), then `DetailsBand`: `Activities`, week (`DailyForecast`), `DetailsDisclosure` (closed until asked for, its children not mounted while closed: the map `MapView`, only with a Mapbox token, and the details `Almanac`) and `SiteFooter` (lists sources actually in use, always in view).
-- Desktop: hero pinned left, chapters scroll right. Phone: the reading is the first screen.
-- `lib/analytics/analytics.ts`: the measure points of ADR-018 (`explore`, `create_open`, `preview_done`), a placeholder with no service, cookie or identifier until `setAnalyticsSink` is called (WTH-226); `components/analytics/TrackOnMount` for server pages.
-- `components/poster/`: the downloadable poster (canvas render, `PosterButton` on `/crea` only); the way from the weather page to `/crea` is the Crea action of the bar (`components/bar/Bar.tsx`, ADR-028).
+- `TavolaPage` composes (see "Sections"): `Sky` (palette background), `MapBackdropGL` (fixed Mapbox city behind the page), `WeatherHero` (the poster reading), the two parts, `SiteFooter` (lists sources actually in use, always in view) and the guide's text link (`Guide`). `DetailsBand`: `Activities`, week (`DailyForecast`), `DetailsDisclosure` (closed until asked for, its children not mounted while closed: the map `MapView`, only with a Mapbox token, and the details `Almanac`).
+- Desktop: hero pinned left, the parts scroll right. Phone: the reading is the first screen.
+- `lib/analytics/analytics.ts`: the measure points of ADR-018 (`explore`, `create_open`, `preview_done`), a placeholder with no service, cookie or identifier until `setAnalyticsSink` is called (WTH-226); `components/analytics/TrackOnMount`, now inside `CreaSection`. The event names still say Explore and Create of ADR-018 (the section called Explore then is Meteo now).
+- `components/poster/`: the downloadable poster (canvas render, `PosterButton` in Crea only).
+- `components/atlas/`: the Atlas (ADR-020 to ADR-026), as it was.
+- Glass: only the bar (`.dock-glass`). `layout/glass.ts` (`GLASS`) is still what the poster's dialog, the Atlas's panel and the map's controls are made of; ADR-029 makes them opaque later.
 
 ## Tests
 

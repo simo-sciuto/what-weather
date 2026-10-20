@@ -8,6 +8,8 @@ import {
 import type { TempRange } from "@/lib/weather/today";
 import { yesterdayWords } from "@/lib/weather/yesterday";
 import type { CurrentWeather, Place } from "@/types/weather";
+import type { ReactNode } from "react";
+import { KeepButton } from "../keep/KeepButton";
 import { LocationControl } from "../location/LocationControl";
 import {
   HeroActions,
@@ -40,6 +42,7 @@ export function WeatherHero({
   outlook,
   yesterday,
   unavailable,
+  identity,
 }: {
   place: Place;
   timezone: string;
@@ -52,6 +55,8 @@ export function WeatherHero({
   yesterday: number | null;
   /** The address asked for an hour the forecast does not hold: the hour as asked (on the place's clock), if it was one */
   unavailable?: { asked: string | null };
+  /** What the place is, in a line (the Territory's facts, streamed in); absent when nothing is known */
+  identity?: ReactNode;
 }) {
   const label = conditionLabel(current);
   const sinceYesterday =
@@ -136,8 +141,14 @@ export function WeatherHero({
       */}
       <div aria-hidden="true" className="min-h-8 flex-1" />
 
+      {/* Keep this place, and what it is: the action the bar had, now in the Testata (ADR-029) */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <KeepButton />
+        {identity}
+      </div>
+
       {/* On a phone, the foot: the hour and the day on one line, a hairline, the name, the place's facts */}
-      <div className="pb-[calc(var(--bar-h)+1rem+env(safe-area-inset-bottom))] lg:hidden">
+      <div className="pb-[calc(var(--dock-room)+1rem)] lg:hidden">
         <div className="border-t border-white/30 pt-2">
           <HeroNowPhone
             timezone={timezone}

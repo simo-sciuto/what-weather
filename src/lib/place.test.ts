@@ -1,24 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PLACE } from "@/constants/weather";
-import { createHref, createPlaceRef, placeHref } from "./place";
-
-describe("createPlaceRef", () => {
-  it("takes the place in the address", () => {
-    expect(createPlaceRef({ lat: "64.1466", lon: "-21.9426", name: "Reykjavik" })).toEqual({
-      lat: 64.1466,
-      lon: -21.9426,
-      name: "Reykjavik",
-      region: undefined,
-      country: undefined,
-    });
-  });
-
-  it("falls back to the default place, never a random one, when the address has none", () => {
-    for (const raw of [{}, { lat: "x", lon: "9" }, { lat: "91", lon: "9" }, { name: "Roma" }]) {
-      expect(createPlaceRef(raw)).toBe(DEFAULT_PLACE);
-    }
-  });
-});
+import { createHref, placeHref } from "./place";
 
 describe("createHref", () => {
   it("is the place's address on the Create page", () => {

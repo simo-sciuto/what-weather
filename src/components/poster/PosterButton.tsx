@@ -9,7 +9,7 @@ import { placeHref } from "@/lib/place";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePlace } from "../location/PlaceContext";
 import { useMap } from "../weather/MapContext";
-import { BarTab, GLASS, ICONS, usePhoneNav } from "../layout/PhoneNav";
+import { GLASS } from "../layout/glass";
 import { POSTER_FORMATS, renderPoster, type PosterFormat } from "./render-poster";
 import { shareText } from "./share-text";
 import { usePosterSnapshot, type PosterSnapshot } from "./usePosterSnapshot";
@@ -32,22 +32,14 @@ function fileName(place: string, format: PosterFormat) {
 }
 
 /**
- * "Crea poster", on the Create page (`/crea`): a dialog that draws the place as a Swiss
+ * "Crea poster", in the Create section: a dialog that draws the place as a Swiss
  * poster (the map in the colours of the moment on show; its name, region and
  * country; its coordinates; the moment's weather as a readout) in three formats, with a preview, a download and, where the
  * device can, a share. The colours are those of the moment when it opens, so
  * the clock ticking on doesn't redraw it. Without Mapbox there is no map, and
  * so no poster.
  */
-export function PosterButton({
-  className = "",
-  tabRef,
-}: {
-  className?: string;
-  /** As the poster's icon in the phone's bar: away from the poster it goes back to it, on it it makes one */
-  tabRef?: (el: HTMLButtonElement | null) => void;
-}) {
-  const nav = usePhoneNav();
+export function PosterButton({ className = "" }: { className?: string }) {
   const { place } = usePlace();
   const { token, loadMapbox } = useMap();
   // Everything the poster is drawn from, frozen when the dialog opens
@@ -142,31 +134,19 @@ export function PosterButton({
 
   return (
     <>
-      {tabRef ? (
-        <BarTab
-          label="Poster"
-          hint={nav.page === "poster" ? "Crea il poster" : undefined}
-          current={nav.page === "poster"}
-          tabRef={tabRef}
-          onClick={() => (nav.page === "poster" ? open() : nav.go("poster"))}
+      <button
+        type="button"
+        onClick={open}
+        className={`group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-accent ${className}`}
+      >
+        Crea poster
+        <span
+          aria-hidden="true"
+          className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent"
         >
-          {ICONS.poster}
-        </BarTab>
-      ) : (
-        <button
-          type="button"
-          onClick={open}
-          className={`group inline-flex items-baseline gap-3 text-left font-display text-[0.9375rem] sm:text-xl font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-accent ${className}`}
-        >
-          Crea poster
-          <span
-            aria-hidden="true"
-            className="font-sans text-base font-normal text-ink-muted transition-[transform,color] group-hover:translate-x-1 group-hover:text-accent"
-          >
-            ↓
-          </span>
-        </button>
-      )}
+          ↓
+        </span>
+      </button>
 
       <dialog
         ref={dialog}

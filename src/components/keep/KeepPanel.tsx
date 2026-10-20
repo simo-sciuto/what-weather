@@ -8,10 +8,11 @@ import { momentDay } from "@/lib/weather/moment-label";
 import type { PlaceSummary } from "@/types/place";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { scrollToStation } from "../bar/useActiveStation";
-import { stationTitleId } from "../bar/stations";
-import { useKept } from "../keep/useKept";
+import { useKept } from "./useKept";
 import { useHydrated } from "../useHydrated";
+
+/** The id of the heading of the section that holds this panel: the focus goes there when a row is removed */
+export const KEEP_TITLE_ID = "keep-title";
 
 const keyOf = (r: KeptRecord) => `${r.place.lat.toFixed(2)},${r.place.lon.toFixed(2)}`;
 
@@ -25,7 +26,7 @@ const deviceZone = () => {
 };
 
 /**
- * The KEEP station's content: the records kept on this device, one row of 72 px each, the newest three and the
+ * The content of "I tuoi poster" in Crea: the records kept on this device, one row of 72 px each, the newest three and the
  * rest in a list that opens in place. A record of Adesso shows the place's temperature now; a record of an hour shows
  * the hour (on the device's clock, said so) and no figure, since the figure of that hour is not kept. Each row opens
  * the place again, at its hour, and can be removed.
@@ -56,17 +57,8 @@ export function KeepPanel() {
 
   if (records.length === 0) {
     return (
-      <div data-keep-panel className="flex flex-col items-start gap-3">
+      <div data-keep-panel>
         <p className="text-body text-ink">Qui compaiono i record che crei. Restano su questo dispositivo.</p>
-        <a
-          href="#crea"
-          onClick={(e) => {
-            e.preventDefault();
-            scrollToStation("crea");
-          }}
-          className="text-body text-ink underline decoration-accent decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
-          Crea il primo
-        </a>
       </div>
     );
   }
@@ -97,8 +89,8 @@ export function KeepPanel() {
             onClick={() => {
               const done = remove(r.id);
               setSaid(done ? `${r.place.name} tolto da Conserva.` : "Questo dispositivo non lascia salvare.");
-              // The focus would fall to the page: it goes to the station's heading
-              document.getElementById(stationTitleId("conserva"))?.focus({ preventScroll: true });
+              // The focus would fall to the page: it goes to the section's heading
+              document.getElementById(KEEP_TITLE_ID)?.focus({ preventScroll: true });
             }}
             className="flex h-11 items-center px-2 text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-accent"
           >

@@ -38,7 +38,7 @@ import { createPortal } from "react-dom";
 import { useMoment } from "../time/TimeContext";
 import { useMap } from "./MapContext";
 import { activeLayers } from "./map-style";
-import { GLASS } from "../layout/PhoneNav";
+import { GLASS } from "../layout/glass";
 
 /** The viewer's tuning of the map's colours; the page's own on the server and until the browser says otherwise. */
 function useMapTuning(): MapTuning {

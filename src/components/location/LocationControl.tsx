@@ -6,7 +6,8 @@ import { usePlace } from "./PlaceContext";
 export function LocationControl() {
   const { place, focusSearch } = usePlace();
   return (
-    <h1 className="leading-none">
+    // The title the focus goes to when Meteo is chosen (see Tavola); the other copy is hidden by the layout
+    <h1 data-section-title="meteo" tabIndex={-1} className="leading-none outline-none">
       <button
         type="button"
         onClick={focusSearch}

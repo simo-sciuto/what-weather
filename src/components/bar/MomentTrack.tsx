@@ -15,7 +15,8 @@ const anchor = (x: number) => (x < 0.04 ? "translateX(0)" : x > 0.96 ? "translat
 const MARKS = 5;
 
 /**
- * The Momento in the bar (ADR-028): one compact track through the span on show (the next 24 hours, or the day picked in
+ * PARKED, not mounted (ADR-029 took the bar's moment away: the hour is chosen on the curve of the hours, WTH-317; D5 may use
+ * this track for the time of day in Crea). The Momento in the bar (ADR-028): one compact track through the span on show (the next 24 hours, or the day picked in
  * the week), bound to the same moment as the curve of the hours, the week and the sky: there is no state of its own.
  * Dragging or tapping picks the hour under the finger; the keyboard moves an hour (arrows) or a day (PageUp and
  * PageDown), Home goes back to Adesso. The hit area is 44 px tall. Above it, the moment written in full, on the place's

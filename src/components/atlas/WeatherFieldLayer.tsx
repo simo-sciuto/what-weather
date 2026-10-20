@@ -100,7 +100,7 @@ export function WeatherFieldLayer({ map, port }: { map: MapboxMap | null; port: 
     <p
       data-atlas-field-note
       data-provider={shown.provider}
-      className="pointer-events-none absolute bottom-[calc(max(3.5rem,calc(env(safe-area-inset-bottom)+3rem))+4.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-10 max-w-[min(20rem,calc(100%-2rem))] text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted"
+      className="pointer-events-none absolute bottom-[calc(var(--dock-room)+3.5rem+4.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-10 max-w-[min(20rem,calc(100%-2rem))] text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted"
     >
       {shown.provider === "mock" ? "Dati di esempio" : "Colori del meteo"} · modello, sfumato tra punti a circa {km} km
     </p>
