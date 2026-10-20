@@ -4,11 +4,10 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "what-weather",
     short_name: "what-weather",
-    description: "Il meteo con calma: l’informazione giusta al momento giusto.",
+    description: "Un atlante del Piemonte e delle Alpi occidentali colorato dal meteo.",
     start_url: "/",
     scope: "/",
     display: "standalone",
-    orientation: "portrait",
     // The splash screen opens on the night sky the page overscrolls into, not a cream flash.
     background_color: "#0c0f25",
     theme_color: "#0c0f25",

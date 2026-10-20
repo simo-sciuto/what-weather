@@ -1,25 +1,14 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { cache } from "react";
-import { parsePlaceRef } from "./place";
 import type { PlaceRef } from "@/types/place";
 import { getProvider } from "./api/providers/get-provider";
 import { lookupPollen } from "./api/sources/pollen";
 import { sinceYesterday } from "./api/sources/yesterday";
-import { DEFAULT_PLACE } from "@/constants/weather";
 import { MAX_DATA_AGE_SECONDS, WEATHER_REVALIDATE_SECONDS, WEATHER_STALE_SECONDS } from "@/constants/cache";
 import { roundCoord } from "./weather/coordinates";
-import { buildTimeline, relabelDays } from "./weather/frames";
+import { buildTimeline } from "./weather/frames";
 import { needsNames, withPlaceNames } from "./weather/place-names";
-import { randomPlace } from "./weather/random-places";
 import { toRadians } from "@/utils/math";
-
-export type SearchParams = Promise<
-  Record<string, string | string[] | undefined>
->;
-
-const param = (value: string | string[] | undefined) =>
-  typeof value === "string" ? value : undefined;
 
 /**
  * The weather for one place, fetched and worked out (timeline, palettes,
@@ -95,42 +84,4 @@ export async function weatherFor(ref: PlaceRef, scenario?: string, at?: string) 
     : null;
   if (!ref.name) return loaded;
   return { ...loaded, data: withPlaceNames(loaded.data, ref.name, ref.region, ref.country, named) };
-}
-
-/**
- * The city a bare address lands on, drawn once per request: the page and its
- * metadata both ask, and must be told the same one.
- */
-const landingPlace = cache(randomPlace);
-
-/**
- * Where a bare address lands: on a city drawn at random (the home, ADR-017) or on the default place (the entries
- * `/crea` and `/atlas`, ADR-029: a record is made of a place somebody chose, never of a draw).
- */
-export type Landing = "random" | "default";
-
-/**
- * Reads the request (the URL), then loads through the cache. A link to a place
- * wins. A bare address lands, by `landing`, on a city drawn at random, a different one on each
- * visit, or on the default place; sample data (`?mock`, the tests) always lands on the default place,
- * so what it shows stays the same.
- */
-export async function loadWeatherPage(searchParams: SearchParams, { landing = "random" }: { landing?: Landing } = {}) {
-  const params = await searchParams;
-  const scenario = param(params.mock);
-  const at = param(params.at);
-  const linked = parsePlaceRef(params);
-  const landed = !linked && landing === "random" && getProvider(scenario, at).name !== "mock";
-  const ref = linked ?? (landed ? landingPlace() : DEFAULT_PLACE);
-  const loaded = await weatherFor(ref, scenario, at);
-  const renderedAt = Math.floor(Date.now() / 1000);
-  return {
-    ...loaded,
-    // The day names are worked out now, not when the weather was cached (WTH-249)
-    timeline: relabelDays(loaded.timeline, loaded.data.timezone, renderedAt),
-    scenario,
-    at,
-    landed,
-    renderedAt,
-  };
 }

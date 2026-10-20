@@ -26,14 +26,11 @@ describe("labRouteServed (WTH-248)", () => {
 
   it("answers the labs' routes 404 in a production build, and serves them while developing", () => {
     expect(labRouteServed("/lab/atmosfera", production)).toBe(false);
-    expect(labRouteServed("/lab/record", production)).toBe(false);
     expect(labRouteServed("/lab/atmosfera/", production)).toBe(false);
     expect(labRouteServed("/lab/atmosfera", { NODE_ENV: "development" })).toBe(true);
-    expect(labRouteServed("/lab/record", { NODE_ENV: "development" })).toBe(true);
   });
 
-  it("keeps the record lab on Vercel's preview deployments, not the atmosphere lab", () => {
-    expect(labRouteServed("/lab/record", preview)).toBe(true);
+  it("does not serve the atmosphere lab on Vercel's preview deployments either", () => {
     expect(labRouteServed("/lab/atmosfera", preview)).toBe(false);
   });
 

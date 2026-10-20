@@ -4,7 +4,7 @@ import type { Place } from "@/types/weather";
 /**
  * How a place travels between the browser and the server: in the URL
  * (?lat&lon, plus optional display names chosen in search); a bare address
- * lands on a city drawn at random (see weather/random-places).
+ * opens the atlas on the region.
  * Safe to import from both server and client code.
  */
 

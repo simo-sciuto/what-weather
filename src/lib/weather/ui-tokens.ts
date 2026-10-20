@@ -64,16 +64,20 @@ const lightest = (colours: RGB[]) => colours.reduce((a, b) => (luminance(b) > lu
  * (under the lines), and the lightest ink of the map tinted by the field (over the lines). Only the lightest field
  * colour and the lightest ink count: light ink reads worst over the lightest ground.
  */
-export function worstBackdrop(sky: PointSky, fieldColors: readonly string[], inkColors: readonly string[]): RGB {
+/** How strong the field is drawn under the map's lines and over them: the layer on show sets it (WTH-346) */
+export type FieldStrength = { field: number; tint: number };
+const FULL: FieldStrength = { field: FIELD_OPACITY, tint: FIELD_TINT_OPACITY };
+
+export function worstBackdrop(sky: PointSky, fieldColors: readonly string[], inkColors: readonly string[], strength: FieldStrength = FULL): RGB {
   const skies = [sky.sky1, sky.sky2, sky.sky3].map(parseColor).filter((c): c is RGB => c !== null);
   const field = fieldColors.map(parseColor).filter((c): c is RGB => c !== null);
   const inks = inkColors.map(parseColor).filter((c): c is RGB => c !== null);
   const grounds = [...skies];
   if (field.length) {
     const brightField = lightest(field);
-    const under = mix(skies[1] ?? skies[0], brightField, FIELD_OPACITY);
+    const under = mix(skies[1] ?? skies[0], brightField, strength.field);
     grounds.push(under);
-    if (inks.length) grounds.push(mix(lightest(inks), brightField, FIELD_TINT_OPACITY));
+    if (inks.length) grounds.push(mix(lightest(inks), brightField, strength.tint));
   } else if (inks.length) grounds.push(lightest(inks));
   return lightest(grounds);
 }
@@ -96,8 +100,8 @@ const rgba = ([r, g, b]: RGB, a: number) => `rgb(${Math.round(r)} ${Math.round(g
  * The tokens for a sky over a field. `fieldColors` are the colours of the places in view (`WeatherField.colors`), empty
  * before the first field arrives; `inkColors` the map's line colours on show.
  */
-export function uiTokens(sky: PointSky, fieldColors: readonly string[] = [], inkColors: readonly string[] = []): UiTokens {
-  const ground = worstBackdrop(sky, fieldColors, inkColors);
+export function uiTokens(sky: PointSky, fieldColors: readonly string[] = [], inkColors: readonly string[] = [], strength: FieldStrength = FULL): UiTokens {
+  const ground = worstBackdrop(sky, fieldColors, inkColors, strength);
   // The engine's glass is the deepened hue of the top of the sky: the veil every surface is made of
   const veil = parseColor(sky.glass) ?? [12, 15, 37];
   const sky1 = parseColor(sky.sky1) ?? veil;

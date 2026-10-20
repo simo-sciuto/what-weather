@@ -799,3 +799,54 @@ test("the old addresses land on the atlas, with their query", async ({ page }) =
   await expect(page).toHaveURL(/\/\?lat=45\.07&lon=7\.69/);
   await expect(page.locator("[data-atlas-map]")).toBeAttached();
 });
+
+test("the address keeps the point, the moment and the layer together, whatever order they are written in", async ({ page }) => {
+  await openAtlas(page);
+  await page.locator("[data-atlas-layers]").getByText("Territorio").click();
+  await page.locator("[data-atlas-time] input[type=range]").focus();
+  for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
+  // a stop while the moment waits to be written: the new point, the moment and the layer all end up in the address
+  await page.mouse.move(500, 400);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(500 - i * 20, 400 - i * 6);
+  await page.mouse.up();
+  await movementEnded(page);
+  await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
+  const cell = await centreCell(page);
+  await expect.poll(() => {
+    const q = new URL(page.url()).searchParams;
+    return [q.get("lat"), q.get("lon"), q.get("strato"), q.get("t") !== null];
+  }).toEqual([String(cell.lat), String(cell.lon), "territorio", true]);
+});
+
+test("Back brings the layer of the address back, and the wordmark starts again at Adesso in Meteo", async ({ page }) => {
+  await openAtlas(page);
+  await page.locator("[data-atlas-layers]").getByText("Percorsi").click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("strato")).toBe("percorsi");
+  await page.locator("[data-atlas-time] input[type=range]").focus();
+  await page.keyboard.press("End");
+  await expect.poll(() => new URL(page.url()).searchParams.get("t")).not.toBeNull();
+  await page.getByRole("link", { name: "what-weather" }).click();
+  await expect(page.locator("[data-atlas-layers]").getByRole("radio", { name: "Meteo" })).toBeChecked();
+  await expect(page.locator("[data-atlas-time]").getByRole("button", { name: "Adesso" })).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => [new URL(page.url()).searchParams.get("strato"), new URL(page.url()).searchParams.get("t")]).toEqual([null, null]);
+});
+
+test("moving the time bar renders neither the shell nor the map, and an hour with no forecast is said as that hour", async ({ page }) => {
+  await openAtlas(page);
+  const before = await page.evaluate(() => ({ ...window.renders }));
+  const slider = page.locator("[data-atlas-time] input[type=range]");
+  await slider.focus();
+  for (let i = 0; i < 10; i++) await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(600);
+  const after = await page.evaluate(() => ({ ...window.renders }));
+  // the sky of each hour reaches the shell once per hour at most; the point's reading and the bar follow on their own
+  expect((after.shell ?? 0) - (before.shell ?? 0)).toBeLessThanOrEqual(22);
+  expect((after.crosshair ?? 0) - (before.crosshair ?? 0)).toBe(0);
+  expect((after.readout ?? 0) - (before.readout ?? 0)).toBe(0);
+  const far = new URL(page.url());
+  far.searchParams.set("t", String(Math.floor(Date.now() / 1000) + 300 * 86400));
+  await page.goto(far.toString());
+  await expect(page.locator("[data-atlas-time] input[type=range]")).toHaveAttribute("aria-valuetext", /^Ora non disponibile: /, { timeout: 30_000 });
+  await expect(page.locator("[data-atlas-time-label]")).toContainText("non disponibile");
+});

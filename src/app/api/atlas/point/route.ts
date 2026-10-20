@@ -14,7 +14,7 @@ import type { NextRequest } from "next/server";
 
 /**
  * The Atlas's check of a point (M4, ADR-022): the weather of the cell the map rested on, in the few numbers (and the sky
- * of its own weather) the Atlas shows. It reads through `weatherFor`, the same cache entry as the home page and the saved places, so a cell someone
+ * of its own weather) the Atlas shows. It reads through `weatherFor`, the shared cache entry of the cell, so a cell someone
  * has looked at costs nothing. It answers with the reading itself: the Atlas page does not fetch the weather again
  * (R2: on a serverless host a second fetch may not find this one's cache). A name in the query is ignored: a free
  * point is its coordinates. `mock` and `at` pick the sample weather and its hour, as on the home page.

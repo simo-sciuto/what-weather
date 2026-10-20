@@ -2,7 +2,7 @@
 
 import type { PointSky } from "@/types/atlas";
 import type { SkyPalette } from "@/types/palette";
-import { useEffect, useId, useMemo, useRef } from "react";
+import { memo, useEffect, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { MapPanelContent, RESET_LINK, useResetMap } from "./MapPanel";
 import { ACTION_LABELS } from "@/constants/labels";
@@ -25,7 +25,7 @@ function SlidersIcon({ className }: { className?: string }) {
  * glass over the foot of the screen, which covers little of the map and darkens none of it, so the map is seen changing
  * as the sliders move. Nothing here is the Atlas's own: no new control, no new colour.
  */
-export function AtlasMapPanel({
+export const AtlasMapPanel = memo(function AtlasMapPanel({
   sky,
   tokens,
   open,
@@ -84,7 +84,7 @@ export function AtlasMapPanel({
         )}
     </div>
   );
-}
+});
 
 /** The panel of the home page's map controls, floating over the foot of the screen */
 function MapPanel({ id, palette, tokens, onClose }: { id: string; palette: SkyPalette; tokens: React.CSSProperties; onClose: () => void }) {

@@ -7,6 +7,8 @@ import type { Bounds, CameraPort, WeatherField } from "@/types/atlas";
 import type { ImageSource, Map as MapboxMap } from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
 import { fieldColorsAt } from "@/lib/atlas/field-hours";
+import type { TimeStore } from "@/lib/atlas/time-store";
+import { useAtlasTime } from "./useAtlasTime";
 import { ATLAS_TEST_MAP } from "./atlas-test";
 
 const SOURCE = "atlas-weather-field";
@@ -24,7 +26,11 @@ const isField = (v: unknown): v is WeatherField => {
     f.colors.every((c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)) &&
     f.lats.length >= 2 &&
     f.lons.length >= 2 &&
-    typeof f.provider === "string"
+    typeof f.provider === "string" &&
+    // The hours are optional; when there, each is an hour with a colour per place (WTH-345)
+    (f.hours === undefined ||
+      (Array.isArray(f.hours) &&
+        f.hours.every((h) => typeof h?.time === "number" && Array.isArray(h.colors) && h.colors.length === f.colors.length && h.colors.every((c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)))))
   );
 };
 
@@ -48,7 +54,7 @@ export function WeatherFieldLayer({
   map,
   port,
   onColors,
-  instant = null,
+  store = null,
   opacity = FIELD_OPACITY,
   tint = FIELD_TINT_OPACITY,
 }: {
@@ -56,17 +62,19 @@ export function WeatherFieldLayer({
   port: CameraPort | null;
   /** The colours of the places in view, each time they are drawn: what the interface's surfaces are measured against */
   onColors?: (colors: readonly string[]) => void;
-  /** The hour on show, Unix seconds; null for "Adesso". The field draws that hour's colours where it has them (WTH-345) */
-  instant?: number | null;
+  /** The moment on show: the field draws that hour's colours where it has them (WTH-345) */
+  store?: TimeStore | null;
   /** How strong the field is under the lines and over them: the layer on show quiets it (WTH-346) */
   opacity?: number;
   tint?: number;
 }) {
   const [shown, setShown] = useState<WeatherField | null>(null);
+  const selection = useAtlasTime(store);
+  const instant = selection.mode === "at" ? selection.instant : null;
   // The hour on show and a way to paint again without asking: moving the time bar redraws the image it already has
   const instantRef = useRef(instant);
   const fieldRef = useRef<WeatherField | null>(null);
-  const paintRef = useRef<((field: WeatherField) => void) | null>(null);
+  const paintRef = useRef<((field: WeatherField, again?: boolean) => void) | null>(null);
 
   useEffect(() => {
     if (!map || !port) return;
@@ -77,8 +85,12 @@ export function WeatherFieldLayer({
     if (!ctx) return;
     let draws = 0;
 
-    const paint = (field: WeatherField) => {
+    let painted: string[] | null = null;
+    const paint = (field: WeatherField, again = false) => {
       const { colors } = fieldColorsAt(field, instantRef.current);
+      // An hour the field does not reach keeps now's colours: nothing to draw again
+      if (again && colors === painted) return;
+      painted = colors;
       const pixels = interpolateField(field, colors, FIELD_IMAGE.width, FIELD_IMAGE.height);
       ctx.putImageData(new ImageData(pixels as Uint8ClampedArray<ArrayBuffer>, FIELD_IMAGE.width, FIELD_IMAGE.height), 0, 0);
       const { west, east, south, north } = latticeBox(field);
@@ -134,7 +146,7 @@ export function WeatherFieldLayer({
 
   useEffect(() => {
     instantRef.current = instant;
-    if (fieldRef.current) paintRef.current?.(fieldRef.current);
+    if (fieldRef.current) paintRef.current?.(fieldRef.current, true);
   }, [instant]);
 
   if (!shown) return null;

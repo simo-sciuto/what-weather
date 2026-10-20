@@ -5,6 +5,7 @@ import { createAtlasEngine, type AtlasEngine } from "@/lib/atlas/engine";
 import { distanceKm, flightMs } from "@/lib/atlas/flight";
 import { cellOf } from "@/lib/atlas/cell";
 import { createPointFetcher } from "@/lib/atlas/point-client";
+import type { AddressWriter } from "@/lib/atlas/address";
 import type { AtlasPoint, CameraPort } from "@/types/atlas";
 import { useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
@@ -24,7 +25,7 @@ function passedParams(): Record<string, string> {
  * on opening, for the point the map opens on (the one the address names, or the Atlas's own start). The camera never reaches React:
  * the engine's snapshot changes with the status and the point, a few times per stop.
  */
-export function useAtlasEngine(port: CameraPort | null): { engine: AtlasEngine | null; goTo: (target: { lat: number; lon: number }) => void } {
+export function useAtlasEngine(port: CameraPort | null, address: AddressWriter): { engine: AtlasEngine | null; goTo: (target: { lat: number; lon: number }) => void } {
   const router = useRouter();
   const [engine, setEngine] = useState<AtlasEngine | null>(null);
   const routerRef = useRef(router);
@@ -39,13 +40,16 @@ export function useAtlasEngine(port: CameraPort | null): { engine: AtlasEngine |
     const made = createAtlasEngine({
       fetchPoint: createPointFetcher({ extra: passedParams }),
       onPoint: (point: AtlasPoint) => {
-        const search = new URLSearchParams(window.location.search);
-        const same = Number(search.get("lat")) === point.cell.lat && Number(search.get("lon")) === point.cell.lon;
+        const now = new URLSearchParams(address.current());
+        const same = Number(now.get("lat")) === point.cell.lat && Number(now.get("lon")) === point.cell.lon;
         if (same) return;
-        // A free point is its coordinates: a name carried by an old link does not follow it
-        for (const key of ["name", "region", "country"]) search.delete(key);
-        search.set("lat", String(point.cell.lat));
-        search.set("lon", String(point.cell.lon));
+        // One writer for the address: the moment and the layer asked for meanwhile stay (the reviewer's I1)
+        const search = address.next((params) => {
+          // A free point is its coordinates: a name carried by an old link does not follow it
+          for (const key of ["name", "region", "country"]) params.delete(key);
+          params.set("lat", String(point.cell.lat));
+          params.set("lon", String(point.cell.lon));
+        });
         // pushed only for the cell the search asked for; any point that arrives clears the flag
         const how = pushFor.current === `${point.cell.lat},${point.cell.lon}` ? "push" : "replace";
         pushFor.current = null;
@@ -57,7 +61,7 @@ export function useAtlasEngine(port: CameraPort | null): { engine: AtlasEngine |
       made.dispose();
       setEngine(null);
     };
-  }, []);
+  }, [address]);
 
   useEffect(() => {
     if (!engine || !port) return;

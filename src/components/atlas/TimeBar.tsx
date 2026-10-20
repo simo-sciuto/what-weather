@@ -54,8 +54,10 @@ export const TimeBar = memo(function TimeBar({ engine, store }: { engine: AtlasE
   const pos = (i: number) => `${(i / last) * 100}%`;
   const live = selection.mode === "now";
   const shown = index ?? 0;
-  const label = live ? "Adesso" : index === null ? "Ora non disponibile" : f.short(hours[shown].time);
-  const spoken = `${live ? "Adesso, " : ""}${f.spoken(hours[shown].time)}`;
+  // An hour the point has no forecast for is said as the hour asked for, never as the one the thumb rests on
+  const requested = selection.mode === "at" ? selection.instant : hours[0].time;
+  const label = live ? "Adesso" : index === null ? `${f.short(requested)} · non disponibile` : f.short(hours[shown].time);
+  const spoken = live ? `Adesso, ${f.spoken(hours[0].time)}` : index === null ? `Ora non disponibile: ${f.spoken(requested)}` : f.spoken(hours[shown].time);
   // Beyond three days the forecast is less sure: the track fades from there
   const sureUntil = Math.min(last, 3 * DAY);
 
@@ -79,7 +81,7 @@ export const TimeBar = memo(function TimeBar({ engine, store }: { engine: AtlasE
         type="button"
         aria-pressed={live}
         onClick={() => choose(0)}
-        className="h-8 shrink-0 rounded-full border border-white/40 px-3 text-sm font-medium text-ink transition-colors aria-pressed:border-accent aria-pressed:bg-accent aria-pressed:text-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="h-11 shrink-0 rounded-full border border-white/40 px-3 text-sm font-medium text-ink transition-colors aria-pressed:border-accent aria-pressed:bg-accent aria-pressed:text-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {live ? "Adesso" : "Torna ad adesso"}
       </button>

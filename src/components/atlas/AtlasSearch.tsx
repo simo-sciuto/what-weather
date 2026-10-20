@@ -3,7 +3,7 @@
 import { fetchPlaces } from "@/lib/api/places";
 import { placeSubtitle } from "@/lib/weather/formatters";
 import type { Place } from "@/types/weather";
-import { useEffect, useId, useRef, useState } from "react";
+import { memo, useEffect, useId, useRef, useState } from "react";
 import { SearchIcon } from "../icons/SearchIcon";
 
 type Results = { query: string; status: "loading" | "done" | "error"; places: Place[] };
@@ -25,7 +25,7 @@ const dedupe = (places: Place[]) => {
  * have come (the first one is taken as soon as it is known), hands the place to `onChoose`, which starts the flight at
  * once. No recent or saved places here: the Atlas is a map, not a list.
  */
-export function AtlasSearch({ onChoose, onOpen }: { onChoose: (place: Place) => void; onOpen?: () => void }) {
+export const AtlasSearch = memo(function AtlasSearch({ onChoose, onOpen }: { onChoose: (place: Place) => void; onOpen?: () => void }) {
   const ids = { list: useId(), input: useId() };
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -208,4 +208,4 @@ export function AtlasSearch({ onChoose, onOpen }: { onChoose: (place: Place) => 
       )}
     </div>
   );
-}
+});

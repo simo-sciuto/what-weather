@@ -17,6 +17,5 @@ export function labServed(
  */
 export function labRouteServed(pathname: string, env: { NODE_ENV?: string; VERCEL_ENV?: string }): boolean {
   if (pathname === "/lab/atmosfera" || pathname.startsWith("/lab/atmosfera/")) return labServed(env, { previewToo: false });
-  if (pathname === "/lab/record" || pathname.startsWith("/lab/record/")) return labServed(env, { previewToo: true });
   return true;
 }

@@ -65,11 +65,15 @@ export const PointReading = memo(function PointReading({ engine, port, store = n
   const announced = failed
     ? WHY[failed.reason]
     : point
-      ? `Punto caricato: ${where ? `${where}, ` : ""}${formatCell(point.cell)}, ${hour ? `${Math.round(hour.temp)} gradi, ${hour.label}` : "nessuna previsione per quest'ora"}.`
+      ? // Said when a point arrives, with its reading of now: moving the time bar is said by the bar itself, not here
+        `Punto caricato: ${where ? `${where}, ` : ""}${formatCell(point.cell)}, adesso ${Math.round(point.temp)} gradi, ${point.label}.`
       : "";
 
   const label = point ? (failed ? "Non aggiornato" : point.provider === "mock" ? "Dati di esempio" : "Previsione del modello") : loading ? "Carico il punto" : null;
-  const when = hour ? `${view?.status === "ok" && !view.live ? `${dayOf(hour.time, point?.timezone ?? "UTC")}, ` : ""}${formatTime(hour.time, point?.timezone ?? "UTC")}` : null;
+  // The hour on show at the place's clock; for an hour with no forecast, the hour asked for, so it is clear which one is missing
+  const zone = point?.timezone ?? "UTC";
+  const shownAt = hour ? hour.time : view?.status === "unavailable" ? view.requested : null;
+  const when = shownAt === null ? null : `${view?.status === "ok" && view.live ? "" : `${dayOf(shownAt, zone)}, `}${formatTime(shownAt, zone)}`;
 
   return (
     <section
