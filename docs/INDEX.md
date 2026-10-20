@@ -12,7 +12,7 @@ CLAUDE.md (loaded automatically), docs/PROJECT_STATE.md, docs/BOARD.md
 | UI, layout, copy, interaction | PRINCIPLES.md, EXPERIENCE.md, DESIGN_SYSTEM.md (and the Claude Design system linked there) |
 | Tokens, components, CSS | DESIGN_SYSTEM.md |
 | Weather data, providers, caching, API routes | ARCHITECTURE.md, DECISIONS.md |
-| Regional data, routes, the verdict | ARCHITECTURE.md (sections 4 and 5), LICENCES.md |
+| Regional data, routes, the verdict | ARCHITECTURE.md (sections 4 and 5), VERDICT.md, LICENCES.md |
 | The colour engine | WEATHER_VISUAL_ENGINE.md, DECISIONS.md (ADR-011, ADR-012, ADR-026) |
 | The Atlas as built (camera, point, sky, names, search, weather field) | ARCHITECTURE.md section 1, DECISIONS.md (ADR-019 to ADR-026), archive/ARCHITECTURE_tavola.md, atlas-spikes/REPORT.md |
 | Data freshness and the "Adesso" label | DATA_FRESHNESS.md |
