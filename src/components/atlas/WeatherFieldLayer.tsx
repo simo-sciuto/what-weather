@@ -37,13 +37,22 @@ async function fetchField(bounds: Bounds, signal: AbortSignal): Promise<WeatherF
 
 /**
  * The weather of many places at once, as colour under and over the map's lines (WTH-272, ADR-026): a lattice of places over what
- * is in view, each place's weather a colour (the atmosphere engine's tone, tinted by its temperature), faded smoothly from
+ * is in view, each place's weather a colour (its temperature's colour, greyed by cloud, darkened by rain, dimmed by its own night (`fieldColor`)), faded smoothly from
  * one to the next, so where Milano's weather is not Roma's the colours fade from one to the other. It is an image Mapbox
  * stretches over the lattice's box, once under every line of the map and once, lightly, over them all, drawn again when a stop needs other places. It draws
  * nothing itself and never renders for a frame: the camera is heard at `moveend` only. A line says what the colours are, a
  * model's reading interpolated between places, and how far apart the places are.
  */
-export function WeatherFieldLayer({ map, port }: { map: MapboxMap | null; port: CameraPort | null }) {
+export function WeatherFieldLayer({
+  map,
+  port,
+  onColors,
+}: {
+  map: MapboxMap | null;
+  port: CameraPort | null;
+  /** The colours of the places in view, each time they are drawn: what the interface's surfaces are measured against */
+  onColors?: (colors: readonly string[]) => void;
+}) {
   const [shown, setShown] = useState<WeatherField | null>(null);
 
   useEffect(() => {
@@ -74,6 +83,7 @@ export function WeatherFieldLayer({ map, port }: { map: MapboxMap | null; port: 
       draws += 1;
       if (ATLAS_TEST_MAP) (window as unknown as { __atlasField?: unknown }).__atlasField = { canvas, draws, field };
       setShown(field);
+      onColors?.(field.colors);
     };
 
     const loader = createFieldLoader({
@@ -92,7 +102,7 @@ export function WeatherFieldLayer({ map, port }: { map: MapboxMap | null; port: 
       if (ATLAS_TEST_MAP) delete (window as unknown as { __atlasField?: unknown }).__atlasField;
       setShown(null);
     };
-  }, [map, port]);
+  }, [map, port, onColors]);
 
   if (!shown) return null;
   const km = Math.round(shown.step * 111);
@@ -100,7 +110,7 @@ export function WeatherFieldLayer({ map, port }: { map: MapboxMap | null; port: 
     <p
       data-atlas-field-note
       data-provider={shown.provider}
-      className="pointer-events-none absolute bottom-[calc(var(--dock-room)+3.5rem+4.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-10 max-w-[min(20rem,calc(100%-2rem))] text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted"
+      className="pointer-events-none absolute bottom-[calc(var(--dock-room)+3.5rem+4.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-10 max-w-[min(20rem,calc(100%-2rem))] text-xs uppercase tracking-[0.14em] text-ink-muted"
     >
       {shown.provider === "mock" ? "Dati di esempio" : "Colori del meteo"} · modello, sfumato tra punti a circa {km} km
     </p>

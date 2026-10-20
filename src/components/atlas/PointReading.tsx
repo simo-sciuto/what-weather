@@ -8,7 +8,7 @@ import type { AtlasEngine } from "@/lib/atlas/engine";
 import { formatTime } from "@/lib/weather/formatters";
 import type { CameraPort, FailureReason } from "@/types/atlas";
 import Link from "next/link";
-import { useMemo, useRef, useSyncExternalStore } from "react";
+import { memo, useMemo, useRef, useSyncExternalStore } from "react";
 import { countRender } from "./atlas-test";
 import { useRestingZoom } from "./useRestingZoom";
 
@@ -37,7 +37,8 @@ const WHY: Record<FailureReason, string> = {
  * status and the point, never with a frame of the movement. A screen reader hears one line, from a region that is always
  * there, when a point arrives or fails, not while the map moves. The box takes no pointer: the map is dragged through it.
  */
-export function PointReading({ engine, port }: { engine: AtlasEngine | null; port: CameraPort | null }) {
+/** Memoised: the shell renders when its colours change (a new field, a new sky), the reading only with its engine */
+export const PointReading = memo(function PointReading({ engine, port }: { engine: AtlasEngine | null; port: CameraPort | null }) {
   countRender("point");
   const zoom = useRestingZoom(port, engine);
   const root = useRef<HTMLElement>(null);
@@ -73,15 +74,20 @@ export function PointReading({ engine, port }: { engine: AtlasEngine | null; por
       aria-label="Punto caricato"
       className="pointer-events-none absolute left-[max(1rem,env(safe-area-inset-left))] top-[calc(max(1rem,env(safe-area-inset-top))+3.25rem)] z-10 max-w-[min(26rem,calc(100%-2rem))] outline-none"
     >
+      {point || failed ? (
+        // The reading lies on the map with no panel: a scrim of the sky's own top, as thick as muted text needs over the
+        // brightest field in view (`--scrim`, ui-tokens.ts), fading out at its edges so the map is not boxed in
+        <div aria-hidden="true" className="absolute -inset-x-8 -inset-y-6 -z-10 bg-[radial-gradient(closest-side,var(--scrim)_60%,transparent)]" />
+      ) : null}
       <p aria-live="polite" className="sr-only">
         {announced}
       </p>
-      {label ? <p className="mb-1 border-t border-white/25 pt-1 text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">{label}</p> : null}
+      {label ? <p className="mb-1 border-t border-white/25 pt-1 text-xs uppercase tracking-[0.14em] text-ink-muted">{label}</p> : null}
       {point ? (
         <div aria-hidden="true" className={`transition-opacity duration-300 motion-reduce:transition-none ${settled && !failed ? "opacity-100" : "opacity-75"}`}>
           {named ? (
             <div data-atlas-place className="mb-2 text-ink" style={TITLE_SHADOW}>
-              {named.near ? <p className="mb-1 text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">Vicino a</p> : null}
+              {named.near ? <p className="mb-1 text-xs uppercase tracking-[0.14em] text-ink-muted">Vicino a</p> : null}
               <p data-atlas-place-name className={`${TITLE} font-semibold`}>
                 {named.name}
               </p>
@@ -90,7 +96,7 @@ export function PointReading({ engine, port }: { engine: AtlasEngine | null; por
                   {named.detail}
                 </p>
               ) : null}
-              {named.context ? <p className="mt-1.5 text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">{named.context.replaceAll(", ", " \u00b7 ")}</p> : null}
+              {named.context ? <p className="mt-1.5 text-xs uppercase tracking-[0.14em] text-ink-muted">{named.context.replaceAll(", ", " \u00b7 ")}</p> : null}
             </div>
           ) : null}
           <p data-atlas-point-reading className="flex items-baseline gap-3 text-ink">
@@ -131,4 +137,4 @@ export function PointReading({ engine, port }: { engine: AtlasEngine | null; por
       ) : null}
     </section>
   );
-}
+});

@@ -63,9 +63,14 @@ const contrast = (a: RGB, b: RGB) => {
   return (x + 0.05) / (y + 0.05);
 };
 
+/** WCAG 2 contrast ratio of two opaque colours, 1 to 21; the one implementation the code and its tests share */
+export const contrastRatio = contrast;
+
 const WHITE: RGB = [255, 255, 255];
+/** How strong muted text is, as white over its ground: `--ink-muted` is white at this alpha, set from here (ui-tokens.ts) */
+export const MUTED_INK_ALPHA = 0.86;
 /** Muted text is white at 86% (see --ink-muted) */
-const muted = (bg: RGB) => mix(bg, WHITE, 0.86);
+const muted = (bg: RGB) => mix(bg, WHITE, MUTED_INK_ALPHA);
 
 /* OKLCH, so a colour can be darkened without losing its hue or its saturation. */
 

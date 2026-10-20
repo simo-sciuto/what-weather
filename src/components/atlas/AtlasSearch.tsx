@@ -142,7 +142,7 @@ export function AtlasSearch({ onChoose, onOpen }: { onChoose: (place: Place) => 
             // the field exists on the next render: focus it then
             requestAnimationFrame(() => input.current?.focus());
           }}
-          className="flex size-11 items-center justify-center rounded-full bg-white/6 text-ink shadow-[0_8px_22px_rgb(0_0_0/0.28),inset_0_0.5px_0_rgb(255_255_255/0.55),inset_0_0_0_0.5px_rgb(255_255_255/0.22)] backdrop-blur-[3px] backdrop-saturate-[1.6] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          className="flex size-11 items-center justify-center rounded-full border border-white/14 bg-surface-1 text-ink shadow-[0_8px_22px_rgb(0_0_0/0.28)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
         >
           <SearchIcon className="size-5" />
         </button>

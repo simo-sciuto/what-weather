@@ -2,14 +2,15 @@
 
 import type { CameraPort, PointSky } from "@/types/atlas";
 import type { Map as MapboxMap } from "mapbox-gl";
-import { useMemo, useState, type ReactNode } from "react";
+import { uiTokens } from "@/lib/weather/ui-tokens";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { AtlasMap } from "./AtlasMap";
 import { AtlasMapPanel } from "./AtlasMapPanel";
 import { WeatherFieldLayer } from "./WeatherFieldLayer";
 import { AtlasSearch } from "./AtlasSearch";
 import { WordmarkLink } from "./WordmarkLink";
 import { AtlasDock } from "../nav/AtlasDock";
-import { ATLAS_SKY, paletteVars } from "./atlas-look";
+import { ATLAS_SKY, useAtlasMapLook } from "./atlas-look";
 import { countRender } from "./atlas-test";
 import { CenterReadout } from "./CenterReadout";
 import { Crosshair } from "./Crosshair";
@@ -31,17 +32,21 @@ export function AtlasShell({ children }: { children: ReactNode }) {
   const [sky, setSky] = useState<PointSky>(ATLAS_SKY);
   // The map panel and the search share the right of the screen: opening the search puts the panel away
   const [panelOpen, setPanelOpen] = useState(false);
-  const vars = useMemo(() => paletteVars(sky), [sky]);
+  const [fieldColors, setFieldColors] = useState<readonly string[]>([]);
+  const { inks } = useAtlasMapLook(sky);
+  // The interface's colours: the sky of the point on show, and surfaces measured against the field and the inks under them
+  const tokens = useMemo(() => uiTokens(sky, fieldColors, Object.values(inks).map((ink) => ink.color)), [sky, fieldColors, inks]);
+  const vars = tokens as unknown as CSSProperties;
   const { engine, goTo } = useAtlasEngine(port);
 
   return (
     <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={vars}>
       <AtlasMap onPort={setPort} onMap={setMap} sky={sky} />
-      <WeatherFieldLayer map={map} port={port} />
+      <WeatherFieldLayer map={map} port={port} onColors={setFieldColors} />
       <SkyDriver port={port} engine={engine} onSky={setSky} />
       <Crosshair port={port} />
       <WordmarkLink engine={engine} />
-      <AtlasMapPanel sky={sky} open={panelOpen} onOpenChange={setPanelOpen} />
+      <AtlasMapPanel sky={sky} tokens={vars} open={panelOpen} onOpenChange={setPanelOpen} />
       <AtlasSearch onChoose={(place) => goTo(place)} onOpen={() => setPanelOpen(false)} />
       <PointReading engine={engine} port={port} />
       <CenterReadout port={port} />

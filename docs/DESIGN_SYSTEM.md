@@ -25,7 +25,7 @@ The only identity element kept is the colour engine: the atmosphere palette (`sr
 
 ### Semantic, dynamic
 
-One pure function, `uiTokens(sky, fieldInView)` (proposed `src/lib/weather/ui-tokens.ts`), tested like `palette.ts`, replaces both writers that exist today: `paletteVars` in `src/components/atlas/atlas-look.ts` and the hand-written variables of `AtmosphereMain` in `src/components/time/TimeContext.tsx` (WTH-262).
+One pure function, `uiTokens(sky, fieldColors, inkColors)` (`src/lib/weather/ui-tokens.ts`, built in WTH-342), tested like `palette.ts`, replaces both writers that exist today: `paletteVars` in `src/components/atlas/atlas-look.ts` and the hand-written variables of `AtmosphereMain` in `src/components/time/TimeContext.tsx` (WTH-262).
 
 | Token | Derivation | Guarantee |
 | --- | --- | --- |
@@ -82,5 +82,5 @@ Preferences: `prefers-contrast: more` uses `surface-2` everywhere and full white
 "what-weather Atlante": https://claude.ai/artifact/4ecgeDMLxKfXqHspB4nE7a (private until the user shares it).
 
 - Its seven themes are seven skies computed by the engine (`atmospherePalette` on clear midday, low sun, rain, snow, fog, thunderstorm, clear night); the engine files are unchanged at `a08157c`, so the values hold.
-- Its `surface-1` and `surface-2` (alpha 0.62 and 0.92) were measured against the map inks of those skies, not against the weather field: to measure again with field colours (WTH-342).
+- Its `surface-1` and `surface-2` (alpha 0.62 and 0.92) hold over the field too: measured in code (WTH-342) over sunny fields from 10° to 36° with the map's inks, clear, rainy and night skies need 0.58 and 0.72; the scrim behind the reading needs 0.91 to 0.93 by day and 0.61 at night.
 - Components there: MapControl, LayerSwitch, TimeBar, SearchField, CentreReading, NearbyList, Verdict, DataRow, Card, RouteCard, Status, and the FirstScreen page; the three layout examples and why are in its "Layout examples" section.

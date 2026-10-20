@@ -54,6 +54,21 @@
 }
 
 /* Registered, so skies can cross-fade as the scrubber moves through the day */
+@property --surface-1 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(1 13 34 / 0.6);
+}
+@property --surface-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(1 13 34 / 0.92);
+}
+@property --scrim {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(34 96 175 / 0.6);
+}
 @property --sky-1 {
   syntax: "<color>";
   inherits: true;
@@ -78,6 +93,10 @@
   --color-accent: var(--accent);
   --color-precip: var(--precip);
   --color-surface: var(--surface);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-scrim: var(--scrim);
+  --color-on-accent: var(--on-accent);
   --color-popover: var(--popover);
   --color-butter: var(--butter);
   --color-apricot: var(--apricot);
@@ -136,7 +155,10 @@ body {
   transition:
     --sky-1 0.9s ease,
     --sky-2 0.9s ease,
-    --sky-3 0.9s ease;
+    --sky-3 0.9s ease,
+    --surface-1 0.9s ease,
+    --surface-2 0.9s ease,
+    --scrim 0.9s ease;
 }
 .atmosphere::before {
   content: "";

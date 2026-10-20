@@ -39,7 +39,7 @@ function CenterReadoutInner({ port }: { port: CameraPort | null }) {
 
   return (
     <div className="pointer-events-none absolute bottom-[calc(var(--dock-room)+3.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-10">
-      <p className="mb-1 border-t border-white/25 pt-1 text-[0.6875rem] uppercase tracking-[0.14em] text-ink-muted">Centro della mappa</p>
+      <p className="mb-1 border-t border-white/25 pt-1 text-xs uppercase tracking-[0.14em] text-ink-muted">Centro della mappa</p>
       <span ref={line} data-atlas-readout aria-hidden="true" className="block text-caption tabular-nums text-ink" />
       <p ref={spoken} aria-live="polite" className="sr-only" />
     </div>
