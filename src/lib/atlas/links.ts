@@ -18,5 +18,5 @@ export function placeRefOf(point: Pick<AtlasPoint, "cell" | "place">): PlaceRef 
 
 /** The Atlas opened on a place: its cell, as the address of a free point has it */
 export function atlasHref(place: { lat: number; lon: number }): string {
-  return `/atlas?lat=${place.lat.toFixed(2)}&lon=${place.lon.toFixed(2)}`;
+  return `/?lat=${place.lat.toFixed(2)}&lon=${place.lon.toFixed(2)}`;
 }

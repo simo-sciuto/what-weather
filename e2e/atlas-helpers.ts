@@ -34,13 +34,13 @@ declare global {
   }
 }
 
-/** Opens /atlas with nothing allowed to leave the machine (the map's own telemetry is refused), and waits for the map */
+/** Opens the atlas (/) with nothing allowed to leave the machine (the map's own telemetry is refused), and waits for the map */
 export async function openAtlas(page: Page): Promise<void> {
   await page.route(
     (url) => !["localhost", "127.0.0.1"].includes(url.hostname),
     (route) => route.abort(),
   );
-  await page.goto("/atlas");
+  await page.goto("/");
   const webgl = await page.evaluate(() => !!document.createElement("canvas").getContext("webgl2"));
   test.skip(!webgl, "this browser has no WebGL, so Mapbox GL cannot draw");
   await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-state", "ready", { timeout: 30_000 });

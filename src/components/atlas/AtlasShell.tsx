@@ -12,7 +12,6 @@ import { AtlasMapPanel } from "./AtlasMapPanel";
 import { WeatherFieldLayer } from "./WeatherFieldLayer";
 import { AtlasSearch } from "./AtlasSearch";
 import { WordmarkLink } from "./WordmarkLink";
-import { AtlasDock } from "../nav/AtlasDock";
 import { ATLAS_SKY, useAtlasMapLook } from "./atlas-look";
 import { countRender } from "./atlas-test";
 import { CenterReadout } from "./CenterReadout";
@@ -75,7 +74,7 @@ export function AtlasShell({ children }: { children: ReactNode }) {
   }, [selection]);
 
   return (
-    <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={vars}>
+    <div data-atlas className="atmosphere h-dvh w-full select-none overflow-hidden overscroll-none" style={{ ...vars, "--dock-room": "max(0.75rem, env(safe-area-inset-bottom))" } as CSSProperties}>
       <AtlasMap onPort={setPort} onMap={setMap} sky={sky} sunAt={sunAt} options={override} />
       <WeatherFieldLayer map={map} port={port} onColors={setFieldColors} instant={selection.mode === "at" ? selection.instant : null} opacity={plan.fieldOpacity} tint={plan.tintOpacity} />
       <SkyDriver port={port} engine={engine} store={time} onSky={setSky} onSun={setSunAt} />
@@ -87,7 +86,6 @@ export function AtlasShell({ children }: { children: ReactNode }) {
       <LayerSwitch engine={engine} layer={layer} onLayer={chooseLayer} />
       <TimeBar engine={engine} store={time} />
       <CenterReadout port={port} />
-      <AtlasDock engine={engine} />
       <main className="sr-only">{children}</main>
     </div>
   );

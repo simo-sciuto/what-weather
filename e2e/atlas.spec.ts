@@ -3,7 +3,7 @@ import { centrePoint } from "../src/lib/atlas/center";
 import { centre, centreCell, crosshairAndMapCentres, fieldRequests, movementEnded, openAtlas, pointRequests, recordRequests, strayRequests, zoom } from "./atlas-helpers";
 
 /*
- * M3 and M4: /atlas, a free map and the weather of the point it rests on. These tests check its structure and its
+ * The atlas at / (ADR-030), M3 and M4: a free map and the weather of the point it rests on. These tests check its structure and its
  * behaviour (the map is made once and stays, the gestures move it, the crosshair stays, nothing renders for a frame,
  * nothing is asked for while the map moves and one request follows a stop), with the map drawn over an empty style and
  * the sample weather behind the point route. They do not judge the look: that is the user's, with the real Mapbox, in a browser.
@@ -11,15 +11,15 @@ import { centre, centreCell, crosshairAndMapCentres, fieldRequests, movementEnde
 
 test("opens on a free map: the crosshair, the centre's coordinates, Mapbox's attribution and the way back", async ({ page }) => {
   await openAtlas(page);
-  await expect(page).toHaveTitle(/Esplora la mappa/);
+  await expect(page).toHaveTitle(/Atlante del meteo/);
   await expect(page.locator("canvas.mapboxgl-canvas")).toHaveCount(1);
   await expect(page.locator("[data-atlas-crosshair]")).toBeVisible();
   await expect(page.locator("[data-atlas-readout]")).toHaveText("45,0700° N · 7,6870° E");
   await expect(page.locator(".mapboxgl-ctrl-attrib")).toBeVisible();
   await expect(page.locator(".mapboxgl-ctrl-logo")).toBeVisible();
-  // the way back is the weather of the place on show (the front page before there is one)
-  await expect(page.getByRole("link", { name: "what-weather" })).toHaveAttribute("href", /^\/(\?lat=45\.0700&lon=7\.6900)?$/);
-  await expect(page.getByRole("heading", { name: "Esplora la mappa" })).toBeAttached();
+  // the site's name starts again: the atlas with nothing chosen
+  await expect(page.getByRole("link", { name: "what-weather" })).toHaveAttribute("href", "/");
+  await expect(page.getByRole("heading", { name: "Atlante del meteo" })).toBeAttached();
 });
 
 test("is the home page's sky: the atmosphere's custom properties are on the shell", async ({ page }) => {
@@ -42,8 +42,8 @@ test("the map is made once, and the content of the route changes round it", asyn
   await expect(query).toHaveAttribute("data-atlas-route-query", "lat=45.07&lon=7.69");
 
   for (const [go, expected] of [
-    ["replace('/atlas?x=1')", "x=1"],
-    ["push('/atlas?x=2&y=3')", "x=2&y=3"],
+    ["replace('/?x=1')", "x=1"],
+    ["push('/?x=2&y=3')", "x=2&y=3"],
     ["back()", "x=1"],
   ] as const) {
     await page.evaluate(`window.next.router.${go}`);
@@ -54,7 +54,7 @@ test("the map is made once, and the content of the route changes round it", asyn
   }
 
   // A change of page, not only of the address's parameters: another page inside the same layout, and back
-  await page.evaluate("window.next.router.push('/atlas/persistence-check')");
+  await page.evaluate("window.next.router.push('/persistence-check')");
   await expect(page.locator("[data-atlas-persistence-check]")).toBeAttached();
   await expect(box).toHaveAttribute("data-map-creations", "1");
   await expect(page.locator("canvas.mapboxgl-canvas[data-first=yes]")).toHaveCount(1);
@@ -215,14 +215,14 @@ test("the first point is the one the map opens on, with what it is, and the addr
   await expect(page.locator("[data-atlas-point]")).toContainText("Dati di esempio");
   await expect(page.locator("[data-atlas-point]")).toContainText("45,07° N · 7,69° E");
   await expect(page.locator("[data-atlas-point]")).toContainText("ora locale");
-  await expect(page).toHaveURL(/\/atlas\?lat=45\.07&lon=7\.69/);
+  await expect(page).toHaveURL(/\/\?lat=45\.07&lon=7\.69/);
   await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-map-creations", "1");
 });
 
 test("an address that names a point opens the map and the weather on that point, and carries the sample weather's parameters on", async ({ page }) => {
   const asked: string[] = [];
   page.on("request", (r) => asked.push(r.url()));
-  await page.goto("/atlas?lat=44.41&lon=8.93&mock=rain&at=09:00");
+  await page.goto("/?lat=44.41&lon=8.93&mock=rain&at=09:00");
   await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("[data-atlas-point]")).toContainText("44,41° N · 8,93° E");
   // and the map is there too: the point on show is the one under the crosshair, not the Atlas's own start
@@ -325,8 +325,8 @@ test("the keyboard reaches the map first, then Mapbox's own links and the way ba
       expect(f.width).toBeGreaterThanOrEqual(2);
       expect(f.color).not.toBe("rgb(16, 16, 16)");
     }
-    // the way back is the wordmark: the front page, or the weather of the place on show
-    wordmark = await page.evaluate(() => /^\/(\?lat=[^&]+&lon=[^&]+)?$/.test(document.activeElement?.getAttribute("href") ?? "x"));
+    // the last stop is the wordmark, which starts the atlas again
+    wordmark = await page.evaluate(() => document.activeElement?.getAttribute("href") === "/");
   }
   expect(wordmark).toBe(true);
 });
@@ -349,12 +349,12 @@ test("the sky follows the weather of the point on show: a night is not a morning
   await openAtlas(page);
   const neutral = await skyVar(page);
   const day = await (async () => {
-    await page.goto("/atlas?mock=clear&at=12:00");
+    await page.goto("/?mock=clear&at=12:00");
     await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
     await expect.poll(() => skyVar(page), { timeout: 10_000 }).not.toBe(neutral);
     return skyVar(page);
   })();
-  await page.goto("/atlas?mock=clear&at=02:00");
+  await page.goto("/?mock=clear&at=02:00");
   await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
   await expect.poll(() => skyVar(page), { timeout: 10_000 }).not.toBe(neutral);
   const night = await skyVar(page);
@@ -362,7 +362,7 @@ test("the sky follows the weather of the point on show: a night is not a morning
 });
 
 test("the sky stays the previous one while the map moves, and the zoom sets how local it is once the map stops", async ({ page }) => {
-  await page.goto("/atlas?mock=heavy-rain&at=02:00");
+  await page.goto("/?mock=heavy-rain&at=02:00");
   await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("[data-atlas-point]")).toHaveAttribute("data-phase", "resting", { timeout: 15_000 });
   await page.waitForFunction(() => !!window.__atlas);
@@ -683,7 +683,7 @@ test("the field is asked for once on opening, never while the map moves, and aga
 
 test("a field that cannot be had leaves the map as it is, with no layer and no note", async ({ page }) => {
   await page.route("**/api/atlas/field*", (route) => route.fulfill({ status: 502, contentType: "application/json", body: '{"error":"x"}' }));
-  await page.goto("/atlas");
+  await page.goto("/");
   await expect(page.locator("[data-atlas-map]")).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
   await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(1500);
@@ -703,11 +703,11 @@ test("the map's own colours and layers can be changed and the field stays under 
   await page.getByRole("button", { name: "Torna agli automatici" }).click();
 });
 
-test("the home page is not the Atlas, and the Atlas is not offered to search engines", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.locator("[data-atlas]")).toHaveCount(0);
-  await expect(page.locator("canvas.mapboxgl-canvas")).toHaveCount(0);
-  await page.goto("/atlas");
+test("the home page is the atlas, offered to search engines; the test page is not", async ({ page }) => {
+  await openAtlas(page);
+  await expect(page.locator("[data-atlas]")).toHaveCount(1);
+  await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
+  await page.goto("/persistence-check");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
 });
 
@@ -783,10 +783,19 @@ test("three layers, one at a time: the choice is in the address and survives a r
 
 test("away from the region Territorio and Percorsi are off, and a line says why", async ({ page }) => {
   await page.route((url) => !["localhost", "127.0.0.1"].includes(url.hostname), (route) => route.abort());
-  await page.goto("/atlas?lat=41.9&lon=12.5");
+  await page.goto("/?lat=41.9&lon=12.5");
   await expect(page.locator("[data-atlas-point-reading]")).toBeVisible({ timeout: 30_000 });
   const layers = page.locator("[data-atlas-layers]");
   await expect(layers.getByRole("radio", { name: "Territorio" })).toBeDisabled();
   await expect(layers.getByRole("radio", { name: "Percorsi" })).toBeDisabled();
   await expect(page.locator("[data-atlas-layers-note]")).toContainText("per ora Piemonte e Alpi occidentali");
+});
+
+test("the old addresses land on the atlas, with their query", async ({ page }) => {
+  await page.route((url) => !["localhost", "127.0.0.1"].includes(url.hostname), (route) => route.abort());
+  await page.goto("/atlas?lat=44.41&lon=8.93&strato=territorio");
+  await expect(page).toHaveURL(/\/\?lat=44\.41&lon=8\.93&strato=territorio/);
+  await page.goto("/crea?lat=45.07&lon=7.69");
+  await expect(page).toHaveURL(/\/\?lat=45\.07&lon=7\.69/);
+  await expect(page.locator("[data-atlas-map]")).toBeAttached();
 });

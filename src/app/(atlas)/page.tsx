@@ -18,7 +18,7 @@ async function RouteQuery({ searchParams }: { searchParams: SearchParams }) {
 export default function AtlasPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
-      <h1>Esplora la mappa</h1>
+      <h1>Atlante del meteo</h1>
       <Suspense fallback={null}>
         <RouteQuery searchParams={searchParams} />
       </Suspense>

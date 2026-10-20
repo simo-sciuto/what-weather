@@ -1,15 +1,12 @@
 "use client";
 
 import { formatCell } from "@/lib/atlas/center";
-import { placeRefOf } from "@/lib/atlas/links";
-import { createHref, placeHref } from "@/lib/place";
 import { placeLabel } from "@/lib/atlas/place-label";
 import type { AtlasEngine } from "@/lib/atlas/engine";
 import { UNAVAILABLE_WORDS } from "@/lib/atlas/hours";
 import type { TimeStore } from "@/lib/atlas/time-store";
 import { formatTime } from "@/lib/weather/formatters";
 import type { CameraPort, FailureReason } from "@/types/atlas";
-import Link from "next/link";
 import { memo, useMemo, useRef, useSyncExternalStore } from "react";
 import { countRender } from "./atlas-test";
 import { useRestingZoom } from "./useRestingZoom";
@@ -20,9 +17,6 @@ import { viewOf } from "@/lib/atlas/hours";
 const TITLE = "line-clamp-2 text-balance text-[clamp(1.75rem,7vw,3.25rem)] leading-[1.02] tracking-tight";
 /** The page's own halo (the markers' pattern in globals.css), so the title reads over a bright or a busy map */
 const TITLE_SHADOW = { textShadow: "0 0 2px color-mix(in oklab, var(--sky-1) 85%, transparent), 0 0 14px color-mix(in oklab, var(--sky-1) 80%, transparent)" } as const;
-
-/** A way on, in the page's own manner (the home page's "Crea poster") */
-const WAY = "inline-flex items-baseline gap-3 font-display text-[0.9375rem] font-medium leading-none tracking-[-0.02em] transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent";
 
 const NONE = { status: null, point: null } as const;
 
@@ -126,17 +120,6 @@ export const PointReading = memo(function PointReading({ engine, port, store = n
             {when ? ` · ${when} ora locale` : ""}
           </p>
         </div>
-      ) : null}
-      {point && !failed ? (
-        // The way on from here: this place as a poster to keep, or as the weather page. A free point goes as its coordinates.
-        <nav aria-label="Da qui" data-atlas-ways className="pointer-events-auto mt-3 flex flex-col items-start gap-1.5" style={TITLE_SHADOW}>
-          <Link href={createHref(placeRefOf(point))} className={`${WAY} text-accent`}>
-            Crea il poster <span aria-hidden="true" className="font-sans text-base font-normal text-ink-muted">→</span>
-          </Link>
-          <Link href={placeHref(placeRefOf(point))} className={`${WAY} text-ink`}>
-            Il meteo del luogo <span aria-hidden="true" className="font-sans text-base font-normal text-ink-muted">→</span>
-          </Link>
-        </nav>
       ) : null}
       {failed ? (
         <div className="mt-2">

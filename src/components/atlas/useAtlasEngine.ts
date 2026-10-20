@@ -49,7 +49,7 @@ export function useAtlasEngine(port: CameraPort | null): { engine: AtlasEngine |
         // pushed only for the cell the search asked for; any point that arrives clears the flag
         const how = pushFor.current === `${point.cell.lat},${point.cell.lon}` ? "push" : "replace";
         pushFor.current = null;
-        startTransition(() => routerRef.current[how](`/atlas?${search}`, { scroll: false }));
+        startTransition(() => routerRef.current[how](`/?${search}`, { scroll: false }));
       },
     });
     setEngine(made);
