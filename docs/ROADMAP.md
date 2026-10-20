@@ -6,8 +6,9 @@ Already built and kept (no checkpoint): the point after a stop (ADR-022), the sk
 
 ## Now
 
-0. WTH-339 step 2 and 3: these docs, ADR-030, the design system. Waiting for the user's review.
-1. WTH-340: decouple the Atlas from the superseded tree (moves only, no visible change).
+Done on 2026-10-20: WTH-340, WTH-342 to WTH-348 (see BOARD.md DONE).
+
+1. WTH-339: the user's review of the docs, the design system and the atlas at `/`.
 2. WTH-341: data spike for Piedmont (extracts, sizes, Tiling Service, Open-Meteo call counting, LICENCES.md). No app code.
 
 ## The atlas

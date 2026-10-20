@@ -2,6 +2,12 @@
 
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
+## 2026-10-20 (the atlas built)
+- Worked on: the user's "implementiamolo": WTH-340 to WTH-348 and the review fixes, each checkpoint committed and pushed with its tests; the `weather-data` agent's verdict rules saved as `docs/VERDICT.md`.
+- Found: the router turns a native `replaceState` into a restore that discards a navigation in flight, so the address now has one writer; removing `app/loading.tsx` broke the labs' prerender (the boundary is kept, neutral); the e2e config asks for Google Chrome, absent here: a local, uncommitted config points at `/opt/pw-browsers/chromium`.
+- Not verified: the real Mapbox drawing, Safari, a phone, the live provider's budget.
+- Next: the user's look and decisions (PROJECT_STATE "Blocked"); WTH-341 needs network.
+
 ## 2026-10-20 (product reset, WTH-339)
 - Worked on: the user found the direction unconvincing and asked to restart from the basics. Market scan (web search only: this environment blocks direct page fetches), the user's choices (A with C, Piedmont and the western Alps, non-commercial, only the colour engine, Tavola superseded), proposals by `architect`, `ux-ui`, `frontend`, the new docs and the Claude Design system.
 - Found: this session's checkout was stale (2026-10-14) while the branch had moved to Tavola D3; the first draft of the docs was redone on the real code and its ids moved to ADR-030 and WTH-340+. The map is coloured by the weather field (temperature by place), not by one centre's sky; light ink over a bright field is unprotected (WTH-277).
@@ -26,9 +32,3 @@ Short diary of the last sessions, newest first. Keep to about five entries; cons
 - Then the map controls (WTH-273): the home's `MapPanelContent` extracted and reused. The panel as a column at the right on a computer, because the first version covered the crosshair.
 - Review of the search, flight and controls applied: Enter left armed after a search that found nothing, the history pushed for a point the search did not ask for (both mutation checked), the panel's Escape taking the search's, the search and the panel fighting for the right of the screen (the search puts the panel away), "La Spezia", the sheet on a phone no longer covers the crosshair.
 - Not verified: the geocoder's terms and cost, Safari, a real phone, how the flight looks (the user's).
-
-## 2026-10-15 (Atlas M5)
-- Worked on: M5 after the user's "prosegui": the point's sky from the home page's engine through the route, the zoom weight, `SkyDriver`, the map's inks, e2e for the sky (a night is not a morning, the sky holds while the map moves and the zoom sets it after the stop), a real run at Tokyo and Torino.
-- Found: the shell now renders five times per stop (router transition, new sky): the mark and the readout are memoised and the render test is tighter for them. A mutation check made the sky test fail when the zoom is read per frame.
-- Not verified: the look on a phone and on a computer (the user's), Safari, the dissolve of the markers and the map (WTH-270), the weights (WTH-271).
-- Next: the user's review; M6 (the instant across places) not started.
