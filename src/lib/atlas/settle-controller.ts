@@ -62,8 +62,8 @@ export type SettleController = {
   /** Asks again for the point that failed; false when nothing has failed */
   retry: () => boolean;
   /**
-   * Asks again for the point on show, so "Adesso" stays now on a page left open (WTH-359); only while the map rests and
-   * nothing is in flight or failed. False when there was nothing to ask for.
+   * Asks again for the point on show, so "Adesso" stays now on a page left open (WTH-359), or for the one that failed;
+   * only while the map rests and nothing is in flight. False when there was nothing to ask for.
    */
   refresh: () => boolean;
   /** Asks for a point on purpose (a search, a saved place, "Esplora qui"): no quiet, no wait */
@@ -248,8 +248,11 @@ export function createSettleController(options: SettleControllerOptions): Settle
     },
 
     refresh() {
-      if (disposed || !loaded || inflight || failed || phase !== "resting") return false;
-      commit(loaded, "refresh");
+      if (disposed || inflight || (phase !== "resting" && phase !== "failed")) return false;
+      // A point that failed is asked for again too: one lost answer must not stop the page from ever catching up
+      const cell = failed?.cell ?? loaded;
+      if (!cell) return false;
+      commit(cell, "refresh");
       return true;
     },
 

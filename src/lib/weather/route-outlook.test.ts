@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RouteWeatherHour, RouteWeatherSample } from "@/types/route";
-import { peakOutlook, windChill } from "./route-outlook";
+import { hourNear, peakOutlook, windChill } from "./route-outlook";
 
 /* WTH-354, docs/VERDICT.md: the summit's verdict, with the cases the weather-data agent set out. No network. */
 
@@ -112,5 +112,46 @@ describe("peakOutlook", () => {
       const words = [out.word, out.why ?? "", ...out.reasons.map((r) => r.text)].join(" ");
       expect(words).not.toMatch(/sicur|misurat/i);
     }
+  });
+  it("a summit with no known height has no verdict: never judged as if it stood at sea level", () => {
+    const out = peakOutlook(peak(2000), NOON, NOW, undefined, null);
+    expect(out.verdict).toBe("unknown");
+    expect(out.why).toContain("quota");
+  });
+
+  it("the summit's own height, not the cache's band of 100 m, is read against the freezing level", () => {
+    // sample asked at 3500 m, summit 3538 m: 3800 is under 3538 + 300
+    expect(peakOutlook(peak(3500, () => ({ freezingLevel: 3820 })), NOON, NOW).verdict).toBe("good");
+    expect(peakOutlook(peak(3500, () => ({ freezingLevel: 3820 })), NOON, NOW, undefined, 3538).verdict).toBe("caution");
+  });
+
+  it("rain of 1 mm/h or more in the way down is Non ora, and says the hour it falls", () => {
+    const out = peakOutlook(peak(2000, (h) => (h.time === NOON + 2 * H ? { precipitation: 1.4, precipProbability: 0.1 } : {})), NOON, NOW);
+    expect(out.verdict).toBe("no");
+    expect(out.reasons[0].factor).toBe("rain");
+    expect(out.reasons[0].text).toContain("1,4 mm/h");
+  });
+
+  it("snow anywhere in the summit's hour or the way down is Non ora", () => {
+    expect(peakOutlook(peak(2000, (h) => (h.time === NOON + 3 * H ? { snowfall: 0.5 } : {})), NOON, NOW).verdict).toBe("no");
+  });
+
+  it("a missing temperature is a critical missing value: Con riserva alone, no verdict with another", () => {
+    const one = peakOutlook(peak(2000, () => ({ temp: null })), NOON, NOW);
+    expect(one.verdict).toBe("caution");
+    expect(one.notEvaluated).toContain("temperatura");
+    expect(peakOutlook(peak(2000, () => ({ temp: null, windGust10m: null })), NOON, NOW).verdict).toBe("unknown");
+  });
+
+  it("an hour whose way down is past the end of the forecast has no verdict", () => {
+    const short = peak(2000);
+    short.hours = short.hours.filter((h) => h.time <= NOON + H);
+    expect(peakOutlook(short, NOON, NOW).verdict).toBe("unknown");
+  });
+
+  it("hourNear finds the hour within half an hour, or none", () => {
+    const { hours } = peak(2000);
+    expect(hourNear(hours, NOON + 20 * 60)?.time).toBe(NOON);
+    expect(hourNear([hours[0]], NOW + 2 * H)).toBeNull();
   });
 });

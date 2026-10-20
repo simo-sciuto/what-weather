@@ -1,9 +1,9 @@
 "use client";
 
 import { POINT_TIMEOUT_MS } from "@/constants/atlas";
-import type { SelectionStore } from "@/lib/atlas/selection";
+import type { Selection, SelectionStore } from "@/lib/atlas/selection";
 import type { TimeStore } from "@/lib/atlas/time-store";
-import { peakOutlook, type Verdict } from "@/lib/weather/route-outlook";
+import { hourNear, peakOutlook, type Verdict } from "@/lib/weather/route-outlook";
 import { createClock } from "@/lib/weather/clock";
 import type { RouteWeather } from "@/types/route";
 import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -36,7 +36,13 @@ const TONE: Record<Verdict, string> = {
   unknown: "text-[oklch(0.86_0_0)]",
 };
 
-type Load = { status: "loading" } | { status: "ready"; weather: RouteWeather } | { status: "failed" };
+/** What came back, and for which summit: an answer for another summit is never shown as this one's */
+type Load = { key: string } & ({ status: "ready"; weather: RouteWeather } | { status: "failed" });
+
+const keyOf = (peak: NonNullable<Selection>) => `${peak.name}|${peak.lat}|${peak.lon}`;
+
+/** A dialog open over the map (the search) owns Escape and the keyboard */
+const inDialog = (el: Element | null) => !!el?.closest("[role=dialog], dialog");
 
 /**
  * The card of a summit (WTH-351, WTH-352, WTH-354; EXPERIENCE.md section 2): its name and height, its weather at the
@@ -47,32 +53,38 @@ type Load = { status: "loading" } | { status: "ready"; weather: RouteWeather } |
 export const PeakCard = memo(function PeakCard({ selection, store }: { selection: SelectionStore; store: TimeStore }) {
   const peak = useSyncExternalStore(selection.subscribe, selection.get, () => null);
   const moment = useAtlasTime(store);
-  const [load, setLoad] = useState<Load>({ status: "loading" });
+  const [load, setLoad] = useState<Load | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-  const before = useRef<Element | null>(null);
+  const card = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!peak) return;
-    before.current = document.activeElement;
+    const before = document.activeElement;
+    const node = card.current;
     heading.current?.focus();
-    const abort = new AbortController();
-    const q = new URLSearchParams({ lat: String(peak.lat), lon: String(peak.lon), ele: String(peak.ele ?? 0) });
-    const mock = new URLSearchParams(window.location.search).get("mock");
-    if (mock) q.set("mock", mock);
-    queueMicrotask(() => setLoad({ status: "loading" }));
-    fetch(`/api/atlas/spot?${q}`, { signal: AbortSignal.any([abort.signal, AbortSignal.timeout(POINT_TIMEOUT_MS)]) })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((weather: RouteWeather) => setLoad(Array.isArray(weather?.samples) && weather.samples[0] ? { status: "ready", weather } : { status: "failed" }))
-      .catch(() => !abort.signal.aborted && setLoad({ status: "failed" }));
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (e.key !== "Escape" || e.defaultPrevented || inDialog(document.activeElement)) return;
       selection.set(null);
     };
     window.addEventListener("keydown", onKey);
+    const abort = new AbortController();
+    const key = keyOf(peak);
+    // Without the summit's height the model cannot be asked at it, and a valley's weather is never given as a summit's
+    if (peak.ele !== null) {
+      const q = new URLSearchParams({ lat: String(peak.lat), lon: String(peak.lon), ele: String(peak.ele) });
+      const mock = new URLSearchParams(window.location.search).get("mock");
+      if (mock) q.set("mock", mock);
+      fetch(`/api/atlas/spot?${q}`, { signal: AbortSignal.any([abort.signal, AbortSignal.timeout(POINT_TIMEOUT_MS)]) })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((weather: RouteWeather) => setLoad(Array.isArray(weather?.samples) && weather.samples[0] ? { key, status: "ready", weather } : { key, status: "failed" }))
+        .catch(() => !abort.signal.aborted && setLoad({ key, status: "failed" }));
+    }
     return () => {
       abort.abort();
       window.removeEventListener("keydown", onKey);
-      (before.current as HTMLElement | null)?.focus?.();
+      // The keyboard goes back where it was only if it was still in the card: never pulled out of where it went since
+      const now = document.activeElement;
+      if (!now || now === document.body || node?.contains(now)) (before as HTMLElement | null)?.focus?.();
     };
   }, [peak, selection]);
 
@@ -80,14 +92,18 @@ export const PeakCard = memo(function PeakCard({ selection, store }: { selection
   const [clock] = useState(() => createClock());
   const now = useSyncExternalStore(clock.subscribe, clock.getSnapshot, () => 0);
   const instant = moment.mode === "at" ? moment.instant : now;
-  const sample = load.status === "ready" ? load.weather.samples[0] : null;
-  const outlook = useMemo(() => (sample ? peakOutlook(sample, instant, now) : null), [sample, instant, now]);
+  const current = peak && load?.key === keyOf(peak) ? load : null;
+  const sample = current?.status === "ready" ? current.weather.samples[0] : null;
+  const summit = peak?.ele ?? null;
+  const outlook = useMemo(() => (sample ? peakOutlook(sample, instant, now, undefined, summit) : null), [sample, instant, now, summit]);
   if (!peak) return null;
-  const hour = sample?.hours.reduce((a, b) => (Math.abs(b.time - instant) < Math.abs(a.time - instant) ? b : a), sample.hours[0]);
-  const height = peak.ele ? `${Math.round(peak.ele)} m` : "quota non nota";
+  // The hour shown is the one the verdict read, within half an hour, or none
+  const hour = sample ? hourNear(sample.hours, instant) : null;
+  const height = peak.ele !== null ? `${Math.round(peak.ele)} m` : "quota non nota";
 
   return (
     <aside
+      ref={card}
       aria-labelledby="atlas-peak-title"
       data-atlas-peak
       className="pointer-events-auto absolute inset-x-2 bottom-[calc(var(--dock-room)+7.5rem)] z-30 max-h-[50dvh] overflow-y-auto rounded-[16px] bg-surface-2 p-4 text-ink shadow-[0_8px_24px_rgb(0_0_0/0.28)] lg:inset-x-auto lg:bottom-4 lg:right-4 lg:top-[max(4.5rem,calc(env(safe-area-inset-top)+4rem))] lg:max-h-none lg:w-[24rem]"
@@ -108,9 +124,14 @@ export const PeakCard = memo(function PeakCard({ selection, store }: { selection
         </button>
       </header>
       <hr className="my-3 border-white/14" />
-      {load.status === "loading" ? (
+      {peak.ele === null ? (
+        <div data-atlas-verdict="unknown" className={`grid grid-cols-[1.75rem_1fr] items-start gap-x-2 ${TONE.unknown}`}>
+          <Mark verdict="unknown" />
+          <p className="text-ink">La quota della cima non è nota: senza, il meteo in vetta non si può stimare.</p>
+        </div>
+      ) : !current ? (
         <p aria-busy="true" className="text-sm text-ink-muted">Carico il meteo in vetta.</p>
-      ) : load.status === "failed" || !outlook || !sample ? (
+      ) : current.status === "failed" || !outlook || !sample ? (
         <p role="status" className="text-sm">Il meteo in vetta non è arrivato. Chiudi e riprova.</p>
       ) : (
         <>
@@ -137,7 +158,7 @@ export const PeakCard = memo(function PeakCard({ selection, store }: { selection
           {outlook.notEvaluated.length ? <p className="mt-3 text-xs text-ink-muted">Non valutato: {outlook.notEvaluated.join(", ")}.</p> : null}
           <p className="mt-3 text-xs text-ink-muted">
             {outlook.certainty ? `Certezza: ${outlook.certainty}${outlook.indicative ? ", indicativo" : ""}. ` : ""}
-            {load.weather.provenance.source === "mock" ? "Dati di esempio." : "Fonte: Open-Meteo, modello."}
+            {current.weather.provenance.source === "mock" ? "Dati di esempio." : "Fonte: Open-Meteo, modello."}
           </p>
           <p className="mt-2 text-xs text-ink-muted">
             Lo stato della neve e il pericolo valanghe non li valutiamo. Non sostituisce il bollettino di ARPA Piemonte né le notizie sul sentiero.

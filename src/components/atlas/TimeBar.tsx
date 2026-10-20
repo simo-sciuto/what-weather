@@ -1,7 +1,7 @@
 "use client";
 
 import type { AtlasEngine } from "@/lib/atlas/engine";
-import { hourAt } from "@/lib/atlas/hours";
+import { dayStep, hourAt } from "@/lib/atlas/hours";
 import type { TimeStore } from "@/lib/atlas/time-store";
 import { NOW_SELECTION } from "@/lib/weather/instant";
 import { memo, useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
@@ -21,7 +21,6 @@ function formats(timezone: string) {
     short: (t: number) => `${day.format(t * 1000)}, ${time.format(t * 1000)}`,
     spoken: (t: number) => spoken.format(t * 1000).replace(/ (\d{1,2})$/, ", ore $1"),
     key: (t: number) => key.format(t * 1000),
-    hour: (t: number) => time.format(t * 1000),
   };
 }
 
@@ -38,6 +37,7 @@ export const TimeBar = memo(function TimeBar({ engine, store }: { engine: AtlasE
   const selection = useAtlasTime(store);
   const [focused, setFocused] = useState(false);
   const hours = useMemo(() => point?.hours ?? [], [point]);
+  const times = useMemo(() => hours.map((h) => h.time), [hours]);
   const f = useMemo(() => formats(point?.timezone ?? "Europe/Rome"), [point?.timezone]);
 
   const last = Math.max(0, hours.length - 1);
@@ -68,16 +68,11 @@ export const TimeBar = memo(function TimeBar({ engine, store }: { engine: AtlasE
   };
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     // A day on or back is the same hour on the place's clock, also across the change of the clocks (a 25-hour day)
-    const dayFrom = (dir: 1 | -1) => {
-      const at = hours[shown].time;
-      const target = f.key(at + dir * DAY * 3600);
-      const found = hours.findIndex((h) => f.key(h.time) === target && f.hour(h.time) === f.hour(at));
-      return found >= 0 ? found : shown + dir * DAY;
-    };
-    const keys: Record<string, number> = { PageUp: dayFrom(1), PageDown: dayFrom(-1), Home: 0, End: last };
+    const dayFrom = (dir: 1 | -1) => dayStep(times, shown, dir, point.timezone);
+    const keys: Record<string, () => number> = { PageUp: () => dayFrom(1), PageDown: () => dayFrom(-1), Home: () => 0, End: () => last };
     if (!(e.key in keys)) return;
     e.preventDefault();
-    choose(keys[e.key]);
+    choose(keys[e.key]());
   };
 
   return (

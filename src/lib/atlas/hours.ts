@@ -50,3 +50,19 @@ export const UNAVAILABLE_WORDS: Record<Exclude<UnavailableReason, "daily-only">,
   "no-frames": "Qui la previsione non ha ore.",
   invalid: "Quest'ora non si legge.",
 };
+
+/**
+ * The index of the same hour on the place's clock a calendar day on or back (the time bar's Page Up and Page Down),
+ * counted on the date and not in 24 hours, so a 23- or 25-hour day at the change of the clocks lands on the right day.
+ * When that day has no such hour (02:00 on the spring change) or is not in the hours, 24 places on or back.
+ */
+export function dayStep(times: readonly number[], index: number, dir: 1 | -1, timezone: string): number {
+  const key = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: timezone });
+  const hour = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: timezone });
+  const at = times[index];
+  const [y, m, d] = key.format(at * 1000).split("-").map(Number);
+  const target = new Date(Date.UTC(y, m - 1, d + dir)).toISOString().slice(0, 10);
+  const wanted = hour.format(at * 1000);
+  const found = times.findIndex((t) => key.format(t * 1000) === target && hour.format(t * 1000) === wanted);
+  return found >= 0 ? found : index + dir * 24;
+}

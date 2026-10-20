@@ -1,4 +1,4 @@
-import type { Condition, Intensity } from "./weather";
+import type { Condition, Intensity } from "@/types/weather";
 
 /**
  * The weather at given heights along a route or at a summit (ADR-031, docs/VERDICT.md): not the weather of a place

@@ -79,20 +79,31 @@ export function windChill(temp: number, windKmh: number): number {
   return 13.12 + 0.6215 * temp - 11.37 * v + 0.3965 * temp * v;
 }
 
+/** The hour that answers an instant, within half an hour; none otherwise (never another hour's weather) */
+export const hourNear = (hours: readonly RouteWeatherHour[], t: number) => nearest(hours, t);
+
 const nearest = (hours: readonly RouteWeatherHour[], t: number) => {
   let best: RouteWeatherHour | null = null;
   for (const h of hours) if (Math.abs(h.time - t) <= HOUR_SECONDS / 2 && (!best || Math.abs(h.time - t) < Math.abs(best.time - t))) best = h;
   return best;
 };
 
-export function peakOutlook(sample: RouteWeatherSample, instant: number, now: number, timezone = "Europe/Rome"): PeakOutlook {
+/**
+ * `summit` is the summit's own height when the map knows it: the sample's height is the cache's band of 100 m, the
+ * verdict reads the real one (the freezing level against 3538 m, not 3500).
+ */
+export function peakOutlook(sample: RouteWeatherSample, instant: number, now: number, timezone = "Europe/Rome", summit: number | null = sample.ele): PeakOutlook {
   const unknown = (why: string, notEvaluated: string[] = []): PeakOutlook => ({ verdict: "unknown", word: VERDICT_WORDS.unknown, reasons: [], notEvaluated, certainty: null, indicative: false, why });
+  if (summit === null || !Number.isFinite(summit)) return unknown("La quota della cima non è nota: il meteo in vetta non si può stimare.");
+  const ele = summit;
   if (instant < now - HOUR_SECONDS) return unknown("Quest'ora è già passata.");
   const leadHours = (instant + 3 * HOUR_SECONDS - now) / HOUR_SECONDS;
   if (leadHours > THRESHOLDS.lead[2]) return unknown("Oltre 3 giorni le previsioni in montagna non bastano per decidere.");
   const at = nearest(sample.hours, instant);
   if (!at) return unknown("Per quest'ora qui non c'è un'ora di previsione.");
   const window = sample.hours.filter((h) => h.time >= at.time && h.time <= at.time + 3 * HOUR_SECONDS);
+  // The way down must be in the forecast too: an hour near its end is not judged on half of it
+  if (!sample.hours.some((h) => h.time >= at.time + 3 * HOUR_SECONDS)) return unknown("La previsione non arriva alle ore della discesa.");
 
   const notEvaluated: string[] = [];
   const reasons: Reason[] = [];
@@ -115,22 +126,34 @@ export function peakOutlook(sample: RouteWeatherSample, instant: number, now: nu
     else if (top >= THRESHOLDS.cape[0]) add("storm", "caution", "Aria instabile: possibili temporali isolati, il modello non sa dire dove.");
   }
 
-  // Rain and snow
-  const rainy = window.map((h) => ({ h, p: finite(h.precipProbability) ? h.precipProbability : null, mm: finite(h.precipitation) ? h.precipitation : null }));
-  const worstRain = rainy.reduce((a, b) => ((b.p ?? 0) > (a.p ?? 0) ? b : a), rainy[0]);
+  // Rain and snow, hour by hour over the summit's hour and the way down: each hour judged on its own numbers
   const wetCode = (h: RouteWeatherHour) => h.condition === "rain" || h.condition === "drizzle" || h.condition === "snow" || h.condition === "thunderstorm";
-  if (rainy.some((r) => (r.mm ?? 0) >= THRESHOLDS.rainAmount) || ((worstRain.p ?? 0) >= THRESHOLDS.rainProbability[1] && wetCode(worstRain.h)))
-    add("rain", "no", `Pioggia probabile (${round((worstRain.p ?? 1) * 100)}%) verso le ${hhmm(worstRain.h.time, timezone)}.`);
-  else if ((worstRain.p ?? 0) >= THRESHOLDS.rainProbability[0] || window.some(wetCode))
-    add("rain", "caution", `Qualche possibilità di pioggia (${round((worstRain.p ?? 0) * 100)}%) verso le ${hhmm(worstRain.h.time, timezone)}.`);
-  if (!finite(at.snowfall)) notEvaluated.push("neve");
-  else if (at.snowfall > THRESHOLDS.snowfall) add("snow", "no", `Neve prevista in vetta verso le ${hhmm(at.time, timezone)}.`);
+  const rainLevel = (h: RouteWeatherHour): Level => {
+    const p = finite(h.precipProbability) ? h.precipProbability : 0;
+    const mm = finite(h.precipitation) ? h.precipitation : 0;
+    if (mm >= THRESHOLDS.rainAmount || (p >= THRESHOLDS.rainProbability[1] && wetCode(h))) return "no";
+    return p >= THRESHOLDS.rainProbability[0] || wetCode(h) ? "caution" : "ok";
+  };
+  const rank = { ok: 0, caution: 1, no: 2 } as const;
+  const wettest = window.reduce((a, h) => (rank[rainLevel(h)] > rank[rainLevel(a)] || (rainLevel(h) === rainLevel(a) && (h.precipProbability ?? 0) > (a.precipProbability ?? 0)) ? h : a), window[0]);
+  const rainLevelThere = rainLevel(wettest);
+  if (rainLevelThere !== "ok") {
+    const p = finite(wettest.precipProbability) ? ` (${round(wettest.precipProbability * 100)}%)` : "";
+    const mm = finite(wettest.precipitation) && wettest.precipitation >= THRESHOLDS.rainAmount ? `, ${wettest.precipitation.toFixed(1).replace(".", ",")} mm/h` : "";
+    add("rain", rainLevelThere, `${rainLevelThere === "no" ? "Pioggia probabile" : "Qualche possibilità di pioggia"}${p}${mm} verso le ${hhmm(wettest.time, timezone)}.`);
+  }
+  const snows = window.filter((h) => finite(h.snowfall));
+  if (snows.length === 0) notEvaluated.push("neve");
+  else {
+    const snowy = snows.find((h) => h.snowfall! > THRESHOLDS.snowfall);
+    if (snowy) add("snow", "no", `Neve prevista in vetta verso le ${hhmm(snowy.time, timezone)}.`);
+  }
 
   // Wind
   if (!finite(at.windGust10m)) notEvaluated.push("raffiche");
   else if (at.windGust10m >= THRESHOLDS.gust[1]) add("wind", "no", `Raffiche fino a ${round(at.windGust10m)} km/h, dal modello a quota più bassa: in cresta possono essere più forti.`);
   else if (at.windGust10m >= THRESHOLDS.gust[0]) add("wind", "caution", `Raffiche sui ${round(at.windGust10m)} km/h, dal modello a quota più bassa.`);
-  if (sample.ele >= THRESHOLDS.freeWindFrom) {
+  if (ele >= THRESHOLDS.freeWindFrom) {
     if (!finite(at.freeWind)) notEvaluated.push("vento in quota");
     else if (at.freeWind >= THRESHOLDS.freeWind[1]) add("wind", "no", `Vento in quota sui ${round(at.freeWind)} km/h, stimato in quota.`);
     else if (at.freeWind >= THRESHOLDS.freeWind[0]) add("wind", "caution", `Vento in quota sui ${round(at.freeWind)} km/h, stimato in quota.`);
@@ -138,26 +161,30 @@ export function peakOutlook(sample: RouteWeatherSample, instant: number, now: nu
 
   // Freezing level against the summit
   if (!finite(at.freezingLevel)) notEvaluated.push("zero termico");
-  else if (at.freezingLevel < sample.ele + THRESHOLDS.freezingMargin)
-    add("freezing", "caution", `Zero termico a ${round(at.freezingLevel / 50) * 50} m, ${at.freezingLevel < sample.ele ? "sotto" : "appena sopra"} la vetta (${round(sample.ele)} m): possibile neve o ghiaccio in quota.`);
+  else if (at.freezingLevel < ele + THRESHOLDS.freezingMargin)
+    add("freezing", "caution", `Zero termico a ${round(at.freezingLevel / 50) * 50} m, ${at.freezingLevel < ele ? "sotto" : "appena sopra"} la vetta (${round(ele)} m): possibile neve o ghiaccio in quota.`);
 
   // Cold with the wind
-  if (sample.ele >= THRESHOLDS.coldFrom && finite(at.temp)) {
-    const wind = Math.max(at.windGust10m ?? 0, at.freeWind ?? 0) * 0.7;
+  if (!finite(at.temp)) notEvaluated.push("temperatura");
+  else if (ele >= THRESHOLDS.coldFrom) {
+    // The larger of the two winds, the free-air one only where it counts (docs/VERDICT.md)
+    const wind = Math.max(at.windGust10m ?? 0, ele >= THRESHOLDS.freeWindFrom ? (at.freeWind ?? 0) : 0);
     const chill = windChill(at.temp, wind);
     if (chill <= THRESHOLDS.chill[1]) add("cold", "no", `In vetta circa ${round(at.temp)}°, col vento sembrano ${round(chill)}° (calcolato).`);
     else if (chill <= THRESHOLDS.chill[0]) add("cold", "caution", `In vetta circa ${round(at.temp)}°, col vento sembrano ${round(chill)}° (calcolato).`);
   }
 
   // Low cloud on a high summit
-  if (sample.ele >= THRESHOLDS.cloudFrom) {
-    if (!finite(at.lowCloud)) notEvaluated.push("nubi basse");
-    else if (at.lowCloud >= THRESHOLDS.lowCloud || (finite(at.visibility) && at.visibility < 1) || at.condition === "fog")
+  if (ele >= THRESHOLDS.cloudFrom) {
+    const low = finite(at.lowCloud) && at.lowCloud >= THRESHOLDS.lowCloud;
+    const blind = (finite(at.visibility) && at.visibility < 1) || at.condition === "fog";
+    if (!finite(at.lowCloud) && !finite(at.visibility)) notEvaluated.push("nubi basse");
+    if (low || blind)
       add("visibility", "caution", `Nubi basse in quota verso le ${hhmm(at.time, timezone)}: il sentiero può essere difficile da seguire.`);
   }
 
   reasons.sort((a, b) => (a.level === b.level ? ORDER.indexOf(a.factor) - ORDER.indexOf(b.factor) : a.level === "no" ? -1 : 1));
-  const critical = ["zero termico", "raffiche", "vento in quota"].filter((n) => notEvaluated.includes(n));
+  const critical = ["zero termico", "raffiche", "vento in quota", "temperatura"].filter((n) => notEvaluated.includes(n));
   const verdict: Verdict = reasons.some((r) => r.level === "no") ? "no" : reasons.length || critical.length ? "caution" : "good";
   if (critical.length >= 2) return unknown("Mancano troppi dati per decidere.", notEvaluated);
 
@@ -166,7 +193,7 @@ export function peakOutlook(sample: RouteWeatherSample, instant: number, now: nu
   let step = leadHours <= THRESHOLDS.lead[0] ? 0 : leadHours <= THRESHOLDS.lead[1] ? 1 : 2;
   if (notEvaluated.length) step++;
   if (capes.some((c) => c >= THRESHOLDS.cape[0])) step++;
-  if (sample.ele > 2500) step++;
+  if (ele > 2500) step++;
   return {
     verdict,
     word: VERDICT_WORDS[verdict],

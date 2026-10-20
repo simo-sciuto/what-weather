@@ -3,7 +3,7 @@
 Short diary of the last sessions, newest first. Keep to about five entries; consolidated state goes in PROJECT_STATE.md.
 
 ## 2026-10-20 (the atlas built)
-- Worked on: the user's "implementiamolo": WTH-340 to WTH-348 and the review fixes, each checkpoint committed and pushed with its tests; the `weather-data` agent's verdict rules saved as `docs/VERDICT.md`.
+- Worked on: the user's "implementiamolo": WTH-340 to WTH-348, WTH-359, the summits (peaks layer, card, verdict, ADR-031) and two rounds of review fixes, each checkpoint committed and pushed with its tests; the `weather-data` agent's verdict rules saved as `docs/VERDICT.md`.
 - Found: the router turns a native `replaceState` into a restore that discards a navigation in flight, so the address now has one writer; removing `app/loading.tsx` broke the labs' prerender (the boundary is kept, neutral); the e2e config asks for Google Chrome, absent here: a local, uncommitted config points at `/opt/pw-browsers/chromium`.
 - Not verified: the real Mapbox drawing, Safari, a phone, the live provider's budget.
 - Next: the user's look and decisions (PROJECT_STATE "Blocked"); WTH-341 needs network.

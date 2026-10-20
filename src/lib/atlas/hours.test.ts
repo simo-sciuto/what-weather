@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AtlasHour, AtlasPoint, PointSky } from "@/types/atlas";
 import { NOW_SELECTION } from "@/lib/weather/instant";
-import { hourAt, viewOf } from "./hours";
+import { dayStep, hourAt, viewOf } from "./hours";
 import { createTimeStore } from "./time-store";
 
 const SKY: PointSky = {
@@ -87,5 +87,27 @@ describe("createTimeStore", () => {
     leave();
     store.set(NOW_SELECTION);
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe("dayStep (the time bar's Page Up and Page Down)", () => {
+  // Rome, Sunday 25 October 2026: clocks go back at 03:00, a 25-hour day
+  const start = Date.UTC(2026, 9, 24, 13) / 1000; // Saturday 24, 15:00 in Rome
+  const times = Array.from({ length: 96 }, (_, i) => start + i * 3600);
+  const rome = (t: number) => new Intl.DateTimeFormat("en-GB", { weekday: "short", hour: "2-digit", hourCycle: "h23", timeZone: "Europe/Rome" }).format(t * 1000).replace(",", "");
+
+  it("lands on the same hour of the next and previous calendar day across the change of the clocks", () => {
+    expect(rome(times[0])).toBe("Sat 15");
+    const sunday = dayStep(times, 0, 1, "Europe/Rome");
+    expect(rome(times[sunday])).toBe("Sun 15");
+    expect(sunday).toBe(25);
+    const monday = dayStep(times, sunday, 1, "Europe/Rome");
+    expect(rome(times[monday])).toBe("Mon 15");
+    expect(dayStep(times, monday, -1, "Europe/Rome")).toBe(sunday);
+  });
+
+  it("23:00 on the 25-hour day goes to 23:00 on Monday, not to 22:00 the same day", () => {
+    const late = times.findIndex((t) => rome(t) === "Sun 23");
+    expect(rome(times[dayStep(times, late, 1, "Europe/Rome")])).toBe("Mon 23");
   });
 });
