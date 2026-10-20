@@ -10,6 +10,8 @@ Set by the user 2026-10-04 (ROADMAP.md, ADR-013): Visual Weather Records. Free d
 
 Hypothesis added by the user 2026-10-14 (ADR-018): the map itself may be the product (an interactive atmospheric atlas), posters a complementary function. Under study and to be tested with more people (WTH-225 to WTH-227); the Create redesign is frozen on its own branch, outside `main`.
 
+Reset asked by the user 2026-10-20 (WTH-237): the current direction is not convincing; restart usage, layout and features from the basics, keeping weather data, maps, the colour engine and the Atlas foundation. Step 1, the market scan, is done (`docs/research/MARKET_SCAN.md`); the user chooses a direction before the docs reset. Until then ADR-013 and ADR-018 stand on paper.
+
 ## Phase
 Feature-complete first version, shipped (13 commits, 2026-09-24 to 2026-10-01). Entering refinement.
 

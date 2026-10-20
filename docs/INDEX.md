@@ -18,6 +18,7 @@ CLAUDE.md (loaded automatically), docs/PROJECT_STATE.md, docs/BOARD.md
 | Selling records, licences, providers' terms (ADR-013, WTH-166) | LICENCES.md, DECISIONS.md |
 | The validation page and its sample records (WTH-167) | RECORDS_SAMPLES.md, LICENCES.md |
 | Planning, "what next" | ROADMAP.md, BOARD.md |
+| The product reset (WTH-237): comparable products, data sources, candidate directions | research/MARKET_SCAN.md |
 | "What did we do" | CHANGELOG.md, SESSION_LOG.md |
 
 Then code: only the files of the current task and the abstractions they use directly.
