@@ -6,7 +6,7 @@ Items marked (audit) were noticed while reading the code on 2026-10-01, not requ
 
 ## NOW
 
-- [ ] WTH-237 Product reset (user, 2026-10-20): rethink usage, layout and features from the basics, keeping weather data, maps, the colour engine and the Atlas foundation. Steps, each closed by the user: (1) market scan, done, `docs/research/MARKET_SCAN.md`, waiting for the user's choice of direction; (2) documentation reset; (3) design system in Claude Design; (4) code reset. Overrides CLAUDE.md rule 1 with the user's approval, to be recorded as an ADR in step 2.
+- [ ] WTH-339 Product reset (user, 2026-10-20): rethink usage, layout and features from the basics, keeping weather data, maps, the colour engine and the Atlas foundation. Steps, each closed by the user: (1) market scan, done, `docs/research/MARKET_SCAN.md`, waiting for the user's choice of direction; (2) documentation reset; (3) design system in Claude Design; (4) code reset. Overrides CLAUDE.md rule 1 with the user's approval, to be recorded as an ADR in step 2.
 - [x] WTH-046 Weather Visual Engine. High-priority product/engineering epic after WTH-012: evolve the existing procedural visual engine into the shared visual language of Visual Weather Records, `PLACE + TIME + WEATHER -> VISUAL RECORD`. V1 (the static system) complete on 2026-10-04: A to L done, the atmosphere is the palette of the page, its map and the poster; the user approved the look after comparing it on a phone. WTH-046M is PARKED, outside V1. Plan, foundations, overlapping tasks and acceptance principles: `docs/WEATHER_VISUAL_ENGINE.md` ("V1 plan").
 
 ```text
