@@ -73,7 +73,7 @@ Shared structure: header (kind, name, a short fact line, close), the weather at 
 | Loading | Header at once (the name comes from the map feature), quiet empty lines, "Carico il meteo di questo punto", `aria-busy` |
 | Partial | What is there, what is missing and what changes: "Il vento in quota non c'è: la risposta tiene conto solo di pioggia e zero termico." Certainty one step lower |
 | Error | Header kept, one sentence, "Riprova" (the settle controller's `retry`, ADR-020) |
-| Instant unavailable | The reason in words (ADR-019) and the nearest instant that works: "Per sabato 1 c'è solo il riepilogo del giorno, non le ore." [Vai a venerdì 31 ore 15] |
+| Instant unavailable | The reason in words (ADR-019) and the nearest instant that works: "Oltre martedì 27 non ci sono previsioni." [Vai a martedì 27 ore 23]. With Open-Meteo (8 days, all hourly) the only case is beyond the horizon; a provider that gives some days as summaries only would add "Per quel giorno c'è solo il riepilogo, non le ore." |
 
 ### Route card, "È un buon momento per andarci?" (illustrative values)
 
@@ -139,9 +139,9 @@ Today the field and the point are "now" only. Until the hourly field (WTH-345) a
 
 - Reading: "Adesso, mar 20 ore 15"; "Vicino a Bobbio Pellice" (a free point, named by zoom, ADR-024); "Fermati un attimo per leggere il meteo di questo punto."; "Carico il meteo di questo punto."
 - Layers: "Meteo", "Territorio", "Percorsi"; "I percorsi si vedono da più vicino. Avvicinati per vederli."
-- Time: "Adesso", "Torna ad adesso", "oggi", "domani", "sab 24"; "Più avanti la previsione è meno sicura."; "Oltre il 3 novembre non ci sono previsioni."
+- Time: "Adesso", "Torna ad adesso", "oggi", "domani", "sab 24"; "Più avanti la previsione è meno sicura."; "Oltre martedì 27 non ci sono previsioni."
 - Search: "Cerca un luogo, una cima, un sentiero"; "Nessun risultato per «Rocciamelon». Prova con un altro nome."
 - Verdict: "È un buon momento per andarci?", "È un buon momento per salirci?", "Buon momento.", "Con riserva.", "Non ora.", "Non si può ancora dire.", "Meglio partire alle 6: in vetta prima del vento delle 12."
-- Provenance: "stimato in quota", "dal modello", "misurato"; "Certezza: media. Mancano 2 giorni e il modello vede la montagna a maglie di 2 km."
+- Provenance: "stimato in quota", "dal modello" ("misurato" only for a real observation, never from `Frame.measured`, which means "a provider's own point", WTH-221); "Certezza: media. Mancano 2 giorni e il modello vede la montagna a maglie di 2 km."
 - Safety: "Non sostituisce il bollettino di ARPA Piemonte né le notizie sul sentiero."
 - States: "Il meteo non è arrivato. Riprova."; "Qui intorno non ci sono percorsi segnati."; "12 luoghi qui intorno".

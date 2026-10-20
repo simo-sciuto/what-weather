@@ -2,7 +2,7 @@ import { DEFAULT_MAP_OPTIONS, type MapOption } from "@/lib/map-options";
 import { MAP_TUNING } from "@/lib/map-tuning";
 import { mapInksFor } from "@/lib/weather/palette";
 import type { SkyPalette } from "@/types/palette";
-import { activeLayers } from "../weather/map-style";
+import { activeLayers } from "@/lib/map/map-style";
 
 /** The layers a poster is drawn with: the page's own, whatever Explore was left at (WTH-243) */
 export const POSTER_MAP_OPTIONS: readonly MapOption[] = DEFAULT_MAP_OPTIONS;

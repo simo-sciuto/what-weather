@@ -14,4 +14,4 @@ Rules:
 - A rewrite proposal states: current problem, why the architecture is insufficient, alternative, migration cost, risks, benefit. Then waits for the user.
 - A new dependency needs a justification the existing stack cannot meet.
 - If a change spans more than one significant part of the architecture, say so and propose a checkpoint instead of a plan for all of it.
-- Check docs/ARCHITECTURE.md against the code; report where it is stale.
+- docs/ARCHITECTURE.md is the target architecture (ADR-030): report where the code diverges from its section 1 (the core as built) or from a checkpoint already marked done; the rest is still to build, not stale. The code as it was before the reset is described in docs/archive/ARCHITECTURE_tavola.md.

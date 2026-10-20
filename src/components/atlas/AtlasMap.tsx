@@ -9,7 +9,7 @@ import type { CameraEvent, PointSky } from "@/types/atlas";
 import type { Mapbox } from "@/types/map";
 import type { Map as MapboxMap, StyleSpecification } from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
-import { STYLE, syncMap } from "../weather/map-style";
+import { STYLE, syncMap } from "@/lib/map/map-style";
 import { useAtlasMapLook } from "./atlas-look";
 import { ATLAS_TEST_MAP, countRender } from "./atlas-test";
 

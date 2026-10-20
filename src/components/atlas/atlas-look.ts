@@ -6,7 +6,7 @@ import { mapTuningSnapshot, parseMapTuning, subscribeMapTuning, type MapTuning }
 import type { PointSky } from "@/types/atlas";
 import type { SkyPalette } from "@/types/palette";
 import { useMemo, useSyncExternalStore, type CSSProperties } from "react";
-import { activeLayers } from "../weather/map-style";
+import { activeLayers } from "@/lib/map/map-style";
 
 /**
  * How the Atlas looks, from the pieces the home page already has: the atmosphere's palette (`atmospherePalette`) over

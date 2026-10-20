@@ -8,6 +8,9 @@ import { formatTime, localDay } from "./formatters";
  * Pure: no clock, no React, every input passed in.
  */
 
+/** The selection of the live reading; one object, so setting it again changes nothing */
+export const NOW_SELECTION: TimeSelection = { mode: "now" };
+
 /** What a place's forecast offers: its hours and days, and the IANA zone its days and labels are counted in */
 export type InstantSource = {
   timeline: Pick<Timeline, "frames" | "days">;

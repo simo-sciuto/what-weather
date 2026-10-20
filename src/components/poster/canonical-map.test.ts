@@ -6,7 +6,7 @@ import { buildTimeline } from "@/lib/weather/frames";
 import { mapInksFor } from "@/lib/weather/palette";
 import { frameLook } from "@/lib/weather/look";
 import type { SkyPalette } from "@/types/palette";
-import { activeLayers } from "../weather/map-style";
+import { activeLayers } from "@/lib/map/map-style";
 import { POSTER_MAP_OPTIONS, posterMapPalette } from "./canonical-map";
 
 /** The palette the page draws its map with, from what the browser has stored (`useMapPalette`'s own steps) */

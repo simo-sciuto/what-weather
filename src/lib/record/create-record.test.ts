@@ -16,7 +16,7 @@ import {
   sourceOf,
   type CreateRecord,
 } from "./create-record";
-import { weatherCredit } from "./credits";
+import { weatherCredit } from "@/lib/credits";
 
 const NOW = Date.parse("2026-10-04T10:00:00Z") / 1000;
 beforeEach(() => {

@@ -4,7 +4,7 @@ import { fingerprintKey, fingerprintOf } from "@/lib/weather/fingerprint";
 import { frameLook } from "@/lib/weather/look";
 import { createMockProvider } from "@/lib/api/providers/mock";
 import { getRecordComposition } from "@/lib/record/compose";
-import { weatherCredit } from "@/lib/record/credits";
+import { weatherCredit } from "@/lib/credits";
 import { metricsFor } from "@/lib/record/metrics";
 import type { Measure } from "@/lib/record/types";
 import { posterSnapshot, recordClock, recordInputOf } from "./usePosterSnapshot";

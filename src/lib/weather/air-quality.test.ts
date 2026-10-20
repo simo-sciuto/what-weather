@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { airIndexOf, airInfo, AQI_LABELS } from "./details";
+import { airIndexOf } from "./air-quality";
+import { airInfo, AQI_LABELS } from "./details";
 import { toAirQuality, type OWAirPollution } from "@/lib/api/providers/openweather-transformers";
 import type { Pollutants } from "@/types/weather";
 

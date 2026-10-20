@@ -4,7 +4,7 @@ import { fetchPlaces } from "@/lib/api/places";
 import { placeSubtitle } from "@/lib/weather/formatters";
 import type { Place } from "@/types/weather";
 import { useEffect, useId, useRef, useState } from "react";
-import { SearchIcon } from "../location/LocationSearch";
+import { SearchIcon } from "../icons/SearchIcon";
 
 type Results = { query: string; status: "loading" | "done" | "error"; places: Place[] };
 

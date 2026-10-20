@@ -5,7 +5,7 @@ import type { SkyPalette } from "@/types/palette";
 import { useEffect, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GLASS } from "../layout/glass";
-import { MapPanelContent, RESET_LINK, useResetMap } from "../weather/MapControls";
+import { MapPanelContent, RESET_LINK, useResetMap } from "./MapPanel";
 import { ACTION_LABELS } from "@/constants/labels";
 import { ATLAS_PALETTE, useAtlasMapLook } from "./atlas-look";
 

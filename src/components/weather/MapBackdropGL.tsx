@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMoment } from "../time/TimeContext";
 import { useMapOptions, useMapPalette } from "./MapControls";
 import { useMap } from "./MapContext";
-import { STYLE, syncMap } from "./map-style";
+import { STYLE, syncMap } from "@/lib/map/map-style";
 import { BASE_ZOOM, currentView, phoneMap } from "./map-view";
 
 type Pin = { x: number; y: number };

@@ -6,11 +6,10 @@ Reset on 2026-10-20 (WTH-339, ADR-030). The board before the reset, with every i
 
 ## NOW
 
-- [ ] WTH-339 Product reset (user, 2026-10-20): an atmospheric atlas of Piedmont and the western Alps (ADR-030), keeping the weather data, the colour engine, the map style and the Atlas. (1) Market scan, done (`docs/research/MARKET_SCAN.md`). (2) Docs, written with the `architect`, `ux-ui` and `frontend` agents on the real code (`a08157c`): VISION, PRINCIPLES, EXPERIENCE, DESIGN_SYSTEM, ARCHITECTURE, ROADMAP, ADR-030; old docs in `docs/archive/`; waiting for the user's review. (3) Design system "what-weather Atlante" in Claude Design, first version; waiting for the user's review (its surfaces to measure again against the field, WTH-342). (4) The code: WTH-340 onwards.
+- [ ] WTH-339 Product reset (user, 2026-10-20): an atmospheric atlas of Piedmont and the western Alps (ADR-030), keeping the weather data, the colour engine, the map style and the Atlas. (1) Market scan, done 2026-10-20 (`docs/research/MARKET_SCAN.md`). (2) Docs, written with the `architect`, `ux-ui` and `frontend` agents on the real code (`a08157c`): VISION, PRINCIPLES, EXPERIENCE, DESIGN_SYSTEM, ARCHITECTURE, ROADMAP, ADR-030; old docs in `docs/archive/`; waiting for the user's review. (3) Design system "what-weather Atlante" in Claude Design, first version; waiting for the user's review (its surfaces to measure again against the field, WTH-342). (4) The code: WTH-340 onwards.
 
 ## NEXT
 
-- [ ] WTH-340 Decouple the Atlas from the superseded tree, moves only, no visible change (ARCHITECTURE.md section 2 "Move first"): `map-style.ts` to `src/lib/map/`, `MapPanelContent` and `useResetMap` to `components/atlas/MapPanel.tsx`, `SearchIcon`, `weatherCredit` to `src/lib/credits.ts`, `airIndexOf` to `air-quality.ts`, `NOW_SELECTION` next to `instant.ts`. Atlas e2e and touched unit tests green.
 - [ ] WTH-341 Data spike for Piedmont, no app code: run the extracts (Overpass, Wikidata, elevation) in scratch, counts and sizes, a Mapbox Tiling Service trial, Open-Meteo call counting for point, field, spot and route (with WTH-269); update LICENCES.md (non-commercial, ODbL publication). Needs network access this cloud environment lacks, or a local run.
 - [ ] WTH-342 UI tokens in code, scoped to the Atlas shell: `uiTokens(sky, fieldInView)`, one CSS-variable writer (closes WTH-262), `@property` for the other colours (part of WTH-270), one exported `contrastRatio`, surfaces tested against field colours (WTH-277). Measure again the design system's surface alphas.
 - [ ] WTH-343 Time, data side: `AtlasPoint.frames` (additive contract change, needs the user's word), `timeStore`, `resolveSelection` per point, `frameLook` on the client, the relief's sun at the instant and the point (today Torino's now, `AtlasMap.tsx`), `t` in the address, the unavailable state, the field labelled "adesso" when `t` is set.
@@ -51,6 +50,9 @@ Reset on 2026-10-20 (WTH-339, ADR-030). The board before the reset, with every i
 - [ ] WTH-005 (audit) Performance audit (frame payload size, Mapbox bundle, first paint on phone).
 - [ ] WTH-007 (audit) PWA: manifest exists; offline and install behaviour not verified.
 
+- [ ] WTH-312 (from the C1 review, not started) The address's `t` and a kept record's `t` share one range (`MIN_INSTANT`, `MAX_INSTANT`); a `t` equal to the first hour opens live ("Adesso") as in Create: decide in C2 whether the Bar says so. `withMoment` rewrites the other parameters with `URLSearchParams` (a space reads `+`), same meaning.
+- [ ] WTH-300 The home logs React's "two children with the same key" for the day key 2026-10-25 (the day the summer time ends, 25 hours long) in dev, on `main`'s code, not the Atlas's; the Next dev badge shows "1 Issue". Find the list that keys days by `dayKey` and make the key unique (found 2026-10-19 while walking Explore to Atlas to Create).
+
 ## DONE
 
-- [x] WTH-339 step 1, market scan (2026-10-20): `docs/research/MARKET_SCAN.md`.
+- [x] WTH-340 Decouple the Atlas from the superseded tree (2026-10-20): moves only, see ARCHITECTURE.md section 2. Typecheck, lint, 561 unit tests of the touched areas, 58 e2e (atlas, atlas phone, tavola) green.

@@ -10,7 +10,7 @@ Status: target architecture of the atmospheric atlas (ADR-030), from the `archit
 - `src/lib/weather-page.ts`: private `"use cache"` `load(lat, lon, scenario, at)` keyed without names (ADR-029 item 8, stands); `weatherFor(ref, scenario?, at?)` is the one entry. `loadWeatherPage`, `landingPlace`, `Landing` go with the old home.
 - `roundCoord` (`coordinates.ts`) and `cellOf` (`src/lib/atlas/cell.ts`): the shared cache key.
 - `frames.ts` and its imports (`best-window`, `days`, `moments`, `state`, `sun`, `atmospheric-data`, `formatters`); `activities.ts` and `best-window.ts` feed the verdict.
-- Production source: Open-Meteo by configuration, because the field is always Open-Meteo and the reading under the crosshair must not come from another source (ADR-005's reasoning). Lost: OpenWeather's alerts and minutely data (WTH-356).
+- Production source: Open-Meteo by configuration, because the field is always Open-Meteo and the reading under the crosshair must not come from another source (ADR-005's reasoning). Today `get-provider.ts` still picks `openweather` when its key is set; the switch is configuration. Lost: OpenWeather's alerts and its minute-by-minute rain (Open-Meteo keeps `minutely_15`), WTH-356; place naming still calls OpenWeather when its key is present (WTH-188).
 - `HistoricalProvider` and `openmeteo-archive.ts` stay in code with no caller (ADR-016).
 
 ### Colour engine, the only identity (ADR-007, ADR-011, ADR-012, ADR-026)
@@ -18,7 +18,7 @@ Status: target architecture of the atmospheric atlas (ADR-030), from the `archit
 - Temperature: `temp-color.ts` (`tempColor`, `tempAccent`, `tempGradient`).
 - Field: `src/lib/atlas/field-color.ts` (`fieldColor`), which deliberately bypasses `atmospherePalette`.
 - Regression net: `calibration.ts`, its invariants, `/lab/atmosfera`. CSS: `@property --sky-1..3`, `.atmosphere`.
-- Two places compute colour on the server against ADR-007: the point route (`frameLook(frames[0])`) and the field route (`fieldColor`). Both move to the client when time arrives (section 3).
+- Places that compute colour on the server against ADR-007 and stay: the point route (`frameLook(frames[0])`) and the field route (`fieldColor`). Both move to the client when time arrives (section 3).
 
 ### Map style
 - `src/components/weather/map-style.ts` (`STYLE`, `syncMap`, `OPTION_LAYERS` with relief and contours, `activeLayers`) moves to `src/lib/map/map-style.ts` (WTH-340).
@@ -32,7 +32,7 @@ Status: target architecture of the atmospheric atlas (ADR-030), from the `archit
 - Names: `reverse-geocode.ts`, `place-label.ts` (free points are named by zoom, ADR-024).
 - Field: `lattice.ts`, `field-loader.ts`, `field-image.ts`, `field-color.ts`, `sources/weather-field.ts`, `/api/atlas/field`, `WeatherFieldLayer` (up to 48 places, about 48 Open-Meteo calls per fresh lattice, "now" only).
 - Shell: `app/atlas/layout.tsx` with `AtlasShell` (map made once, camera out of React), `AtlasMap`, `Crosshair`, `CenterReadout`, `PointReading`, `AtlasSearch`, `AtlasMapPanel`.
-- Tests: `atlas-test.ts`, `e2e/atlas.spec.ts` (35), `atlas-phone.spec.ts` (5).
+- Tests: `atlas-test.ts`, `e2e/atlas.spec.ts` (33), `atlas-phone.spec.ts` (5).
 
 ### Place facts and search
 - `/api/places`, `lib/api/places.ts`, `lib/place.ts` (`parsePlaceRef`, `placeQuery`, `placeHref`; `createHref` goes).
@@ -47,8 +47,10 @@ Status: target architecture of the atmospheric atlas (ADR-030), from the `archit
 | `MapPanelContent`, `useResetMap`, `RESET_LINK` in `components/weather/MapControls.tsx` | `AtlasMapPanel` | `components/atlas/MapPanel.tsx` |
 | `SearchIcon` in `LocationSearch.tsx` | `AtlasSearch` | a small icons module |
 | `weatherCredit` in `lib/record/credits.ts` | `TavolaPage` today, the attribution later | `src/lib/credits.ts` |
-| `airIndexOf` in `lib/weather/details.ts` | `openmeteo.ts` | `lib/weather/air-quality.ts` with its test |
+| `airIndexOf` in `lib/weather/details.ts` | `openmeteo.ts` | `lib/weather/air-quality.ts` (its test already has that name) |
 | `NOW_SELECTION` in `moment-selection.ts` | `moment-address.ts` | next to `instant.ts` |
+
+Done 2026-10-20 (WTH-340): `map-style.ts` is `src/lib/map/map-style.ts`; `MapPanelContent`, `useResetMap`, `RESET_LINK`, `useMapTuning`, `useMapOptions` are `components/atlas/MapPanel.tsx` (re-exported by `MapControls.tsx` for the old home); `SearchIcon` is `components/icons/SearchIcon.tsx`; `weatherCredit` is `src/lib/credits.ts`; `airIndexOf` and the pollutant bands are `lib/weather/air-quality.ts`; `NOW_SELECTION` is in `instant.ts`. `GLASS` stays in `components/layout/glass.ts` until WTH-342.
 
 ### At the cutover (WTH-347)
 Remove `AtlasDock` from `AtlasShell`, the "Crea il poster" and "Il meteo del luogo" links from `PointReading`, `WordmarkLink`; move `/atlas/persistence-check` into the group.
@@ -60,7 +62,7 @@ Not before: on this branch the poster is wired into the Tavola (`CreaSection`, `
 - Tavola and sections: `components/{tavola,nav,bar}/`, `lib/sections.ts`, the `.dock*` CSS once the LayerSwitch has its own.
 - Create, Keep, poster, record: `components/{create,keep,poster,record}/`, `lib/{keep,record}/`, `RecordLab.tsx`, `scripts/record/`, `public/fonts/record/`, `lib/weather/{fingerprint,typography}.ts`, `constants/map.ts`. The browsers' `weather:kept` and `weather:saved-places` are simply no longer read.
 - Explainer and analytics: `components/{explainer,analytics}/`, `lib/{explainer,analytics}/` (a placeholder with no service; any measurement of the atlas is a new decision).
-- Old home: `components/weather/*` except the moved `map-style.ts` and the kept `WeatherIcon` and `Disclosure`; `components/{time,location}/*`; `components/layout/glass.ts`.
+- Old home: `components/weather/*` except the moved `map-style.ts` and the kept `WeatherIcon` and `Disclosure`; `components/{time,location}/*`; `components/layout/glass.ts` only once WTH-342's tokens have replaced it in `AtlasMapPanel`.
 - Lib modules only the old home uses: `narrative`, `precipitation`, `details`, `moon`, `today`, `curve`, `cloud-render`, `pollutants`, `bloom`, `random-places`, `random-city`, `moment-selection`, `moment`, `moment-keys` (after the TimeBar takes what it needs), `moment-label`, `resolveAddressMoment`, `yesterday`, `saved-places`, `recent-places`, `lib/api/{summary,random-place,clouds}.ts`, `sources/{cloud-grid,nearby,random-city}.ts`, `city-facts.ts` after the extract scripts copy its queries, `map-view.ts`.
 - e2e: `tavola`, `create`, `create-moment`, `path`, `explainer`, `phone`, `reading`, `timeline`, `week`, `details`, `activities`, `places`. The atlas specs stay with new paths.
 - Kept: `days`, `moments`, `best-window`, `activities`, `state`, `sun`, `sun-position`, `conditions`, `formatters`, `regions`.

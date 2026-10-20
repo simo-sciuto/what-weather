@@ -9,7 +9,7 @@ import { TimeProvider } from "@/components/time/TimeContext";
 import { TimeScrubber } from "@/components/time/TimeScrubber";
 import { PrecipitationTimeline } from "@/components/weather/PrecipitationTimeline";
 import { MapProvider } from "@/components/weather/MapContext";
-import { weatherCredit } from "@/lib/record/credits";
+import { weatherCredit } from "@/lib/credits";
 import { SiteFooter } from "@/components/weather/SiteFooter";
 import { Chapter } from "@/components/weather/Chapter";
 import { DetailsBand } from "@/components/weather/DetailsBand";

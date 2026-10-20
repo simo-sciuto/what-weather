@@ -4,7 +4,7 @@ import { inkOverSky } from "@/lib/weather/palette";
 import type { SunPosition } from "@/lib/weather/sun-position";
 import type { Mapbox } from "@/types/map";
 import type { MapLayer, SkyPalette } from "@/types/palette";
-import { STYLE, syncMap } from "../weather/map-style";
+import { STYLE, syncMap } from "@/lib/map/map-style";
 import { BASE_ZOOM } from "../weather/map-view";
 import { PosterError, mapFailureOf, webglAvailable } from "@/lib/record/poster-errors";
 import { seaGrid } from "./sea-grid";

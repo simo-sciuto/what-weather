@@ -1,7 +1,7 @@
 import { MAX_INSTANT, MIN_INSTANT } from "@/constants/moment";
 import { momentStart, type MomentStart } from "./moment";
 import { resolveInstant, type InstantSource } from "./instant";
-import { NOW_SELECTION } from "./moment-selection";
+import { NOW_SELECTION } from "./instant";
 import type { TimeSelection, UnavailableReason } from "@/types/time";
 
 /**

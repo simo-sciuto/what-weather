@@ -3,7 +3,7 @@ import { HOUR_SECONDS, DAY_SECONDS } from "@/constants/time";
 import { atmosphericData } from "@/lib/weather/atmospheric-data";
 import { GEOCODE_REVALIDATE_SECONDS, WEATHER_REVALIDATE_SECONDS } from "@/constants/cache";
 import { isWet } from "@/lib/weather/conditions";
-import { airIndexOf } from "@/lib/weather/details";
+import { airIndexOf } from "@/lib/weather/air-quality";
 import { roundCoord } from "@/lib/weather/coordinates";
 import { WeatherProviderError, loadFresh, lookupPlace } from "./openweather";
 import type { WeatherProvider } from "./provider";

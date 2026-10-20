@@ -1,11 +1,11 @@
 # PRINCIPLES
 
-Status: proposal of 2026-10-20 (WTH-339, step 2), from the `ux-ui` agent and the market scan. Becomes binding when the user approves the docs reset. Replaces the identity and principles of the archived PRODUCT.md.
+Status: of 2026-10-20 (WTH-339), from the `ux-ui` agent and the market scan; in force as written, amended by the user's review. Replaces the identity and principles of the archived PRODUCT.md.
 
 Each principle has an example and the reason. A design or code change that breaks one must say which and why.
 
 1. **The map is the page. Panels borrow space and give it back.**
-   Example: tapping the Rocciamelone opens the card at half height; the map moves the peak into the part still visible, and closing the card puts the camera back.
+   Example: tapping the Rocciamelone opens the card at half height over the map; the camera does not move, so the point being read does not change, and closing the card gives the space back.
    Why: exploring is the product (VISION.md). A panel that stays open turns the atlas back into a page with a map as decoration.
 
 2. **One layer, one question.**
@@ -13,7 +13,7 @@ Each principle has an example and the reason. A design or code change that break
    Why: Windy and Ventusky have 50 layers but draw one at a time (MARKET_SCAN.md). Three choices, one at a time, keeps three kinds of data calm.
 
 3. **Time moves everything together.**
-   Example: dragging the time bar to "gio 8:00" changes at once the map's colour, the light on the relief, the reading and the verdict of the open card.
+   Example: dragging the time bar to "gio 8:00" changes together the map's colour, the light on the relief, the reading and the verdict of the open card.
    Why: every weather map makes time its main control; seeing the whole territory change is the gap the scan found.
 
 4. **Colour first, numbers to confirm, words to decide.**
@@ -29,7 +29,7 @@ Each principle has an example and the reason. A design or code change that break
    Why: AllTrails sells conditions along a route as a dense premium list; our edge is an answer read in three seconds.
 
 7. **Calm by default.**
-   Example: nothing moves unless the person moves it; no autoplay, no notifications, no alarm colours on the map; a red band only for an official warning, quoted with its source.
+   Example: nothing moves unless the person moves it; no autoplay, no notifications, no alarm colours on the map (verdict marks in a card are not map colours); a red band only for an official warning, quoted with its source.
    Why: the tone of the product, and respect for reduced motion.
 
 8. **Everything on the map can be reached without the map.**

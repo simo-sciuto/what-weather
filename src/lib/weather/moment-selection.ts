@@ -1,6 +1,7 @@
 import type { TimeSelection } from "@/types/time";
 import type { DayTimeline, Frame, Timeline } from "@/types/timeline";
 import { clamp } from "@/utils/math";
+import { NOW_SELECTION } from "./instant";
 
 /**
  * The home page's moment, as a selection (ADR-019). The scrubber and the week speak in indices into the frames on
@@ -12,8 +13,8 @@ import { clamp } from "@/utils/math";
  *  - a day's own view never holds "Adesso".
  */
 
-/** The selection of the live reading; one object, so setting it again changes nothing */
-export const NOW_SELECTION: TimeSelection = { mode: "now" };
+/** Re-exported for the home page's callers; the value lives with the instant helpers */
+export { NOW_SELECTION };
 
 /** Opening a day lands on its middle */
 export const DAY_OPENS_AT = 12;
