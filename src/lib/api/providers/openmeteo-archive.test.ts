@@ -3,7 +3,6 @@ import fixture from "../../../../test/fixtures/archive-milano-2003-08.json";
 import berlin from "../../../../test/fixtures/archive-berlin-1989-11.json";
 import washington from "../../../../test/fixtures/archive-washington-1963-08.json";
 import mumbai from "../../../../test/fixtures/archive-mumbai-2003-08.json";
-import { fingerprintOf } from "@/lib/weather/fingerprint";
 import { buildTimeline } from "@/lib/weather/frames";
 import { frameLook } from "@/lib/weather/look";
 import { MIN_AGE_DAYS, archiveModel, openMeteoArchiveProvider, reconstructionConfidence } from "./openmeteo-archive";
@@ -209,8 +208,8 @@ describe("the weather of the record", () => {
   });
 });
 
-describe("a record through the engine", () => {
-  it("runs through the timeline, the look and the fingerprint: a hot, clear, dry noon with its provenance", async () => {
+describe("a past hour through the engine", () => {
+  it("runs through the timeline and the look: a hot, clear, dry noon with its provenance", async () => {
     const data = await openMeteoArchiveProvider.getAt(45.46, 9.19, HOUR, milan);
     const { frames, days } = buildTimeline(data);
     expect(frames[0].time).toBe(HOUR);
@@ -222,28 +221,6 @@ describe("a record through the engine", () => {
     expect(look.atmosphere.haze).toBeLessThan(0.45);
     expect(look.atmosphereInputStatus.visibility).toBe("missing");
     expect(look.atmosphereInputStatus.uvIndex).toBe("missing");
-    const fp = fingerprintOf({ atmosphere: look.atmosphere, inputStatus: look.atmosphereInputStatus }, frames[0].light);
-    // The provenance is in the key: visibility and UV are not among what the axes rest on
-    expect(fp.basis).not.toContain("v");
-    expect(fp.basis).not.toContain("u");
-    expect(fp.basis).toContain("t");
-    expect(fp.basis).toContain("h");
-    expect(fp.warmth).toBeGreaterThan(60);
-    expect(fp.cloud).toBeLessThan(10);
-  });
-
-  it("makes the same fingerprint every time: the DNA of the 11 August 2003 noon in Milan", async () => {
-    const key = async () => {
-      const data = await openMeteoArchiveProvider.getAt(45.46, 9.19, HOUR, milan);
-      const f = buildTimeline(data).frames[0];
-      const look = frameLook(f);
-      return fingerprintOf({ atmosphere: look.atmosphere, inputStatus: look.atmosphereInputStatus }, f.light);
-    };
-    const [a, b] = [await key(), await key()];
-    expect(a).toEqual(b);
-    expect(a.severity).toBe(0);
-    expect(a.wet).toBe(0);
-    expect(a.snow).toBe(0);
   });
 });
 

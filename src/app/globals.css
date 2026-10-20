@@ -222,11 +222,6 @@ body {
   line-height: 0.86;
 }
 
-/* The temperature, in the same face as the name (ADR-015) */
-.display-figure {
-  font-family: var(--font-display-face), var(--font-poster);
-  font-weight: 500;
-}
 /* On a phone the name's lines sit closer still */
 @media (width < 64rem) {
   .display-caps {
@@ -550,192 +545,18 @@ body {
   }
 }
 
-/* ---------- The bar (ADR-029): the only glass of the app ---------- */
+/* ---------- The atlas's foot ---------- */
 
 /*
- * The room the page leaves at its foot for the bar: its height, its distance from the edge and a margin (a phone's 64 +
- * the safe area or 12 + 16; a computer's 108). The page's end, the Atlas's readouts and Mapbox's own controls rise by it.
+ * The room under the time bar (set on the atlas's shell: the safe area, or 12 px) and the controls stacked over it:
+ * the time bar, then the layer switch. Mapbox's logo and attribution sit above both, clear of them.
  */
 :root {
-  --dock-bottom: max(12px, env(safe-area-inset-bottom));
-  --dock-room: calc(64px + var(--dock-bottom) + 16px);
+  --dock-room: max(12px, env(safe-area-inset-bottom));
 }
-@media (width >= 64rem) {
-  :root {
-    --dock-bottom: 24px;
-    --dock-room: 108px;
-  }
-}
-/* Mapbox's logo and attribution stay clear of the bar (the Atlas draws them at the foot of the screen) */
 [data-atlas] .mapboxgl-ctrl-bottom-left,
 [data-atlas] .mapboxgl-ctrl-bottom-right {
-  bottom: var(--dock-room);
-}
-
-/*
- * The capsule: 350 x 64 at 20 from the sides on a phone, 360 x 60 at 24 from the foot on a computer. Nothing here
- * that filters, fades or moves: the blur lives on `.dock-glass`, a sibling of the drop and of the links and never their
- * parent, as a filter, an opacity or a transform on an ancestor of the blurred layer makes it blur nothing.
- */
-.dock {
-  position: fixed;
-  z-index: 40;
-  inset-inline: 0;
-  bottom: var(--dock-bottom);
-  margin-inline: auto;
-  width: min(350px, calc(100% - 40px));
-  height: 64px;
-  /* Its name for the change of section (D4): the bar stays where it is while the page changes under it */
-  view-transition-name: dock;
-}
-@media (width >= 64rem) {
-  .dock {
-    width: 360px;
-    height: 60px;
-  }
-}
-.dock-glass {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  pointer-events: none;
-  /* Light along the top, over the sky's own colour deepened to at least 0.5 (the least that holds 4.5 to 1 under white text) */
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.04) 40%),
-    color-mix(in oklab, color-mix(in oklab, var(--sky-1) 45%, #0c0f25) 58%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(1.8) brightness(1.04);
-  backdrop-filter: blur(16px) saturate(1.8) brightness(1.04);
-  border: 1px solid rgb(255 255 255 / 0.34);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.55),
-    inset 0 -1px 0 rgb(0 0 0 / 0.14),
-    0 12px 32px rgb(0 0 0 / 0.28);
-}
-.dock-list {
-  position: relative;
-  display: flex;
-  height: 100%;
-  margin: 0;
-  padding: 4px;
-  list-style: none;
-}
-.dock-cell {
-  display: flex;
-  flex: 1 1 0;
-  min-width: 0;
-}
-.dock-item {
-  position: relative;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border-radius: 999px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  text-decoration: none;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
-  -webkit-tap-highlight-color: transparent;
-}
-.dock-item svg {
-  width: 24px;
-  height: 24px;
-  flex: none;
-  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.3));
-}
-.dock-item[aria-current="page"] {
-  font-weight: 700;
-}
-@media (width >= 64rem) {
-  .dock-item {
-    flex-direction: row;
-    gap: 8px;
-    font-size: 15px;
-  }
-  .dock-item svg {
-    width: 20px;
-    height: 20px;
-  }
-}
-/* The drop of lighter glass under the current section (still in D3; D4 moves it) */
-.dock-drop {
-  position: absolute;
-  inset: 0 4px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.24);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.6),
-    inset 0 0 0 1px rgb(255 255 255 / 0.12);
-  opacity: 0;
-}
-.dock-item[aria-current="page"] .dock-drop {
-  opacity: 1;
-}
-@media (hover: hover) {
-  .dock-item:not([aria-current="page"]):hover .dock-drop {
-    opacity: 0.4;
-  }
-}
-/* A double ring, white inside and dark outside, that shows on the glass */
-.dock-item:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: -3px;
-  box-shadow: 0 0 0 1px rgb(10 15 40 / 0.8);
-}
-/* No blur in the browser: the same capsule, opaque at 88% */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .dock-glass {
-    background: color-mix(in oklab, color-mix(in oklab, var(--sky-1) 45%, #0c0f25) 88%, transparent);
-    box-shadow: none;
-  }
-}
-/* Less transparency, or more contrast, asked for: opaque at 94% with a full edge, no blur */
-@media (prefers-reduced-transparency: reduce) {
-  .dock-glass {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    background: color-mix(in oklab, color-mix(in oklab, var(--sky-1) 45%, #0c0f25) 94%, transparent);
-    border-color: rgb(255 255 255 / 0.9);
-    box-shadow: none;
-  }
-}
-@media (prefers-contrast: more) {
-  .dock-glass {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    background: color-mix(in oklab, color-mix(in oklab, var(--sky-1) 45%, #0c0f25) 94%, transparent);
-    border-color: rgb(255 255 255 / 0.9);
-    box-shadow: none;
-  }
-}
-/* Forced colours: the system's, and the current section underlined, not only coloured */
-@media (forced-colors: active) {
-  .dock-glass {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    background: Canvas;
-    border: 1px solid CanvasText;
-    box-shadow: none;
-  }
-  .dock-item {
-    color: CanvasText;
-    text-shadow: none;
-  }
-  .dock-item svg {
-    filter: none;
-  }
-  .dock-drop {
-    display: none;
-  }
-  .dock-item[aria-current="page"] .dock-label {
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 4px;
-  }
+  bottom: calc(var(--dock-room) + 7.5rem);
 }
 
 /* The search, as it folds into its button and unfolds again */
